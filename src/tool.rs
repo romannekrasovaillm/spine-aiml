@@ -8,7 +8,9 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use serde_json::Value;
@@ -44,6 +46,98 @@ pub struct AskRequest {
     pub reply: oneshot::Sender<String>,
 }
 
+/// Живой снапшот прогресса инструмента (для TUI: «что происходит прямо
+/// сейчас» — хвост вывода долгой команды). Best-effort: снапшоты могут
+/// пропускаться и опаздывать, на логику агента не влияют никак.
+#[derive(Debug, Clone)]
+pub struct ToolProgress {
+    /// Имя инструмента (как в реестре: `bash`, `web_fetch`, …).
+    pub name: String,
+    /// Хвост вывода: последние строки (без маркеров исхода), уже усечён.
+    pub tail: String,
+    /// Сколько секунд инструмент уже работает.
+    pub elapsed_secs: u64,
+}
+
+/// Периодичность живых снапшотов вывода для TUI (best-effort).
+pub(crate) const PROGRESS_INTERVAL: Duration = Duration::from_millis(700);
+/// Лимит живого хвоста вывода, символов: TUI показывает «что сейчас»,
+/// а не полный лог — храним только самый свежий конец.
+pub(crate) const PROGRESS_TAIL_CHARS: usize = 1500;
+
+/// Кольцевой хвост живого вывода процесса (потоки вывода вперемешку по
+/// времени прибытия). Разделяется читателями pipe и репортером прогресса.
+#[derive(Default)]
+pub(crate) struct TailBuffer {
+    /// Накопленный текст (подрезан спереди по границе строки).
+    text: String,
+}
+
+impl TailBuffer {
+    /// Добавляет кусок вывода (lossy UTF-8) и подрезает буфер спереди.
+    pub(crate) fn push(&mut self, chunk: &[u8]) {
+        self.text.push_str(&String::from_utf8_lossy(chunk));
+        if self.text.len() > PROGRESS_TAIL_CHARS {
+            let mut cut = self.text.len() - PROGRESS_TAIL_CHARS;
+            // Режем по границам char и строки: полусимвол/полустрока слева
+            // читабельности не дают.
+            while !self.text.is_char_boundary(cut) {
+                cut += 1;
+            }
+            if let Some(nl) = self.text[cut..].find('\n') {
+                cut += nl + 1;
+            }
+            self.text.drain(..cut.min(self.text.len()));
+        }
+    }
+
+    /// Текущий снапшот хвоста.
+    pub(crate) fn snapshot(&self) -> &str {
+        &self.text
+    }
+}
+
+/// Запускает репортер живого прогресса: раз в [`PROGRESS_INTERVAL`] шлёт
+/// снапшот хвоста как [`ToolProgress`], пока `done` не взведён (вызывающий
+/// взводит по завершении процесса). Выходит также, если UI-получатель ушёл.
+pub(crate) fn spawn_progress_reporter(
+    tx: mpsc::UnboundedSender<ToolProgress>,
+    name: &str,
+    tail: Arc<Mutex<TailBuffer>>,
+    done: Arc<AtomicBool>,
+    started: Instant,
+) -> tokio::task::JoinHandle<()> {
+    let name = name.to_string();
+    tokio::spawn(async move {
+        let mut last = String::new();
+        loop {
+            tokio::time::sleep(PROGRESS_INTERVAL).await;
+            if done.load(Ordering::Relaxed) {
+                break;
+            }
+            let snap = tail
+                .lock()
+                .map(|t| t.snapshot().to_string())
+                .unwrap_or_default();
+            if snap.is_empty() || snap == last {
+                continue;
+            }
+            last = snap.clone();
+            if tx
+                .send(ToolProgress {
+                    name: name.clone(),
+                    tail: snap,
+                    elapsed_secs: started.elapsed().as_secs(),
+                })
+                .is_err()
+            {
+                // UI ушёл (выход из TUI): слать больше некому.
+                break;
+            }
+        }
+    })
+}
+
 /// Контекст вызова инструмента.
 #[derive(Clone)]
 pub struct ToolContext {
@@ -61,6 +155,9 @@ pub struct ToolContext {
     pub provider: Option<Arc<dyn crate::llm::LlmProvider>>,
     /// Реестр фоновых субагентов (общий между сессией и слэш-командами).
     pub subagents: Option<crate::subagent::SubagentRegistry>,
+    /// Канал живого прогресса инструментов (TUI). None — headless-режим:
+    /// инструменты не тратят силы на снапшоты вывода в никуда.
+    pub progress: Option<mpsc::UnboundedSender<ToolProgress>>,
 }
 
 impl ToolContext {
@@ -74,6 +171,7 @@ impl ToolContext {
             ask: None,
             provider: None,
             subagents: None,
+            progress: None,
         }
     }
 
@@ -102,6 +200,13 @@ impl ToolContext {
     #[must_use]
     pub fn with_subagents(mut self, registry: crate::subagent::SubagentRegistry) -> Self {
         self.subagents = Some(registry);
+        self
+    }
+
+    /// Подключает канал живого прогресса инструментов (TUI).
+    #[must_use]
+    pub fn with_progress(mut self, progress: mpsc::UnboundedSender<ToolProgress>) -> Self {
+        self.progress = Some(progress);
         self
     }
 

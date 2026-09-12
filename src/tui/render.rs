@@ -19,16 +19,52 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::assets;
 
-use super::app::{App, ChatBlock, Panels, RightTab, Screen, ToastLevel, ToolState};
+use super::app::{App, ChatBlock, Panels, RightTab, Screen, ToastLevel, ToolLive, ToolState};
 use super::text::{markdown_lines, wrap_line};
 use super::theme::Theme;
 
 /// Ширина правой колонки (вкладки).
-const RIGHT_WIDTH: u16 = 34;
+const RIGHT_WIDTH: u16 = 42;
 /// Максимум строк блока «мысли» в диалоге (компактность; хвост — счётчиком).
 const MAX_THINKING_LINES: usize = 6;
 /// Замедление пульса «модель думает»: кадр раз в N тиков тикера (120 мс).
 const PULSE_TICK_DIVISOR: usize = 4;
+/// Хвост живого вывода в блоке инструмента: строк максимум.
+const TOOL_TAIL_LINES: usize = 3;
+/// Хвост живого вывода: символов в строке максимум (дальше — «…»).
+const TOOL_TAIL_LINE_CHARS: usize = 110;
+
+/// Длительность как `M:SS` (до часа) или `H:MM:SS` — для живых таймеров
+/// («модель думает · 1:23», «выполняется: bash · 0:42»).
+pub(crate) fn fmt_elapsed(secs: u64) -> String {
+    if secs >= 3600 {
+        format!("{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
+    } else {
+        format!("{}:{:02}", secs / 60, secs % 60)
+    }
+}
+
+/// Обрезает строку до `max` символов, добавляя «…» при усечении.
+fn truncate_chars(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        return s.to_string();
+    }
+    let cut: String = s.chars().take(max.saturating_sub(1)).collect();
+    format!("{cut}…")
+}
+
+/// Грубая оценка токенов и скорости стрима, (токены, ток/с): 4 байта ≈
+/// 1 токен — та же конвенция, что `ChatMessage::rough_tokens`; скорость
+/// считается с 0,5 с стрима (раньше — шум деления на миллисекунды).
+fn stream_tok_rate(bytes: usize, secs: f64) -> (usize, usize) {
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    let rate = if secs >= 0.5 {
+        (bytes as f64 / secs / 4.0) as usize
+    } else {
+        0
+    };
+    (bytes / 4, rate)
+}
 
 /// Ширина правой колонки: под широкий mermaid-арт панель растёт (до 60%
 /// терминала), чтобы схема помещалась целиком, без горизонтального клипа.
@@ -643,7 +679,7 @@ fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
             while end < app.blocks.len() && matches!(app.blocks[end], ChatBlock::Tool { .. }) {
                 end += 1;
             }
-            for line in tool_run_lines(&app.blocks[idx..end], theme) {
+            for line in tool_run_lines(&app.blocks[idx..end], idx, &app.tool_live, theme) {
                 lines.extend(wrap_line(&line, inner_w));
             }
             lines.push(Line::default());
@@ -835,8 +871,15 @@ const TOOL_RUN_MAX_VISIBLE: usize = 6;
 
 /// Одна строка вызова инструмента: маркер состояния + имя + краткое действие
 /// (путь/команда/запрос — приглушённо). Пользователь видит, ЧТО делает агент,
-/// ценой одной строки на вызов.
-fn tool_item_line(name: &str, action: &str, state: ToolState, theme: &Theme) -> Line<'static> {
+/// ценой одной строки на вызов. У выполняющегося вызова — живой таймер
+/// (`· N:SS`): долгая команда перестаёт выглядеть зависанием.
+fn tool_item_line(
+    name: &str,
+    action: &str,
+    state: ToolState,
+    running_secs: Option<u64>,
+    theme: &Theme,
+) -> Line<'static> {
     let (mark, color) = match state {
         ToolState::Running => (theme.glyphs.running(), theme.orange),
         ToolState::Ok => (theme.glyphs.ok(), theme.green),
@@ -850,6 +893,12 @@ fn tool_item_line(name: &str, action: &str, state: ToolState, theme: &Theme) -> 
     if !action.is_empty() {
         spans.push(Span::styled(format!(" {action}"), theme.muted()));
     }
+    if let (ToolState::Running, Some(secs)) = (state, running_secs) {
+        spans.push(Span::styled(
+            format!(" · {}", fmt_elapsed(secs)),
+            theme.muted(),
+        ));
+    }
     Line::from(spans)
 }
 
@@ -857,8 +906,15 @@ fn tool_item_line(name: &str, action: &str, state: ToolState, theme: &Theme) -> 
 /// до [`TOOL_RUN_MAX_VISIBLE`] строк; при превышении — первые два, счётчик
 /// скрытых и последние три. Итог показываем только у последнего завершённого
 /// (одна строка) и у ошибок (по одной строке) — диалог не перегружается,
-/// полный вывод доступен на вкладках правой панели.
-fn tool_run_lines(run: &[ChatBlock], theme: &Theme) -> Vec<Line<'static>> {
+/// полный вывод доступен на вкладках правой панели. У выполняющегося вызова —
+/// живой таймер и хвост вывода (что команда делает прямо сейчас).
+/// `base` — индекс первого блока среза в `app.blocks` (ключ карты `live`).
+fn tool_run_lines(
+    run: &[ChatBlock],
+    base: usize,
+    live: &std::collections::HashMap<usize, ToolLive>,
+    theme: &Theme,
+) -> Vec<Line<'static>> {
     /// Строка итога одного вызова (последняя строка summary, приглушённо).
     fn summary_line(summary: &str, theme: &Theme) -> Option<Line<'static>> {
         summary
@@ -898,7 +954,28 @@ fn tool_run_lines(run: &[ChatBlock], theme: &Theme) -> Vec<Line<'static>> {
             )));
         }
         let (name, action, state, summary) = items[i];
-        out.push(tool_item_line(name, action, *state, theme));
+        let item_live = live.get(&(base + i));
+        out.push(tool_item_line(
+            name,
+            action,
+            *state,
+            item_live.map(|l| l.started.elapsed().as_secs()),
+            theme,
+        ));
+        // Живой хвост вывода выполняющегося вызова: «что происходит сейчас»
+        // вместо немого спиннера на долгих командах (сборка, тесты).
+        if matches!(state, ToolState::Running)
+            && let Some(l) = item_live
+            && !l.tail.is_empty()
+        {
+            let tail: Vec<&str> = l.tail.lines().collect();
+            for t in &tail[tail.len().saturating_sub(TOOL_TAIL_LINES)..] {
+                out.push(Line::from(Span::styled(
+                    format!("  {}", truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)),
+                    theme.muted().add_modifier(Modifier::ITALIC),
+                )));
+            }
+        }
         let is_last = i == items.len() - 1;
         match state {
             ToolState::Error => out.extend(summary_line(summary, theme)),
@@ -973,7 +1050,7 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
             action,
             summary,
         } => {
-            let mut out = vec![tool_item_line(name, action, *state, theme)];
+            let mut out = vec![tool_item_line(name, action, *state, None, theme)];
             if !matches!(state, ToolState::Running) && !summary.is_empty() {
                 // Одна последняя строка итога, приглушённо (не раздуваем диалог).
                 if let Some(last) = summary.lines().last() {
@@ -1022,19 +1099,49 @@ fn draw_right(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         .unwrap_or(0)
         > inner_w;
     let mut title_spans = Vec::new();
-    for (i, tab) in RightTab::ALL.iter().enumerate() {
-        let style = if *tab == app.right_tab() {
+    let tab_style = |tab: &RightTab, theme: &Theme| {
+        if *tab == app.right_tab() {
             Style::default()
                 .fg(theme.bg)
                 .bg(theme.cyan)
                 .add_modifier(Modifier::BOLD)
         } else {
             theme.muted()
-        };
+        }
+    };
+    for (i, tab) in RightTab::ALL.iter().enumerate() {
         let icon = theme.glyphs.tab_icons()[i];
         // Подписи вкладок — всегда короткие: длинный хинт в заголовке
         // обрезал соседние вкладки у правого края (кейс 2026-09-02).
-        title_spans.push(Span::styled(format!(" {icon} {} ", tab.title()), style));
+        title_spans.push(Span::styled(
+            format!(" {icon} {} ", tab.title()),
+            tab_style(tab, theme),
+        ));
+    }
+    if spans_width(&title_spans) > inner_w {
+        // Не влезает полный бар (4 вкладки × подписи): деградация ступенями —
+        // сначала активная с подписью + иконки остальных (ориентир виден),
+        // иначе — только иконки (все 4 вкладки всё равно видны; раньше
+        // «Флот» просто срезался у правого края панели).
+        let active = app.right_tab();
+        let mut compact: Vec<Span> = RightTab::ALL
+            .iter()
+            .enumerate()
+            .map(|(i, tab)| {
+                if *tab == active {
+                    Span::styled(
+                        format!(" {} {} ", theme.glyphs.tab_icons()[i], tab.title()),
+                        tab_style(tab, theme),
+                    )
+                } else {
+                    Span::styled(
+                        format!(" {} ", theme.glyphs.tab_icons()[i]),
+                        tab_style(tab, theme),
+                    )
+                }
+            })
+            .collect();
+        title_spans = compact;
     }
     let mut block = Block::default()
         .borders(Borders::ALL)
@@ -1265,9 +1372,46 @@ fn draw_input_state(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         // вдох-выдох ~2.9 с — без мерцания).
         let frames = theme.glyphs.pulse();
         let pulse = frames[app.anim_frame(frames.len() * PULSE_TICK_DIVISOR) / PULSE_TICK_DIVISOR];
+        // Что происходит прямо сейчас: если выполняется инструмент — говорим
+        // какой и сколько уже (долгая команда не выглядит «офлайном» модели),
+        // иначе — таймер разгона самой модели.
+        let label = match app.running_tool() {
+            Some((name, action, secs)) => {
+                // action начинается с «: » (конвенция action_desc) — в строке
+                // состояния свой разделитель, дубль-двоеточие не нужно.
+                let what = match action.trim_start_matches(':').trim_start() {
+                    "" => name.to_string(),
+                    a => format!("{name}: {a}"),
+                };
+                format!(
+                    "{pulse} выполняется: {} · {}",
+                    truncate_chars(&what, 60),
+                    fmt_elapsed(secs)
+                )
+            }
+            None => {
+                let elapsed = app
+                    .thinking_elapsed()
+                    .map(|s| format!(" · {}", fmt_elapsed(s)))
+                    .unwrap_or_default();
+                match app.stream_stats() {
+                    // Видимый ответ уже стримится: сколько и с какой скоростью.
+                    Some((answer, _, secs)) if answer > 0 => {
+                        let (tok, rate) = stream_tok_rate(answer, secs);
+                        format!("{pulse} отвечает{elapsed} · ~{tok} ток · ~{rate} т/с")
+                    }
+                    // Пока только «мысли»: это тоже живой стрим — объём виден.
+                    Some((_, think, secs)) if think > 0 => {
+                        let (tok, rate) = stream_tok_rate(think, secs);
+                        format!("{pulse} модель думает{elapsed} · ~{tok} ток · ~{rate} т/с")
+                    }
+                    _ => format!("{pulse} модель думает{elapsed}"),
+                }
+            }
+        };
         let mut spans = vec![
             Span::styled(
-                format!("{pulse} модель думает"),
+                label,
                 Style::default()
                     .fg(theme.purple)
                     .bg(theme.bg)
@@ -1839,6 +1983,38 @@ mod tests {
     }
 
     #[test]
+    fn narrow_panel_degrades_tab_strip_to_icons_with_all_tabs() {
+        use crate::tui::app::RightTab;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_tab = RightTab::Fleet;
+        // Широкий терминал: полный бар — все 4 вкладки текстом (панель 42,
+        // бар из 40 ячеек влезает ровно).
+        let mut wide = Terminal::new(TestBackend::new(150, 24)).expect("term");
+        wide.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&wide);
+        for t in ["Mermaid", "Рубрика", "Знания", "Флот"] {
+            assert!(text.contains(t), "нет вкладки {t}:\n{text}");
+        }
+        // 64 колонки (диалог сжат до минимума): полный бар не влезает —
+        // деградация: активная с подписью + иконки остальных; все 4 видны.
+        let mut term = Terminal::new(TestBackend::new(64, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        for icon in ["◇", "✓", "◈", "▶"] {
+            assert!(text.contains(icon), "нет иконки {icon}:\n{text}");
+        }
+        assert!(
+            text.contains("Флот"),
+            "активная вкладка с подписью в компактном баре:\n{text}"
+        );
+        assert!(
+            !text.contains("Знания"),
+            "неактивные вкладки — только иконками:\n{text}"
+        );
+    }
+
+    #[test]
     fn hidden_right_panel_gives_dialog_full_width() {
         // F5: панель скрыта — вкладок не видно, диалог занимает всю ширину.
         let mut app = test_app();
@@ -2115,10 +2291,10 @@ mod tests {
         assert!(text.contains('█'), "бегунок скроллбара:\n{text}");
         assert!(text.contains(" ▼ "), "кнопка к свежему ответу:\n{text}");
         assert!(app.jump_btn.is_some(), "область кнопки выставлена рендером");
-        // Кнопка — в правом нижнем углу диалога (диалог 66 колонок при 100).
+        // Кнопка — в правом нижнем углу диалога (диалог 58 колонок при 100).
         let btn = app.jump_btn.expect("кнопка");
         assert_eq!(btn.width, 3);
-        assert!(btn.x >= 60 && btn.y >= 20, "позиция кнопки: {btn:?}");
+        assert!(btn.x >= 50 && btn.y >= 20, "позиция кнопки: {btn:?}");
     }
 
     #[test]
@@ -2404,6 +2580,75 @@ mod tests {
     }
 
     #[test]
+    fn state_line_shows_running_tool_instead_of_generic_thinking() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.blocks.clear();
+        testing::set_thinking(&mut app, true);
+        // Выполняется bash: строка состояния говорит, ЧТО именно происходит,
+        // а не общее «модель думает» (кейс «модель ушла в офлайн»).
+        app.push_block(ChatBlock::Tool {
+            name: "bash".into(),
+            state: ToolState::Running,
+            action: ": cargo test".into(),
+            summary: String::new(),
+        });
+        let idx = app.blocks.len() - 1;
+        app.tool_live.insert(
+            idx,
+            ToolLive {
+                started: std::time::Instant::now(),
+                tail: String::new(),
+            },
+        );
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        assert!(
+            text.contains("выполняется: bash: cargo test · 0:0"),
+            "видно, что происходит и сколько уже:\n{text}"
+        );
+        assert!(
+            !text.contains("модель думает"),
+            "общий спиннер уступил место конкретике:\n{text}"
+        );
+    }
+
+    #[test]
+    fn stream_tok_rate_rough_estimate() {
+        assert_eq!(stream_tok_rate(400, 2.0), (100, 50));
+        assert_eq!(
+            stream_tok_rate(10, 0.1),
+            (2, 0),
+            "до 0,5 с скорость не считаем"
+        );
+        assert_eq!(stream_tok_rate(0, 10.0), (0, 0));
+    }
+
+    #[test]
+    fn state_line_shows_stream_progress_while_answering() {
+        use crate::agent::AgentEvent;
+        use crate::tui::app::AppMessage;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.blocks.clear();
+        testing::set_thinking(&mut app, true);
+        // 40 дельт по 4 байта = 160 байт ≈ 40 токенов (грубая оценка 4 ≈ 1).
+        for _ in 0..40 {
+            app.handle_message(AppMessage::AgentEvent(AgentEvent::Delta("abc ".into())));
+        }
+        let mut terminal = Terminal::new(TestBackend::new(110, 30)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        assert!(
+            text.contains("отвечает · 0:0"),
+            "видно, что модель стримит ответ:\n{text}"
+        );
+        assert!(text.contains("~40 ток"), "есть оценка объёма:\n{text}");
+        assert!(text.contains("т/с"), "есть скорость стрима:\n{text}");
+    }
+
+    #[test]
     fn queue_is_visible_in_the_state_line() {
         let mut app = test_app();
         app.screen = Screen::Chat;
@@ -2503,7 +2748,12 @@ mod tests {
             tool("grep", ToolState::Ok, "'fitness'", "12 совпадений"),
             tool("bash", ToolState::Running, ": cargo test", ""),
         ];
-        let text = plain(&tool_run_lines(&run, &theme));
+        let text = plain(&tool_run_lines(
+            &run,
+            0,
+            &std::collections::HashMap::new(),
+            &theme,
+        ));
         assert!(text.contains("✓ read_file src/control.rs"), "{text}");
         assert!(text.contains("✓ grep 'fitness'"), "{text}");
         assert!(text.contains("◌ bash : cargo test"), "{text}");
@@ -2516,7 +2766,12 @@ mod tests {
             tool("read_file", ToolState::Ok, "src/a.rs", "прочитано"),
             tool("bash", ToolState::Ok, ": cargo test", "900 passed"),
         ];
-        let text = plain(&tool_run_lines(&done, &theme));
+        let text = plain(&tool_run_lines(
+            &done,
+            0,
+            &std::collections::HashMap::new(),
+            &theme,
+        ));
         assert!(text.contains("900 passed"), "{text}");
         assert!(!text.contains("прочитано\n"), "{text}");
     }
@@ -2527,7 +2782,12 @@ mod tests {
         let run: Vec<ChatBlock> = (0..10)
             .map(|i| tool("bash", ToolState::Ok, &format!(": cmd{i}"), "ok"))
             .collect();
-        let text = plain(&tool_run_lines(&run, &theme));
+        let text = plain(&tool_run_lines(
+            &run,
+            0,
+            &std::collections::HashMap::new(),
+            &theme,
+        ));
         assert!(text.contains("✓ bash : cmd0"), "{text}");
         assert!(text.contains("✓ bash : cmd1"), "{text}");
         assert!(text.contains("… +5 вызовов"), "{text}");
@@ -2543,9 +2803,84 @@ mod tests {
             tool("bash", ToolState::Ok, ": cargo build", "собрано"),
             tool("bash", ToolState::Error, ": cargo test", "FAILED: 2 теста"),
         ];
-        let text = plain(&tool_run_lines(&run, &theme));
+        let text = plain(&tool_run_lines(
+            &run,
+            0,
+            &std::collections::HashMap::new(),
+            &theme,
+        ));
         assert!(text.contains("✗ bash : cargo test"), "{text}");
         assert!(text.contains("FAILED: 2 теста"), "{text}");
+    }
+
+    #[test]
+    fn fmt_elapsed_minutes_and_hours() {
+        assert_eq!(fmt_elapsed(0), "0:00");
+        assert_eq!(fmt_elapsed(7), "0:07");
+        assert_eq!(fmt_elapsed(65), "1:05");
+        assert_eq!(fmt_elapsed(3599), "59:59");
+        assert_eq!(fmt_elapsed(3600), "1:00:00");
+        assert_eq!(fmt_elapsed(9000), "2:30:00");
+    }
+
+    #[test]
+    fn truncate_chars_adds_ellipsis() {
+        assert_eq!(truncate_chars("короткий", 60), "короткий");
+        let long = "а".repeat(100);
+        let out = truncate_chars(&long, 10);
+        assert_eq!(out.chars().count(), 10, "{out}");
+        assert!(out.ends_with('…'), "{out}");
+    }
+
+    #[test]
+    fn tool_run_running_shows_live_tail_and_timer() {
+        let theme = Theme::default();
+        let run = vec![
+            tool("read_file", ToolState::Ok, "src/a.rs", "прочитано"),
+            tool("bash", ToolState::Running, ": cargo test", ""),
+        ];
+        let mut live = std::collections::HashMap::new();
+        live.insert(
+            1usize,
+            ToolLive {
+                started: std::time::Instant::now(),
+                tail: "running 900 tests\nline two\n  … test fitness_rules ... ok\ncompiling arch"
+                    .into(),
+            },
+        );
+        let text = plain(&tool_run_lines(&run, 0, &live, &theme));
+        assert!(
+            text.contains("◌ bash : cargo test · 0:0"),
+            "живой таймер: {text}"
+        );
+        assert!(
+            text.contains("test fitness_rules ... ok"),
+            "хвост вывода виден: {text}"
+        );
+        assert!(
+            text.contains("compiling arch"),
+            "последняя строка хвоста видна: {text}"
+        );
+        assert!(
+            !text.contains("running 900 tests"),
+            "старые строки хвоста уходят за предел TOOL_TAIL_LINES: {text}"
+        );
+    }
+
+    #[test]
+    fn tool_run_without_live_entry_renders_as_before() {
+        // Обратная совместимость: Running-блок без live-записи (снимки,
+        // экспорт) — ни таймера, ни хвоста, как раньше.
+        let theme = Theme::default();
+        let run = vec![tool("bash", ToolState::Running, ": make", "")];
+        let text = plain(&tool_run_lines(
+            &run,
+            0,
+            &std::collections::HashMap::new(),
+            &theme,
+        ));
+        assert!(text.contains("◌ bash : make"), "{text}");
+        assert!(!text.contains("· 0:0"), "{text}");
     }
 
     #[test]

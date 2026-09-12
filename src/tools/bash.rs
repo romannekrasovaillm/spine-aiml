@@ -27,7 +27,9 @@
 use std::ffi::OsString;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use serde_json::{Value, json};
@@ -35,7 +37,7 @@ use serde_json::{Value, json};
 use crate::config::BashSandbox;
 use crate::error::{HarnessError, Result};
 use crate::llm::ToolSpec;
-use crate::tool::{Tool, ToolContext, ToolOutput};
+use crate::tool::{TailBuffer, Tool, ToolContext, ToolOutput, spawn_progress_reporter};
 
 /// Дефолтный таймаут выполнения команды, секунды.
 const DEFAULT_TIMEOUT_SECS: u64 = 120;
@@ -311,17 +313,39 @@ impl Tool for BashTool {
             ))
         })?;
 
+        let started = Instant::now();
+        // Живой прогресс для TUI: общий хвост вывода + репортер, шлющий
+        // снапшоты раз в PROGRESS_INTERVAL, пока процесс жив. Без канала
+        // (headless, фоновые задачи) — нулевая цена.
+        let tail_shared: Option<Arc<Mutex<TailBuffer>>> = ctx
+            .progress
+            .as_ref()
+            .map(|_| Arc::new(Mutex::new(TailBuffer::default())));
+        let reporter_done = Arc::new(AtomicBool::new(false));
+        let reporter = ctx
+            .progress
+            .clone()
+            .zip(tail_shared.clone())
+            .map(|(tx, tail)| {
+                spawn_progress_reporter(tx, "bash", tail, Arc::clone(&reporter_done), started)
+            });
+
         // Читатели stdout/stderr живут отдельно от ожидания: так по таймауту
         // сохраняется частичный вывод (wait_with_output его бы потерял).
         let stdout_pipe = child.stdout.take();
         let stderr_pipe = child.stderr.take();
-        let out_task = tokio::spawn(async move { read_pipe(stdout_pipe).await });
-        let err_task = tokio::spawn(async move { read_pipe(stderr_pipe).await });
+        let out_tail = tail_shared.clone();
+        let err_tail = tail_shared;
+        let out_task = tokio::spawn(async move { read_pipe(stdout_pipe, out_tail).await });
+        let err_task = tokio::spawn(async move { read_pipe(stderr_pipe, err_tail).await });
 
         let outcome =
             match tokio::time::timeout(Duration::from_secs(timeout_secs), child.wait()).await {
                 Ok(Ok(status)) => Outcome::Exited(status),
                 Ok(Err(e)) => {
+                    // Ранняя ошибка ожидания: репортер гасим и здесь, иначе
+                    // он бы крутился до конца runtime.
+                    reporter_done.store(true, Ordering::Relaxed);
                     return Err(HarnessError::Tool(format!(
                         "bash: ошибка ожидания процесса: {e}"
                     )));
@@ -335,19 +359,46 @@ impl Tool for BashTool {
             };
         let stdout = out_task.await.unwrap_or_default();
         let stderr = err_task.await.unwrap_or_default();
+        // Процесс завершён — гасим репортер (он выходит на ближайшем тике).
+        reporter_done.store(true, Ordering::Relaxed);
+        if let Some(h) = reporter {
+            let _ = h.await;
+        }
         Ok(format_result(&stdout, &stderr, &outcome, dropped).truncated(MAX_OUTPUT_CHARS))
     }
 }
 
 /// Читает pipe процесса до EOF; ошибка чтения означает, что процесс уже
 /// убит, — возвращаем то, что успели накопить (пустой буфер в худшем случае).
-async fn read_pipe(pipe: Option<impl tokio::io::AsyncRead + Unpin>) -> Vec<u8> {
+/// Параллельно складывает свежие куски в разделяемый хвост для живого
+/// прогресса TUI (если канал подключён).
+async fn read_pipe(
+    pipe: Option<impl tokio::io::AsyncRead + Unpin>,
+    tail: Option<Arc<Mutex<TailBuffer>>>,
+) -> Vec<u8> {
     use tokio::io::AsyncReadExt;
     match pipe {
         Some(mut p) => {
             let mut buf = Vec::new();
-            // Ошибка чтения = убитый процесс; частичный буфер сохраняем.
-            let _ = p.read_to_end(&mut buf).await;
+            let mut chunk = [0u8; 8192];
+            loop {
+                match p.read(&mut chunk).await {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        buf.extend_from_slice(&chunk[..n]);
+                        if let Some(t) = &tail {
+                            // std::Mutex без await внутри: секция короткая
+                            // (append + подрезка), блокировки не грозит;
+                            // отравленный мьютекс — прогресс пропускаем.
+                            if let Ok(mut g) = t.lock() {
+                                g.push(&chunk[..n]);
+                            }
+                        }
+                    }
+                    // Ошибка чтения = убитый процесс; частичный буфер сохраняем.
+                    Err(_) => break,
+                }
+            }
             buf
         }
         None => Vec::new(),
@@ -427,6 +478,7 @@ mod tests {
 
     use super::*;
     use crate::config::Config;
+    use crate::tool::{PROGRESS_TAIL_CHARS, ToolProgress};
 
     fn test_ctx(dir: &TempDir) -> ToolContext {
         ToolContext::new(dir.path().to_path_buf(), Arc::new(Config::default()))
@@ -486,6 +538,91 @@ mod tests {
             out.content
         );
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn live_progress_reports_tail_while_running() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<ToolProgress>();
+        let ctx = test_ctx(&dir).with_progress(tx);
+        let call = tokio::spawn(async move {
+            BashTool
+                .call(
+                    json!({"command": "echo альфа; sleep 2; echo бета", "timeout_secs": 10}),
+                    &ctx,
+                )
+                .await
+        });
+        // Снапшоты приходят, пока живы отправители (ctx + репортер): когда
+        // вызов завершён, канал закрывается и цикл кончается сам.
+        let mut snaps = Vec::new();
+        while let Some(p) = rx.recv().await {
+            snaps.push(p);
+        }
+        let out = call.await.unwrap()?;
+        assert!(!out.is_error, "output: {}", out.content);
+        assert!(
+            !snaps.is_empty(),
+            "долгая команда обязана дать хотя бы один живой снапшот"
+        );
+        assert!(
+            snaps.iter().all(|p| p.name == "bash"),
+            "снапшоты подписаны именем инструмента"
+        );
+        assert!(
+            snaps.iter().any(|p| p.tail.contains("альфа")),
+            "хвост содержит свежий вывод: {snaps:?}"
+        );
+        assert!(
+            snaps.iter().all(|p| p.tail.len() <= PROGRESS_TAIL_CHARS),
+            "хвост заранее усечён лимитом"
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn no_progress_channel_means_no_snapshots() -> Result<()> {
+        // Headless-режим (без канала): вызов работает как раньше, обратная
+        // совместимость контракта.
+        let dir = tempfile::tempdir()?;
+        let out = BashTool
+            .call(
+                json!({"command": "echo ok; sleep 1; echo done"}),
+                &test_ctx(&dir),
+            )
+            .await?;
+        assert!(!out.is_error, "output: {}", out.content);
+        assert!(out.content.contains("ok"), "output: {}", out.content);
+        Ok(())
+    }
+
+    #[test]
+    fn tail_buffer_keeps_recent_end_on_line_boundary() {
+        let mut t = TailBuffer::default();
+        let big = format!("{}\nсвежий-хвост", "x".repeat(2000));
+        t.push(big.as_bytes());
+        assert!(
+            t.snapshot().len() <= PROGRESS_TAIL_CHARS,
+            "len={}",
+            t.snapshot().len()
+        );
+        assert!(
+            t.snapshot().ends_with("свежий-хвост"),
+            "text={}",
+            t.snapshot()
+        );
+    }
+
+    #[test]
+    fn tail_buffer_respects_char_boundaries() {
+        // «ё» — 2 байта в UTF-8: подрезка не должна паниковать на полусимволе.
+        let mut t = TailBuffer::default();
+        t.push("ё".repeat(2000).as_bytes());
+        assert!(
+            t.snapshot().len() <= PROGRESS_TAIL_CHARS,
+            "len={}",
+            t.snapshot().len()
+        );
     }
 
     #[test]

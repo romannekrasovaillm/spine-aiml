@@ -5,11 +5,12 @@ patterns, reuse ideas, or review the design. This guide orients you in five
 minutes and keeps the reading safe. If you intend to *modify* the project,
 use `AGENTS.md` instead.
 
-> **Fork of Spine.** Spine AI/ML Edition is a domain agent meta-harness for
-> AI/ML researchers (Rust, one `arch-ml` binary: TUI/CLI/library).
-> Everything in this repository is MIT (`LICENSE`); the proprietary
-> `banking/` zone of Spine Banking Edition is not included in this
-> publication (`NOTICE.md`).
+> **Product fork of Spine.** Spine Banking Edition is a domain agent harness
+> for solution architects (banking; Rust, one `arch-ml` binary: TUI/CLI/library).
+> Core is MIT (`LICENSE`), the `banking/` layer is proprietary
+> (`LICENSE.banking`). The core can be studied and reused under MIT; the
+> banking layer is distributed under a license agreement only
+> (`NOTICE.md`, ADR-010/013).
 
 ## Five-minute reading order
 

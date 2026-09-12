@@ -229,6 +229,6 @@ hash routing для первых слоёв; балансировка без aux
 - `vastai-infra/skills/vastai-gpu-planning/SKILL.md`, `vastai-llm-scaling/SKILL.md`, `vastai-abi-doctor/SKILL.md`, `vastai-oom-recovery/SKILL.md`
 - Библиотека статей: `~/Документы/КОД/gigachat/РАЗБОРЫ/recipes_taxonomy/` (разделы `05_МОДЕЛИ_И_АРХИТЕКТУРЫ/`, `11_Техотчёты_лабораторий_LLM/`)
 
-Память среды (VRAM/OOM/ABI-инциденты): `war-chest память ML-контура` —
+Память среды (VRAM/OOM/ABI-инциденты): `~/.claude/projects/-home-roman/memory/` —
 `gpu0-memory-tightrope`, `nccl-oom-disguise`, `vllm-torch-abi-compatibility`,
 `cuda-stack-setup`, `disk-sizing-for-ml-experiments`, `grpo-kl-collapse-prevention`.

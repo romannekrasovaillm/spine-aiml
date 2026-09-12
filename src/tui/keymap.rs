@@ -305,7 +305,7 @@ pub(crate) const BINDINGS: &[Binding] = &[
         keys: "F1–F3, F6",
         codes: &["f1", "f2", "f3", "f6"],
         label: "вкладка",
-        desc: "Mermaid · Рубрика · Знания · Флот — прыжок в конкретную вкладку",
+        desc: "Mermaid · Рубрика · Знания · Флот — прыжок в конкретную вкладку (показывает панель, если скрыта F5)",
         group: Group::Panels,
         hint: false,
         priority: 70,

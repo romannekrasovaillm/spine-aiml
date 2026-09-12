@@ -3,9 +3,10 @@
 //! никаких `Arc<Mutex>`; ход агента и слэш-команды выполняются в `tokio::spawn`
 //! и возвращают сессию сообщением.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Frame;
@@ -19,7 +20,7 @@ use crate::error::Result;
 use crate::llm::{ChatMessage, LlmRegistry};
 use crate::mcp::{self, McpManager};
 use crate::subagent::BackgroundNotice;
-use crate::tool::{AskRequest, ToolContext};
+use crate::tool::{AskRequest, ToolContext, ToolProgress};
 use crate::tools;
 
 use super::caps::Caps;
@@ -114,6 +115,18 @@ pub(crate) enum ToolState {
     Ok,
     /// Завершился ошибкой.
     Error,
+}
+
+/// Живое состояние выполняющегося tool-вызова: когда стартовал и что
+/// сейчас пишет в вывод (снапшоты [`ToolProgress`]). Хранится отдельно от
+/// [`ChatBlock`] по индексу блока: живые поля не входят в экспорт и не
+/// раздувают конструкторы блока (сцены снимков, тесты).
+#[derive(Debug)]
+pub(crate) struct ToolLive {
+    /// Момент старта вызова (таймер «выполняется N:SS»).
+    pub(crate) started: Instant,
+    /// Хвост живого вывода (последний снапшот, уже усечён инструментом).
+    pub(crate) tail: String,
 }
 
 /// Блок чата (центральная колонка).
@@ -251,6 +264,8 @@ pub(crate) enum AppMessage {
     AgentEvent(AgentEvent),
     /// Инструмент `propose_options` просит пользователя выбрать вариант.
     AskUser(AskRequest),
+    /// Живой прогресс инструмента (хвост вывода долгой команды).
+    ToolProgress(ToolProgress),
     /// Ход агента завершён: сессия возвращается владельцу (App).
     TurnFinished {
         /// Сессия после хода.
@@ -574,6 +589,8 @@ pub(crate) struct App {
     pub(crate) help_scroll: usize,
     /// Приёмник запросов выбора от инструментов (форвардится в attach).
     ask_rx: Option<mpsc::Receiver<AskRequest>>,
+    /// Приёмник живого прогресса инструментов (форвардится в attach).
+    progress_rx: Option<mpsc::UnboundedReceiver<ToolProgress>>,
     /// Сессия агента (None — пока ход выполняется в фоновой задаче).
     session: Option<AgentSession>,
     /// Контекст инструментов (для слэш-команд; cwd — в статус-баре).
@@ -611,6 +628,18 @@ pub(crate) struct App {
     draft: Option<String>,
     /// Идёт фоновый ход (модель/команда) — ввод складывается в очередь.
     thinking: bool,
+    /// Момент начала текущего хода (таймер «модель думает · N:SS» в строке
+    /// состояния): длинный разгон модели перестаёт быть «офлайном».
+    thinking_since: Option<Instant>,
+    /// Момент первой дельты текущего хода (старт стрима — для скорости).
+    stream_started: Option<Instant>,
+    /// Байты видимого ответа текущего хода (сумма Delta).
+    stream_answer_bytes: usize,
+    /// Байты «мыслей» текущего хода (сумма ReasoningDelta).
+    stream_think_bytes: usize,
+    /// Живое состояние выполняющихся tool-вызовов: индекс блока → старт и
+    /// хвост вывода. Запись умирает вместе с завершением вызова.
+    pub(crate) tool_live: HashMap<usize, ToolLive>,
     /// Токен отмены текущего хода (Esc — прервать, Alt+Enter — прервать и
     /// вклинить набранное). None, пока ход не запущен или идёт слэш-команда.
     turn_cancel: Option<CancellationToken>,
@@ -702,11 +731,15 @@ impl App {
             .with_subagents(crate::subagent::SubagentRegistry::new());
         // Мост интерактивных вопросов: инструмент propose_options → модалка.
         let (ask_tx, ask_rx) = mpsc::channel::<AskRequest>(8);
-        let tool_ctx = tool_ctx.with_ask(ask_tx);
+        // Канал живого прогресса инструментов: bash шлёт снапшоты хвоста
+        // вывода долгой команды — TUI показывает, что происходит прямо сейчас.
+        let (progress_tx, progress_rx) = mpsc::unbounded_channel::<ToolProgress>();
+        let tool_ctx = tool_ctx.with_ask(ask_tx).with_progress(progress_tx);
         let system = system_prompt(&cfg);
         let session = AgentSession::new(cfg, provider, tools, tool_ctx.clone(), system);
         let mut app = Self::new(Some(session), tool_ctx, mcp_manager, status_extra, caps);
         app.ask_rx = Some(ask_rx);
+        app.progress_rx = Some(progress_rx);
         app.model_name = model_name;
         app
     }
@@ -737,6 +770,7 @@ impl App {
             help: false,
             help_scroll: 0,
             ask_rx: None,
+            progress_rx: None,
             session,
             tool_ctx,
             mcp,
@@ -754,6 +788,11 @@ impl App {
             toast: None,
             draft: None,
             thinking: false,
+            thinking_since: None,
+            stream_started: None,
+            stream_answer_bytes: 0,
+            stream_think_bytes: 0,
+            tool_live: HashMap::new(),
             turn_cancel: None,
             queue: VecDeque::new(),
             spinner: 0,
@@ -790,6 +829,16 @@ impl App {
             tokio::spawn(async move {
                 while let Some(req) = rx.recv().await {
                     if fwd_tx.send(AppMessage::AskUser(req)).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        if let Some(mut rx) = self.progress_rx.take() {
+            let fwd_tx = tx.clone();
+            tokio::spawn(async move {
+                while let Some(p) = rx.recv().await {
+                    if fwd_tx.send(AppMessage::ToolProgress(p)).await.is_err() {
                         break;
                     }
                 }
@@ -850,9 +899,58 @@ impl App {
             .unwrap_or_default()
     }
 
+    /// Сбрасывает статистику стрима хода (старт нового хода / завершение).
+    fn reset_stream_stats(&mut self) {
+        self.stream_started = None;
+        self.stream_answer_bytes = 0;
+        self.stream_think_bytes = 0;
+    }
+
+    /// Статистика стрима текущего хода: (байты ответа, байты мыслей, секунды
+    /// стрима). None — стрим ещё не начался (разгон до первой дельты).
+    pub(crate) fn stream_stats(&self) -> Option<(usize, usize, f64)> {
+        self.stream_started.map(|t| {
+            (
+                self.stream_answer_bytes,
+                self.stream_think_bytes,
+                t.elapsed().as_secs_f64(),
+            )
+        })
+    }
+
     /// Идёт ли фоновый ход (модель/команда).
     pub(crate) fn thinking(&self) -> bool {
         self.thinking
+    }
+
+    /// Секунды с начала текущего хода (None — ход не идёт).
+    pub(crate) fn thinking_elapsed(&self) -> Option<u64> {
+        self.thinking_since.map(|t| t.elapsed().as_secs())
+    }
+
+    /// Выполняющийся tool-вызов (последний Running-блок): имя, краткое
+    /// действие и секунды работы — для строки состояния «что происходит».
+    /// None — инструменты сейчас не выполняются.
+    pub(crate) fn running_tool(&self) -> Option<(&str, &str, u64)> {
+        self.blocks
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(i, b)| match b {
+                ChatBlock::Tool {
+                    name,
+                    action,
+                    state: ToolState::Running,
+                    ..
+                } => {
+                    let secs = self
+                        .tool_live
+                        .get(&i)
+                        .map_or(0, |l| l.started.elapsed().as_secs());
+                    Some((name.as_str(), action.as_str(), secs))
+                }
+                _ => None,
+            })
     }
 
     /// Есть ли что показать в строке состояния над вводом (ход, очередь или
@@ -934,15 +1032,54 @@ impl App {
         }
     }
 
-    /// Перечитывает последний журнал флота во вкладку «Флот» (тихая деградация:
-    /// нет журнала — панель просто не обновляется).
+    /// Перечитывает последний журнал флота во вкладку «Флот»: панель всегда
+    /// перезаписывается одним из трёх состояний — прочитанный журнал, «журналов
+    /// нет» или «журнал не читается». Прежний кадр не сохраняется: иначе
+    /// удаление `state_dir/fleet/*` оставляло бы на экране устаревший прогон
+    /// вместе с пульсом heartbeat по mtime исчезнувшего файла.
+    ///
+    /// Сверху прочитанного журнала — живой заголовок прогресса (шкала узлов,
+    /// таймер, пульс heartbeat по mtime журнала).
     fn refresh_fleet(&mut self) {
         let fleet_dir = self.tool_ctx.config.paths.state_dir.join("fleet");
-        if let Ok(path) = crate::fleet_run::latest_log(&fleet_dir) {
-            if let Ok(s) = crate::fleet_run::render_log(&path) {
-                self.panels.fleet = s;
+        let path = match crate::fleet_run::latest_log(&fleet_dir) {
+            Ok(path) => path,
+            Err(_) => {
+                self.panels.fleet = format!(
+                    "Журналов прогонов нет: {}\n\
+                     запуск: arch-ml fleet run --plan <файл-плана>",
+                    fleet_dir.display()
+                );
+                return;
             }
-        }
+        };
+        let dashboard = match crate::fleet_run::render_log(&path) {
+            Ok(s) => s,
+            Err(e) => {
+                self.panels.fleet = format!("Журнал {} не читается: {e}", path.display());
+                return;
+            }
+        };
+        let header = crate::fleet_run::read_progress(&path).ok().map(|p| {
+            let age = std::fs::metadata(&path)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| t.elapsed().ok())
+                .map(|d| d.as_secs());
+            crate::fleet_run::progress_header(
+                &p,
+                age,
+                chrono::Local::now().naive_local(),
+                (
+                    self.theme.glyphs.gauge_full(),
+                    self.theme.glyphs.gauge_empty(),
+                ),
+            )
+        });
+        self.panels.fleet = match header {
+            Some(h) => format!("{h}\n\n{dashboard}"),
+            None => dashboard,
+        };
     }
 
     /// Graceful shutdown фоновых ресурсов (MCP-серверы).
@@ -1165,10 +1302,27 @@ impl App {
             // Прокрутка и вкладки доступны и во время хода модели.
             KeyCode::PageUp => self.scroll_by(self.page()),
             KeyCode::PageDown => self.scroll_back(self.page()),
-            KeyCode::F(1) => self.right_tab = RightTab::Mermaid,
-            KeyCode::F(2) => self.right_tab = RightTab::Rubric,
-            KeyCode::F(3) => self.right_tab = RightTab::Knowledge,
-            KeyCode::F(6) => self.right_tab = RightTab::Fleet,
+            // Прыжок на вкладку подразумевает желание её видеть: панель
+            // показываем, даже если была скрыта F5 (иначе F1–F3/F6 при
+            // скрытой панели — «мёртвые» клавиши без видимого эффекта).
+            KeyCode::F(1) => {
+                self.right_visible = true;
+                self.right_tab = RightTab::Mermaid;
+            }
+            KeyCode::F(2) => {
+                self.right_visible = true;
+                self.right_tab = RightTab::Rubric;
+            }
+            KeyCode::F(3) => {
+                self.right_visible = true;
+                self.right_tab = RightTab::Knowledge;
+            }
+            KeyCode::F(6) => {
+                self.right_visible = true;
+                self.right_tab = RightTab::Fleet;
+                // Дашборд — сразу, без ожидания ~2 с тикового опроса.
+                self.refresh_fleet();
+            }
             KeyCode::F(4) => self.toggle_viewer(),
             // F5: скрыть/показать правую панель целиком (узкие терминалы).
             KeyCode::F(5) => self.right_visible = !self.right_visible,
@@ -1693,6 +1847,8 @@ impl App {
             return;
         };
         self.thinking = true;
+        self.thinking_since = Some(Instant::now());
+        self.reset_stream_stats();
         self.turn_got_output = false;
         // Токен отмены хода: Esc/Alt+Enter прерывают LLM-запрос или вызов
         // инструмента (см. AgentSession::set_cancel_token).
@@ -1734,6 +1890,8 @@ impl App {
             return;
         };
         self.thinking = true;
+        self.thinking_since = Some(Instant::now());
+        self.reset_stream_stats();
         self.pending_slash = Some(input.clone());
         let ctx = self.tool_ctx.clone();
         // Fire-and-forget: исход приходит сообщением SlashFinished.
@@ -1749,8 +1907,11 @@ impl App {
         match msg {
             AppMessage::AgentEvent(ev) => self.handle_agent_event(ev),
             AppMessage::AskUser(req) => self.open_ask(req),
+            AppMessage::ToolProgress(p) => self.handle_tool_progress(p),
             AppMessage::TurnFinished { session, result } => {
                 self.thinking = false;
+                self.thinking_since = None;
+                self.reset_stream_stats();
                 self.turn_cancel = None;
                 self.assistant_open = false;
                 self.on_session_back(session);
@@ -1770,6 +1931,8 @@ impl App {
             }
             AppMessage::SlashFinished { session, result } => {
                 self.thinking = false;
+                self.thinking_since = None;
+                self.reset_stream_stats();
                 self.on_session_back(session);
                 let command = self.pending_slash.take().unwrap_or_default();
                 match result {
@@ -1784,6 +1947,7 @@ impl App {
                         // сессия уже ротирована исполнителем (новый журнал).
                         // Свежий лог, как и при входе в чат, открывает логотип.
                         self.blocks.clear();
+                        self.tool_live.clear();
                         self.panels = Panels::default();
                         self.scroll = 0;
                         self.stick = true;
@@ -1834,6 +1998,8 @@ impl App {
         match ev {
             AgentEvent::Delta(delta) => {
                 self.turn_got_output = true;
+                self.stream_started.get_or_insert_with(Instant::now);
+                self.stream_answer_bytes += delta.len();
                 if !self.assistant_open {
                     self.push_block(ChatBlock::Assistant(String::new()));
                     self.assistant_open = true;
@@ -1844,6 +2010,8 @@ impl App {
             }
             AgentEvent::ReasoningDelta(delta) => {
                 self.turn_got_output = true;
+                self.stream_started.get_or_insert_with(Instant::now);
+                self.stream_think_bytes += delta.len();
                 // «Мысли» идут до видимого ответа: копим в отдельном
                 // приглушённом блоке; новый блок — если последний уже не
                 // «мысли» (между витками инструментов мысли новые).
@@ -1862,6 +2030,13 @@ impl App {
                     state: ToolState::Running,
                     summary: String::new(),
                 });
+                self.tool_live.insert(
+                    self.blocks.len() - 1,
+                    ToolLive {
+                        started: Instant::now(),
+                        tail: String::new(),
+                    },
+                );
             }
             AgentEvent::ToolEnd {
                 name,
@@ -1921,6 +2096,7 @@ impl App {
             });
         match idx {
             Some(i) => {
+                self.tool_live.remove(&i);
                 if let Some(ChatBlock::Tool {
                     state: s,
                     summary: sum,
@@ -1948,6 +2124,34 @@ impl App {
             self.panels.rubric = summary.to_string();
         } else if name.starts_with("kb") || name.starts_with("web") {
             self.panels.knowledge = summary.to_string();
+        }
+    }
+
+    /// Живой прогресс инструмента: обновляет хвост вывода последнего
+    /// выполняющегося блока с тем же именем. Нет подходящего блока — снапшот
+    /// пропадает без последствий (это декорация, а не данные для модели).
+    fn handle_tool_progress(&mut self, p: ToolProgress) {
+        let idx = self.blocks.iter().rposition(|b| {
+            matches!(
+                b,
+                ChatBlock::Tool {
+                    name,
+                    state: ToolState::Running,
+                    ..
+                } if *name == p.name
+            )
+        });
+        if let Some(i) = idx {
+            self.tool_live
+                .entry(i)
+                .or_insert_with(|| ToolLive {
+                    started: Instant::now(),
+                    tail: String::new(),
+                })
+                .tail = p.tail;
+        }
+        if self.stick {
+            self.scroll = 0;
         }
     }
 
@@ -2256,6 +2460,8 @@ pub(crate) mod testing {
     /// Подменяет флаг «модель думает» для тестов очереди ввода.
     pub(crate) fn set_thinking(app: &mut App, thinking: bool) {
         app.thinking = thinking;
+        app.thinking_since = thinking.then(std::time::Instant::now);
+        app.reset_stream_stats();
     }
 }
 
@@ -2486,6 +2692,91 @@ mod tests {
         assert_eq!(
             app.panels.mermaid, "┌───┐\n│ A │\n└───┘",
             "на вкладку Mermaid уходит ПОЛНЫЙ рендер, не summary"
+        );
+    }
+
+    #[test]
+    fn tool_progress_updates_live_tail_of_running_block() {
+        let mut app = test_app();
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::ToolStart {
+            name: "bash".into(),
+            args: serde_json::json!({"command": "make all"}),
+        }));
+        let idx = app.blocks.len() - 1;
+        assert!(
+            app.tool_live.contains_key(&idx),
+            "старт вызова завёл live-запись"
+        );
+        assert_eq!(
+            app.running_tool().map(|(n, a, _)| (n, a)),
+            Some(("bash", ": make all"))
+        );
+
+        app.handle_message(AppMessage::ToolProgress(ToolProgress {
+            name: "bash".into(),
+            tail: "компилирую crate-a\nкомпилирую crate-b".into(),
+            elapsed_secs: 3,
+        }));
+        assert_eq!(
+            app.tool_live.get(&idx).map(|l| l.tail.as_str()),
+            Some("компилирую crate-a\nкомпилирую crate-b"),
+            "хвост обновился снапшотом"
+        );
+        // Снапшот чужого инструмента — мимо (нет Running-блока с таким именем).
+        app.handle_message(AppMessage::ToolProgress(ToolProgress {
+            name: "web_fetch".into(),
+            tail: "мимо".into(),
+            elapsed_secs: 1,
+        }));
+        assert!(
+            app.tool_live
+                .get(&idx)
+                .is_some_and(|l| l.tail.contains("crate-b")),
+            "чужой прогресс не тронул хвост"
+        );
+        // Завершение вызова — live-запись умирает вместе с ним.
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::ToolEnd {
+            name: "bash".into(),
+            is_error: false,
+            summary: "готово".into(),
+            content: "готово".into(),
+        }));
+        assert!(app.tool_live.is_empty(), "live-запись убрана по ToolEnd");
+        assert!(app.running_tool().is_none());
+    }
+
+    #[test]
+    fn thinking_timer_set_on_turn_and_cleared_on_finish() {
+        let mut app = test_app();
+        assert!(app.thinking_elapsed().is_none());
+        testing::set_thinking(&mut app, true);
+        assert_eq!(app.thinking_elapsed(), Some(0));
+        testing::set_thinking(&mut app, false);
+        assert!(app.thinking_elapsed().is_none());
+    }
+
+    #[test]
+    fn stream_stats_accumulate_on_deltas_and_reset_on_finish() {
+        let mut app = test_app();
+        assert!(app.stream_stats().is_none(), "до хода статистики нет");
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::ReasoningDelta(
+            "мысль ".into(),
+        )));
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::Delta("отв".into())));
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::Delta("ет".into())));
+        let (answer, think, secs) = app.stream_stats().expect("стрим идёт");
+        assert_eq!(answer, "ответ".len(), "байты видимого ответа накоплены");
+        assert_eq!(think, "мысль ".len(), "байты мыслей накоплены");
+        assert!(secs < 5.0, "секунды стрима реалистичны: {secs}");
+        // Завершение хода — статистика стрима сброшена.
+        let session = app.session.take().expect("сессия есть");
+        app.handle_message(AppMessage::TurnFinished {
+            session,
+            result: Ok("готово".into()),
+        });
+        assert!(
+            app.stream_stats().is_none(),
+            "по концу хода статистика сброшена"
         );
     }
 
@@ -3276,6 +3567,151 @@ mod tests {
         assert!(matches!(app.right_tab(), RightTab::Rubric));
         app.handle_key(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE));
         assert!(app.viewer.is_none(), "F4 закрывает");
+    }
+
+    #[test]
+    fn f6_unhides_panel_and_loads_fleet_dashboard() {
+        // Приложение с изолированным state_dir: дефолтный test_app смотрит в
+        // настоящий ~/.arch-ml — в журналы пользователя тестами не пишем.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut cfg0 = Config::default();
+        cfg0.paths.state_dir = tmp.path().join("state");
+        cfg0.paths.sessions_dir = tmp.path().join("sessions");
+        let cfg = std::sync::Arc::new(cfg0);
+        let session = stub_session(&cfg);
+        let ctx = ToolContext::new(tmp.path().to_path_buf(), cfg);
+        let mut app = App::new(Some(session), ctx, None, None, Caps::default());
+        app.screen = Screen::Chat;
+        app.right_visible = false;
+        // Журнал прогона в изолированном state_dir.
+        let fleet_dir = app.tool_ctx.config.paths.state_dir.join("fleet");
+        std::fs::create_dir_all(&fleet_dir).expect("fleet dir");
+        std::fs::write(
+            fleet_dir.join("fpl-test.jsonl"),
+            concat!(
+                "{\"type\":\"run_started\",\"run_id\":\"fpl-test\",\"package\":\"demo\",\"n_items\":1,\"n_agents\":1,\"at\":\"t0\"}\n",
+                "{\"type\":\"agent_started\",\"run_id\":\"fpl-test\",\"agent_id\":\"n0\",\"item_id\":\"node-1\",\"kind\":\"kimi-code\",\"at\":\"t1\"}\n",
+            ),
+        )
+        .expect("write fleet log");
+        app.handle_key(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
+        assert!(app.right_visible, "F6 показывает скрытую панель");
+        assert!(
+            matches!(app.right_tab(), RightTab::Fleet),
+            "F6 — вкладка Флот"
+        );
+        assert!(
+            app.panels.fleet.contains("n0") && app.panels.fleet.contains("running"),
+            "дашборд заполняется сразу (агент прогона со статусом): {}",
+            app.panels.fleet
+        );
+        // F5 скрывает, F1 возвращает панель с Mermaid.
+        app.handle_key(KeyEvent::new(KeyCode::F(5), KeyModifiers::NONE));
+        assert!(!app.right_visible, "F5 скрывает");
+        app.handle_key(KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE));
+        assert!(app.right_visible, "F1 тоже показывает панель");
+        assert!(matches!(app.right_tab(), RightTab::Mermaid));
+    }
+
+    /// Приложение с изолированным `state_dir`: в отличие от `test_app` не
+    /// смотрит в настоящий `~/.arch-ml` — журналы пользователя не трогаем.
+    fn isolated_app(tmp: &tempfile::TempDir) -> App {
+        let mut cfg0 = Config::default();
+        cfg0.paths.state_dir = tmp.path().join("state");
+        cfg0.paths.sessions_dir = tmp.path().join("sessions");
+        let cfg = std::sync::Arc::new(cfg0);
+        let session = stub_session(&cfg);
+        let ctx = ToolContext::new(tmp.path().to_path_buf(), cfg);
+        let mut app = App::new(Some(session), ctx, None, None, Caps::default());
+        app.screen = Screen::Chat;
+        app.right_visible = false;
+        app
+    }
+
+    #[test]
+    fn fleet_panel_reports_empty_state_when_no_journals() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut app = isolated_app(&tmp);
+        let fleet_dir = app.tool_ctx.config.paths.state_dir.join("fleet");
+        std::fs::create_dir_all(&fleet_dir).expect("fleet dir");
+        app.handle_key(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
+        assert!(
+            app.panels.fleet.contains("Журналов прогонов нет"),
+            "пустой каталог — явное сообщение вместо тишины: {}",
+            app.panels.fleet
+        );
+        assert!(
+            app.panels.fleet.contains(&fleet_dir.display().to_string()),
+            "в сообщении — путь каталога флота: {}",
+            app.panels.fleet
+        );
+    }
+
+    #[test]
+    fn fleet_panel_clears_when_journal_disappears() {
+        // Регресс исходного дефекта: после удаления журналов панель сохраняла
+        // прежний кадр (вместе с пульсом heartbeat по mtime удалённого файла).
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut app = isolated_app(&tmp);
+        let fleet_dir = app.tool_ctx.config.paths.state_dir.join("fleet");
+        std::fs::create_dir_all(&fleet_dir).expect("fleet dir");
+        let log = fleet_dir.join("fpl-test.jsonl");
+        std::fs::write(
+            &log,
+            concat!(
+                "{\"type\":\"run_started\",\"run_id\":\"fpl-test\",\"package\":\"demo\",\"n_items\":1,\"n_agents\":1,\"at\":\"t0\"}\n",
+                "{\"type\":\"plan_started\",\"run_id\":\"fpl-test\",\"plan_id\":\"fpl-test\",\"pattern\":\"pipeline\",\"plan_path\":\"plan.yaml\",\"plan_sha256\":\"deadbeef\",\"n_nodes\":1,\"n_waves\":1,\"at\":\"t1\"}\n",
+                "{\"type\":\"agent_started\",\"run_id\":\"fpl-test\",\"agent_id\":\"n0\",\"item_id\":\"node-1\",\"kind\":\"kimi-code\",\"at\":\"t2\"}\n",
+            ),
+        )
+        .expect("write fleet log");
+        app.handle_key(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
+        assert!(
+            app.panels.fleet.contains("fpl-test") && app.panels.fleet.contains("n0"),
+            "панель заполнена журналом: {}",
+            app.panels.fleet
+        );
+        std::fs::remove_file(&log).expect("remove fleet log");
+        // Живой путь обновления — тик активной вкладки «Флот» (16 × 120 мс).
+        for _ in 0..16 {
+            app.tick();
+        }
+        assert!(
+            !app.panels.fleet.contains("fpl-test"),
+            "прежний прогон не сохраняется: {}",
+            app.panels.fleet
+        );
+        assert!(
+            !app.panels.fleet.contains("n0"),
+            "узлы прежнего прогона не сохраняются: {}",
+            app.panels.fleet
+        );
+        assert!(
+            app.panels.fleet.contains("Журналов прогонов нет"),
+            "панель сообщает об отсутствии журналов: {}",
+            app.panels.fleet
+        );
+    }
+
+    #[test]
+    fn fleet_panel_reports_unreadable_journal() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut app = isolated_app(&tmp);
+        let fleet_dir = app.tool_ctx.config.paths.state_dir.join("fleet");
+        std::fs::create_dir_all(&fleet_dir).expect("fleet dir");
+        std::fs::write(fleet_dir.join("fpl-broken.jsonl"), "{ это не JSON\n")
+            .expect("write broken log");
+        app.handle_key(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
+        assert!(
+            app.panels.fleet.contains("не читается"),
+            "битый журнал — явная ошибка: {}",
+            app.panels.fleet
+        );
+        assert!(
+            app.panels.fleet.contains("fpl-broken"),
+            "в сообщении — имя файла: {}",
+            app.panels.fleet
+        );
     }
 
     #[test]

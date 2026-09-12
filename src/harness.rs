@@ -27,7 +27,8 @@ use std::fmt::Write as _;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
@@ -42,7 +43,9 @@ use crate::control::Route;
 use crate::error::{HarnessError, Result};
 use crate::llm::ToolSpec;
 use crate::model::{EntityKind, load_model};
-use crate::tool::{Tool, ToolContext, ToolOutput};
+use crate::tool::{
+    TailBuffer, Tool, ToolContext, ToolOutput, ToolProgress, spawn_progress_reporter,
+};
 
 /// Имя каталога handoff-пакета в корне репозитория.
 const HANDOFF_DIR: &str = ".arch-handoff";
@@ -1001,7 +1004,7 @@ pub async fn run_harness(
     repo: &Path,
     task: &str,
 ) -> Result<HarnessRun> {
-    run_harness_inner(name, cfg, repo, task, None, None).await
+    run_harness_inner(name, cfg, repo, task, None, None, None).await
 }
 
 /// Streaming-вариант [`run_harness`]: `on_activity` вызывается на каждом
@@ -1017,7 +1020,20 @@ pub async fn run_harness_streaming(
     on_activity: std::sync::Arc<dyn Fn() + Send + Sync>,
     control: Option<std::sync::Arc<HarnessControl>>,
 ) -> Result<HarnessRun> {
-    run_harness_inner(name, cfg, repo, task, Some(on_activity), control).await
+    run_harness_inner(name, cfg, repo, task, Some(on_activity), control, None).await
+}
+
+/// Вариант [`run_harness`] с живым хвостом вывода: свежие куски stdout/stderr
+/// складываются в разделяемый `tail` — UI читает его репортером прогресса,
+/// и многоминутный прогон не выглядит зависанием.
+pub(crate) async fn run_harness_with_tail(
+    name: &str,
+    cfg: &CodingHarnessConfig,
+    repo: &Path,
+    task: &str,
+    tail: Arc<Mutex<TailBuffer>>,
+) -> Result<HarnessRun> {
+    run_harness_inner(name, cfg, repo, task, None, None, Some(tail)).await
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1028,8 +1044,8 @@ async fn run_harness_inner(
     task: &str,
     on_activity: Option<std::sync::Arc<dyn Fn() + Send + Sync>>,
     control: Option<std::sync::Arc<HarnessControl>>,
+    output_tail: Option<Arc<Mutex<TailBuffer>>>,
 ) -> Result<HarnessRun> {
-    use std::sync::Mutex;
     use tokio::io::AsyncReadExt;
 
     // Читатели потоков: перекладывают в ограниченные буферы и трогают heartbeat.
@@ -1038,6 +1054,7 @@ async fn run_harness_inner(
         buf: Arc<Mutex<Vec<u8>>>,
         act: Arc<Mutex<Instant>>,
         on_activity: Option<Arc<dyn Fn() + Send + Sync>>,
+        tail: Option<Arc<Mutex<TailBuffer>>>,
     ) -> tokio::task::JoinHandle<()>
     where
         R: tokio::io::AsyncRead + Unpin + Send + 'static,
@@ -1057,6 +1074,12 @@ async fn run_harness_inner(
                             b.drain(..excess);
                         }
                         drop(b);
+                        // Живой хвост для UI-прогресса (если подключён).
+                        if let Some(t) = &tail
+                            && let Ok(mut g) = t.lock()
+                        {
+                            g.push(&chunk[..n]);
+                        }
                         *act.lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner) = Instant::now();
                         if let Some(cb) = &on_activity {
@@ -1118,6 +1141,7 @@ async fn run_harness_inner(
             stdout_buf.clone(),
             activity.clone(),
             on_activity.clone(),
+            output_tail.clone(),
         ));
     }
     if let Some(err) = child.stderr.take() {
@@ -1126,6 +1150,7 @@ async fn run_harness_inner(
             stderr_buf.clone(),
             activity.clone(),
             on_activity.clone(),
+            output_tail.clone(),
         ));
     }
 
@@ -1751,7 +1776,7 @@ impl HarnessRunTool {
         let note_run = note.to_string();
         let report_path_run = report_path.clone();
         tokio::spawn(async move {
-            let out = execute_run(&run_name, &hcfg, &repo, &task, note_run).await;
+            let out = execute_run(&run_name, &hcfg, &repo, &task, note_run, None).await;
             let status = if out.is_error {
                 crate::subagent::TaskStatus::Failed
             } else {
@@ -2051,7 +2076,7 @@ impl Tool for HarnessRunTool {
         if args.get("background").and_then(Value::as_bool) == Some(true) {
             return Ok(self.launch_background(name, hcfg, repo, task, &note, ctx));
         }
-        Ok(execute_run(name, &hcfg, &repo, &task, note).await)
+        Ok(execute_run(name, &hcfg, &repo, &task, note, ctx.progress.as_ref()).await)
     }
 }
 
@@ -2059,14 +2084,39 @@ impl Tool for HarnessRunTool {
 /// возврата/прерывание/авто-коммит), механический разбор JSON-контракта,
 /// stdout/stderr. Общий код синхронного пути (`harness_run`) и фонового
 /// (`background=true` — вызывается из spawned-задачи).
+/// `progress` — канал живого прогресса TUI: при наличии хвост вывода
+/// харнесса стримится снапшотами (прогон в десятки минут не «немой»).
 async fn execute_run(
     name: &str,
     hcfg: &CodingHarnessConfig,
     repo: &Path,
     task: &str,
     note: String,
+    progress: Option<&tokio::sync::mpsc::UnboundedSender<ToolProgress>>,
 ) -> ToolOutput {
-    match run_harness(name, hcfg, repo, task).await {
+    // Живой прогресс для TUI (только синхронный путь: у фонового прогона
+    // своя видимость — dashboard флота и per-agent лог).
+    let started = Instant::now();
+    let tail_shared = progress.map(|_| Arc::new(Mutex::new(TailBuffer::default())));
+    let reporter_done = Arc::new(AtomicBool::new(false));
+    let reporter = progress.zip(tail_shared.clone()).map(|(tx, tail)| {
+        spawn_progress_reporter(
+            tx.clone(),
+            "harness_run",
+            tail,
+            Arc::clone(&reporter_done),
+            started,
+        )
+    });
+    let run_result = match tail_shared {
+        Some(tail) => run_harness_with_tail(name, hcfg, repo, task, tail).await,
+        None => run_harness(name, hcfg, repo, task).await,
+    };
+    reporter_done.store(true, Ordering::Relaxed);
+    if let Some(h) = reporter {
+        let _ = h.await;
+    }
+    match run_result {
         Ok(run) => {
             let code = run.exit_code.map_or("сигнал".into(), |c| c.to_string());
             let mut content = note;
@@ -2892,6 +2942,61 @@ mod tests {
         assert!(run.stderr.is_empty());
         assert!(run.duration_secs >= 0.0);
         assert_eq!(run.termination, Termination::Completed);
+    }
+
+    #[tokio::test]
+    async fn run_with_tail_streams_output_live() {
+        // Живость хвоста: первая строка видна в буфере ДО завершения
+        // процесса (не только по итогу) — иначе это не «живой» прогресс.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let cfg = CodingHarnessConfig {
+            binary: "bash".into(),
+            args: vec![
+                "-c".into(),
+                "echo харнесс-шаг-1; sleep 3; echo харнесс-шаг-2".into(),
+            ],
+            prompt_mode: PromptMode::Positional,
+            timeout_secs: 30,
+            ..CodingHarnessConfig::default()
+        };
+        let tail = Arc::new(Mutex::new(TailBuffer::default()));
+        let repo = tmp.path().to_path_buf();
+        let handle = {
+            let tail = tail.clone();
+            tokio::spawn(async move {
+                run_harness_with_tail("test-bash", &cfg, &repo, "задача", tail).await
+            })
+        };
+        // Опрашиваем хвост, пока процесс на «sleep 3».
+        let mut seen = String::new();
+        for _ in 0..50 {
+            seen = tail
+                .lock()
+                .map(|t| t.snapshot().to_string())
+                .unwrap_or_default();
+            if seen.contains("харнесс-шаг-1") {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(
+            seen.contains("харнесс-шаг-1"),
+            "первая строка дошла в хвост: {seen}"
+        );
+        assert!(
+            !seen.contains("харнесс-шаг-2"),
+            "вторая строка ещё не написана — хвост действительно живой: {seen}"
+        );
+        let run = handle.await.expect("join").expect("run");
+        assert_eq!(run.termination, Termination::Completed);
+        let snap = tail
+            .lock()
+            .map(|t| t.snapshot().to_string())
+            .unwrap_or_default();
+        assert!(
+            snap.contains("харнесс-шаг-2"),
+            "финал тоже в хвосте: {snap}"
+        );
     }
 
     #[tokio::test]

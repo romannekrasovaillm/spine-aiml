@@ -1295,6 +1295,147 @@ pub fn render_log(path: &Path) -> Result<String> {
     Ok(s)
 }
 
+/// Сводка прогресса прогона (для живого заголовка вкладки «Флот»):
+/// считается из журнала целиком — дешево перечитывать по тику.
+#[derive(Debug, Default, Clone)]
+pub struct FleetProgress {
+    /// Узлов всего (план; без плана — назначенные агенты).
+    pub total_nodes: usize,
+    /// Узлов завершено (NodeCompleted).
+    pub done_nodes: usize,
+    /// Агентов всего видели в журнале.
+    pub n_agents: usize,
+    /// Агентов сейчас в работе (started без done/error).
+    pub running_agents: usize,
+    /// Всего heartbeat-событий.
+    pub n_heartbeat: usize,
+    /// Прогон завершён штатно (RunFinished).
+    pub finished: bool,
+    /// Прогон остановлен по гейту (RunHalted).
+    pub halted: bool,
+    /// Время старта (первое событие с `at`, формат `%Y-%m-%d %H:%M:%S`).
+    pub started_at: Option<chrono::NaiveDateTime>,
+}
+
+/// Прочитать прогресс из журнала прогона (JSONL).
+///
+/// # Errors
+/// Те же, что у [`FleetLog::read_all`].
+pub fn read_progress(path: &Path) -> Result<FleetProgress> {
+    let events = FleetLog::read_all(path)?;
+    let mut p = FleetProgress::default();
+    let mut agents: Vec<String> = Vec::new();
+    let mut done_agents: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut stamp = |at: &String| {
+        if p.started_at.is_none() {
+            p.started_at = chrono::NaiveDateTime::parse_from_str(at, "%Y-%m-%d %H:%M:%S").ok();
+        }
+    };
+    for e in &events {
+        match e {
+            FleetEvent::PlanStarted { n_nodes, at, .. } => {
+                p.total_nodes = *n_nodes;
+                stamp(at);
+            }
+            FleetEvent::RunStarted { n_items, at, .. } => {
+                if p.total_nodes == 0 {
+                    p.total_nodes = *n_items;
+                }
+                stamp(at);
+            }
+            FleetEvent::NodeCompleted { at, .. } => {
+                p.done_nodes += 1;
+                stamp(at);
+            }
+            FleetEvent::AgentStarted { agent_id, at, .. } => {
+                if !agents.contains(agent_id) {
+                    agents.push(agent_id.clone());
+                }
+                stamp(at);
+            }
+            FleetEvent::AgentHeartbeat { .. } => p.n_heartbeat += 1,
+            FleetEvent::AgentDone { agent_id, .. } | FleetEvent::AgentError { agent_id, .. } => {
+                done_agents.insert(agent_id.clone());
+            }
+            FleetEvent::RunFinished { .. } => p.finished = true,
+            FleetEvent::RunHalted { .. } => p.halted = true,
+            _ => {}
+        }
+    }
+    p.n_agents = agents.len();
+    p.running_agents = agents.iter().filter(|a| !done_agents.contains(*a)).count();
+    Ok(p)
+}
+
+/// Пороги «пульс-правила»: heartbeat моложе — прогон жив; старше — похоже на зависание.
+pub const HEARTBEAT_ALIVE_SECS: u64 = 30;
+/// За этим возрастом heartbeat — прогон почти наверняка мёртв/завис.
+pub const HEARTBEAT_STALE_SECS: u64 = 90;
+
+/// Живой заголовок прогресса вкладки «Флот» (одна-две строки, плейн-текст,
+/// монохром-безопасен): шкала узлов, таймер, возраст heartbeat.
+/// `gauge` — пара глифов (полный, пустой) из темы; `age_secs` — возраст
+/// журнала (mtime) в секундах; `now` — текущее локальное время.
+#[must_use]
+pub fn progress_header(
+    p: &FleetProgress,
+    age_secs: Option<u64>,
+    now: chrono::NaiveDateTime,
+    gauge: (&str, &str),
+) -> String {
+    const CELLS: usize = 10;
+    let mut parts = Vec::new();
+    if p.total_nodes > 0 {
+        let filled = p.done_nodes.saturating_mul(CELLS) / p.total_nodes;
+        let pct = p.done_nodes.saturating_mul(100) / p.total_nodes;
+        parts.push(format!(
+            "{}{} {}/{} узлов ({}%)",
+            gauge.0.repeat(filled),
+            gauge.1.repeat(CELLS - filled),
+            p.done_nodes,
+            p.total_nodes,
+            pct
+        ));
+    }
+    if p.running_agents > 0 {
+        parts.push(format!("в работе агентов: {}", p.running_agents));
+    }
+    // Таймер прогона: от первого события до сейчас (или до финиша — тогда
+    // таймер не движется: финиш — точка остановки часов).
+    if let Some(start) = p.started_at {
+        let span = now.signed_duration_since(start).num_seconds().max(0) as u64;
+        parts.push(format!("идёт {}", fmt_duration(span)));
+    }
+    // Пульс: возраст журнала против порогов (живой/стареющий/завис/финиш).
+    let pulse = if p.halted {
+        "✗ остановлен по гейту".to_string()
+    } else if p.finished {
+        "✓ завершён".to_string()
+    } else {
+        match age_secs {
+            Some(s) if s <= HEARTBEAT_ALIVE_SECS => format!("● живой · heartbeat {s} с назад"),
+            Some(s) if s <= HEARTBEAT_STALE_SECS => format!("◌ heartbeat {s} с назад"),
+            Some(s) => format!(
+                "✗ heartbeat {} назад — похоже на зависание",
+                fmt_duration(s)
+            ),
+            None => "● живой".to_string(),
+        }
+    };
+    parts.push(pulse);
+    parts.join("  ·  ")
+}
+
+/// Длительность человекочитаемо: `0:47`, `12:47`, `1:02:47`.
+fn fmt_duration(secs: u64) -> String {
+    let (h, m, s) = (secs / 3600, (secs % 3600) / 60, secs % 60);
+    if h > 0 {
+        format!("{h}:{m:02}:{s:02}")
+    } else {
+        format!("{m}:{s:02}")
+    }
+}
+
 /// Парсит маршрут из строки (для JSON-аргументов инструмента).
 fn parse_route(s: &str) -> Option<crate::control::Route> {
     match s.to_ascii_lowercase().as_str() {
@@ -1534,6 +1675,51 @@ impl crate::tool::Tool for FleetRunTool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn progress_counts_nodes_agents_and_renders_header() {
+        let dir = tempfile::tempdir().expect("tmp");
+        let path = dir.path().join("fpl-p.jsonl");
+        std::fs::write(
+            &path,
+            concat!(
+                "{\"type\":\"plan_started\",\"run_id\":\"fpl-p\",\"plan_id\":\"demo\",\"pattern\":\"fanout\",\"plan_path\":\"p.toml\",\"plan_sha256\":\"h\",\"n_nodes\":2,\"n_waves\":1,\"at\":\"2026-09-12 16:00:00\"}\n",
+                "{\"type\":\"wave_started\",\"run_id\":\"fpl-p\",\"wave\":0,\"nodes\":[\"n0\"],\"at\":\"2026-09-12 16:00:00\"}\n",
+                "{\"type\":\"agent_started\",\"run_id\":\"fpl-p\",\"agent_id\":\"a0\",\"item_id\":\"n0\",\"kind\":\"harness:worker\",\"at\":\"2026-09-12 16:00:01\"}\n",
+                "{\"type\":\"agent_started\",\"run_id\":\"fpl-p\",\"agent_id\":\"a1\",\"item_id\":\"n1\",\"kind\":\"harness:worker\",\"at\":\"2026-09-12 16:00:02\"}\n",
+                "{\"type\":\"agent_heartbeat\",\"run_id\":\"fpl-p\",\"agent_id\":\"a0\",\"item_id\":\"n0\",\"at\":\"2026-09-12 16:00:05\"}\n",
+                "{\"type\":\"node_completed\",\"run_id\":\"fpl-p\",\"node_id\":\"n0\",\"at\":\"2026-09-12 16:00:07\"}\n",
+            ),
+        )
+        .expect("log");
+        let p = read_progress(&path).expect("progress");
+        assert_eq!(p.total_nodes, 2);
+        assert_eq!(p.done_nodes, 1);
+        assert_eq!(p.n_agents, 2);
+        assert_eq!(p.running_agents, 2, "оба агента в работе (done/error нет)");
+        assert_eq!(p.n_heartbeat, 1);
+        assert!(!p.finished && !p.halted);
+        assert!(p.started_at.is_some());
+        let now = chrono::NaiveDate::from_ymd_opt(2026, 9, 12)
+            .unwrap()
+            .and_hms_opt(16, 0, 20)
+            .unwrap();
+        let h = progress_header(&p, Some(4), now, ("▰", "▱"));
+        assert!(h.contains("1/2 узлов (50%)"), "{h}");
+        assert!(h.contains("▰▰▰▰▰▱▱▱▱▱"), "{h}");
+        assert!(h.contains("● живой"), "{h}");
+        assert!(h.contains("идёт 0:20"), "{h}");
+        // Пороги пульса.
+        let stale = progress_header(&p, Some(120), now, ("▰", "▱"));
+        assert!(stale.contains("зависание"), "{stale}");
+        // Финиш: часы остановлены, маркер ✓.
+        let p2 = FleetProgress {
+            finished: true,
+            ..p.clone()
+        };
+        let h2 = progress_header(&p2, Some(300), now, ("▰", "▱"));
+        assert!(h2.contains("✓ завершён"), "{h2}");
+    }
 
     #[test]
     fn event_serde_roundtrip() {

@@ -1,24 +1,28 @@
 # AGENTS.md — Spine AI/ML Edition
 
-> **Происхождение:** форк Spine Banking Edition (2026-09-11, чистая копия без
-> истории — см. `NOTICE.md`). Проприетарная зона `banking/` в эту публикацию
-> не входит (остаётся в приватном репозитории владельца); продуктовая
-> идентичность и домен — AI/ML-исследователь (зона `aiml/`).
+> **Форк:** локальный форк Spine Banking Edition (`~/spine-bank`),
+> 2026-09-11, чистая копия без истории (см. `NOTICE.md`). Ниже — унаследованный
+> текст Banking Edition; продуктовая идентичность и домен переопределяются под
+> AI/ML (зона `aiml/`). Бинарь/имя продукта и модельная матрица подлежат
+> переименованию/правке в ходе адаптации.
 
 Guidance for AI agents (and humans) working on this repository.
 **Reading/exploring the repo instead? See `AGENTS-READERS.md`.**
 
-**Spine AI/ML Edition** is a *domain agent meta-harness for AI/ML
-researchers*: a thin, Rust-built terminal agent with architecture-specific
-tooling — ADRs, architecture-spine invariants, rubrics with an evidence-bound
-LLM judge, fitness functions, handoff packages for coding harnesses, a
-skills/plugins library, background sub-agents, and governance. One binary,
-`arch-ml`: TUI + CLI + library. See `README.md` (bilingual RU/EN) for the
-full feature tour.
+**Spine Banking Edition** is a *domain agent harness for solution
+architectors* (banking): a thin, Rust-built terminal agent with
+architecture-specific tooling — ADRs, architecture-spine invariants,
+rubrics with an evidence-bound LLM judge, fitness functions, handoff
+packages for coding harnesses, a skills/plugins library, background
+sub-agents, and governance. One binary, `arch-ml`: TUI + CLI + library.
+See `README.md` (bilingual RU/EN) for the full feature tour.
 
-> **License.** MIT (`LICENSE`), see `NOTICE.md` for lineage
-> (Spine → Spine Banking Edition → this fork). The proprietary `banking/`
-> zone of Spine BE is **not included** in this publication.
+> **Product fork.** This repository is Spine Banking Edition: a product
+> fork of Spine (`NOTICE.md`, ADR-010). Core is MIT; the `banking/` layer
+> is proprietary (`LICENSE.banking`). Product invariants: `ARCHITECTURE-SPINE-BE.md`
+> (AD-BE1…BE4) — license boundary, model matrix (GigaChat + self-hosted
+> open-source inside the bank perimeter, no YandexGPT), upstream patch
+> discipline, product positioning.
 
 ## Install & run (one-minute setup)
 
@@ -178,7 +182,7 @@ No-LLM smoke: `arch-ml mermaid examples/mermaid/flow.mmd`,
 ## Карта репозитория
 
 - Стек: rust
-- Каталоги: aiml, assets, benches, docs, examples, src, tests, кейсы
+- Каталоги: assets, banking, benches, docs, examples, src, tests, кейсы
 - ADR: `docs/adr` (24 шт.) — решения читаем ДО изменения затронутых мест
 
 ## Стоп-условия: когда остановиться и эскалировать архитектору

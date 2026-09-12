@@ -261,7 +261,7 @@ mod tests {
         //    подсказки клавиш из реестра.
         let mut app = test_app();
         app.model_name = "deepseek:deepseek-v4-flash".into();
-        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/sbp-gateway");
+        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/moe-graft");
         set_context_usage(&mut app, 22_000, 1_000_000);
         write(&out, "01-first-frame.svg", &snap(&mut app, 116, 28, "arch"));
 
@@ -271,71 +271,73 @@ mod tests {
         app.help = true;
         write(&out, "07-help.svg", &snap(&mut app, 116, 28, "arch"));
 
-        // 2. Чат (hero): сквозной архитектурный ход — скиллы, KB, скоринг,
-        //    mermaid-контейнеры на вкладке; статус-бар с живым индикатором
-        //    контекста и фоновыми субагентами; скроллбар у рамки диалога.
+        // 2. Чат (hero): сквозной ход ML-исследователя — доменные скиллы, KB,
+        //    база концептов, скоринг; mermaid MoE-архитектуры на вкладке;
+        //    статус-бар с живым индикатором контекста и фоновыми субагентами.
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.model_name = "deepseek:deepseek-v4-flash".into();
-        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/sbp-gateway");
+        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/moe-graft");
         app.push_block(ChatBlock::User(
-            "спроектируй платёжный шлюз СБП (C2B): контейнеры, паттерны, маршрут".into(),
+            "спроектируй MoE-графтинг из двух dense-моделей: эксперты, роутер, инициализация gate"
+                .into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "skill_load".into(),
-            action: "transactional-outbox".into(),
+            action: "llm-grafting".into(),
             state: ToolState::Ok,
-            summary: "transactional-outbox [patterns-integration] — скилл в контексте".into(),
+            summary: "llm-grafting [ml-grafting] — скилл в контексте".into(),
         });
         app.push_block(ChatBlock::Tool {
             name: "kb_search".into(),
-            action: "«идемпотентный потребитель»".into(),
+            action: "«MoE роутер load balancing»".into(),
             state: ToolState::Ok,
-            summary: "4 фрагмента: saga-transactions, idempotent-consumer, strangler-acl…".into(),
+            summary: "4 фрагмента: switch-transformers, expert-choice, aux-loss-free…".into(),
         });
         app.push_block(ChatBlock::Tool {
-            name: "web_search".into(),
-            action: "«transactional outbox сверка»".into(),
+            name: "concept_search".into(),
+            action: "«GRPO»".into(),
             state: ToolState::Ok,
-            summary: "AWS Builders' Library: 3 статьи по outbox и сверке".into(),
+            summary: "карточка group_relative_policy_optimization · 12 алиасов · 514 соседей"
+                .into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "## Контур шлюза (C4 — контейнеры)\n\
-             **Ядро:** API ТСП → статусная машина платежа (единый источник истины) → outbox.\n\
-             - **Паттерны:** сага, transactional outbox, идемпотентный потребитель\n\
-             - **Адаптеры:** ОПКЦ (НСПК) и АБС — ядро от них контрактно независимо\n\
-             - Решения фиксируем в ADR-001…003, инварианты — в ARCHITECTURE-SPINE.md"
+            "## Скелет MoE-графтинга\n\
+             **Эксперты:** FFN-блоки двух dense-доноров → 8 экспертов с прорастанием идентичности.\n\
+             - **Роутер:** top-2 с aux-loss-free балансировкой (bias-коррекция)\n\
+             - **Gate:** инициализация из центроидов эмбеддингов доноров\n\
+             - Решения — в ADR-001…003, инварианты — в SPINE-ML (ML-05, ML-06)"
                 .into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "mermaid_render".into(),
-            action: "flowchart TD · 6 узлов".into(),
+            action: "flowchart TD · 8 узлов".into(),
             state: ToolState::Ok,
-            summary: "flowchart: 6 узлов · рендер на вкладке ◇ Mermaid".into(),
+            summary: "flowchart: 8 узлов · рендер на вкладке ◇ Mermaid".into(),
         });
         app.push_block(ChatBlock::Tool {
             name: "control_score".into(),
-            action: "--trigger payments+critical".into(),
+            action: "--trigger pretrain+critical".into(),
             state: ToolState::Ok,
-            summary: "Score 13 → маршрут Critical · гейты A0–A5, рубрика обязательна".into(),
+            summary: "Score 12 → маршрут Critical · preflight обязателен до аренды GPU".into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "Готово к передаче: `/handoff claude-code ./sbp-gateway` — пакет с инвариантами, \
-             критериями приёмки и рубрикой."
+            "Готово к передаче: `/handoff claude-code ./moe-graft` — пакет с инвариантами, \
+             рубрикой датасета и preflight-гейтом."
                 .into(),
         ));
         app.panels.mermaid = crate::mermaid::render(
-            "flowchart TD\n  API[API ТСП] --> SM[Ядро: статусная машина]\n  \
-             SM --> OB[(Outbox)]\n  SM --> OP[Адаптер ОПКЦ]\n  OB --> ABS[Адаптер АБС]\n  \
-             OP --> DLQ[(DLQ)]",
+            "flowchart TD\n  X[Вход] --> R[Роутер top-2]\n  R --> E1[(Эксперт 1)]\n  \
+             R --> E2[(Эксперт 2)]\n  R --> E8[(Эксперт 8)]\n  E1 --> G[Gate]\n  \
+             E2 --> G\n  E8 --> G\n  G --> Y[Выход]",
         )
         .expect("рендер mermaid");
         // Живой индикатор контекста + двое фоновых субагентов в статус-баре.
         set_context_usage(&mut app, 61_440, 1_000_000);
         let registry = crate::subagent::SubagentRegistry::new();
         for (id, task) in [
-            ("sa-01", "разведка репозитория ТСП"),
-            ("sa-02", "черновик ADR-002: статусная машина"),
+            ("sa-01", "разведка чекпоинтов доноров"),
+            ("sa-02", "черновик ADR-002: aux-loss-free роутер"),
         ] {
             registry.insert(crate::subagent::SubagentTask {
                 id: id.into(),
@@ -353,12 +355,11 @@ mod tests {
         // в поле ввода — многострочный черновик.
         set_thinking(&mut app, true);
         app.queue
-            .push_back("а теперь NFR: p95 шлюза и деградация НСПК".into());
-        app.queue.push_back(
-            "потом /handoff claude-code ./sbp-gateway\nс инвариантами и рубрикой".into(),
-        );
+            .push_back("а теперь датасет: дедупликация и утечка теста".into());
+        app.queue
+            .push_back("потом /handoff claude-code ./moe-graft\nс рубрикой dataset_quality".into());
         app.input
-            .set_text("покажи fitness-функции для outbox и сверки\nи пороги для p95".into());
+            .set_text("покажи fitness-функции для KL-регуляризации\nи preflight под 8×A100".into());
         write(
             &out,
             "02-chat-mermaid.svg",
@@ -369,7 +370,7 @@ mod tests {
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.model_name = "deepseek:deepseek-v4-flash".into();
-        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/sbp-gateway");
+        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/moe-graft");
         app.push_block(ChatBlock::User(
             "перед ревью ADR переключись на тяжёлую модель с ризонингом".into(),
         ));
@@ -390,51 +391,58 @@ mod tests {
             &snap(&mut app, 122, 32, "arch — /model"),
         );
 
-        // 4. Рубрика: отчёт LLM-судьи на правой вкладке; индикатор контекста
-        //    за порогом L1 (оранжевый) — видна семантика цветов.
+        // 4. Рубрика: оценка дизайна GRPO-эксперимента LLM-судьёй на правой
+        //    вкладке; индикатор контекста за порогом L1 (оранжевый).
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.model_name = "deepseek-pro:deepseek-v4-pro 🧠".into();
-        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/sbp-gateway");
+        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/grpo-exp");
         app.push_block(ChatBlock::User(
-            "оцени solutioning СБП-шлюза по якорной рубрике и прогоняй бенчмарк".into(),
+            "оцени дизайн GRPO-эксперимента по рубрике ml_experiment_quality и прогоняй golden-сет"
+                .into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "rubric_evaluate".into(),
             action: String::new(),
             state: ToolState::Ok,
-            summary: "solution_architecture: 4.2/5 — отчёт на вкладке ✓ Рубрика".into(),
+            summary: "ml_experiment_quality: 4.1/5 — отчёт на вкладке ✓ Рубрика".into(),
         });
         app.push_block(ChatBlock::Tool {
             name: "bench_run".into(),
-            action: String::new(),
+            action: "golden".into(),
             state: ToolState::Ok,
-            summary: "solution-bench: 8/10 сценариев PASS · 2 замечания по сверке".into(),
+            summary: "golden-сет судьи: MAE 0.60 · 32 пары документ×критерий".into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "**Итог: READY с замечаниями.** Обратимость (3/5) и критерии отката — \
-             в доработку; остальное закрыто."
+            "**Итог: READY с замечаниями.** Абляция KL (3/5) и бюджет compute — \
+             в доработку; гипотеза и baseline закрыты."
                 .into(),
         ));
         app.push_block(ChatBlock::User(
-            "зафиксируй замечания в ADR и подготовь вопросы к архкому".into(),
+            "зафиксируй абляции в спеке и подготовь preflight под аренду".into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "adr_new".into(),
             action: String::new(),
             state: ToolState::Ok,
-            summary: "ADR-002 создан: docs/adr/ADR-002-state-machine.md".into(),
+            summary: "ADR-007 создан: docs/adr/ADR-007-kl-ablation.md".into(),
+        });
+        app.push_block(ChatBlock::Tool {
+            name: "preflight_run".into(),
+            action: "spec.toml".into(),
+            state: ToolState::Ok,
+            summary: "preflight: 11/11 гейтов PASS · бюджет $312 в капе $400".into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "Замечания внесены в ADR-002. На A3 выносится выбор вендора транспорта — \
-             RFP-пакет готов (`docs/rfp/vendor-rfp.md`)."
+            "Абляции зафиксированы: kl_coef ∈ {0, 0.01, 0.05}. Пре-флайт зелёный — \
+             можно арендовать 8×A100."
                 .into(),
         ));
-        app.panels.rubric = "Оценка: solution_architecture (якорная)\n\n\
-             ✓ Контекст и драйверы      5/5\n✓ Альтернативы             4/5\n\
-             ✓ Отрицательные следствия  4/5\n◌ Обратимость              3/5\n\
-             ✓ Fitness-функции          5/5\n\n\
-             Взвешенный итог: 4.2/5 — READY с замечаниями\nБенчмарк: 8/10 PASS"
+        app.panels.rubric = "Оценка: ml_experiment_quality (якорная)\n\n\
+             ✓ Гипотеза и метрика       5/5\n✓ Честный baseline         5/5\n\
+             ✓ Воспроизводимость        4/5\n◌ Абляции                  3/5\n\
+             ✓ Гигиена данных           5/5\n✓ Контроль утечки          4/5\n\n\
+             Взвешенный итог: 4.1/5 — READY с замечаниями\nGolden-сет: MAE 0.60"
             .into();
         app.right_tab = RightTab::Rubric;
         set_context_usage(&mut app, 812_000, 1_000_000);
@@ -444,50 +452,51 @@ mod tests {
             &snap(&mut app, 134, 30, "arch — рубрика"),
         );
 
-        // 5. Handoff: архитектор передаёт контекст кодовому харнессу —
-        //    пакет .arch-handoff/, прогон harness_run с умными таймаутами,
-        //    JSON-контракт результата в сводке.
+        // 5. Handoff: скелет GRPO-прогона кодовому харнессу — пакет
+        //    .arch-handoff/ с ML-фитнесом (seed, KL, gpu_memory_utilization),
+        //    прогон harness_run, JSON-контракт результата в сводке.
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.model_name = "deepseek:deepseek-v4-flash".into();
-        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/sbp-gateway");
+        app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/grpo-skeleton");
         app.push_block(ChatBlock::User(
-            "передай статусную машину на исполнение Claude Code и проконтролируй результат".into(),
+            "передай скелет GRPO-прогона (veRL 0.4.0 + vLLM 0.8.3) на исполнение Claude Code и проконтролируй результат".into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "handoff_create".into(),
             action: String::new(),
             state: ToolState::Ok,
-            summary: ".arch-handoff/: TASK.md · ARCHITECTURE.md · CONSTRAINTS.yaml · \
-                 RUBRIC.yaml · MANIFEST.json · adr/ — epic-context ~1 247 токенов"
+            summary: ".arch-handoff/: TASK.md · SPINE-ML.md · CONSTRAINTS.yaml (seed, KL, \
+                 gpu_memory_utilization) · RUBRIC.yaml · MANIFEST.json — epic-context ~1 180 токенов"
                 .into(),
         });
         app.push_block(ChatBlock::Tool {
             name: "harness_run".into(),
             action: "claude-code".into(),
             state: ToolState::Ok,
-            summary: "claude-code: код 0 · 1 847 с · контракт status=complete · \
-                 assumptions 3 · open_questions 1 · прерываний нет"
+            summary: "claude-code: код 0 · 1 402 с · контракт status=complete · \
+                 assumptions 2 · open_questions 1 · прерываний нет"
                 .into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "**Исполнение принято.** Claude Code реализовал статусную машину и outbox-\n\
-             ретраи: `pytest -q` — 14 passed, fitness `no-print-in-py` — PASS.\n\
-             - Открытый вопрос: таймаут подтверждения НСПК — вынес в ADR-004\n\
+            "**Исполнение принято.** Claude Code собрал GRPO-скелет: `pytest -q` — 17 passed,\n\
+             fitness `seed`/`kl_coef` — PASS.\n\
+             - Открытый вопрос: MFU на 3B вне замера — вынес в ADR-009\n\
              - Тишины не было: heartbeat по файлам репо, процессная группа жила весь прогон"
                 .into(),
         ));
         app.push_block(ChatBlock::Tool {
             name: "control_check".into(),
-            action: ". · 6 правил".into(),
+            action: ". · 11 правил".into(),
             state: ToolState::Ok,
-            summary: "fitness: 4/4 PASS · spine-инварианты AD-1…AD-3 не нарушены".into(),
+            summary: "fitness: 11/11 PASS · инварианты ML-01…ML-11 не нарушены".into(),
         });
         app.push_block(ChatBlock::Assistant(
-            "Контур целостен. Дальше: `/export docx` — протокол прогона для архкома.".into(),
+            "Контур целостен. Дальше: preflight перед арендой 8×A100 и `/export docx` протокола."
+                .into(),
         ));
         app.panels.mermaid = crate::mermaid::render(
-            "flowchart LR\n  A[архитектор] -->|handoff-пакет| H(Claude Code)\n  \
+            "flowchart LR\n  A[ML-исследователь] -->|handoff-пакет| H(Claude Code)\n  \
              H -->|код + контракт| R[репозиторий]\n  A -->|control check| R",
         )
         .expect("рендер mermaid");
