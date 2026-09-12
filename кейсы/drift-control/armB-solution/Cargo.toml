@@ -1,0 +1,8 @@
+[package]
+name = "payments-core"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal payment core: authorize/capture/refund state machine with an event journal"
+
+[dependencies]
+thiserror = "2"

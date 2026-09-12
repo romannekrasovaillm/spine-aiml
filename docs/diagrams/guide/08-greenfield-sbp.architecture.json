@@ -1,0 +1,348 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Greenfield: платёжный шлюз СБП (целевой контур)",
+    "output": "docs/diagrams/guide/08-greenfield-sbp.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-flow",
+        "label": "Основной поток платежа",
+        "focus": [
+          "tsp",
+          "api",
+          "sm",
+          "db",
+          "opkc",
+          "abs"
+        ],
+        "note": "От запроса ТСП до зачисления в АБС — статусная машина как единый источник истины."
+      },
+      {
+        "id": "events",
+        "label": "События и идемпотентность",
+        "focus": [
+          "sm",
+          "outbox",
+          "mq",
+          "consumers"
+        ],
+        "note": "Публикация только через outbox в той же транзакции; потребитель дедуплицирует по ключу."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "tsp",
+      "type": "external",
+      "label": "ТСП",
+      "sublabel": "интернет-магазины",
+      "pos": [
+        30,
+        290
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API шлюза",
+      "sublabel": "C2B-приём · Idempotency-Key",
+      "pos": [
+        220,
+        290
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "PAY-01"
+    },
+    {
+      "id": "sm",
+      "type": "backend",
+      "label": "Статусная машина платежа",
+      "sublabel": "единый источник истины",
+      "pos": [
+        450,
+        290
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "AD-2"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "суммы в minor units",
+      "pos": [
+        450,
+        470
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "AD-1"
+    },
+    {
+      "id": "outbox",
+      "type": "database",
+      "label": "Outbox",
+      "sublabel": "та же транзакция",
+      "pos": [
+        690,
+        470
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "tag": "PAY-02"
+    },
+    {
+      "id": "mq",
+      "type": "messagebus",
+      "label": "Брокер событий",
+      "sublabel": "payment.events",
+      "pos": [
+        690,
+        620
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "consumers",
+      "type": "backend",
+      "label": "Идемпотентный потребитель",
+      "sublabel": "дедуп по ключу",
+      "pos": [
+        450,
+        620
+      ],
+      "size": [
+        180,
+        60
+      ],
+      "tag": "PAY-01"
+    },
+    {
+      "id": "opkc",
+      "type": "cloud",
+      "label": "Адаптер ОПКЦ",
+      "sublabel": "СБП НСПК · mTLS",
+      "pos": [
+        690,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "trust zone"
+    },
+    {
+      "id": "abs",
+      "type": "cloud",
+      "label": "Адаптер АБС",
+      "sublabel": "зачисление",
+      "pos": [
+        690,
+        290
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Ядро шлюза (контрактно независимое)",
+      "wraps": [
+        "api",
+        "sm",
+        "db",
+        "outbox",
+        "consumers"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Внешние системы",
+      "wraps": [
+        "opkc",
+        "abs"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "from": "tsp",
+      "to": "api",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "labelAt": [
+        185,
+        368
+      ]
+    },
+    {
+      "id": "c2",
+      "from": "api",
+      "to": "sm",
+      "label": "authorize/capture",
+      "labelAt": [
+        395,
+        368
+      ]
+    },
+    {
+      "id": "c3",
+      "from": "sm",
+      "to": "db",
+      "label": "запись",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        480,
+        390
+      ]
+    },
+    {
+      "id": "c4",
+      "from": "sm",
+      "to": "outbox",
+      "label": "та же транзакция",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          540,
+          442
+        ],
+        [
+          765,
+          442
+        ]
+      ],
+      "labelAt": [
+        620,
+        428
+      ]
+    },
+    {
+      "id": "c5",
+      "from": "outbox",
+      "to": "mq",
+      "label": "CDC",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        765,
+        568
+      ]
+    },
+    {
+      "id": "c6",
+      "from": "mq",
+      "to": "consumers",
+      "label": "at-least-once",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "labelAt": [
+        560,
+        610
+      ]
+    },
+    {
+      "id": "c7",
+      "from": "api",
+      "to": "opkc",
+      "label": "C2B",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          420,
+          322
+        ],
+        [
+          420,
+          232
+        ]
+      ],
+      "labelAt": [
+        520,
+        210
+      ]
+    },
+    {
+      "id": "c8",
+      "from": "api",
+      "to": "abs",
+      "label": "зачисление",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          400,
+          322
+        ],
+        [
+          400,
+          270
+        ],
+        [
+          765,
+          270
+        ]
+      ],
+      "labelAt": [
+        520,
+        256
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Паттерны",
+      "items": [
+        "Сага-оркестрация перевода",
+        "Transactional outbox (PAY-02)",
+        "Идемпотентные точки входа (PAY-01)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Инварианты (спайн)",
+      "items": [
+        "AD-1: деньги — minor units, float запрещён",
+        "AD-2: ошибки — thiserror, статусная машина",
+        "AD-3: authorize идемпотентен по ключу"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Приёмка",
+      "items": [
+        "6 fitness-правил C-01…06 (critical)",
+        "Гейт исполнителя: control check → exit 0"
+      ]
+    }
+  ]
+}

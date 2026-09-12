@@ -1,0 +1,79 @@
+# CONSTRAINTS.yaml — fitness-правила для OCN-HTAP-001 (генерируется prepare_cells.py).
+# Источник: mechanical_checks из RUBRICS.md (rubrics).
+# Проверка: arch-be control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: SP-OCN-HTAP-001-01
+    name: deliverable-d1
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*резюме"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-02
+    name: deliverable-d2
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(схема|разв[её]ртывани)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-03
+    name: deliverable-d3
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(RPO|HA|отказоустойчив|кворум)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-04
+    name: deliverable-d4
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(HTAP|изоляци|нагрузк)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-05
+    name: deliverable-d5
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(производительн|[её]мкост)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-06
+    name: deliverable-d6
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(подключени|совместимост|OBPROXY|OBProxy|драйвер)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-07
+    name: deliverable-d7
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(эксплуатац|резервн\\w*\\s+копировани)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-08
+    name: deliverable-d8
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(безопасност|соответстви)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-09
+    name: deliverable-d9
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*трассиров"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-10
+    name: deliverable-d10
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(допущени|риск|альтернатив)"
+    severity: high
+
+  - id: SP-OCN-HTAP-001-99
+    name: max-words
+    type: command_succeeds
+    command: "bash -c \"test $(wc -w < answer.md 2>/dev/null || echo 999999) -le 4000\""
+    severity: medium

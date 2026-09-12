@@ -1,0 +1,4 @@
+# Артефакты сборки и тестов (пересоздаются build.sh / test.sh)
+out/
+out-test/
+sdk.jar

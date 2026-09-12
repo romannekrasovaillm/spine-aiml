@@ -1,0 +1,177 @@
+# Рубрика пригодности контура оценки знания концептов на RL-средах Ариадны
+# (E1_define…E8_plan_experiment). Оценивает СЕМАНТИКУ, которую не выразить
+# механически: правильно ли расставлены веса judge/verifier, откалиброван ли
+# судья, выбран ли верный контракт верификатора, честно ли собран сигнал.
+# Механические предикаты (сумма весов = 1.0, форма возврата verifier'а,
+# нормализация judge/4) сюда НЕ дублируются — они проверяются кодом харнесса
+# (`src/rubric.rs` weighted_total); рубрика — для eval-судьи/человека ПЕРЕД
+# доверием к jw > 0 и перед публикацией лидерборда.
+# Грундовка: library/rl_envs/envs.yaml (реестр сред, веса),
+# library/rl_envs/verifiers/*.py (код верификаторов),
+# library/rl_envs/judge/calibration/calibration_template.json (калибровка),
+# library/rl_envs/arena/SPEC.md §3 (контракт судьи, формула скоринга).
+# Секция `environments` ниже — калибровочная таблица (дублирует реестр для
+# судьи/человека; источник истины — envs.yaml).
+name: rl_environments
+version: 1.0.0
+description: >-
+  Пригодность контура оценки знания ML-концептов на 8 RL-средах: веса
+  judge_weight/verifiable_weight отражают природу ответа (формальный ответ —
+  детерминированный verifier, свободная проза — LLM-судья), судья откалиброван
+  (Spearman ρ ≥ 0.75), выбран корректный контракт verifier'а (float vs dict,
+  адаптер E5, corrupted_card для E7), известные дефекты учтены, сэмплирование
+  (k_samples) соответствует потребителю (RL vs лига), а сигнал собран честно
+  (judge_missing обработан, матрица модель×среда, дисклеймер о самосудействе).
+scale_max: 5
+origin: anchor
+criteria:
+  - id: verifier_grounding
+    name: Грунтовка verifier'а и весов в реестре
+    weight: 2
+    description: "Вес и паттерн проверки взяты из envs.yaml, форма возврата verifier'а распознана (float 0..1 vs dict {gate, components, evidence}), дефекты учтены."
+    anchors:
+      1: "Веса/паттерны назначены на глаз; форма возврата verifier'а не проверена, dict и float не различены"
+      3: "Веса взяты из реестра, но известные дефекты (E4 константный 0.5, E8 заглушка 0.0, E5-адаптер from/to) не учтены"
+      5: "Веса и verifier прочитаны из envs.yaml; форма возврата (float vs dict) обработана; дефекты E1/E4/E5/E8 названы и компенсированы или исключены"
+  - id: judge_calibration
+    name: Калибровка судьи
+    weight: 3
+    description: "Судья откалиброван против человека (≥50 аннотаций, Spearman ρ ≥ 0.75) ДО доверия к judge_weight > 0; калибровка версионирована."
+    anchors:
+      1: "jw > 0 используется без калибровки; согласие судьи с человеком не измерялось; каппа/ρ неизвестны"
+      3: "Калибровка заявлена, но <50 аннотаций, или ρ измерен на одной среде и перенесён на остальные"
+      5: "≥50 человеческих аннотаций по каждой среде с jw > 0, ρ ≥ 0.75 зафиксирован, rubric-карточка несёт version/kappa/calibrated"
+  - id: weight_semantics
+    name: Осмысленность весов judge/verifier
+    weight: 2
+    description: "jw/vw отражают природу правильного ответа: однозначный формальный ответ → vw; свободная проза/суждение → jw. Спектр E3=E7 (vw=1.0) ↔ E6 (jw=0.7) соблюдён."
+    anchors:
+      1: "Веса не связаны с природой задачи: у строго детерминированной среды завышен jw, у прозаической — jw≈0"
+      3: "Веса осмысленны, но хотя бы одна среда противоречит спектру (детерминированную проверяет судья или наоборот)"
+      5: "Для каждой среды jw/vw объяснён природой ответа; спектр E3/E7 (код) ↔ E6/E8 (судья) ↔ E1 (пополам) соблюдён и обоснован"
+  - id: sampling_discipline
+    name: Дисциплина сэмплирования (k_samples)
+    weight: 1
+    description: "k_samples соответствует потребителю: k > 1 для RL (групповая дисперсия/advantage), k = 1 для лиги/оценки; иначе бюджет взрывается без пользы."
+    anchors:
+      1: "k_samples игнорируется: лига гоняет k = 8–12 (взрыв вызовов) или RL использует k = 1 (нет дисперсии → нет advantage)"
+      3: "k_samples выбран, но не связан с потребителем, либо источник k не реестр"
+      5: "k_samples из envs.yaml (4–12) для RL; k = 1 для лиги/оценки; выбор k объяснён через дисперсию reward vs бюджет вызовов"
+  - id: signal_honesty
+    name: Честность итогового сигнала
+    weight: 2
+    description: "task_score = vw·verifier + jw·judge/4; judge_missing обработан; отчёт — матрица модель×среда, а не одна цифра; дисклеймеры (самосудейство, слабый E4) раскрыты."
+    anchors:
+      1: "Провал судьи молча даёт 0 (или завышает) вместо пересчёта веса; отчёт — одна усреднённая цифра без матрицы"
+      3: "Формула применена, но judge_missing не флагируется, либо дисклеймеры (самосудейство судьи, слабый E4) отсутствуют"
+      5: "task_score по формуле, judge_missing → вес пересчитан и флаг записан; отчёт — матрица модель×среда + доля error; дисклеймеры раскрыты"
+thresholds:
+  min_total: 3.5
+  spearman_target: 0.75
+  min_annotations: 50
+  unstable_stdev: 1.0
+
+# ── Калибровочная таблица сред (источник истины — envs.yaml) ──────────────
+# jw = judge_weight, vw = verifiable_weight; jw + vw = 1.0.
+# Форма verifier'а: float 0..1 | dict {gate, components, evidence}.
+environments:
+  E1_define:
+    judge_weight: 0.5
+    verifiable_weight: 0.5
+    k_samples: 8
+    task_count: 414
+    verifier: verifiers/v_define.py::verify_define
+    verifier_form: float
+    status: ready
+  E2_formula:
+    judge_weight: 0.1
+    verifiable_weight: 0.9
+    k_samples: 8
+    task_count: 75
+    verifier: verifiers/common.py::verify_formula
+    verifier_form: dict
+    status: ready
+  E3_classify:
+    judge_weight: 0.0
+    verifiable_weight: 1.0
+    k_samples: 12
+    task_count: 412
+    verifier: verifiers/common.py::verify_classify
+    verifier_form: dict
+    status: ready
+  E4_extract:
+    judge_weight: 0.4
+    verifiable_weight: 0.6
+    k_samples: 4
+    task_count: 45
+    verifier: verifiers/v_extract.py::verify_extract
+    verifier_form: float
+    status: ready
+  E5_relate:
+    judge_weight: 0.2
+    verifiable_weight: 0.8
+    k_samples: 8
+    task_count: 216
+    verifier: verifiers/v_relate.py::verify_relate
+    verifier_form: float
+    status: ready
+    adapter_required: "{'source': rel['from'], 'target': rel['to']}"
+  E6_contrast:
+    judge_weight: 0.7
+    verifiable_weight: 0.3
+    k_samples: 8
+    task_count: 100
+    verifier: verifiers/v_contrast.py::verify_contrast
+    verifier_form: float
+    status: ready
+  E7_repair:
+    judge_weight: 0.0
+    verifiable_weight: 1.0
+    k_samples: 8
+    task_count: 100
+    verifier: verifiers/common.py::verify_repair
+    verifier_form: dict
+    status: ready
+    second_arg: corrupted_card
+  E8_plan_experiment:
+    judge_weight: 0.7
+    verifiable_weight: 0.3
+    k_samples: 4
+    task_count: 0
+    verifier: verifiers/v_plan.py::verify_plan
+    verifier_form: float
+    status: planned
+    note: "verifier — заглушка (возвращает 0.0), 0 задач; не строить выводы"
+
+# Контракт судьи: envs.yaml ссылается на judge/judge_cli.md, но файла в
+# библиотеке НЕТ (проверено find library -name 'judge_cli*' — пусто).
+# Действующий контракт материализован в arena/SPEC.md §3 и arena/arena.py.
+judge_contract:
+  scale: "0-4"
+  references_file: "library/rl_envs/judge/judge_cli.md (отсутствует)"
+  materialized_in:
+    - "library/rl_envs/arena/SPEC.md §3"
+    - "library/rl_envs/arena/arena.py (фаза judge)"
+  response_format: '{"score": <int 0-4>, "rationale": "<brief>"}'
+  generation: { temperature: 0.0, max_tokens: 4096, timeout: 300 }
+  json_retries: 3
+  on_invalid_json: "judge_score=null, task_score по verifier с пересчитанным весом, флаг judge_missing"
+  rubrics_dir: library/rl_envs/judge/rubrics
+  calibration_dir: library/rl_envs/judge/calibration
+
+scoring:
+  task_score: "vw * verifier_score + jw * (judge_score / 4)"
+  model_env: "mean(task_score по задачам среды без error)"
+  overall: "mean(model_env по средам) — среды равнозначны"
+  judge_environments: [E1_define, E2_formula, E4_extract, E5_relate, E6_contrast, E8_plan_experiment]
+
+# Анти-примеры (reward hacking / ложный сигнал) — что НЕ должно засчитываться.
+anti_examples:
+  - "Ключевое слово «отличие» в ответе без реального различия концептов (пробивает E6 keyword-verifier → ложные 0.7)"
+  - "Повторение обоих слагов в ответе без описания отношения (пробивает E5 → 1.0)"
+  - "Эхо-копия gold-карточки без понимания (завышает E1 word-overlap и E7 fixes_found)"
+  - "Пользователь/судья поднял jw>0 без калибровки, чтобы «улучшить» результат"
+  - "Лига гоняет k_samples=8–12 на задачу (взрыв бюджета вызовов) под видом «как в RL»"
+
+# Датасет НЕ копируется — только ссылка на путь библиотеки.
+dataset_ref: "library/rl_envs/tasks/*.jsonl"

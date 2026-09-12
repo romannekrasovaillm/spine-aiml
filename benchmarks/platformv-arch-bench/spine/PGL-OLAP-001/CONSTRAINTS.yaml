@@ -1,0 +1,79 @@
+# CONSTRAINTS.yaml — fitness-правила для PGL-OLAP-001 (генерируется prepare_cells.py).
+# Источник: mechanical_checks из RUBRICS.md (rubrics).
+# Проверка: arch-be control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: SP-PGL-OLAP-001-01
+    name: deliverable-d1
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*резюме"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-02
+    name: deliverable-d2
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*схема\\s+разв"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-03
+    name: deliverable-d3
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(границ|oltp.?/.?olap)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-04
+    name: deliverable-d4
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(поток\\w*\\s+данных|cdc|загрузк)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-05
+    name: deliverable-d5
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(топологи|ha.?/.?dr)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-06
+    name: deliverable-d6
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*безопасност"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-07
+    name: deliverable-d7
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(производительност|ёмкост)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-08
+    name: deliverable-d8
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(нагрузк|эксплуатац)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-09
+    name: deliverable-d9
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*трассировк"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-10
+    name: deliverable-d10
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(допущен|риск|альтернатив)"
+    severity: high
+
+  - id: SP-PGL-OLAP-001-99
+    name: max-words
+    type: command_succeeds
+    command: "bash -c \"test $(wc -w < answer.md 2>/dev/null || echo 999999) -le 4000\""
+    severity: medium

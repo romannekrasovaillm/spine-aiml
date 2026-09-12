@@ -1,0 +1,17 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "patterns-integration",
+  "version": "1.0.0",
+  "description": "Паттерны интеграции и распределённых данных из pattern language Криса Ричардсона (microservices.io): saga, transactional outbox, CQRS/API composition, strangler + anti-corruption layer, idempotent consumer. Дистилляты с проблемой/силами/вариантами/антипаттернами и банковскими примерами; источник указан в каждом скилле.",
+  "keywords": [
+    "patterns",
+    "integration",
+    "microservices",
+    "saga",
+    "cqrs",
+    "outbox",
+    "strangler",
+    "idempotency",
+    "bank"
+  ]
+}

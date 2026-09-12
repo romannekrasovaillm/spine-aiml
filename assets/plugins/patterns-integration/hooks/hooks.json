@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[patterns-integration] Изменены файлы — проверьте согласованность интеграций: сага/аутбокс/идемпотентность (arch-ml skills search saga)'"
+          }
+        ]
+      }
+    ]
+  }
+}

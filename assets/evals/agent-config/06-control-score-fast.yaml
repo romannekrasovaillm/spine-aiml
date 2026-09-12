@@ -1,0 +1,9 @@
+# Eval-задача: significance score маршрутизирует лёгкое изменение в Fast.
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: control-score-fast
+title: "Significance score: один триггер → маршрут Fast"
+command: "{arch} control score --trigger new_component=true"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "маршрут Fast"

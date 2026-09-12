@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "arch-core",
+  "version": "1.0.0",
+  "description": "Ядро методов solution-архитектора банка для харнесса arch-ml: ADR-дисциплина, spine-инварианты, маршрутизация значимости, C4/mermaid, NFR, гейты готовности и состязательное ревью, handoff-пакеты кодовым агентам, reverse discovery, дельта-спеки, fitness functions, рубрики и мета-скилл создания скиллов.",
+  "keywords": [
+    "architecture",
+    "solution-architect",
+    "adr",
+    "spine",
+    "handoff",
+    "rubrics",
+    "bank",
+    "skills"
+  ]
+}

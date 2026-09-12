@@ -1,0 +1,79 @@
+# CONSTRAINTS.yaml — fitness-правила для PGL-MIG-001 (генерируется prepare_cells.py).
+# Источник: mechanical_checks из RUBRICS.md (rubrics).
+# Проверка: arch-be control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: SP-PGL-MIG-001-01
+    name: deliverable-d1
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*резюме"
+    severity: high
+
+  - id: SP-PGL-MIG-001-02
+    name: deliverable-d2
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(инвентариз|as-is|объём\\s+работ)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-03
+    name: deliverable-d3
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(стратеги|этап|волн)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-04
+    name: deliverable-d4
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(конвертац|портирован|соответстви)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-05
+    name: deliverable-d5
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(канал|загрузк|cdc)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-06
+    name: deliverable-d6
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(параллельн|коэкзистенц|верификац|сверк)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-07
+    name: deliverable-d7
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(cutover|откат)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-08
+    name: deliverable-d8
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(целев|топологи)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-09
+    name: deliverable-d9
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*трассировк"
+    severity: high
+
+  - id: SP-PGL-MIG-001-10
+    name: deliverable-d10
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(допущен|риск|альтернатив)"
+    severity: high
+
+  - id: SP-PGL-MIG-001-99
+    name: max-words
+    type: command_succeeds
+    command: "bash -c \"test $(wc -w < answer.md 2>/dev/null || echo 999999) -le 4000\""
+    severity: medium

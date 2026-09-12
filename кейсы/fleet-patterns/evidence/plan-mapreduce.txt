@@ -1,0 +1,10 @@
+# Скомпилированный план map_reduce (интегратор достроен компилятором)
+План: fixture-mapreduce (fixture) — паттерн map_reduce, узлов 3, волн 2
+Политика: max_parallel=4, worktree=true, merge_gate=owner, autonomy=R2, stop_on_gate_fail=false
+
+Волна 1 (2 узлов):
+  svc-a                    worker     route=standard от=—                гейты=contract+fitness 
+  svc-b                    worker     route=standard от=—                гейты=contract+fitness 
+
+Волна 2 (1 узлов):
+  reduce                   integrator route=standard от=svc-a, svc-b     гейты=contract+fitness 

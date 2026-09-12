@@ -1,0 +1,16 @@
+# spine-be-sdk — тонкий Python-клиент поверх headless CLI `arch-ml` (Spine-BE).
+# Контракт: sdk/CONTRACT.md (версия 1). Только стандартная библиотека.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spine-be-sdk"
+version = "0.1.0"
+description = "SDK-клиент для Spine-BE (arch-ml): run, control check, archify validate/deliver/compare"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

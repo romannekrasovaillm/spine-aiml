@@ -1,0 +1,51 @@
+# CONSTRAINTS.corp.yaml — корпоративный спайн (уровень ДКА), образец MVP.
+# Владелец: ДКА. Прогон из продуктового репо: extends + control check
+# (docs/corp-spine.md). Версия — по ней продуктовые файлы проверяют свой пин.
+version: "2026.3"
+
+rules:
+  # Тех-радар (первая волна внедрения): библиотека из Hold → FAIL со ссылкой
+  # на решение техкомитета. Детерминировано, не спорно, покрывает все репо.
+  - id: C-CORP-001
+    name: tech_radar_hold
+    type: deny_dependency
+    deny: [left-pad, openssl-sys, log4j-core]
+    reference: "Решение техкомитета 2026-03, протокол №12 (тех-радар, кольцо Hold)"
+    severity: block
+    owner: "@dka-tech-radar"
+    expiry: "2027-03-01"
+
+  # Контур ПДн (третья волна): полный PAN в коде вне отмеченных модулей.
+  # warn — сначала только в отчёт, иначе первое внедрение положит всем CI.
+  - id: C-CORP-002
+    name: no_pan_in_code
+    type: must_not_contain
+    glob: "src/**"
+    pattern: '\b\d{16}\b'
+    severity: warn
+    rationale: "ПДн/PCI DSS: полный номер карты только в модулях процессинга."
+    owner: "@dka-security"
+
+  # Обязательный evidence ручного ПДн-ревью (контур ПДн, третья волна).
+  - id: C-CORP-003
+    name: pdn_review_evidence
+    type: file_exists
+    path: "evidence/pdn-review.json"
+    severity: warn
+    owner: "@dka-security"
+
+  # Наблюдаемость по орг-стандарту — не механизуется: запись ручного
+  # контроля с owner (unverifiable), движок не исполняет, видно в report.
+  - id: C-CORP-004
+    name: observability_standard
+    unverifiable: true
+    owner: "@dka-platform"
+    rationale: "Метрики/трейсинг по орг-стандарту — ручной контур ревью."
+
+  # Базовая гигиена репозитория.
+  - id: C-CORP-005
+    name: readme_present
+    type: file_exists
+    path: "README.md"
+    severity: warn
+    owner: "@dka"

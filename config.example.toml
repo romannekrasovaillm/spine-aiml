@@ -1,0 +1,629 @@
+# =============================================================================
+# arch-ml — пример конфигурации (config.toml)
+# =============================================================================
+# Порядок поиска конфига при запуске:
+#   1. --config <path>
+#   2. ./arch-ml.toml (текущий каталог)
+#   3. ~/.config/arch-ml/config.toml
+#   4. встроенные дефолты (этот файл их документирует полностью)
+#
+# Все секции опциональны (serde default) — указывайте только отличия.
+# Тильда `~/` в путях раскрывается при загрузке (knowledge dirs, mcp/cron/paths).
+# API-ключи НЕ пишутся в конфиг — только имена переменных окружения.
+# =============================================================================
+
+# Модель по умолчанию — ключ из секции [models.*].
+default_model = "deepseek"
+
+# -----------------------------------------------------------------------------
+# LLM-провайдеры (OpenAI-совместимые endpoint'ы).
+# api_key_env — имя переменной окружения с ключом (значение ключа не хранится!).
+# temperature: не задана = провайдерский дефолт (поле просто опускается).
+#
+# thinking_on / thinking_off — карты ризонинга (JSON-объект, сливается в тело
+# запроса при `/think on|off` в TUI или `arch-ml run --think on|off`):
+#   DeepSeek V4, GLM-4.x:  thinking = { type = "enabled" | "disabled" }
+#   Kimi K3:               reasoning_effort = "max" | "low"  (выключить нельзя)
+# Без `/think` карты не шлются — действует дефолт провайдера (у DeepSeek V4
+# ризонинг по умолчанию ВКЛЮЧЁН с effort=high). Для thinking + tools DeepSeek
+# требует эха reasoning_content — харнесс хранит его и возвращает сам.
+#
+# proxy — опциональный URL прокси для провайдера (напр. регионально
+# заблокированный API через локальный egress-шлюз):
+#   proxy = "http://127.0.0.1:12080"
+# Для loopback-прокси (127.0.0.1/localhost) харнесс при выборе модели сам
+# проверяет порт и поднимает шлюз (`systemctl --user start vpn-egress`);
+# недоступность шлюза — предупреждение, запрос идёт дальше. Внешний прокси
+# используется как есть. Без поля — прямое соединение (или env HTTP(S)_PROXY).
+#
+# Актуальность id моделей сверена с официальной документацией (август 2026):
+# deepseek-chat/reasoner сняты 2026-07-24 → deepseek-flash/v4-pro (v4-flash выведена);
+# kimi-k2 снят 2025-05-25 → kimi-k3; glm-4.6 → glm-4.7.
+# -----------------------------------------------------------------------------
+[models.deepseek]
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-flash"              # быстрая модель для повседневных задач
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.deepseek-pro]
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-v4-pro"             # тяжёлый ризонинг: состязательное ревью, гейты
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 300                    # pro думает дольше — бюджет тишины выше
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.kimi]
+# Официальная coding-поверхность Kimi Code (доки kimi.com/code): модели
+# k3 / k3-256k; старая /v1 отдаёт 404, api.moonshot.ai душится DPI (флапает).
+# Thinking-параметры поверхность не принимает (K3 ризонит всегда); temperature
+# — только 1 (поэтому не шлём). Ключ: env KIMI_API_KEY или файл api_key_file.
+base_url = "https://api.kimi.com/coding/v1"
+model = "k3"                          # флагман Kimi Code, 256k контекст
+api_key_env = "KIMI_API_KEY"
+api_key_file = "~/.kimi_api_key"      # запасной путь, если env не задан
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+
+[models.glm]
+# Международная площадка Z.AI (ключ ZHIPU_API_KEY с docs.z.ai — тот же
+# аккаунт работает и на китайском open.bigmodel.cn). Для Китая —
+# base_url = "https://open.bigmodel.cn/api/paas/v4".
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-5.2"                     # флагман Z.AI, 1M контекст (резервный провайдер)
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+# ── GigaChat (ADR-021) ─────────────────────────────────────────────
+# OAuth2 вместо статического ключа: Basic-ключ из api_key_env/api_key_file
+# идёт на {oauth.token_url} (RqUID uuid4, form scope=…), далее Bearer с
+# упреждающим рефрешем (за 60 с до expires_at, TTL 30 мин). User-Agent
+# обязателен (без него 403) — дефолт "spine-arch/<version>".
+# thinking в API нет — thinking_on/off НЕ задавать. Контекст 128K.
+[models.gigachat]
+# base_url не задан → пресет https://api.giga.chat/v1
+model = "GigaChat-2-Pro"
+api_key_env = "GIGACHAT_API_KEY"    # Authorization-key из кабинета Сбера
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 128000
+# TLS: серверный сертификат — НУЦ Минцифры; раскомментируйте и укажите
+# PEM корня (AD-BE5: без ослаблений проверки, verify=false запрещён):
+# ca_pem_file = "/etc/spine/certs/russian-trusted-root-ca.pem"
+[models.gigachat.oauth]
+token_url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"  # дефолт фабрики, можно опустить
+scope = "GIGACHAT_API_PERS"       # PERS | B2B | CORP — выбор владельца инсталляции
+
+[models.gigachat-max]
+# Флагман линейки GigaChat-2; тот же OAuth-профиль, бюджет тишины выше.
+model = "GigaChat-2-Max"
+api_key_env = "GIGACHAT_API_KEY"
+max_tokens = 8192
+timeout_secs = 300
+context_limit = 128000
+[models.gigachat-max.oauth]
+scope = "GIGACHAT_API_PERS"
+
+[models.gigachat-ultra]
+# GigaChat-3-Ultra: только физлица (Freemium; платные тарифы и юрлица —
+# недоступна, developers.sber.ru/docs/ru/gigachat/models/gigachat-3-ultra).
+# Согласуется со scope PERS; при CORP/B2B ключе вернёт ошибку доступа.
+model = "GigaChat-3-Ultra"
+api_key_env = "GIGACHAT_API_KEY"
+max_tokens = 8192
+timeout_secs = 300
+context_limit = 128000
+[models.gigachat-ultra.oauth]
+scope = "GIGACHAT_API_PERS"
+#
+# Корпоративный ключ (юрлица): скопируйте любую секцию gigachat* под новым
+# именем и замените api_key_env и scope — личный и корпоративный ключи
+# будут жить в пикере одновременно (у юрлиц 10 одновременных потоков):
+# [models.gigachat-corp-max]
+# model = "GigaChat-2-Max"
+# api_key_env = "GIGACHAT_API_KEY_CORP"
+# max_tokens = 8192
+# timeout_secs = 300
+# context_limit = 128000
+# [models.gigachat-corp-max.oauth]
+# scope = "GIGACHAT_API_CORP"       # CORP | B2B — по типу корпоративного ключа
+#
+# B2Bank-профиль (банковский контур, домен sbrf.ru): mTLS клиентским
+# сертификатом, БЕЗ OAuth (секция oauth отсутствует, Bearer не шлётся);
+# base_url задаёт инсталляция (IFT/пром стенд):
+# [models."gigachat-b2bank"]
+# base_url = "https://gigachat.ift.sbrf.ru/v1"   # пример, адрес — у владельца стенда
+# model = "GigaChat-2-Pro"
+# client_cert_file = "/etc/spine/certs/client.pem"
+# client_key_file  = "/etc/spine/certs/client-key.pem"
+# max_tokens = 8192
+# timeout_secs = 180
+
+[models."glm-4.7"]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.7"                     # прошлое поколение: дешевле флагмана вдвое
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 204800
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm-air]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.5-air"                 # дешёвый рабочий (~$0.14/$0.86 за 1М)
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 120
+context_limit = 131072
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm-flash]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.7-flash"               # бесплатный тариф: черновики, крон, дайджесты
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 120
+context_limit = 204800
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+# GLM-5.3-Flash: окно 1.3M, вывод до 128K. thinking НЕ отключается
+# (HTTP 1210 на thinking.type=disabled) — «off» эмулируется enabled + low.
+[models."glm-5.3-flash"]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-5.3-flash"
+api_key_env = "ZHIPU_API_KEY"
+timeout_secs = 180
+context_limit = 1310720
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "enabled" }, reasoning_effort = "low" }
+
+# Провайдер за egress-прокси (напр. регионально заблокированный API).
+# Поле proxy нацеливает HTTP-клиент этого провайдера на локальный шлюз;
+# loopback-шлюз харнесс поднимает сам при выборе модели — ручной `source
+# env.sh` перед запуском не нужен:
+# [models.openrouter]
+# base_url = "https://openrouter.ai/api/v1"
+# model = "vendor/model"
+# api_key_env = "OPENROUTER_API_KEY"
+# proxy = "http://127.0.0.1:12080"      # локальный egress-шлюз (vpn-egress)
+
+# -----------------------------------------------------------------------------
+# Агентный цикл «модель ↔ инструменты».
+# -----------------------------------------------------------------------------
+[agent]
+max_tool_turns = 4800                 # максимум итераций за один ход (по исчерпании — финальный ответ без инструментов; петли ловят детекторы)
+context_budget_tokens = 6000000       # потолок бюджета контекста; авто-компактификация работает от
+                                      # min(этого бюджета, context_limit модели): L1-маскирование на 70%,
+                                      # L3-саммари на 95% окна модели; принудительно — /compact в TUI
+stream = true                         # стримить дельты ответа в TUI/stdout
+failure_memory = "propose"            # память сбоев инструментов («ошибся дважды → урок»):
+                                      # off — выкл; propose — заметка в чат + предложение урока в
+                                      # state/failure_lessons.md (/lessons); write — как propose +
+                                      # append урока в AGENTS.md проекта (вне зоны ARCH:GENERATED)
+images_keep_last = 1                  # сколько последних кадров уходит в запрос к модели остальные
+                                      # снимаются из запроса с пометкой (тело запроса иначе растёт
+                                      # линейно от числа скриншотов; у DeepSeek лимит 48 MiB).
+                                      # Для vision-сценариев «до/после» (сравнение двух кадров
+                                      # одним взглядом) поднимите до 2+: при 1 предыдущий кадр
+                                      # вытесняется до следующего запроса.
+
+# -----------------------------------------------------------------------------
+# LLM-судья рубрик (ADR-004): калибровка и верификация оценок.
+# Каждый критерий оценивается samples независимыми прогонами судьи; итоговый
+# балл — медиана, разброс σ выше unstable_stdev помечается `unstable`.
+# Балл ≥ 2 обязан опираться на цитату из оцениваемого текста; цитата слабее
+# evidence_min_similarity → `evidence_not_found`, критерий исключается из
+# взвешенного итога. golden_max_mae — порог `arch-ml bench run --golden`:
+# итоговый MAE выше порога → exit code 1 (регрессионный гейт).
+# -----------------------------------------------------------------------------
+[judge]
+samples = 3                           # сэмплов судьи на критерий (1 — одиночная оценка)
+unstable_stdev = 1.0                  # порог population-σ сэмплов для метки unstable
+evidence_min_similarity = 0.8         # fuzzy-порог подтверждения цитаты (0..=1; точное вхождение — всегда)
+golden_max_mae = 1.0                  # максимальный MAE golden-прогона (в баллах шкалы)
+
+# -----------------------------------------------------------------------------
+# Локальная база знаний для `arch-ml kb` и инструмента kb_search.
+# Каталоги — доменные документы архитектора (разборы, концепты, скиллы);
+# принцип Context Supply Chain: сужайте до релевантных доменов, не «вся Wiki».
+# -----------------------------------------------------------------------------
+[knowledge]
+dirs = [
+  "~/knowledge/architecture",      # разборы и статьи (ЗАМЕНИТЕ на свои каталоги)
+  "~/knowledge/papers",            # научные статьи/концепты
+  "~/knowledge/skills",            # ваша библиотека скиллов
+]
+extensions = ["md", "txt", "rst"]     # какие расширения индексировать
+
+# -----------------------------------------------------------------------------
+# Веб-доступ: поиск (DuckDuckGo HTML), фетч страниц, кураторские сайты.
+# Кураторский список используется `arch-ml web search --arch` и инструментом
+# web_arch_sites: версии технологий проверяются по первоисточникам, не по памяти.
+# -----------------------------------------------------------------------------
+[web]
+enabled = true                     # false — полное выключение веб-инструментов (контур банка, AD-BE5); по умолчанию true
+search_base = "https://html.duckduckgo.com/html/"
+user_agent = "arch-ml/0.1 (+solution-architect harness)"
+timeout_secs = 30
+max_fetch_chars = 24000               # усечение текста страницы после html→text
+
+[[web.arch_sites]]
+name = "aws-arch"
+base_url = "https://docs.aws.amazon.com/architecture/"
+domain = "docs.aws.amazon.com"
+description = "AWS Architecture Center: reference architectures, Well-Architected"
+
+[[web.arch_sites]]
+name = "azure-arch"
+base_url = "https://learn.microsoft.com/azure/architecture/"
+domain = "learn.microsoft.com"
+description = "Azure Architecture Center: паттерны, reference architectures"
+
+[[web.arch_sites]]
+name = "gcp-arch"
+base_url = "https://cloud.google.com/architecture"
+domain = "cloud.google.com"
+description = "Google Cloud Architecture Center"
+
+[[web.arch_sites]]
+name = "fowler"
+base_url = "https://martinfowler.com/architecture/"
+domain = "martinfowler.com"
+description = "Мартин Фаулер: эссе по архитектуре, микросервисам, эволюционному дизайну"
+
+[[web.arch_sites]]
+name = "infoq-arch"
+base_url = "https://www.infoq.com/architecture-design/"
+domain = "infoq.com"
+description = "InfoQ Architecture & Design: статьи и тренды"
+
+[[web.arch_sites]]
+name = "microservices-io"
+base_url = "https://microservices.io/"
+domain = "microservices.io"
+description = "Каталог паттернов микросервисов (Крис Ричардсон)"
+
+[[web.arch_sites]]
+name = "c4"
+base_url = "https://c4model.com/"
+domain = "c4model.com"
+description = "C4 model: нотация визуализации архитектуры"
+
+[[web.arch_sites]]
+name = "arc42"
+base_url = "https://docs.arc42.org/"
+domain = "docs.arc42.org"
+description = "arc42: шаблон документирования архитектуры"
+
+[[web.arch_sites]]
+name = "togaf"
+base_url = "https://pubs.opengroup.org/togaf-standard/"
+domain = "pubs.opengroup.org"
+description = "TOGAF Standard (Open Group)"
+
+[[web.arch_sites]]
+name = "sei"
+base_url = "https://insights.sei.cmu.edu/library/"
+domain = "insights.sei.cmu.edu"
+description = "SEI/CAD: ATAM, архитектурные тактики, quality attributes"
+
+[[web.arch_sites]]
+name = "awesome-arch"
+base_url = "https://awesome-architecture.com/"
+domain = "awesome-architecture.com"
+description = "Кураторский список ресурсов по software architecture"
+
+# -----------------------------------------------------------------------------
+# Управление компьютером и браузером через vision (ADR-041).
+# Наблюдение включено всегда и живёт в ядре: screenshot, read_image,
+# screen_size, window_list — видеть экран безопасно.
+# ВОЗДЕЙСТВИЕ (мышь/клавиатура/браузер) по умолчанию выключено: клик и ввод
+# необратимы и видны за пределами харнесса. Даже при enabled = true инструменты
+# класса Destructive отклоняются на R2 и требуют подтверждения на R4 — поднимать
+# автономию осознанно ([policy] autonomy = "R5" снимает подтверждение).
+# Требуется X11-сессия и xdotool: sudo apt install xdotool.
+# Координаты computer_* — нормализованные 0–1000 по каждой оси от кадра
+# (не пиксели): провайдер ужимает изображение перед инференсом, поэтому
+# пиксельная шкала модели к экрану не привязана.
+# -----------------------------------------------------------------------------
+[computer]
+enabled = false                       # инструменты computer_* и window_focus не регистрируются при false
+input_backend = ""                    # xdotool | "" — автодетект (Wayland-бэкенды в этой ревизии не поддержаны)
+key_delay_ms = 12                     # задержка между символами при наборе текста (xdotool type --delay)
+max_clicks = 3                        # потолок повторов в одном клике/скролле — тормоз против runaway-цикла
+timeout_secs = 10                     # таймаут одного вызова инструмента ввода
+
+# Браузерный контур: запуск Chrome с выделенным профилем и управление через CDP.
+# Харнесс НИКОГДА не подключается к вашему профилю с логинами — user_data_dir
+# создаётся внутри state_dir. Отладочный порт слушает только 127.0.0.1.
+# CDP-хелпер (assets/computer/cdp.mjs) требует Node.js >= 18.
+[computer.browser]
+enabled = false                       # инструменты browser_* не регистрируются при false
+browser_bin = ""                      # "" — автодетект: google-chrome → chromium → chromium-browser → firefox → xdg-open
+node_bin = "node"                     # исполняемый файл Node.js для CDP-хелпера
+headless = false                      # --headless=new вместо окна
+debug_port = 9222                     # отладочный порт CDP (только loopback)
+user_data_dir = ""                    # "" — state_dir/computer/chrome-profile
+timeout_secs = 30                     # таймаут одного вызова CDP-хелпера
+
+# -----------------------------------------------------------------------------
+# Archify — контур диаграмм «архитектура как код» (JSON IR → HTML/SVG):
+# инструменты archify_validate/archify_deliver/archify_compare и
+# CLI `arch-ml archify …`. Личные пути — только здесь, не в коде.
+# cli_path пуст — интеграция не настроена: инструменты ответят инструкцией.
+# Движок вендорен в монорепозитории: cli_path = "<клон>/vendor/archify/bin/archify.mjs"
+# (zero-dependency рантайм, node_modules не нужен — vendor/README.md).
+# Альтернатива: npx skills add tt-a1i/archify -g или git clone upstream.
+# Методика авторинга IR — плагин ru-archify (скилл archify-diagrams).
+# -----------------------------------------------------------------------------
+[archify]
+enabled = true                      # false — archify_* не регистрируются в сессии
+cli_path = ""                       # напр. "/home/user/spine-bank/vendor/archify/bin/archify.mjs"
+node_bin = "node"                   # Node.js >=18
+timeout_secs = 120                  # потолок одного вызова CLI (compare — до 900)
+
+# -----------------------------------------------------------------------------
+# Кодовые харнессы — адаптеры запуска внешних агентов реализации.
+# prompt_mode: positional (промпт — аргумент) | flag ({prompt} в args) | stdin.
+# handoff-пакет кладётся в <repo>/.arch-handoff/ командой `arch-ml handoff`.
+# Умные таймауты: timeout_secs — абсолютный потолок; idle_timeout_secs —
+# таймаут тишины (нет вывода И нет изменений файлов репо — прогон завис и
+# прерывается; молча работающий харнесс не трогаем, 0 — выключить). При любом
+# прерывании убивается вся процессная группа (TERM→KILL): сирот не остаётся,
+# частичный вывод возвращается в сводку.
+# auto_commit: после успешного прогона незакоммиченные правки исполнителя
+# фиксируются коммитом харнесса (кроме .arch-handoff/ и мусора __pycache__/
+# *.pyc/.pytest_cache/) — контракт TASK.md требует финального коммита от
+# исполнителя, а это страховка: результат всегда оказывается в git.
+# -----------------------------------------------------------------------------
+[harnesses.claude-code]
+binary = "claude"
+# --dangerously-skip-permissions обязателен для headless: иначе `claude -p`
+# встаёт на permission-промпте файловых операций и висит до таймаута.
+# Уберите флаг, если прогоны интерактивные.
+args = ["-p", "--dangerously-skip-permissions"]
+prompt_mode = "stdin"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+# Whitelist наследуемого окружения (по умолчанию наследуется всё; непустой
+# список — чистое окружение + перечисленное + env адаптера):
+# env_allow = ["PATH", "HOME", "LANG", "TERM", "TMPDIR",
+#              "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+#              "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL"]
+
+[harnesses.qwen-code]
+binary = "qwen"
+args = []
+prompt_mode = "stdin"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+[harnesses.openclaw]
+binary = "openclaw"
+# openclaw требует явный выбор сессии: --agent main; иначе код 1.
+args = ["agent", "--agent", "main", "--message", "{prompt}"]
+prompt_mode = "flag"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+[harnesses.hermes]
+binary = "hermes"
+# hermes: задача передаётся флагом -z PROMPT; stdin-режима нет (код 2 на -p).
+args = ["-z", "{prompt}"]
+prompt_mode = "flag"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+[harnesses.theseus]
+binary = "theseus"
+# theseus: -p PROMPT (flag-режим); "run --task" устарело — код 2.
+args = ["-p", "{prompt}"]
+prompt_mode = "flag"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+[harnesses.codewhale]
+binary = "codewhale"
+# codewhale: -p PROMPT (flag-режим); задача в stdin не принимается.
+args = ["-p", "{prompt}"]
+prompt_mode = "flag"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+[harnesses.kimi-code]
+binary = "kimi"
+# kimi: -p PROMPT (flag-режим). Permission-флаг НЕ нужен и недопустим:
+# в `-p`-режиме regular-инструменты всегда под auto-политикой, а
+# --yolo/--auto с --prompt несовместимы (запуск отклоняется). Модель
+# исполнителя — добавьте в args: "-m", "<alias>".
+args = ["-p", "{prompt}"]
+prompt_mode = "flag"
+timeout_secs = 1800
+idle_timeout_secs = 600
+auto_commit = true
+
+# -----------------------------------------------------------------------------
+# MCP: файл серверов в формате Claude Code (см. examples/mcp.example.json).
+# `arch-ml init` кладёт образец в ~/.arch-ml/mcp.json.
+# -----------------------------------------------------------------------------
+[mcp]
+servers_file = "~/.arch-ml/mcp.json"
+connect_on_start = false              # false — ленивое подключение по первому вызову
+timeout_secs = 60
+
+# -----------------------------------------------------------------------------
+# Политика автономии инструментов (R-уровни, AI-Disrupt PDLC): автономия
+# калибруется риском действия, а не брендом модели. Проверка — в dispatch
+# каждого инструмента; решения журналируются в сессии.
+# -----------------------------------------------------------------------------
+[policy]
+autonomy = "R2"   # R0 только чтения | R2 +изменения (дефолт) | R4 деструктив с подтверждением | R5 полная (красный флаг аудита)
+
+# -----------------------------------------------------------------------------
+# Флот прогонов кодовых харнессов: enforced-изоляция и гейт интеграции
+# (мотив — AI-native SDLC playbook Anthropic: «агент не аппрувит свой код
+# и не имеет пути в main» — enforced платформой, а не дисциплиной промптов).
+# require_worktree = true: harness_run / arch harness-run идут в изолированном
+# git worktree (ветка arch/<харнесс>-<timestamp>), основное дерево не
+# трогается; handoff-пакет .arch-handoff/ копируется в worktree автоматически.
+# Интеграция результата — `arch fleet merge <run-id>`: при merge_gate = "owner"
+# без --owner-approve печатается сводка (diff stat, коммиты, статус контракта
+# из лога-evidence) и мерж отклоняется (exit 1) — решение принимает владелец.
+# -----------------------------------------------------------------------------
+[fleet]
+require_worktree = false   # true — прогоны харнессов только в git worktree
+merge_gate = "owner"       # owner — мерж с --owner-approve | none — без гейта
+capacity_per_agent = 1     # ёмкость харнесса для роутера (шт. items на агента)
+# --- Планы флота (ADR-042): движок оркестрации по паттернам ---
+# Паттерн (fanout|pipeline|map_reduce|tournament|review_pair|ralph|
+# walking_skeleton|dag) компилируется в граф узлов и исполняется волнами;
+# гейты узла механические (контракт/fitness/линт спайна/delta guard), мерж —
+# только `arch-ml fleet merge <run-id> --owner-approve`.
+plan_dir = ".arch-fleet"   # каталог планов в репозитории (fleet plan propose)
+max_parallel = 8           # потолок ОДНОВРЕМЕННЫХ процессов плана (пул):
+                           # сотни узлов в плане — да, процессов — сколько разрешено
+stop_on_gate_fail = false  # true — отказ гейта узла останавливает волны (canary)
+budget_max_node_secs = 0   # потолок времени одного узла, сек (0 — без лимита)
+budget_max_attempts = 0    # потолок суммарных попыток прогона (0 — без лимита)
+
+# -----------------------------------------------------------------------------
+# Локальные GPU харнесса ([[gpus.local]]): своё железо, $0 аренды — первым в
+# очереди на прогон, облако (vast.ai) — замыкающим (arch-ml resources recommend).
+# device — ключ реестра (arch-ml resources list): gb10=128 unified, rtx4080super=16,
+# rtx4090=24, rtx5090=32, rtx6000ada/a6000=48, a100/h100=80. vram_gb — необязательное
+# переопределение (иначе из реестра). ssh — алиас Host из ~/.ssh/config для удалённого
+# GPU (read-only nvidia-smi, детекция в arch-ml resources check); пусто — GPU на этой машине.
+# -----------------------------------------------------------------------------
+[[gpus.local]]
+name = "gb10"            # DGX Spark, unified 128 ГБ, headless (отдельная машина)
+device = "gb10"
+ssh = "gb10-fast"        # Host-алиас в ~/.ssh/config (прямой 10GbE, 10.55.0.2)
+
+[[gpus.local]]
+name = "rtx4080super"    # дискретная 16 ГБ (эта машина)
+device = "rtx4080super"
+
+# -----------------------------------------------------------------------------
+# Изоляция окружения bash-команд (defensive pattern DeepSeek Harness:
+# недоверенному выводу — не ambient-окружение). Из окружения процесса,
+# порождённого инструментом bash, выбрасываются переменные с
+# секретоподобными именами (токены имени KEY/SECRET/TOKEN/PASSWORD/PASSWD/
+# PASS/CREDENTIAL(S)/AUTH): DEEPSEEK_API_KEY, GH_TOKEN, SSH_AUTH_SOCK и т.п.
+# не видны команде, которую написала модель. env_allow — точные имена-
+# исключения, пропускаемые несмотря на scrub (понадобятся, если рабочему
+# контуру нужен, например, GH_TOKEN для `gh`).
+# sandbox — изоляция дочерних команд (ADR-038): "none" (дефолт, поведение
+# прежних версий) | "bwrap" (bubblewrap: рабочее дерево rw, остальная ФС
+# read-only, --unshare-net — сети у дочерних процессов нет). Требует пакет
+# bubblewrap и разрешённые unprivileged user namespaces; bwrap задан, но не
+# найден в PATH — команда НЕ выполняется (fail-safe, не молчаливый откат).
+# Неизвестное значение — ошибка конфига при загрузке.
+# -----------------------------------------------------------------------------
+[bash]
+env_scrub = true
+env_allow = []      # пример: ["GH_TOKEN"]
+sandbox = "none"    # "bwrap" — изоляция bubblewrap (банк-профиль)
+
+# -----------------------------------------------------------------------------
+# Плагины (открытый стандарт agent-plugins.org): пакеты «скиллы + MCP».
+# Каждый прямой потомок каталога — плагин: plugin.json + skills/<name>/SKILL.md
+# + mcp.json/.mcp.json (+ agents/, hooks/ как клиентские расширения).
+# Первый каталог — локальная библиотека (arch-ml init кладёт туда arch-core и
+# плагины паттернов), второй — общая библиотека скиллов пользователя.
+# -----------------------------------------------------------------------------
+[plugins]
+dirs = [
+    "~/.arch-ml/plugins",
+    # "~/knowledge/skills",   # раскомментируйте и укажите свою библиотеку плагинов
+]
+include_mcp = true   # MCP-серверы из плагинов (имена plugin.server) попадают в общий пул
+include_hooks = true # хуки плагинов (hooks/hooks.json) исполняются в сессиях;
+                     # false — только для недоверенных библиотек
+
+# -----------------------------------------------------------------------------
+# Планировщик md-задач (см. cron.example.toml).
+# out_dir не задан — отчёты пишутся в <reports_dir>/cron.
+# -----------------------------------------------------------------------------
+[cron]
+file = "~/.arch-ml/cron.toml"
+# out_dir = "~/.arch-ml/reports/cron"
+
+# -----------------------------------------------------------------------------
+# Goal-режим — контроль-петля автопродолжения (спека aiml/notes/goal-mode.md).
+# Цель ставится слэш-командой `/goal <цель> || <критерий> || <проверка>` или
+# флагом `arch-ml run --goal "…"`; после каждого терна хост проверяет критерий
+# механически (check, exit 0) и, пока цель жива, вставляет в конец контекста
+# синтетическое user-сообщение с целью (recency). Здесь — только ограничители
+# петли: состояние самой цели живёт в сессии и журнале, не в конфиге.
+# -----------------------------------------------------------------------------
+[goal]
+# Максимум continuation-тернов одной цели: страховка от бесконечной петли
+# (каждый терн — полноценный вызов модели). По исчерпании — пауза.
+max_continuations = 50
+# Бюджет токенов прогона: при достижении — автопауза. Не задан — без лимита
+# (в статистике напоминания счётчик всё равно виден модели).
+# token_budget = 2000000
+# Таймаут механической проверки критерия (команда `check`), секунды.
+check_timeout_secs = 60
+# Сколько повторов ОДНОГО блокера переводят цель в `blocked` (спека §4).
+blocker_repeats = 3
+# Сколько тернов подряд без нового вывода ведут к автопаузе.
+no_progress_turns = 3
+
+# -----------------------------------------------------------------------------
+# Пути к ассетам и данным. assets_dir: prompts/, rubrics/, benchmarks/, ascii/
+# (раскладываются `arch-ml init` из встроенных). sessions — append-only журналы.
+# -----------------------------------------------------------------------------
+[paths]
+assets_dir = "~/.arch-ml/assets"
+reports_dir = "~/.arch-ml/reports"
+sessions_dir = "~/.arch-ml/sessions"
+state_dir = "~/.arch-ml/state"      # персистентное состояние: failure_memory.json,
+                                         # failure_lessons.md (см. [agent] failure_memory)
+memory_file = "~/.arch-ml/MEMORY.md"  # глобальная md-память: дописывается
+                                           # в системный промпт каждой сессии
+                                           # (см. /memory и `arch-ml memory`)
+
+# -----------------------------------------------------------------------------
+# Оформление TUI. Значения ниже — дефолты; CLI-флаги (--theme, --no-color,
+# --ascii, --no-mouse, --no-animation) важнее этого раздела.
+#
+#   theme      auto | dark | light. auto — по фону терминала (COLORFGBG),
+#              иначе тёмная. light — палитра Tokyo Night Day.
+#   mouse      Захватывать ли мышь: колесо, выделение драгом, кнопка «▼».
+#              Выключено — выделение текста делает сам терминал (Shift+drag).
+#   animation  Спиннер и «дыхание» мыслей. Выключено — статичные кадры: для
+#              ssh и медленных соединений (автоматически выключается по ssh).
+#   unicode    Unicode-рамки и глифы. Выключено — ASCII-фолбэк (`+-|`, `|/-\`):
+#              для LANG=C, старого conhost и части ssh-клиентов.
+#   min_width  Минимальный размер окна: меньше — заглушка «Терминал мал»
+#   min_height с текущим и требуемым размером, вместо каши из панелей.
+# -----------------------------------------------------------------------------
+[tui]
+theme = "auto"   # auto | dark | light | high-contrast (без цвета и dim, bold/reverse)
+mouse = true
+animation = true
+unicode = true
+min_width = 60
+min_height = 16

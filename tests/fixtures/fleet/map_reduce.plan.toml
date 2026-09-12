@@ -1,0 +1,23 @@
+# Веер + интеграционный узел: компилятор достраивает reduce.
+id = "fixture-mapreduce"
+package = "fixture"
+pattern = "map_reduce"
+
+[policy]
+max_parallel = 4
+require_worktree = true
+
+[defaults]
+route = "standard"
+gates = ["contract", "fitness"]
+on_fail = "block"
+
+[[nodes]]
+id = "svc-a"
+spec = "Реализовать сервис A по SPEC.md."
+domain = "code"
+
+[[nodes]]
+id = "svc-b"
+spec = "Реализовать сервис B по SPEC.md."
+domain = "code"

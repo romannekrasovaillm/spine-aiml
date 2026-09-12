@@ -1,0 +1,19 @@
+# Реализатор + состязательный ревьювер: NOT-READY блокирует интеграцию.
+id = "fixture-reviewpair"
+package = "fixture"
+pattern = "review_pair"
+
+[policy]
+max_parallel = 2
+require_worktree = true
+merge_gate = "owner"
+
+[defaults]
+route = "standard"
+gates = ["contract", "fitness"]
+
+[[nodes]]
+id = "impl"
+spec = "Реализовать идемпотентный платёж по AD-3; финализировать коммитом."
+domain = "code"
+outputs = ["src/payments/idem.rs"]

@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Периметр банка: trust-зоны bank-profile",
+    "output": "docs/diagrams/guide/06-perimeter.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "allowed-flows",
+        "label": "Разрешённые потоки",
+        "focus": [
+          "agent",
+          "sandbox",
+          "repo",
+          "llm",
+          "git"
+        ],
+        "note": "Рабочие каналы: агент → sandbox → репозиторий; модели и git — только внутренние."
+      },
+      {
+        "id": "blocked-flows",
+        "label": "Заблокированные потоки",
+        "focus": [
+          "sandbox",
+          "extllm",
+          "registries"
+        ],
+        "note": "Внешние API и публичные регистры закрыты конфигом и fitness-стражами."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "arch-be",
+      "sublabel": "агент + журналы",
+      "pos": [
+        60,
+        300
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "tag": "single-user"
+    },
+    {
+      "id": "secrets",
+      "type": "security",
+      "label": "Секреты",
+      "sublabel": "env · key-файлы · redactor",
+      "pos": [
+        60,
+        460
+      ],
+      "size": [
+        140,
+        64
+      ]
+    },
+    {
+      "id": "sandbox",
+      "type": "security",
+      "label": "bwrap sandbox",
+      "sublabel": "rw только репо · --unshare-net",
+      "pos": [
+        270,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "fail-closed"
+    },
+    {
+      "id": "repo",
+      "type": "database",
+      "label": "Репозиторий проекта",
+      "sublabel": "код · модель · CONSTRAINTS",
+      "pos": [
+        500,
+        300
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Self-hosted LLM",
+      "sublabel": "vLLM · внутренний endpoint",
+      "pos": [
+        720,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "git",
+      "type": "cloud",
+      "label": "Внутренний git + CI",
+      "sublabel": "зеркало · гейты",
+      "pos": [
+        720,
+        380
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "extllm",
+      "type": "external",
+      "label": "Внешние LLM API",
+      "sublabel": "запрещены BE-03/BE-07",
+      "pos": [
+        960,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "blocked"
+    },
+    {
+      "id": "registries",
+      "type": "external",
+      "label": "Публичные регистры",
+      "sublabel": "npx · uvx · pipx — BE-08",
+      "pos": [
+        960,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "blocked"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Машина архитектора",
+      "wraps": [
+        "agent",
+        "secrets",
+        "sandbox"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Периметр банка",
+      "wraps": [
+        "repo",
+        "llm",
+        "git"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Внешний мир — закрыт",
+      "wraps": [
+        "extllm",
+        "registries"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "exec",
+      "from": "agent",
+      "to": "sandbox",
+      "variant": "emphasis"
+    },
+    {
+      "id": "scrub",
+      "from": "secrets",
+      "to": "agent",
+      "label": "env_scrub",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "rw",
+      "from": "sandbox",
+      "to": "repo",
+      "label": "rw (единственная запись)",
+      "variant": "emphasis",
+      "labelAt": [
+        470,
+        296
+      ]
+    },
+    {
+      "id": "to-llm",
+      "from": "agent",
+      "to": "llm",
+      "label": "chat/completions",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        690,
+        296
+      ]
+    },
+    {
+      "id": "to-git",
+      "from": "repo",
+      "to": "git",
+      "label": "push · гейты CI",
+      "variant": "emphasis",
+      "labelAt": [
+        690,
+        378
+      ]
+    },
+    {
+      "id": "block-llm",
+      "from": "llm",
+      "to": "extllm",
+      "label": "✕",
+      "variant": "security"
+    },
+    {
+      "id": "block-reg",
+      "from": "git",
+      "to": "registries",
+      "label": "✕",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Разрешено",
+      "items": [
+        "Модели — self-hosted / GigaChat в периметре",
+        "git и CI — внутреннее зеркало"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Запрещено и видимо",
+      "items": [
+        "Внешние LLM URL в пресетах — critical-находка",
+        "Egress дочерних команд закрыт sandbox'ом"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Доказательства",
+      "items": [
+        "threat-model.md + реестр GAP (ADR-031)",
+        "SBOM + хэши поставки (supply-chain)"
+      ]
+    }
+  ]
+}

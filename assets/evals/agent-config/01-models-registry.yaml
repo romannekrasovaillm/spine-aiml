@@ -1,0 +1,11 @@
+# Eval-задача: реестр моделей харнесса отвечает и несёт дефолтного провайдера.
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: models-registry
+title: Реестр моделей отвечает, дефолтный провайдер на месте
+command: "{arch} models"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "по умолчанию: deepseek"
+  - type: must_contain
+    pattern: "glm"

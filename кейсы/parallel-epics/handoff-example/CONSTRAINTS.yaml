@@ -1,0 +1,29 @@
+# Fitness-правила под AD-1..AD-3 (spine-parallel). Переписаны вручную под инварианты эпика.
+rules:
+- name: amount-module-exists
+  type: file_exists
+  path: spinecalc/amount.py
+  severity: error
+- name: validate_amount-signature
+  type: must_contain
+  glob: spinecalc/amount.py
+  pattern: "def validate_amount\\(value, limit\\)"
+  severity: error
+- name: no-print-in-amount
+  type: must_not_contain
+  glob: spinecalc/amount.py
+  pattern: "print\\("
+  severity: error
+- name: no-io-in-amount
+  type: must_not_contain
+  glob: spinecalc/amount.py
+  pattern: "open\\(|requests\\.|sqlite3|pathlib\\.Path"
+  severity: error
+- name: tests-exist
+  type: file_exists
+  path: tests/test_amount.py
+  severity: error
+- name: pytest-passes
+  type: command_succeeds
+  command: python3 -m pytest tests/test_amount.py -q
+  severity: error

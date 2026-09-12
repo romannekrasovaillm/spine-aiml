@@ -1,0 +1,232 @@
+constraints:
+  - id: C-001
+    name: "Идемпотентность: каждый mutating endpoint принимает Idempotency-Key"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "Idempotency-Key|idempotency_key|IdempotencyKey"
+    severity: critical
+
+  - id: C-002
+    name: "Outbox: сервисы с БД используют outbox-таблицу"
+    type: must_contain
+    glob: "**/migrations/*.sql"
+    pattern: "outbox|OUTBOX"
+    severity: critical
+
+  - id: C-003
+    name: "Database-per-service: нет cross-service DB access"
+    type: must_not_contain
+    glob: "**/*.go"
+    pattern: "postgres://.*_(auth|fraud|aml|ledger|clearing)"
+    severity: critical
+
+  - id: C-004
+    name: "Circuit breaker на вызовах внешних систем"
+    type: must_contain
+    glob: "**/connectors/*.go"
+    pattern: "circuit|breaker|CircuitBreaker|gobreaker"
+    severity: critical
+
+  - id: C-005
+    name: "Append-only аудит-лог: payment_events без UPDATE/DELETE"
+    type: must_not_contain
+    glob: "**/migrations/*.sql"
+    pattern: "UPDATE.*payment_events|DELETE.*payment_events"
+    severity: critical
+
+  - id: C-006
+    name: "PCI DSS: пан-данные не логируются"
+    type: must_not_contain
+    glob: "**/*.go"
+    pattern: "log.*pan|logger.*card_number|fmt.Print.*\\\\d{16}"
+    severity: critical
+
+  - id: C-007
+    name: "mTLS между зонами: конфигурация service mesh"
+    type: file_exists
+    path: "deploy/mtls-policy.yaml"
+    severity: critical
+
+  - id: C-008
+    name: "State machine: явные переходы статусов платежа"
+    type: must_contain
+    glob: "**/orchestrator/*.go"
+    pattern: "Transition|transition|stateMachine|StateMachine"
+    severity: high
+
+  - id: C-009
+    name: "HSM для криптографических операций с картами"
+    type: must_contain
+    glob: "**/connectors/*.go"
+    pattern: "hsm|HSM|HardwareSecurityModule"
+    severity: critical
+
+  - id: C-010
+    name: "Сборка проходит"
+    type: command_succeeds
+    command: "go build ./..."
+    timeout_secs: 120
+    severity: critical
+
+  - id: C-011
+    name: "Тесты проходят"
+    type: command_succeeds
+    command: "go test ./... -count=1"
+    timeout_secs: 300
+    severity: critical
+
+  - id: C-012
+    name: "NFR: метрика latency определена в коде"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "payment_auth_latency|paymentLatency|histogram.*payment"
+    severity: high
+
+  - id: C-013
+    name: "DLQ: топики определены в конфигурации"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "dlq|DLQ|dead.letter|DeadLetter"
+    severity: critical
+
+  - id: C-014
+    name: "Retry: backoff с jitter (не фиксированная задержка)"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "backoff|Backoff|jitter|Jitter|exponential"
+    severity: high
+
+  - id: C-015
+    name: "Reconciliation: сервис сверки определён"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "reconcil|Reconcil|Reconciliation"
+    severity: high
+
+  - id: C-016
+    name: "Secrets: нет хардкода секретов (Vault только)"
+    type: must_not_contain
+    glob: "**/*.go"
+    pattern: "password.*=.*\"|api_key.*=.*\"|secret.*=.*\""
+    severity: critical
+
+  - id: C-017
+    name: "Schema Registry: события используют Avro"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "avro|Avro|schema.registry|SchemaRegistry"
+    severity: high
+
+  - id: C-018
+    name: "Rate limiting: конфигурация лимитов"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "rateLimit|RateLimit|tokenBucket|TokenBucket|429"
+    severity: high
+
+  - id: C-019
+    name: "Feature flags: использование флагов"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "featureFlag|FeatureFlag|killSwitch|KillSwitch|unleash"
+    severity: medium
+
+  - id: C-020
+    name: "Operator audit: логирование ручных действий"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "operatorAudit|OperatorAudit|manualOverride|ManualOverride"
+    severity: high
+
+  - id: C-021
+    name: "PAN не хранится: токенизация обязательна"
+    type: must_not_contain
+    glob: "**/migrations/*.sql"
+    pattern: "pan.*VARCHAR|card_number.*VARCHAR|cvv.*VARCHAR"
+    severity: critical
+
+  - id: C-022
+    name: "Vault: конфигурация секретов"
+    type: file_exists
+    path: "deploy/vault-config.yaml"
+    severity: critical
+
+  - id: C-023
+    name: "Contract tests: Pact-тесты существуют"
+    type: file_exists
+    path: "tests/contract/"
+    severity: high
+
+  - id: C-024
+    name: "DR: runbook существует"
+    type: file_exists
+    path: "docs/runbooks/dr-failover.md"
+    severity: critical
+
+  - id: C-025
+    name: "Сильная консистентность: optimistic locking (version)"
+    type: must_contain
+    glob: "**/migrations/*.sql"
+    pattern: "version|VERSION"
+    severity: high
+
+  - id: C-026
+    name: "API versioning: версионные заголовки и Sunset"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "application/vnd\\.|Sunset|API-Version"
+    severity: high
+
+  - id: C-027
+    name: "Canary-деплой: конфигурация progressive delivery"
+    type: file_exists
+    path: "deploy/canary-analysis.yaml"
+    severity: high
+
+  - id: C-028
+    name: "Queue Load Leveling: команда через Kafka-топик"
+    type: must_contain
+    glob: "**/*.go"
+    pattern: "payments\\.commands|ProcessPayment"
+    severity: high
+
+  - id: C-029
+    name: "Fee Engine: тарифные планы в коде"
+    type: must_contain
+    glob: "**/fee/*.go"
+    pattern: "tariff|Tariff|Fee|fee"
+    severity: high
+
+  - id: C-030
+    name: "Dispute flow: статусы споров"
+    type: must_contain
+    glob: "**/dispute/*.go"
+    pattern: "DISPUTE_|chargeback|Chargeback"
+    severity: high
+
+  - id: C-031
+    name: "Async-рельсы: callback endpoints"
+    type: must_contain
+    glob: "**/connectors/*.go"
+    pattern: "callback|Callback"
+    severity: high
+
+  - id: C-032
+    name: "Data lifecycle: партиционирование/retention"
+    type: must_contain
+    glob: "**/migrations/*.sql"
+    pattern: "PARTITION BY|retention|RETENTION"
+    severity: medium
+
+  - id: C-033
+    name: "Chaos engineering: runbook game days"
+    type: file_exists
+    path: "docs/runbooks/chaos-game-day.md"
+    severity: medium
+
+  - id: C-034
+    name: "FX: курсы и конвертация в коде"
+    type: must_contain
+    glob: "**/fx/*.go"
+    pattern: "rate|Rate|currency"
+    severity: high

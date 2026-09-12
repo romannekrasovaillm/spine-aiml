@@ -1,0 +1,20 @@
+контракт: status=complete assumptions=0 open_questions=0 conflicts=0
+── stdout (exit Some(0), 103.7s) ──
+Готово. Реализация выполнена и зафиксирована коммитом `72a7009`.
+
+Что сделано:
+- `bankcalc/amount.py` — ровно одна публичная функция `validate_amount(value: float, limit: float) -> bool` (без `print`, без I/O), семантика: `value < 0 → False`, `value > limit → False`, иначе `True`.
+- `bankcalc/__init__.py` — объявление пакета.
+- `tests/test_amount.py` — 5 тестов (отрицательная сумма, превышение лимита, в пределах лимита, граница равно лимиту, нулевая сумма).
+- `pytest` — **5 passed**.
+
+Fitness-правила `CONSTRAINTS.yaml` удовлетворены: файл существует, сигнатура совпадает дословно, нет `print(`/`open(`/`requests.`/`sqlite3`/`pathlib.Path`, тесты существуют и проходят. `git status --short` чистый, кроме служебного `.arch-handoff/`.
+
+```json
+{"status": "complete", "assumptions": [], "open_questions": [], "conflicts_with_prior_decisions": []}
+```
+
+── stderr ──
+[claude-code:unrecognized_model] {"model":"deepseek-v4-flash","query_source":"generate_session_title"}
+[claude-code:unrecognized_model] {"model":"deepseek-v4-pro[1m]","query_source":"sdk"}
+

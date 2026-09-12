@@ -1,0 +1,162 @@
+# Spine AI/ML Edition — доменная зона aiml/ (лицензия — см. NOTICE.md).
+# Волна 1 fitness-правил ML-эксперимента: механизируемые проверки,
+# переносящие war-chest (память war-chest память ML-контура) из
+# «проза в контексте модели» в «принуждение харнесса».
+#
+# Карточки — структурированные поля (trigger/rationale/evidence/
+# reversibility/owner/expiry): движок `control check` читает owner/expiry,
+# `control report` суммирует их в rules_report. Глобы типовые — адаптировать
+# под структуру репозитория (мёртвый глоб = мёртвое правило). Все правила
+# вводятся на severity warn (аудит), перевод в error — после зелёного прогона.
+
+constraints:
+  # ── Воспроизводимость (war-chest: ml-experiment-workflow) ────────────────
+  - id: ML-01
+    name: "Seed задан в конфиге/скрипте"
+    type: must_contain
+    glob: ["**/*.py", "**/*.{yaml,yml,toml}", "configs/**"]
+    pattern: '(?i)seed\s*[:=]'
+    severity: warn
+    trigger: "есть training-скрипт или конфиг эксперимента"
+    rationale: "без seed прогон невоспроизводим — результат нельзя повторить"
+    evidence: "seed в конфиге/скрипте"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── ABI/версионная матрица (war-chest: verl-version-compatibility-matrix) ─
+  - id: ML-02
+    name: "veRL зафиксирован на проверенной версии 0.4.0"
+    type: must_contain
+    glob: ["requirements*.txt", "pyproject.toml", "**/requirements*.txt"]
+    pattern: 'verl.*0\.4\.0'
+    severity: warn
+    trigger: "используется veRL (requirements упоминает verl)"
+    rationale: "проверена только 0.4.0; иная версия — непроверенная гипотеза (ABI-риск)"
+    evidence: "строка verl в requirements"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  - id: ML-03
+    name: "vLLM зафиксирован на 0.8.3"
+    type: must_contain
+    glob: ["requirements*.txt", "pyproject.toml", "**/requirements*.txt"]
+    pattern: 'vllm.*0\.8\.3'
+    severity: warn
+    trigger: "используется vLLM"
+    rationale: "vLLM 0.8.3 — единственная проверенная с veRL 0.4.0; 0.8.5+ = cxx11abi1 → ABI-конфликт"
+    evidence: "строка vllm в requirements"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Образ/ABI (war-chest: vllm-torch-abi-compatibility, hf-image-mirror-trap) ─
+  - id: ML-04
+    name: "Образ hiyouga/verl (cxx11abi0)"
+    type: must_contain
+    glob: ["Dockerfile*", "**/*.sh", "**/*.{yaml,yml,toml}"]
+    pattern: 'hiyouga/verl'
+    severity: warn
+    trigger: "прогон в Docker-образе"
+    rationale: "единственный образ с верным ABI (cxx11abi0); pytorch/pytorch + PyPI vLLM ловят ABI mismatch"
+    evidence: "строка образа в Dockerfile/скрипте"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Память GPU (war-chest: gpu0-memory-tightrope, gb10-storm-infra-fixes) ─
+  - id: ML-05
+    name: "gpu_memory_utilization задан явно"
+    type: must_contain
+    glob: ["**/*.{yaml,yml,toml}", "configs/**", "**/*.py"]
+    pattern: 'gpu_memory_utilization'
+    severity: warn
+    trigger: "vLLM-инференс в конфиге"
+    rationale: "дефолт 0.60 ловит CUDA OOM на GPU 0 (TP≥4); держать ≤0.50 (GB10 — ≈0.32 из-за NVRM-бурь на UMA)"
+    evidence: "параметр gpu_memory_utilization в конфиге"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── RL-стабильность (war-chest: grpo-kl-collapse-prevention) ──────────────
+  - id: ML-06
+    name: "KL-регуляризация в GRPO"
+    type: must_contain
+    glob: ["**/*.{yaml,yml,toml}", "configs/**", "**/*.py"]
+    pattern: 'use_kl_loss|kl_coef|kl_loss_coef'
+    severity: warn
+    trigger: "GRPO/RL-обучение"
+    rationale: "без KL — детерминированный mode collapse на шаге ~169 (энтропия→0); kl_coef=0.01 достаточно"
+    evidence: "параметр kl в конфиге"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Формат промпта (war-chest: prompt-format-critical) ───────────────────
+  - id: ML-07
+    name: "Chat-формат промпта (список сообщений)"
+    type: must_contain
+    glob: ["**/*.py", "**/*.{yaml,yml,toml}"]
+    pattern: 'apply_chat_template|messages'
+    severity: warn
+    trigger: "Qwen-совместимая модель в veRL"
+    rationale: "plain string → дефолтный system prompt → score 0; chat-формат → 9.8"
+    evidence: "вызов apply_chat_template / структура messages в коде"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── ALFWorld (war-chest: alfworld-config-training-method) ────────────────
+  - id: ML-08
+    name: "training_method = dqn (не rl) для ALFWorld"
+    type: must_contain
+    glob: ["**/*.{yaml,yml,toml}", "configs/**"]
+    pattern: 'training_method\s*[:=]\s*"?dqn'
+    severity: warn
+    trigger: "ALFWorld/RL-окружение"
+    rationale: "training_method='rl' → NotImplementedError (alfred_tw_env.py:269); код принимает только dqn/dagger"
+    evidence: "training_method: dqn в конфиге"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Обход зеркала HF (war-chest: hf-image-mirror-trap) ───────────────────
+  - id: ML-09
+    name: "HF_ENDPOINT задан (обход китайского зеркала)"
+    type: must_contain
+    glob: ["**/*.py", "**/*.sh"]
+    pattern: 'HF_ENDPOINT\s*[:=]'
+    severity: warn
+    trigger: "скачивание моделей с HuggingFace в hiyouga/verl"
+    rationale: "образ перенаправляет HF на зеркало (500); только явный HF_ENDPOINT=https://huggingface.co чинит"
+    evidence: "HF_ENDPOINT в скрипте загрузки"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Гигиена аренды (war-chest: vastai-cli-patterns, vastai-daily-budget) ─
+  - id: ML-10
+    name: "Teardown-скрипт существует (нулевые орфаны)"
+    type: file_exists
+    path: "scripts/teardown.sh"
+    severity: warn
+    trigger: "облачная аренда vast.ai"
+    rationale: "loading-инстанс, перешедший в running, сжигает $1–2/час; teardown по trap — обязателен"
+    evidence: "scripts/teardown.sh в репозитории"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"
+
+  # ── Воспроизводимость стека ──────────────────────────────────────────────
+  - id: ML-11
+    name: "Зависимости зафиксированы (requirements.txt)"
+    type: file_exists
+    path: "requirements.txt"
+    severity: warn
+    trigger: "любой ML-эксперимент"
+    rationale: "без зафиксированных зависимостей стек невоспроизводим"
+    evidence: "requirements.txt в репозитории"
+    reversibility: "обратимо"
+    owner: "ML-исследователь"
+    expiry: "2027-03-01"

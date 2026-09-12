@@ -1,0 +1,51 @@
+asyncapi: 2.6.0
+info:
+  title: Payments notify
+  version: 1.0.0
+  description: |
+    Очередь уведомлений о записанных платежах (существует в монолите:
+    notifier/sender.py:24, basic_consume queue="payments.notify"; модель:
+    INT-003). Контракт зафиксирован ретроспективно по коду — до этого
+    очередь работала без контракта (скрытая связь через брокера).
+    Producer в коде монолита не найден (gap, вопрос владельцу домена).
+servers:
+  production:
+    url: rabbit.internal.example:5672
+    protocol: amqp
+channels:
+  payments.notify:
+    description: Событие о платеже, записанном в таблицу payments.
+    subscribe:
+      summary: Notifier (CMP-002) потребляет события для рассылки.
+      operationId: consumePaymentRecorded
+      message:
+        name: PaymentRecorded
+        title: Платёж записан
+        version: 1.0.0
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - event_id
+            - payment_id
+            - account_id
+            - occurred_at
+          properties:
+            event_id:
+              type: string
+              format: uuid
+              description: Идемпотентный ключ события (at-least-once доставка
+                брокера; повтор не должен дублировать уведомление).
+            payment_id:
+              type: integer
+            account_id:
+              type: string
+            amount:
+              type: number
+              description: Сумма с комиссией, как записана в payments.
+            currency:
+              type: string
+              default: RUB
+            occurred_at:
+              type: string
+              format: date-time

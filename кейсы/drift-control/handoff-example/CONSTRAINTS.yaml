@@ -1,0 +1,37 @@
+constraints:
+  - id: C-01
+    name: no_float_for_money
+    type: must_not_contain
+    glob: "src/**/*.rs"
+    pattern: "\\bf64\\b"
+    severity: critical
+  - id: C-02
+    name: thiserror_for_errors
+    type: must_contain
+    glob: "Cargo.toml"
+    pattern: "thiserror"
+    severity: critical
+  - id: C-03
+    name: no_anyhow_no_box_dyn
+    type: must_not_contain
+    glob: "**/*.rs"
+    pattern: "anyhow::|Box<dyn"
+    severity: critical
+  - id: C-04
+    name: no_anyhow_dependency
+    type: must_not_contain
+    glob: "Cargo.toml"
+    pattern: "anyhow"
+    severity: critical
+  - id: C-05
+    name: authorize_idempotent
+    type: must_contain
+    glob: "src/**/*.rs"
+    pattern: "[Ii]dempotenc"
+    severity: critical
+  - id: C-06
+    name: tests_pass
+    type: command_succeeds
+    command: "cargo test --quiet"
+    timeout_secs: 300
+    severity: critical

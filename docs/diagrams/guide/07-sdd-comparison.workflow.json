@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "SDD и Spine BE: где проза становится гейтами",
+    "output": "docs/diagrams/guide/07-sdd-comparison.html",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "two-paths",
+        "label": "Два пути одной работы",
+        "focus": [
+          "sdd-spec",
+          "sdd-code",
+          "spine-invariant",
+          "spine-gate",
+          "spine-evidence"
+        ],
+        "note": "Проектные шаги совпадают; разница — что из них исполняется машиной."
+      },
+      {
+        "id": "proof",
+        "label": "Доказательство",
+        "focus": [
+          "sdd-hope",
+          "spine-experiment"
+        ],
+        "note": "Контролируемый A/B-прогон: одна задача, два исхода, измеренный дрейф."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "sdd",
+      "label": "Классический SDD"
+    },
+    {
+      "id": "spine",
+      "label": "Spine BE"
+    },
+    {
+      "id": "proof",
+      "label": "Что доказано",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "spine-invariant",
+    "spine-rules",
+    "spine-gate",
+    "spine-evidence",
+    "spine-experiment"
+  ],
+  "nodes": [
+    {
+      "id": "sdd-spec",
+      "type": "frontend",
+      "lane": "sdd",
+      "col": 0,
+      "label": "spec.md",
+      "sublabel": "проза в репо"
+    },
+    {
+      "id": "sdd-code",
+      "type": "backend",
+      "lane": "sdd",
+      "col": 1,
+      "label": "Код по спеке",
+      "sublabel": "агент или человек"
+    },
+    {
+      "id": "sdd-hope",
+      "type": "security",
+      "lane": "sdd",
+      "col": 3,
+      "label": "Надежда",
+      "sublabel": "инварианты «в вики»",
+      "tag": "дрейф невидим"
+    },
+    {
+      "id": "spine-invariant",
+      "type": "backend",
+      "lane": "spine",
+      "col": 0,
+      "label": "Спайн + ADR",
+      "sublabel": "Binds/Prevents/Rule"
+    },
+    {
+      "id": "spine-rules",
+      "type": "backend",
+      "lane": "spine",
+      "col": 1,
+      "label": "CONSTRAINTS",
+      "sublabel": "fitness-правила"
+    },
+    {
+      "id": "spine-gate",
+      "type": "security",
+      "lane": "spine",
+      "col": 3,
+      "label": "Гейты в CI",
+      "sublabel": "exit 1 при дрейфе",
+      "tag": "машина, не память"
+    },
+    {
+      "id": "spine-evidence",
+      "type": "database",
+      "lane": "spine",
+      "col": 5,
+      "label": "Evidence",
+      "sublabel": "хэши · verify"
+    },
+    {
+      "id": "spine-experiment",
+      "type": "external",
+      "lane": "proof",
+      "col": 5,
+      "label": "A/B-прогон",
+      "sublabel": "FAIL 2/6 vs PASS 6/6",
+      "tag": "кейс 006"
+    }
+  ],
+  "edges": [
+    {
+      "from": "sdd-spec",
+      "to": "sdd-code"
+    },
+    {
+      "from": "spine-invariant",
+      "to": "spine-rules"
+    },
+    {
+      "from": "spine-gate",
+      "to": "spine-evidence",
+      "label": "PASS"
+    },
+    {
+      "from": "spine-evidence",
+      "to": "spine-experiment",
+      "variant": "emphasis"
+    },
+    {
+      "from": "sdd-spec",
+      "to": "spine-invariant",
+      "label": "та же проза, но…",
+      "variant": "dashed"
+    },
+    {
+      "from": "sdd-code",
+      "to": "sdd-hope",
+      "variant": "dashed"
+    },
+    {
+      "from": "spine-rules",
+      "to": "spine-gate",
+      "variant": "emphasis"
+    }
+  ]
+}

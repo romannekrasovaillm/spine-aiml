@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Apache NiFi: версионный ландшафт банка и вопрос NiFi SE (СберТех)",
+    "output": "nifi-se-landscape.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "versions",
+        "label": "Версионный ландшафт",
+        "focus": ["nifi-124", "nifi-28", "nifi-211", "nifi-3x"],
+        "note": "Три мажора в проде одновременно (500 потоков); консолидация к 3.x — без инструментов мажорной миграции."
+      },
+      {
+        "id": "vendor",
+        "label": "Запрос к СберТех",
+        "focus": ["nifi-211", "pv-line", "nifi-se"],
+        "note": "Линейка Platform V проверена по съёму 02.09.2026: поддерживаемой SE-редакции NiFi в публичном каталоге нет."
+      },
+      {
+        "id": "next",
+        "label": "Что делать",
+        "focus": ["nifi-124", "nifi-211", "nifi-3x", "pv-line"],
+        "note": "Два шага: регламент миграций внутри ДОПСа и переформулированный вопрос вендору (LTS + миграции 2.x→3.x)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "nifi-124",
+      "type": "backend",
+      "label": "Apache NiFi 1.24",
+      "sublabel": "прод",
+      "pos": [40, 320],
+      "size": [140, 64]
+    },
+    {
+      "id": "nifi-28",
+      "type": "backend",
+      "label": "Apache NiFi 2.8",
+      "sublabel": "прод",
+      "pos": [260, 320],
+      "size": [140, 64]
+    },
+    {
+      "id": "nifi-211",
+      "type": "backend",
+      "label": "Apache NiFi 2.11",
+      "sublabel": "ФПД · выкат недавно",
+      "pos": [480, 320],
+      "size": [150, 64]
+    },
+    {
+      "id": "nifi-3x",
+      "type": "external",
+      "label": "Apache NiFi 3.x",
+      "sublabel": "на горизонте",
+      "pos": [720, 320],
+      "size": [140, 64],
+      "tag": "за периметром"
+    },
+    {
+      "id": "pv-line",
+      "type": "cloud",
+      "label": "СберТех · Platform V",
+      "sublabel": "публичный каталог: 82 продукта",
+      "pos": [420, 120],
+      "size": [210, 70],
+      "tag": "съём 02.09.2026"
+    },
+    {
+      "id": "nifi-se",
+      "type": "external",
+      "label": "NiFi SE?",
+      "sublabel": "в линейке отсутствует",
+      "pos": [720, 120],
+      "size": [180, 70],
+      "tag": "запрос вендору"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Контур ДОПС · прод · 500 NiFi-потоков",
+      "wraps": ["nifi-124", "nifi-28", "nifi-211"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "mig-124-28",
+      "from": "nifi-124",
+      "to": "nifi-28",
+      "label": "миграция 1→2: инструмента нет",
+      "variant": "dashed",
+      "labelDy": 56
+    },
+    {
+      "id": "mig-28-211",
+      "from": "nifi-28",
+      "to": "nifi-211",
+      "label": "минорная 2.8→2.11",
+      "labelDy": 56
+    },
+    {
+      "id": "mig-211-3x",
+      "from": "nifi-211",
+      "to": "nifi-3x",
+      "label": "миграция 2→3: инструмента нет",
+      "variant": "dashed",
+      "labelDy": 56
+    },
+    {
+      "id": "dops-sbt",
+      "from": "nifi-211",
+      "to": "pv-line",
+      "label": "запрос ДОПСа: есть ли SE?",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "se-verdict",
+      "from": "pv-line",
+      "to": "nifi-se",
+      "label": "нет SE-редакции (02.09.2026)",
+      "labelDy": 59
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Ответ на вопрос ДОПСа",
+      "items": [
+        "NiFi SE в публичной линейке Platform V отсутствует: съём 02.09.2026, 82 продукта, проверены категории «Работа с данными» и «Интеграционные сервисы»",
+        "Суффикс SE у СБТ = поддерживаемые сборки OSS (IAM SE, Audit SE); NiFi в их числе нет",
+        "Техрадар «рекомендован» — статус OSS-движка, не вендорской поддержки"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Главный риск — не лицензия, а миграции",
+      "items": [
+        "Три мажора в проде одновременно: 1.24 / 2.8 / 2.11 (ФПД), на горизонте 3.x",
+        "Инструментов мажорной миграции нет — «рекомендован» в техрадаре этот риск не закрывает"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Рекомендации",
+      "items": [
+        "Регламент миграций: golden flow в NiFi Registry, не более двух мажоров в проде, чистка deprecated-компонентов до апгрейда",
+        "Вопрос СБТ переформулировать: LTS-политика и поддержка миграций 2.x→3.x",
+        "Профильная база ADF уже содержит профиль PAP Apache NiFi — применение формализовано"
+      ]
+    }
+  ]
+}

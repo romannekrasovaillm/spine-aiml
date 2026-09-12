@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Модель архитектуры — один источник, много проекций",
+    "output": "docs/diagrams/guide/04-model-projections.html",
+    "viewBox": [
+      1080,
+      760
+    ],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "verify-first",
+        "label": "Сначала проверки",
+        "focus": [
+          "model",
+          "validate",
+          "trace",
+          "fitness"
+        ],
+        "note": "Ни одна проекция не уходит без ссылочной целостности и гейтов."
+      },
+      {
+        "id": "projections",
+        "label": "Проекции и обмен",
+        "focus": [
+          "model",
+          "exchange",
+          "landscape",
+          "registry"
+        ],
+        "note": "Из одной модели — диаграммы, отраслевые форматы и реестры."
+      },
+      {
+        "id": "publish",
+        "label": "Публикация",
+        "focus": [
+          "exchange",
+          "confluence",
+          "archi",
+          "ci"
+        ],
+        "note": "Артефакты доезжают до wiki, Archi/Sparx и CI контура заказчика."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Источник"
+    },
+    {
+      "label": "Проверки"
+    },
+    {
+      "label": "Проекции"
+    },
+    {
+      "label": "Публикация"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "model",
+      "type": "database",
+      "label": "model/ + ADR",
+      "sublabel": "markdown в git",
+      "stage": 0,
+      "row": 1,
+      "tag": "SSOT"
+    },
+    {
+      "id": "validate",
+      "type": "backend",
+      "label": "model validate",
+      "sublabel": "ссылки · циклы · дубли",
+      "stage": 1,
+      "row": 0,
+      "tag": "error → exit 1"
+    },
+    {
+      "id": "trace",
+      "type": "backend",
+      "label": "trace check",
+      "sublabel": "покрытие · INT→контракт",
+      "stage": 1,
+      "row": 1
+    },
+    {
+      "id": "fitness",
+      "type": "backend",
+      "label": "fitness check",
+      "sublabel": "64 правила · слои",
+      "stage": 1,
+      "row": 2,
+      "tag": "dogfood"
+    },
+    {
+      "id": "exchange",
+      "type": "backend",
+      "label": "exchange",
+      "sublabel": "OEF · Structurizr · drawio",
+      "stage": 2,
+      "row": 0,
+      "tag": "ADR-009/032"
+    },
+    {
+      "id": "landscape",
+      "type": "backend",
+      "label": "landscape",
+      "sublabel": "реестр систем · дедуп",
+      "stage": 2,
+      "row": 1,
+      "tag": "ADR-037"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "adr registry",
+      "sublabel": "глобальный индекс решений",
+      "stage": 2,
+      "row": 2,
+      "tag": "ADR-036"
+    },
+    {
+      "id": "archi",
+      "type": "cloud",
+      "label": "Archi / Sparx EA",
+      "sublabel": "EA-ландшафт банка",
+      "stage": 3,
+      "row": 0
+    },
+    {
+      "id": "confluence",
+      "type": "cloud",
+      "label": "Confluence / Jira",
+      "sublabel": "storage format · CSV",
+      "stage": 3,
+      "row": 1,
+      "tag": "publish"
+    },
+    {
+      "id": "ci",
+      "type": "security",
+      "label": "CI контура",
+      "sublabel": "гейты · --strict",
+      "stage": 3,
+      "row": 2
+    }
+  ],
+  "flows": [
+    {
+      "from": "model",
+      "to": "validate",
+      "label": "сущности",
+      "variant": "emphasis",
+      "labelAt": [
+        190,
+        232
+      ]
+    },
+    {
+      "from": "model",
+      "to": "trace",
+      "label": "связи",
+      "labelAt": [
+        195,
+        300
+      ]
+    },
+    {
+      "from": "model",
+      "to": "fitness",
+      "label": "правила",
+      "labelAt": [
+        190,
+        340
+      ],
+      "via": [
+        [
+          170,
+          271
+        ],
+        [
+          170,
+          385
+        ]
+      ]
+    },
+    {
+      "from": "validate",
+      "to": "exchange",
+      "label": "после PASS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "validate",
+      "to": "landscape",
+      "label": "SYS/INT",
+      "via": [
+        [
+          400,
+          157
+        ],
+        [
+          400,
+          271
+        ]
+      ],
+      "labelAt": [
+        347,
+        220
+      ]
+    },
+    {
+      "from": "validate",
+      "to": "registry",
+      "label": "ADR-*",
+      "via": [
+        [
+          405,
+          157
+        ],
+        [
+          405,
+          330
+        ],
+        [
+          530,
+          330
+        ]
+      ],
+      "toSide": "top",
+      "labelAt": [
+        430,
+        250
+      ]
+    },
+    {
+      "from": "exchange",
+      "to": "archi",
+      "label": "OEF 3.2",
+      "variant": "emphasis",
+      "via": [
+        [
+          600,
+          157
+        ],
+        [
+          600,
+          128
+        ],
+        [
+          660,
+          128
+        ],
+        [
+          660,
+          157
+        ]
+      ],
+      "labelAt": [
+        630,
+        110
+      ]
+    },
+    {
+      "from": "exchange",
+      "to": "confluence",
+      "label": "HTML/CSV",
+      "via": [
+        [
+          630,
+          157
+        ],
+        [
+          630,
+          271
+        ]
+      ]
+    },
+    {
+      "from": "fitness",
+      "to": "ci",
+      "label": "строгий гейт",
+      "variant": "emphasis",
+      "via": [
+        [
+          470,
+          385
+        ],
+        [
+          470,
+          450
+        ],
+        [
+          640,
+          450
+        ],
+        [
+          640,
+          385
+        ]
+      ],
+      "labelAt": [
+        560,
+        440
+      ]
+    },
+    {
+      "from": "registry",
+      "to": "ci",
+      "label": "строгий",
+      "variant": "dashed"
+    }
+  ]
+}

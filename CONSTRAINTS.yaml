@@ -1,0 +1,434 @@
+# CONSTRAINTS.yaml — fitness-функции собственного репозитория Spine (dogfood, AD-9).
+#
+# Прогон:  arch-ml control check . --constraints CONSTRAINTS.yaml
+# CI:      джоба dogfood (.github/workflows/ci.yml).
+# Схема:   src/control.rs (FitnessRule); корни rules:|constraints:;
+#          severity critical|high → error (ломает итог, exit 1), medium → warn.
+# Обход пропускает .git, target, node_modules, dist, __pycache__, .next,
+# .pytest_cache, .arch-handoff (src/control.rs, collect_files).
+constraints:
+  # --- AD-6: безопасный Rust -----------------------------------------------
+  - id: C-01
+    name: no_unsafe_code
+    type: must_not_contain
+    glob: "src/**/*.rs"
+    pattern: "unsafe\\s*(\\{|fn|impl)"
+    severity: critical
+
+  - id: C-02
+    name: unsafe_forbidden_in_lints
+    type: must_contain
+    glob: "Cargo.toml"
+    pattern: "unsafe_code = \"forbid\""
+    severity: critical
+
+  - id: C-03
+    name: msrv_pinned
+    type: must_contain
+    glob: "Cargo.toml"
+    pattern: "rust-version = \"1\\.85\""
+    severity: critical
+
+  # --- AD-9/AD-2: гейты CI существуют и запускают механику харнесса ---------
+  - id: C-04
+    name: ci_audit_job
+    type: must_contain
+    glob: ".github/workflows/*.yml"
+    pattern: "cargo audit"
+    severity: critical
+
+  # --- AD-3: секреты не живут в коде и конфигах -----------------------------
+  # Длина {30,} отсекает учебные фейки юнит-тестов secrets.rs/agent.rs;
+  # реальные ключи провайдеров длиннее.
+  - id: C-05
+    name: no_secret_literals_code
+    type: must_not_contain
+    glob: "src/**/*.rs"
+    pattern: "sk-[A-Za-z0-9]{30,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}"
+    severity: critical
+
+  - id: C-06
+    name: no_secret_literals_configs
+    type: must_not_contain
+    glob: "**/*.toml"
+    pattern: "sk-[A-Za-z0-9]{30,}"
+    severity: critical
+
+  # --- AD-2: политика автономии применяется в dispatch ----------------------
+  - id: C-07
+    name: policy_enforced_in_dispatch
+    type: must_contain
+    glob: "src/tool.rs"
+    pattern: "self\\.policy\\.check"
+    severity: critical
+
+  # --- AD-5: сессионный журнал JSONL ----------------------------------------
+  - id: C-08
+    name: session_journal_jsonl
+    type: must_contain
+    glob: "src/**/*.rs"
+    pattern: "jsonl"
+    severity: high
+
+  # --- AD-1/AD-10: библиотека плагинов в репозитории ------------------------
+  - id: C-09
+    name: plugin_library_present
+    type: file_exists
+    path: "assets/plugins"
+    severity: high
+
+  # --- AD-4: единый провайдерный трейт --------------------------------------
+  - id: C-10
+    name: single_provider_trait
+    type: must_contain
+    glob: "src/llm.rs"
+    pattern: "trait LlmProvider"
+    severity: high
+
+  # --- AD-8: headless JSON-контракт результата handoff ----------------------
+  - id: C-11
+    name: handoff_json_contract
+    type: must_contain
+    glob: "src/**/*.rs"
+    pattern: "open_questions"
+    severity: high
+
+  # --- AD-9: джоба dogfood прогоняет этот же гейт в CI ----------------------
+  - id: C-12
+    name: dogfood_ci_job
+    type: must_contain
+    glob: ".github/workflows/*.yml"
+    pattern: "control check"
+    severity: critical
+
+  # --- Конвенции репозитория -------------------------------------------------
+  - id: C-13
+    name: readme_bilingual
+    type: must_contain
+    glob: "README.md"
+    pattern: "🇬🇧 English"
+    severity: medium
+
+  - id: C-14
+    name: license_present
+    type: file_exists
+    path: "LICENSE"
+    severity: critical
+
+  - id: C-15
+    name: agents_md_present
+    type: file_exists
+    path: "AGENTS.md"
+    severity: critical
+
+  - id: C-16
+    name: architecture_doc_present
+    type: file_exists
+    path: "docs/architecture.md"
+    severity: high
+
+  - id: C-17
+    name: adr_practice
+    type: must_contain
+    glob: "docs/adr/*.md"
+    pattern: "(?m)^# ADR-[0-9]+"
+    severity: high
+
+  # --- Гейты качества (полный прогон = качественный гейт репозитория) -------
+  - id: C-18
+    name: rustfmt_gate
+    type: command_succeeds
+    command: "cargo fmt --all -- --check"
+    timeout_secs: 120
+    severity: critical
+
+  - id: C-19
+    name: tests_pass
+    type: command_succeeds
+    command: "cargo test --quiet"
+    timeout_secs: 900
+    severity: critical
+
+  # --- AD-6/AD-9: clippy-гейт в строгом режиме (P2-4 закрыта) ----------------
+  - id: C-20
+    name: ci_clippy_deny_warnings
+    type: must_contain
+    glob: ".github/workflows/*.yml"
+    pattern: "clippy --all-targets -- -D warnings"
+    severity: high
+
+  # --- Continuous evals конфигурации харнесса (docs/evals.md) ----------------
+  - id: C-21
+    name: eval_suite_present
+    type: file_exists
+    path: "assets/evals/agent-config"
+    severity: high
+
+  - id: C-22
+    name: eval_ci_job
+    type: must_contain
+    glob: ".github/workflows/*.yml"
+    pattern: "arch eval run"
+    severity: high
+
+  # --- ADR-017: надзорный контур 719-П ----------------------------------------
+  # --- AD-BE6: библиотека правил (ADR-019) -------------------------------------
+  # --- ADR-029: структурные fitness — направление зависимостей и слои ------
+  # Dogfood карточки GEN-16 (ArchUnit-класс проверок). Слоистость — по карте
+  # AGENTS.md («Architecture map»); все правила ЗЕЛЁНЫ на коде введения
+  # (неретроактивность, ADR-019): гейт блокирует эрозию слоёв, а не требует
+  # рефакторинга задним числом. Координаты — сегменты модульного пути
+  # после `crate::`; учитываются и `use crate::…`, и инлайн-пути.
+  - id: C-23
+    name: llm_provider_isolation
+    type: dependency_direction
+    glob: ["src/llm.rs", "src/llm/**"]
+    allow: [config, error, llm, net, retry]
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  # export.rs — задокументированное исключение (переиспользует
+  # tui::app::ChatBlock для экспорта чата, ADR-029); кандидат на
+  # вынесение ChatBlock из tui при следующем касании.
+  - id: C-24
+    name: no_tui_below_ui
+    type: dependency_direction
+    glob: "src/**/*.rs"
+    exclude_glob: ["src/tui.rs", "src/tui/**", "src/export.rs"]
+    forbid: [tui]
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  - id: C-25
+    name: tools_layer_no_agent_tui
+    type: dependency_direction
+    glob: ["src/tool.rs", "src/tools.rs", "src/tools/**"]
+    forbid: [agent, tui]
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  - id: C-26
+    name: leaf_modules_stay_leaf
+    type: dependency_direction
+    glob: ["src/error.rs", "src/secrets.rs", "src/retry.rs"]
+    allow: []
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  - id: C-27
+    name: no_banking_in_core_structural
+    type: dependency_direction
+    glob: "src/**/*.rs"
+    forbid: [banking]
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  # Паттерн внешнего инструмента GEN-16 (скрипт — переносимый эталон для
+  # проектов ДИТ: та же семантика, что у нативного dependency_direction).
+  - id: C-28
+    name: deps_check_script
+    type: command_succeeds
+    command: "python3 scripts/deps-check.py"
+    timeout_secs: 120
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-04"
+
+  # --- ADR-042: движок оркестрации флотов по паттернам -----------------------
+  # Гейты на структуру движка: модули плана/гейтов/исполнителя и каталог
+  # паттернов обязаны существовать; журнал флота обязан писать строку ОДНИМ
+  # write_all (иначе дописи конкурентных узлов склеиваются — живая находка).
+  - id: C-29
+    name: fleet_engine_modules_present
+    type: file_exists
+    path: "src/fleet_plan.rs"
+    severity: high
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-12"
+
+  - id: C-30
+    name: fleet_gate_module_present
+    type: file_exists
+    path: "src/fleet_gate.rs"
+    severity: high
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-12"
+
+  - id: C-31
+    name: fleet_exec_module_present
+    type: file_exists
+    path: "src/fleet_exec.rs"
+    severity: high
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-12"
+
+  - id: C-32
+    name: fleet_patterns_doc_present
+    type: file_exists
+    path: "docs/fleet_patterns.md"
+    severity: high
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-12"
+
+  - id: C-33
+    name: fleet_journal_single_write_append
+    type: must_contain
+    glob: "src/fleet_run.rs"
+    pattern: "write_all\\(line\\.as_bytes\\(\\)\\)"
+    severity: critical
+    owner: "solution-архитектор BE"
+    expiry: "2027-09-12"
+
+  # Покрытие доменов ADF маппингом (замечание ревью №12): каждый domains_id
+  # снапшота обязан иметь строку в adf-mapping.md — регресс ломает сборку.
+  # --- AI/ML Edition: гейт «md vs skill» (skill_contract) -------------------
+  # Структурный контракт скилла: frontmatter + триггер + процедура. Введён в
+  # режиме аудита (medium = warn): корпус скиллов мигрируется на контракт
+  # постепенно; по завершении миграции — severity: high (error).
+  - id: ML-SKILL-1
+    name: skill_has_trigger_and_procedure
+    type: skill_contract
+    glob:
+      - "assets/plugins/*/skills/*/SKILL.md"
+      - "aiml/plugins/*/skills/*/SKILL.md"
+      - "banking/plugins/*/skills/*/SKILL.md"
+    severity: medium
+    owner: "ml-architecture"
+    expiry: "2027-09-11"
+
+  # --- AI/ML Edition: целостность playbook-градации (правило трёх повторений)
+  - id: ML-PLAYBOOK-1
+    name: playbook_graduates_into_existing_skill
+    type: playbook_graduation
+    glob:
+      - "aiml/plugins/*/distillate/playbooks/*.md"
+      - "assets/plugins/*/distillate/playbooks/*.md"
+    severity: medium
+    owner: "ml-architecture"
+    expiry: "2027-09-11"
+
+  # --- AI/ML Edition: целостность managed-блоков (якорные диффы)
+  - id: ML-MANAGED-1
+    name: managed_hash_current
+    type: managed_hash_current
+    glob:
+      - "aiml/plugins/*/distillate/**/*.md"
+    severity: medium
+    owner: "ml-architecture"
+    expiry: "2027-09-11"
+
+  # --- AI/ML Edition: адресный след дистиллята (H0.3) ---
+  # Каждый адрес инварианта (spine:AD-*/ADR-*/rule:*) обязан резолвиться.
+  - id: ML-TRACE-1
+    name: address-trace
+    type: address_trace
+    glob:
+      - "aiml/plugins/**/distillate/**/*.md"
+      - "aiml/plugins/**/skills/*/SKILL.md"
+    pattern: "^ADR-|^spine:"
+    severity: medium
+    owner: "ml-architecture"
+    expiry: "2027-09-11"
+
+  # --- AI/ML Edition: управление компьютером и браузером (ADR-041) -----------
+  # Контур воздействия: модуль, регистрация под гейтом, тесты, доки, координатный
+  # контракт и встроенный CDP-хелпер. Наблюдение (screenshot/read_image) жило в
+  # ядре и раньше, но не было описано в справочнике — правило это фиксирует.
+  - id: ML-COMPUTER-1
+    name: computer_module_exists
+    type: must_contain
+    glob: "src/computer/input.rs"
+    pattern: "fn build_click_argv"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-2
+    name: computer_tool_registered
+    type: must_contain
+    glob: "src/tools.rs"
+    pattern: "computer::tools"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-3
+    name: computer_registry_test_updated
+    type: must_contain
+    glob: "src/tools.rs"
+    pattern: "computer_click"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-4
+    name: computer_docs_tools_row
+    type: must_contain
+    glob: "docs/tools.md"
+    pattern: "computer_click"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  # Известный пробел прошлой ревизии: vision-инструменты ядра не были описаны.
+  - id: ML-COMPUTER-5
+    name: vision_tools_documented
+    type: must_contain
+    glob: "docs/tools.md"
+    pattern: "read_image"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-6
+    name: computer_tests_present
+    type: must_contain
+    glob: "src/computer/screen.rs"
+    pattern: "#\\[test\\]"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-7
+    name: coordinate_contract_tested
+    type: must_contain
+    glob: "src/computer/screen.rs"
+    pattern: "map_normalized"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  - id: ML-COMPUTER-8
+    name: cdp_helper_present
+    type: must_contain
+    glob: "assets/computer/cdp.mjs"
+    pattern: "Input.insertText"
+    severity: high
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  # Гейт воздействия: инструменты ввода обязаны оставаться Destructive, иначе
+  # клик по экрану пройдёт без подтверждения на дефолтном R2.
+  - id: ML-COMPUTER-9
+    name: input_tools_stay_destructive
+    type: must_contain
+    glob: "src/policy.rs"
+    pattern: "computer_click"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"
+
+  # Обход гейта через bash: бинари управления столом классифицируются отдельно.
+  - id: ML-COMPUTER-10
+    name: desktop_binaries_classified
+    type: must_contain
+    glob: "src/policy.rs"
+    pattern: "DESTRUCTIVE_BINARIES"
+    severity: error
+    owner: "ml-architecture"
+    expiry: "2027-09-12"

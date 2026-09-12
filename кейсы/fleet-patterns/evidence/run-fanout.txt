@@ -1,0 +1,15 @@
+# Прогон плана fanout (2 узла, worktree-на-узел, гейт contract)
+$ arch-ml fleet run --repo <repo> --plan fanout.plan.toml
+Прогон плана smoke-fanout (fanout): run-id fpl-1789204702796
+Узлов: 2 в 1 волнах; завершено 2, сбой 0, пропущено 0
+Журнал: /tmp/fleet-smoke/state/fleet/fpl-1789204702796.jsonl
+Worktree узлов: 2
+  n1                       /tmp/fleet-smoke/worktrees/repo-cb088f8b0111402d/fpl-1789204702796-n1
+  n2                       /tmp/fleet-smoke/worktrees/repo-cb088f8b0111402d/fpl-1789204702796-n2
+Интеграция — только гейтом владельца: fleet merge <run-id> --owner-approve
+
+# Повторный прогон (resume): завершённые узлы пропускаются
+$ arch-ml fleet resume fpl-1789204702796 --repo <repo>
+Прогон плана smoke-fanout (fanout): run-id fpl-1789204702796
+Узлов: 2 в 1 волнах; завершено 0, сбой 0, пропущено 2
+Журнал: /tmp/fleet-smoke/state/fleet/fpl-1789204702796.jsonl

@@ -1,0 +1,55 @@
+asyncapi: 2.6.0
+info:
+  title: Tariffs feed
+  version: 1.0.0
+  description: |
+    Фид обновлений тарифов биллинга. Источник — rates.internal.example:8080/feed
+    (карта обследования: config/app.yaml:6; модель: INT-002). Публикация в
+    очередь tariffs.feed.updated; потребитель — идемпотентный консьюмер
+    дельты 001 (changes/001-tariffs-idempotent-consumer.md).
+    Идемпотентность: event_id обязателен, повторная доставка не меняет
+    состояние (потребитель ведёт журнал обработанных событий).
+servers:
+  production:
+    url: rabbit.internal.example:5672
+    protocol: amqp
+channels:
+  tariffs.feed.updated:
+    description: Событие изменения тарифа комиссии.
+    subscribe:
+      summary: Потребитель тарифов подписывается на обновления.
+      operationId: consumeTariffUpdated
+      message:
+        name: TariffUpdated
+        title: Тариф комиссии обновлён
+        version: 1.0.0
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - event_id
+            - occurred_at
+            - tariff_id
+            - commission_pct
+            - currency
+          properties:
+            event_id:
+              type: string
+              format: uuid
+              description: Идемпотентный ключ события; повторная доставка
+                с тем же event_id должна быть пропущена потребителем.
+            occurred_at:
+              type: string
+              format: date-time
+            tariff_id:
+              type: string
+              description: Идентификатор тарифа (например, default-commission).
+            commission_pct:
+              type: number
+              minimum: 0
+              maximum: 100
+              description: Комиссия в процентах (например, 1.2).
+            currency:
+              type: string
+              enum: [RUB]
+              description: Валюта тарифа; расширение списка — смена версии контракта.

@@ -1,0 +1,14 @@
+Коммиты исполнителей (git log обеих рук, 2026-08-17; авторские строки опущены):
+
+== armA (голая задача, без пакета)
+c185a69 Add payment-core library with lifecycle state machine
+2248770 baseline
+
+== armB (та же задача + handoff-пакет: спайн + CONSTRAINTS)
+6a0ee75 feat: payments-core library (authorize/capture/refund + journal)
+fbe98bc baseline: handoff-пакет (spine + constraints)
+
+Обе руки закоммитили работу сами (секция «Финализация» в обоих промптах).
+Разница не в дисциплине, а в содержании: у armB в коммите — thiserror
+в зависимостях и настоящий inbox идемпотентности; у armA — рукописный
+enum ошибок без thiserror и полное отсутствие идемпотентности.

@@ -1,0 +1,20 @@
+# CONSTRAINTS.yaml продуктового репо (образец, docs/corp-spine.md).
+# Наследование корп-спайна с пином версии: обновление родителя приходит как
+# error-находка «родитель обновился» (перепиновка = осознанный PR с diff),
+# а не молчаливая поломка.
+extends: ["../CONSTRAINTS.corp.yaml@2026.3"]
+
+# Override только через ADR: все три поля обязательны. Исключение видно,
+# датировано, протухает (истёк → warn и правило снова действует).
+overrides:
+  # left-pad в Cargo.toml зафиксирован осознанно до вывода зависимости.
+  - rule: C-CORP-001
+    adr: ADR-041
+    until: "2027-01"
+
+rules:
+  - name: spine_present
+    type: file_exists
+    path: "ARCHITECTURE-SPINE.md"
+    severity: block
+    owner: "@product-arch"

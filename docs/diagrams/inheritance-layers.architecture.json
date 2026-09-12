@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Spine BE: наследование инвариантов — корпоративный → доменный → продуктовый",
+    "output": "inheritance-layers.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "extends-mechanism",
+        "label": "extends и отчёт вверх",
+        "focus": ["corp_spine", "prod_constraints", "gate_check", "dka_aggregate"],
+        "note": "Пин версии = PR с diff: родитель обновился → FAIL до перепиновки. Override через ADR протухает. Отчёт corp — взгляд ДКА."
+      },
+      {
+        "id": "domain-presets",
+        "label": "Пресеты и conditional",
+        "focus": ["preset_pay", "preset_cmp", "adf", "prod_spine"],
+        "note": "Mandatory — исключение только через ADR; conditional открывает ADF-анкета; комплаенс ссылается на PAY-27, не дублируя нормы."
+      },
+      {
+        "id": "spine-hierarchy",
+        "label": "Иерархия спайнов",
+        "focus": ["core_spine", "be_spine", "preset_pay"],
+        "note": "Спайн ядра (MIT) — read-only родитель; продуктовый спайн добавляет поверх, конфликт эскалируется владельцем продукта (ADR-011)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "dka_aggregate",
+      "type": "messagebus",
+      "label": "Агрегатор ДКА",
+      "sublabel": "сводка по флоту репо",
+      "pos": [40, 40],
+      "size": [190, 60],
+      "tag": "roadmap"
+    },
+    {
+      "id": "corp_spine",
+      "type": "security",
+      "label": "Корп-спайн ДКА",
+      "sublabel": "CONSTRAINTS.corp @2026.3",
+      "pos": [40, 160],
+      "size": [190, 60],
+      "tag": "5 правил"
+    },
+    {
+      "id": "core_spine",
+      "type": "cloud",
+      "label": "Спайн ядра",
+      "sublabel": "MIT · read-only",
+      "pos": [300, 160],
+      "size": [140, 60],
+      "tag": "upstream"
+    },
+    {
+      "id": "be_spine",
+      "type": "backend",
+      "label": "Спайн Spine BE",
+      "sublabel": "ARCH-SPINE-BE",
+      "pos": [480, 160],
+      "size": [140, 60],
+      "tag": "поверх ядра"
+    },
+    {
+      "id": "preset_pay",
+      "type": "backend",
+      "label": "Пресет платежей",
+      "sublabel": "SPINE-PAYMENTS · 15 M + 12 C",
+      "pos": [660, 160],
+      "size": [170, 60],
+      "tag": "PAY-01..27"
+    },
+    {
+      "id": "preset_cmp",
+      "type": "security",
+      "label": "Пресет комплаенса",
+      "sublabel": "152-ФЗ · КИИ · ПОД/ФТ",
+      "pos": [860, 160],
+      "size": [170, 60],
+      "tag": "SSOT → PAY-27"
+    },
+    {
+      "id": "adf",
+      "type": "database",
+      "label": "ADF-анкета",
+      "sublabel": "сенсор A1 · снапшот v2",
+      "pos": [1060, 160],
+      "size": [160, 60],
+      "tag": "72/223"
+    },
+    {
+      "id": "prod_constraints",
+      "type": "backend",
+      "label": "CONSTRAINTS.yaml",
+      "sublabel": "extends · overrides",
+      "pos": [560, 320],
+      "size": [180, 60],
+      "tag": "пин @2026.3"
+    },
+    {
+      "id": "gate_check",
+      "type": "security",
+      "label": "control check",
+      "sublabel": "fitness-гейт CI",
+      "pos": [770, 320],
+      "size": [170, 60],
+      "tag": "PASS / FAIL"
+    },
+    {
+      "id": "prod_spine",
+      "type": "database",
+      "label": "Спайн проекта",
+      "sublabel": "PAY-блоки · «не применимо»",
+      "pos": [980, 320],
+      "size": [180, 60],
+      "tag": "живая истина"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Корпоративный уровень — ДКА",
+      "wraps": ["dka_aggregate", "corp_spine"]
+    },
+    {
+      "kind": "region",
+      "label": "Доменный уровень — Spine BE (banking/)",
+      "wraps": ["core_spine", "be_spine", "preset_pay", "preset_cmp", "adf"]
+    },
+    {
+      "kind": "region",
+      "label": "Продуктовый репо ДИТ",
+      "wraps": ["prod_constraints", "gate_check", "prod_spine"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "core_to_be",
+      "from": "core_spine",
+      "to": "be_spine"
+    },
+    {
+      "id": "be_zone",
+      "from": "be_spine",
+      "to": "preset_pay",
+      "variant": "dashed"
+    },
+    {
+      "id": "ssot_ref",
+      "from": "preset_cmp",
+      "to": "preset_pay",
+      "variant": "dashed"
+    },
+    {
+      "id": "corp_inherit",
+      "from": "corp_spine",
+      "to": "prod_constraints",
+      "label": "extends @пин — 5 правил",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[135, 270], [500, 270], [500, 350]],
+      "labelSegment": 1,
+      "labelDy": -12
+    },
+    {
+      "id": "preset_to_spine",
+      "from": "preset_pay",
+      "to": "prod_spine",
+      "label": "PAY-* в спайн (M — через ADR)",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [[745, 270], [1070, 270]],
+      "labelSegment": 1,
+      "labelDy": -12
+    },
+    {
+      "id": "adf_conditional",
+      "from": "adf",
+      "to": "prod_spine",
+      "label": "conditional-блоки",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 30
+    },
+    {
+      "id": "constraints_to_gate",
+      "from": "prod_constraints",
+      "to": "gate_check"
+    },
+    {
+      "id": "trace_link",
+      "from": "prod_spine",
+      "to": "gate_check",
+      "variant": "dashed"
+    },
+    {
+      "id": "report_up",
+      "from": "gate_check",
+      "to": "dka_aggregate",
+      "label": "report --level corp",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [[855, 440], [1290, 440], [1290, 24], [135, 24]],
+      "labelSegment": 3,
+      "labelDy": 12
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Механизм extends",
+      "items": [
+        "Пин @версии: родитель обновился → FAIL до осознанной перепиновки (PR с diff)",
+        "Унаследованные правила несут метку источника corp@2026.3",
+        "Своё правило с тем же name — shadowing, не конфликт"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Исключения — датированные",
+      "items": [
+        "Override: rule + ADR + until — все три поля обязательны",
+        "Истёк until → правило снова действует (deny-hit)",
+        "unverifiable — видимый ручной контур в отчёте"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Два контура контроля",
+      "items": [
+        "Вниз: fitness-гейт control check в CI продуктового репо",
+        "Вверх: report --level corp — агрегация ДКА по флоту",
+        "trace_check: AD без fitness-правила — error трассируемости"
+      ]
+    }
+  ]
+}

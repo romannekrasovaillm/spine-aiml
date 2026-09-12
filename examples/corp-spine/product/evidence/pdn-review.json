@@ -1,0 +1,7 @@
+{
+  "review": "pdn-review",
+  "date": "2026-08-15",
+  "verdict": "pass",
+  "reviewer": "@dka-security",
+  "note": "Фикстура evidence ПДн-ревью для демо корп-спайна (docs/corp-spine.md)."
+}

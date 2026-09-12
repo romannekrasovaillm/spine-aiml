@@ -1,0 +1,17 @@
+%% sequenceDiagram: платёжный запрос через внешний шлюз (пример).
+%% Поддерживаемое подмножество: participant, ->>, -->>, Note left/right of.
+sequenceDiagram
+    participant CL as Клиент: мобильный банк
+    participant GW as API Gateway
+    participant ORCH as Платёжный оркестратор
+    participant PSP as Платёжный шлюз
+    CL->>GW: POST /payments с ключом идемпотентности
+    GW->>ORCH: команда на проведение платежа
+    Note right of ORCH: проверка дубликата по ключу идемпотентности
+    ORCH->>PSP: авторизация платежа по токену карты
+    PSP-->>ORCH: статус ACCEPTED и внешний идентификатор
+    ORCH-->>GW: 202 Accepted и payment_id
+    GW-->>CL: платёж принят в обработку
+    Note left of PSP: финальный статус приходит отдельным колбэком
+    PSP->>ORCH: webhook с финальным статусом
+    ORCH->>CL: push-уведомление о результате

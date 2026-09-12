@@ -1,0 +1,11 @@
+# Eval-задача: библиотека скиллов читается (плагины развёрнуты и индексируются).
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: skills-library
+title: Библиотека скиллов читается, скиллы arch-core на месте
+command: "{arch} skills list"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "Скиллов:"
+  - type: must_contain
+    pattern: "adr-authoring"

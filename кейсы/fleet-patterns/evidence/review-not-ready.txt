@@ -1,0 +1,9 @@
+# Пара «реализатор + ревьювер»: вердикт NOT-READY блокирует интеграцию
+Прогон плана smoke-review (review_pair): run-id fpl-1789204704375
+Узлов: 2 в 2 волнах; завершено 1, сбой 1, пропущено 0
+Журнал: /tmp/fleet-smoke/state/fleet/fpl-1789204704375.jsonl
+Worktree узлов: 2
+  impl                     /tmp/fleet-smoke/worktrees/repo-cb088f8b0111402d/fpl-1789204704375-impl
+  review-impl              /tmp/fleet-smoke/worktrees/repo-cb088f8b0111402d/fpl-1789204704375-review-impl
+Интеграция — только гейтом владельца: fleet merge <run-id> --owner-approve
+exit=1

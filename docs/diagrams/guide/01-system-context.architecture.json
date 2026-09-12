@@ -1,0 +1,364 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Spine BE — системный контекст",
+    "output": "docs/diagrams/guide/01-system-context.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "dialog-path",
+        "label": "Диалог и инструменты",
+        "focus": [
+          "architect",
+          "tui",
+          "agent",
+          "tools",
+          "files"
+        ],
+        "note": "Основной путь: архитектор → харнесс → доменные инструменты → git-артефакты."
+      },
+      {
+        "id": "llm-perimeter",
+        "label": "Модели периметра",
+        "focus": [
+          "agent",
+          "llm",
+          "gigachat"
+        ],
+        "note": "Все провайдеры — OpenAI-совместимые endpoint'ы внутри периметра банка."
+      },
+      {
+        "id": "handoff-path",
+        "label": "Передача исполнителям",
+        "focus": [
+          "agent",
+          "mcp",
+          "harness"
+        ],
+        "note": "Handoff-пакеты уходят кодовым харнессам по MCP, контекст не переписывается руками."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "architect",
+      "type": "external",
+      "label": "Solution-архитектор",
+      "sublabel": "человек у руля",
+      "pos": [
+        30,
+        290
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "гейты A0–A5"
+    },
+    {
+      "id": "tui",
+      "type": "frontend",
+      "label": "arch-be",
+      "sublabel": "TUI + headless CLI",
+      "pos": [
+        240,
+        290
+      ],
+      "size": [
+        140,
+        64
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Агентный цикл",
+      "sublabel": "turn loop · policy R0–R5 · журнал JSONL",
+      "pos": [
+        450,
+        290
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "AD-2 детерминированный слой"
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Доменные инструменты",
+      "sublabel": "spine · ADR · model · fitness · trace · rubric",
+      "pos": [
+        450,
+        460
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "plugins",
+      "type": "backend",
+      "label": "Плагины и скиллы",
+      "sublabel": "arch-core · ru-* · методики",
+      "pos": [
+        240,
+        460
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "tag": "AD-10"
+    },
+    {
+      "id": "files",
+      "type": "database",
+      "label": "git-артефакты",
+      "sublabel": "spine · ADR · model/ · CONSTRAINTS · evidence",
+      "pos": [
+        450,
+        630
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Self-hosted LLM",
+      "sublabel": "vLLM · open-source в периметре",
+      "pos": [
+        720,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "OpenAI-compat"
+    },
+    {
+      "id": "gigachat",
+      "type": "cloud",
+      "label": "GigaChat",
+      "sublabel": "OAuth2 · NUC CA · mTLS",
+      "pos": [
+        720,
+        320
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "ADR-021"
+    },
+    {
+      "id": "mcp",
+      "type": "messagebus",
+      "label": "MCP-сервер handoff",
+      "sublabel": "read_packet",
+      "pos": [
+        720,
+        460
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "harness",
+      "type": "external",
+      "label": "Кодовые харнессы",
+      "sublabel": "Claude Code · Kimi Code · флот worktree",
+      "pos": [
+        950,
+        460
+      ],
+      "size": [
+        160,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Машина архитектора (single-user, ADR-033)",
+      "wraps": [
+        "tui",
+        "agent",
+        "tools",
+        "plugins",
+        "files"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Периметр банка",
+      "wraps": [
+        "llm",
+        "gigachat",
+        "mcp",
+        "harness"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "dialog",
+      "from": "architect",
+      "to": "tui",
+      "label": "диалог / команды",
+      "variant": "emphasis",
+      "labelAt": [
+        210,
+        368
+      ]
+    },
+    {
+      "id": "loop",
+      "from": "tui",
+      "to": "agent"
+    },
+    {
+      "id": "domain-tools",
+      "from": "agent",
+      "to": "tools",
+      "label": "tool calls",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        540,
+        400
+      ]
+    },
+    {
+      "id": "artifacts",
+      "from": "tools",
+      "to": "files",
+      "label": "читает / пишет",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        540,
+        570
+      ]
+    },
+    {
+      "id": "skills",
+      "from": "plugins",
+      "to": "agent",
+      "label": "методики",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "to-llm",
+      "from": "agent",
+      "to": "llm",
+      "label": "SSE",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        636,
+        240
+      ],
+      "via": [
+        [
+          650,
+          322
+        ],
+        [
+          650,
+          232
+        ]
+      ]
+    },
+    {
+      "id": "to-giga",
+      "from": "agent",
+      "to": "gigachat",
+      "label": "HTTPS",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        682,
+        300
+      ],
+      "via": [
+        [
+          672,
+          322
+        ],
+        [
+          672,
+          352
+        ]
+      ]
+    },
+    {
+      "id": "handoff",
+      "from": "agent",
+      "to": "mcp",
+      "label": "handoff-пакеты",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        700,
+        420
+      ],
+      "via": [
+        [
+          700,
+          322
+        ],
+        [
+          700,
+          492
+        ]
+      ]
+    },
+    {
+      "id": "executors",
+      "from": "mcp",
+      "to": "harness",
+      "label": "MCP",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Агент",
+      "items": [
+        "Один бинарь: TUI + CLI + библиотека",
+        "Секреты — только env, журнал append-only"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Контроль",
+      "items": [
+        "Всё проверяемое — детерминированный код (AD-2)",
+        "Политика автономии R0–R5 на каждый tool call"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Периметр",
+      "items": [
+        "Модели — self-hosted / GigaChat (ADR-012)",
+        "Телеметрии и бэконов нет (fitness BE-14)"
+      ]
+    }
+  ]
+}

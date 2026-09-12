@@ -1,0 +1,11 @@
+# Эталонные оценки golden-документа adr_decent.md (рубрика adr_quality).
+# Ровно середняк по якорям 3: проблема описана без цены бездействия,
+# альтернативы перечислены без глубоких причин, минусы абстрактны,
+# категория обратимости названа без пути, статус без expiry.
+rubric: adr_quality
+scores:
+  context: 3
+  alternatives: 3
+  negative_consequences: 3
+  reversibility: 3
+  status_discipline: 3

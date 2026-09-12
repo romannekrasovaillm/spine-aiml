@@ -1,0 +1,31 @@
+⚠ контракт результата (```json со status) в stdout не найден
+── stdout (exit Some(0), 371.9s) ──
+Готово. Библиотека платёжного ядра создана, все тесты проходят, финальный коммит сделан.
+
+## Что сделано
+
+**Структура библиотеки** (`payment-core`, без внешних зависимостей):
+
+| Файл | Содержимое |
+|---|---|
+| `src/payment.rs` | `Payment` (id, `amount`, `currency`, `status` + `captured_amount`/`refunded_amount` + журнал) и операции `authorize`/`capture`/`refund`/`void` |
+| `src/status.rs` | `PaymentStatus` — 7 статусов, метод `is_terminal()` |
+| `src/currency.rs` | `Currency` — enum ISO-4217 (32 кода) через макрос, `Display`/`FromStr`/`TryFrom` |
+| `src/event.rs` | `PaymentEvent` + `PaymentEventType` — журнал событий с таймстампом |
+| `src/error.rs` | `PaymentError` — структурные ошибки с `Display` и `std::error::Error` |
+| `src/lib.rs` | Модули, реэкспорты, документация с doctest |
+
+**Ключевые решения:**
+- Суммы — в минимальных единицах (`u64`), без плавающей точки.
+- Матрица переходов: `Created → Authorized → PartiallyCaptured/Captured → PartiallyRefunded/Refunded`, плюс `Authorized → Voided`. Частичные capture/refund поддерживаются.
+- Ошибки: `InvalidTransition`, `ZeroAmount`, `AmountExceedsAuthorized`, `AmountExceedsCaptured`, `UnknownCurrency`, `InvalidPaymentId` — операции, завершившиеся ошибкой, **не мутируют** состояние и журнал.
+- Журнал — append-only, с `SystemTime` (равенство событий сравнивается без таймстампа для детерминированных тестов).
+
+**Проверка:** `cargo test` — 27 юнит-тестов + 4 интеграционных + 1 doctest = 32/32 зелёные; `cargo clippy` и `cargo fmt` чисто.
+
+**Git:** единственный чистый коммит `c185a69` (10 файлов, 1076 строк). В процессе заметил и убрал случайно застейдженный `target/` — добавил `.gitignore` с `/target` и переписал коммит, чтобы в истории не было бинарных артефактов сборки.
+
+── stderr ──
+[claude-code:unrecognized_model] {"model":"deepseek-v4-flash","query_source":"generate_session_title"}
+[claude-code:unrecognized_model] {"model":"deepseek-v4-pro[1m]","query_source":"sdk"}
+

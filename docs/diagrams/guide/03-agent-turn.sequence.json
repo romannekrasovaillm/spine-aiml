@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Один ход агента (headless): запрос → инструменты → журнал",
+    "output": "docs/diagrams/guide/03-agent-turn.html",
+    "viewBox": [
+      860,
+      880
+    ],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "request-turn",
+        "label": "Ход с инструментами",
+        "focus": [
+          "cli",
+          "agent",
+          "llm",
+          "policy",
+          "tools"
+        ],
+        "note": "Ответ модели — это tool calls; каждый проходит policy-гейт до исполнения."
+      },
+      {
+        "id": "audit-trail",
+        "label": "Аудиторский след",
+        "focus": [
+          "agent",
+          "journal",
+          "tools"
+        ],
+        "note": "Каждое событие хода — append-only запись в сессионный JSONL."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "cli",
+      "type": "external",
+      "label": "CLI / TUI",
+      "sublabel": "arch-be run -q …"
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "AgentSession",
+      "sublabel": "цикл хода"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "LLM API",
+      "sublabel": "SSE-стрим"
+    },
+    {
+      "id": "policy",
+      "type": "security",
+      "label": "Policy-гейт",
+      "sublabel": "R0–R5 · env_scrub"
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Инструменты",
+      "sublabel": "fs · bash · доменные"
+    },
+    {
+      "id": "journal",
+      "type": "database",
+      "label": "Журнал JSONL",
+      "sublabel": "append-only"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 300,
+      "label": "Запрос и ответ"
+    },
+    {
+      "from": 316,
+      "to": 620,
+      "label": "Инструменты под политикой"
+    },
+    {
+      "from": 636,
+      "to": 830,
+      "label": "Финал и аудит"
+    }
+  ],
+  "messages": [
+    {
+      "from": "cli",
+      "to": "agent",
+      "y": 180,
+      "label": "задача пользователя",
+      "variant": "emphasis"
+    },
+    {
+      "from": "agent",
+      "to": "llm",
+      "y": 222,
+      "label": "chat/completions (контекст + инструменты)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "llm",
+      "to": "agent",
+      "y": 264,
+      "label": "assistant: tool_calls",
+      "variant": "return"
+    },
+    {
+      "from": "agent",
+      "to": "policy",
+      "y": 336,
+      "label": "dispatch(tool_call)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "policy",
+      "to": "tools",
+      "y": 414,
+      "label": "exec (env без секретов)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "tools",
+      "to": "policy",
+      "y": 456,
+      "label": "ToolOutput",
+      "variant": "return"
+    },
+    {
+      "from": "policy",
+      "to": "agent",
+      "y": 498,
+      "label": "результат инструмента",
+      "variant": "return"
+    },
+    {
+      "from": "agent",
+      "to": "llm",
+      "y": 540,
+      "label": "tool output → следующий ход",
+      "variant": "default"
+    },
+    {
+      "from": "llm",
+      "to": "agent",
+      "y": 582,
+      "label": "финальный ответ",
+      "variant": "return"
+    },
+    {
+      "from": "agent",
+      "to": "journal",
+      "y": 664,
+      "label": "записи: user · assistant · tool · usage · event",
+      "variant": "emphasis"
+    },
+    {
+      "from": "agent",
+      "to": "cli",
+      "y": 736,
+      "label": "ответ (stdout, чистый JSON по контракту)",
+      "variant": "emphasis"
+    }
+  ]
+}

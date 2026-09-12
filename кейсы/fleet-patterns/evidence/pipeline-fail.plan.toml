@@ -1,0 +1,24 @@
+id = "smoke-pipeline-fail"
+pattern = "pipeline"
+order = ["a", "b"]
+
+[policy]
+max_parallel = 2
+require_worktree = true
+stop_on_gate_fail = true
+
+[defaults]
+route = "fast"
+
+[[nodes]]
+id = "a"
+spec = "Стадия A"
+agent = "smart"
+gates = [{ command = { cmd = "false", timeout_secs = 10 } }]
+on_fail = "block"
+
+[[nodes]]
+id = "b"
+spec = "Стадия B"
+agent = "smart"
+gates = ["contract"]

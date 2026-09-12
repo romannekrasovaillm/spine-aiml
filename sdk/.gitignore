@@ -1,0 +1,9 @@
+# Сборочные и тестовые артефакты SDK (не коммитим).
+__pycache__/
+.pytest_cache/
+rust/target/
+java/out/
+java/out-test/
+java/sdk.jar
+java/out-examples/
+java/registry-out/

@@ -1,0 +1,17 @@
+# Замыкание контура: находки ревьювера F1/F2 -> машинные правила CONSTRAINTS v2
+# Проверка БЕЗ LLM и без денег (control check):
+
+## (а) код агента (Decimal + quantize + ROUND_HALF_UP) — ожидаем PASS
+Правил: 10, нарушений: 0 (error: 0, warn: 0)
+Самые медленные правила:
+  1.4s tests_pass
+Итог: PASS
+
+## (б) отрицательный контроль: наивная float-реализация (round(), неиспользуемый импорт Decimal, нет теста тай-брейка) — ожидаем FAIL
+Правил: 10, нарушений: 3 (error: 3, warn: 0)
+  [error] bankcalc/fee.py:0 ad2_quantize_used — must_contain: паттерн 'quantize\(' не найден ни в одном файле по glob 'bankcalc/fee.py'
+  [error] bankcalc/fee.py:6 ad2_no_builtin_round — must_not_contain: запрещённый паттерн '\bround\(': return round(amount * bps / 10000, 2)
+  [error] tests/test_fee.py:0 tests_discriminate_tie — must_contain: паттерн '125\.0|0\.125' не найден ни в одном файле по glob 'tests/test_fee.py'
+Самые медленные правила:
+  1.5s tests_pass
+Итог: FAIL

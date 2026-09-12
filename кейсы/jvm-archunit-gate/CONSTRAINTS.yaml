@@ -1,0 +1,34 @@
+# CONSTRAINTS.yaml — кейс 009 (jvm-archunit-gate): ArchUnit-гейт из единого источника.
+#
+# Прогон:  arch-be control check . --constraints CONSTRAINTS.yaml
+#          arch-be archunit check . --constraints CONSTRAINTS.yaml
+# Правила C-01/C-02 — структурные (dependency_direction, ADR-029) с java-glob'ами:
+# исполняются и нативно (текстово, по импортам), и ArchUnit-мостом (ADR-039,
+# по байткоду). C-03 — JVM-гейт: те же java-правила файла исполняются
+# настоящим ArchUnit на скомпилированных классах.
+constraints:
+  # Домен не зависит от инфраструктуры (направление зависимостей слоёв).
+  - id: C-01
+    name: domain_not_infrastructure
+    type: dependency_direction
+    glob: "src/**/domain/**/*.java"
+    forbid: ["com/acme/infrastructure"]
+    severity: critical
+
+  # Запрет «внешнего FX-пакета» (синтетический com.external.fx): никто в
+  # проекте не зависит от него напрямую.
+  - id: C-02
+    name: no_external_fx
+    type: dependency_direction
+    glob: "**/*.java"
+    forbid: ["com/external/fx"]
+    severity: critical
+
+  # JVM-гейт: исполнить java-правила этого файла (C-01, C-02) настоящим
+  # ArchUnit. Классы — авто-детект (classes/), jar'ы — из кэша
+  # (~/.arch-harness/archunit/lib, `arch-be archunit fetch`).
+  - id: C-03
+    name: jvm_archunit_gate
+    type: archunit
+    timeout_secs: 300
+    severity: critical

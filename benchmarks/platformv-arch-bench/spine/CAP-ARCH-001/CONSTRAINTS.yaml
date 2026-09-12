@@ -1,0 +1,79 @@
+# CONSTRAINTS.yaml — fitness-правила для CAP-ARCH-001 (генерируется prepare_cells.py).
+# Источник: mechanical_checks из RUBRICS.md (rubrics).
+# Проверка: arch-be control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: SP-CAP-ARCH-001-01
+    name: deliverable-d1
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*резюме"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-02
+    name: deliverable-d2
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*схема\\s+(целев\\w+\\s+)?ландшафт"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-03
+    name: deliverable-d3
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*модель\\s+нагрузк"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-04
+    name: deliverable-d4
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*pangolin"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-05
+    name: deliverable-d5
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*radish"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-06
+    name: deliverable-d6
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*corax"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-07
+    name: deliverable-d7
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*datamarts"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-08
+    name: deliverable-d8
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(узк\\w+\\s+мест|план\\s+расширен)"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-09
+    name: deliverable-d9
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(нагрузочн\\w+\\s+тест|программ\\w*\\s+нт|испытан)"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-10
+    name: deliverable-d10
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*трассировк"
+    severity: high
+
+  - id: SP-CAP-ARCH-001-99
+    name: max-words
+    type: command_succeeds
+    command: "bash -c \"test $(wc -w < answer.md 2>/dev/null || echo 999999) -le 4000\""
+    severity: medium

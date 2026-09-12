@@ -1,0 +1,82 @@
+# Живой прогон на РЕАЛЬНОМ харнессе (kimi-code), 2026-09-12
+# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на /home/user — гейт CI «personal paths» (AD-7).
+# $ arch-ml fleet run --repo <sandbox> --plan live-smoke-kimi.plan.toml
+
+Прогон плана live-smoke-kimi (fanout): run-id fpl-1789206260662
+Узлов: 1 в 1 волнах; завершено 1, сбой 0, пропущено 0
+Журнал: /home/user/.arch-ml/state/fleet/fpl-1789206260662.jsonl
+Worktree узлов: 1
+  fee-kimi                 /home/user/.arch-ml/worktrees/repo-af63a34c86018bb1/fpl-1789206260662-fee-kimi
+Интеграция — только гейтом владельца: fleet merge <run-id> --owner-approve
+
+[exited with code 0]
+
+# Ключевые события журнала (heartbeat'ы свёрнуты)
+{"type":"plan_started","run_id":"fpl-1789206260662","plan_id":"live-smoke-kimi","pattern":"fanout","plan_path":".arch-fleet/live-smoke-kimi.plan.toml","plan_sha256":"668a22e580eaea6cc49ec3cc906eda96963ed683eab22e05e63ebfd9739200ef","n_nodes":1,"n_waves":1,"at":"2026-09-12 12:44:20"}
+{"type":"wave_started","run_id":"fpl-1789206260662","wave":0,"nodes":["fee-kimi"],"at":"2026-09-12 12:44:20"}
+{"type":"agent_started","run_id":"fpl-1789206260662","agent_id":"kimi-code","item_id":"fee-kimi","kind":"harness:worker","at":"2026-09-12 12:44:20"}
+{"type":"agent_done","run_id":"fpl-1789206260662","agent_id":"kimi-code","item_id":"fee-kimi","exit_code":0,"duration_secs":97.253962393,"contract_status":"complete","at":"2026-09-12 12:45:57"}
+{"type":"node_gated","run_id":"fpl-1789206260662","node_id":"fee-kimi","gate":"contract","verdict":"ok","detail":"статус complete; допущено: complete","at":"2026-09-12 12:45:59"}
+{"type":"node_gated","run_id":"fpl-1789206260662","node_id":"fee-kimi","gate":"fitness","verdict":"ok","detail":"Правил: 8, нарушений: 0 (error: 0, warn: 0)","at":"2026-09-12 12:45:59"}
+{"type":"node_completed","run_id":"fpl-1789206260662","node_id":"fee-kimi","at":"2026-09-12 12:45:59"}
+{"type":"run_finished","run_id":"fpl-1789206260662","n_assigned":1,"n_done":1,"n_failed":0,"n_unassigned":0,"at":"2026-09-12 12:45:59"}
+
+# Что произвёл агент (bankcalc/fee.py)
+"""Комиссия по базисным пунктам (AD-2: деньги — через Decimal, ROUND_HALF_UP)."""
+
+from decimal import ROUND_HALF_UP, Decimal
+
+_KOPECK = Decimal("0.01")
+_BPS_BASE = Decimal("10000")
+
+
+def calc_fee(amount: float, bps: float) -> float:
+    """Комиссия с суммы `amount` по ставке `bps` базисных пунктов (bps/10000).
+
+    Результат округляется до копеек по правилу ROUND_HALF_UP; промежуточные
+    вычисления — на decimal.Decimal (входные float конвертируются через str,
+    чтобы не тащить двоичную погрешность в расчёт).
+    """
+    fee = Decimal(str(amount)) * Decimal(str(bps)) / _BPS_BASE
+    return float(fee.quantize(_KOPECK, rounding=ROUND_HALF_UP))
+
+# Тесты агента (tests/test_fee.py)
+from bankcalc.fee import calc_fee
+
+
+def test_fee_common_case():
+    # 1000.0 * 50 / 10000 = 5.00
+    assert calc_fee(1000.0, 50.0) == 5.0
+
+
+def test_fee_rounds_down_below_half_kopeck():
+    # 1234.56 * 10 / 10000 = 1.23456 -> 1.23
+    assert calc_fee(1234.56, 10.0) == 1.23
+
+
+def test_fee_zero_amount():
+    assert calc_fee(0.0, 250.0) == 0.0
+
+
+def test_fee_half_kopeck_rounds_up():
+    # 0.25 * 1000 / 10000 = 0.025 — ровно половина копейки -> вверх (0.03),
+    # при ROUND_HALF_EVEN было бы 0.02
+    assert calc_fee(0.25, 1000.0) == 0.03
+
+
+def test_fee_large_amount():
+    # 999999999.99 * 12.5 / 10000 = 1249999.9999875 -> 1250000.00
+    # (на float-арифметике здесь погрешность в копейках)
+    assert calc_fee(999_999_999.99, 12.5) == 1250000.0
+
+# Коммит агента (контракт «Финализация» сработал: флот коммитит сам)
+70b5aef feat: bankcalc.fee — calc_fee по базисным пунктам (AD-1, AD-2) + тесты
+69ae630 base: спайн расчётного ядра (AD-1, AD-2)
+
+    feat: bankcalc.fee — calc_fee по базисным пунктам (AD-1, AD-2) + тесты
+
+ .gitignore           |  2 ++
+ bankcalc/__init__.py |  1 +
+ bankcalc/fee.py      | 17 +++++++++++++++++
+ tests/test_fee.py    | 27 +++++++++++++++++++++++++++
+ 4 files changed, 47 insertions(+)

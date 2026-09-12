@@ -1,0 +1,28 @@
+# Конвейер стадий: артефакт каждой стадии — вход следующей.
+id = "fixture-pipeline"
+package = "fixture"
+pattern = "pipeline"
+order = ["design", "impl", "verify"]
+
+[policy]
+max_parallel = 1
+require_worktree = true
+
+[defaults]
+route = "standard"
+gates = ["contract"]
+
+[[nodes]]
+id = "design"
+spec = "Спроектировать схему событий, зафиксировать в ADR-кандидате."
+
+[[nodes]]
+id = "impl"
+spec = "Реализовать схему из стадии design, покрыть тестами."
+route = "critical"
+on_fail = "block"
+
+[[nodes]]
+id = "verify"
+spec = "Прогнать приёмочный сценарий и записать evidence."
+outputs = ["evidence/acceptance.md"]

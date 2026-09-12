@@ -1,0 +1,3 @@
+# Кронтаб монолита (на боевом хосте /etc/cron.d/monolith).
+0 2 * * * loader /opt/monolith/scripts/nightly_reconcile.sh >> /var/log/monolith/reconcile.log 2>&1
+30 6 * * 1 loader /opt/monolith/scripts/requeue_failed.sh

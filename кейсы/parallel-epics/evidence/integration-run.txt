@@ -1,0 +1,13 @@
+Сквозной прогон интеграции (фактический вывод, 2026-08-16)
+==========================================================
+
+$ python3 tests/test_integration.py  # сквозной сценарий: валидация → лог → отчёт
+valid: [10.5, 20.0]
+[INFO] processed 2 of 4 amounts
+10.5
+20.0
+INTEGRATION OK
+[код возврата: 0]
+
+$ arch-be control spine ARCHITECTURE-SPINE.md   # spine_lint
+spine: нарушений нет

@@ -1,0 +1,9 @@
+# Eval-задача: каталог бенчмарков читается.
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: bench-catalog
+title: Бенчмарки развёрнуты и перечисляются
+command: "{arch} bench list"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "payment_integration"

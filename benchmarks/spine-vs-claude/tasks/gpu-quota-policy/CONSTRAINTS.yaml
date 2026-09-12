@@ -1,0 +1,87 @@
+# CONSTRAINTS.yaml — ГЕЙТ задачи gpu-quota-policy.
+# Один и тот же файл для ВСЕХ рук и повторов. Заморожен пререгистрацией.
+# Проверка: arch-ml control check <cell>/work --constraints <этот файл> --json
+# severity: critical|high -> error, medium -> warn.
+constraints:
+  - id: SVC-GPU-01
+    name: deliverable-spine
+    type: must_contain
+    glob: "docs/ARCHITECTURE-SPINE.md"
+    pattern: "(?m)^#{2,3}\\s*AD-\\d+"
+    severity: critical
+
+  - id: SVC-GPU-02
+    name: deliverable-adr
+    type: must_contain
+    glob: "docs/adr/ADR-*.md"
+    pattern: "(?m)^#\\s*ADR-\\d{3}"
+    severity: critical
+
+  - id: SVC-GPU-03
+    name: decision-approver
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "(?i)(approver|аппрувер)\\s*:\\s*\\S+"
+    severity: critical
+
+  - id: SVC-GPU-04
+    name: decision-spec-binding
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "spec:\\s*sha256:[0-9a-f]{64}"
+    severity: critical
+
+  - id: SVC-GPU-05
+    name: decision-journal-entries
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "(?m)^##\\s*(DEC|РЕШ)"
+    severity: high
+
+  - id: SVC-GPU-06
+    name: trace-addressed
+    type: must_contain
+    glob: "TRACE.md"
+    pattern: "AC-\\d{2}\\s*->\\s*ADR-\\d{3}"
+    severity: critical
+
+  - id: SVC-GPU-07
+    name: acceptance-evidence
+    type: must_contain
+    glob: "ACCEPTANCE-EVIDENCE.md"
+    pattern: "AC-\\d{2}"
+    severity: high
+
+  - id: SVC-GPU-08
+    name: adr-alternatives
+    type: must_contain
+    glob: "docs/adr/ADR-*.md"
+    pattern: "(?i)(отвергнут|альтернатив|rejected|alternatives)"
+    severity: high
+
+  - id: SVC-GPU-09
+    name: no-stub-markers
+    type: must_not_contain
+    glob:
+      - "docs/**/*.md"
+      - "DECISION.md"
+      - "TRACE.md"
+      - "ACCEPTANCE-EVIDENCE.md"
+    pattern: "(?i)\\b(TODO|TBD|FIXME)\\b"
+    severity: high
+
+  # Домен: квота названа явно
+  - id: SVC-GPU-10
+    name: quota-named
+    type: must_contain
+    glob: "docs/ARCHITECTURE-SPINE.md"
+    pattern: "(?i)(квот|quota)"
+    severity: high
+
+  # Домен: лимиты не зашиты в код (warn — эвристика)
+  - id: SVC-GPU-11
+    name: no-hardcoded-limits
+    type: must_not_contain
+    glob: "docs/**/*.md"
+    pattern: "(?i)(захардкож|hardcode|прописан\\w*\\s+в\\s+код)"
+    severity: medium

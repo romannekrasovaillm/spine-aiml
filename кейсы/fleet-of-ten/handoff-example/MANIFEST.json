@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-08-16T18:42:48.425556682+00:00",
+  "task": "Реализовать модуль bankcalc.amount: пакет bankcalc с функцией validate_amount(value: float, limit: float) -> bool. Семантика: value < 0 → False (отрицательные суммы запрещены); value > limit → False (превышение лимита); иначе True. Соблюдать AD-1 из ARCHITECTURE-SPINE.md (в корне репозитория): ровно одна публичная функция validate_amount, без print, без доступа к сети/файлам. Написать tests/test_amount.py (минимум 4 теста: отрицательная сумма, превышение лимита, в пределах лимита, граничное равно лимиту). Прогнать pytest.",
+  "model": "deepseek",
+  "sources": [
+    "ARCHITECTURE-SPINE.md"
+  ],
+  "epic_context_chars": 4113,
+  "epic_context_tokens": 1028,
+  "route": "Standard",
+  "recommended_timeout_secs": 3600
+}

@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$ARCH_HOOK_CONTEXT\" in *\"push\"*\"--force\"*|*\"push -f\"*) echo 'force-push заблокирован архитектурной политикой: необратимая операция в общей истории' ; exit 2 ;; esac; exit 0"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[arch-core] Файлы изменены — сверьте решение со spine-инвариантами (arch-ml control spine <file>) и статусами ADR'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[arch-core] Сессия открыта: решения фиксируются в ADR до реализации; значимость изменения — через /score'"
+          }
+        ]
+      }
+    ]
+  }
+}

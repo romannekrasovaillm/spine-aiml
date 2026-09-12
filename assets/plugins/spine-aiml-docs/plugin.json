@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spine-aiml-docs",
+  "version": "1.0.0",
+  "description": "Справка по самому продукту Spine AI/ML Edition: скилл check-spine-aiml-docs отвечает на вопросы о харнессе (бинарь arch-ml, доменные инструменты, fitness-правила, модельная матрица, мост библиотеки) по документации репозитория, а не по памяти.",
+  "keywords": ["spine", "aiml", "harness", "arch-ml", "self-docs", "skills"]
+}

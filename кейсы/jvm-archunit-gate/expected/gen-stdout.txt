@@ -1,0 +1,3 @@
+спек: 2 правил ArchUnit, 0 не смаплено (unsupported)
+JUnit-тест: out/ArchFitnessTest.java
+спек JSON:  out/archunit-rules.json

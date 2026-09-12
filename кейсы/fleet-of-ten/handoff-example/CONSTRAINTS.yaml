@@ -1,0 +1,30 @@
+# Fitness-правила под AD-1 (bankcalc-fleet): сгенерированы из спайна, целятся в реализацию.
+rules:
+- name: module-exists
+  type: file_exists
+  path: bankcalc/amount.py
+  severity: error
+- name: signature-matches-spine
+  type: must_contain
+  glob: bankcalc/amount.py
+  pattern: "def validate_amount\\(value: float, limit: float\\) -> bool"
+  severity: error
+- name: no-print
+  type: must_not_contain
+  glob: bankcalc/amount.py
+  pattern: "print\\("
+  severity: error
+- name: no-io
+  type: must_not_contain
+  glob: bankcalc/amount.py
+  pattern: "open\\(|requests\\.|sqlite3|pathlib\\.Path"
+  severity: error
+- name: tests-exist
+  type: file_exists
+  path: tests/test_amount.py
+  severity: error
+- name: pytest-passes
+  type: command_succeeds
+  command: python3 -m pytest tests/test_amount.py -q
+  timeout_secs: 120
+  severity: error

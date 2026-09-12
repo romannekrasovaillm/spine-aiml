@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "aws-builders-library",
+  "version": "1.0.0",
+  "description": "Дистилляты Amazon Builders' Library — инженерные практики распределённых систем от команд AWS (Brooker, Yanacek, Gabrielson, Weiss, Magerramov): таймауты/ретраи/джиттер, отказ от fallback, load shedding, статическая стабильность, выборы лидера, 8 мод отказа, очереди и бэклоги, fairness в мультитенантности. Каждый скилл — с банковским маппингом и URL первоисточника.",
+  "keywords": [
+    "aws",
+    "builders-library",
+    "distributed-systems",
+    "resilience",
+    "amazon",
+    "patterns",
+    "bank"
+  ]
+}

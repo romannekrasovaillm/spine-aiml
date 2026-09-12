@@ -1,0 +1,9 @@
+# Eval-задача: significance score маршрутизирует критическое изменение в Critical.
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: control-score-critical
+title: "Significance score: критический триггер → маршрут Critical"
+command: "{arch} control score --trigger security_boundary_change=true --trigger new_vendor=true"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "маршрут Critical"

@@ -1,0 +1,10 @@
+# Эталонные оценки golden-документа adr_no_negatives.md
+# (рубрика adr_quality). «Маркетинговый» ADR: записаны только плюсы —
+# якорь 1 критерия отрицательных последствий; остальное — середняк.
+rubric: adr_quality
+scores:
+  context: 3
+  alternatives: 3
+  negative_consequences: 1
+  reversibility: 3
+  status_discipline: 3

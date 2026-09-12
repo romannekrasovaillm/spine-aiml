@@ -1,0 +1,11 @@
+[package]
+name = "product-fixture"
+version = "0.1.0"
+edition = "2021"
+
+# Фикстура для демо deny_dependency + override (docs/corp-spine.md):
+# left-pad — в Hold-списке корп-спайна; правило отключено активным override
+# (ADR-041, until 2027-01). Не является частью workspace arch-harness.
+[dependencies]
+left-pad = "0.1"
+serde = "1"

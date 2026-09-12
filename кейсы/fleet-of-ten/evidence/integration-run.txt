@@ -1,0 +1,14 @@
+Сквозной прогон интеграции (фактический вывод, 2026-08-16)
+==========================================================
+
+$ python3 - <<'EOF'   # «день процессинга»: платёж по всем десяти контрактам
+<сценарий — tests/test_integration.py::test_payment_day_pipeline>
+EOF
+платёж SBP-000042: 11025.75 RUB (комиссия 0.5, НДС 20.0); лимит-ключ C-001:2026-08-16; count=3; total=120.50
+INTEGRATION OK
+
+$ arch-be control spine ARCHITECTURE-SPINE.md
+spine: нарушений нет
+
+$ python3 -m pytest tests/ -q   # в собранном кейсе
+44 passed in 0.09s

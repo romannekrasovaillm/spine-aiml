@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Жизненный цикл ADR и правил",
+    "output": "docs/diagrams/guide/05-adr-lifecycle.html",
+    "viewBox": [
+      900,
+      660
+    ],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-cycle",
+        "label": "Основной цикл",
+        "focus": [
+          "draft",
+          "proposed",
+          "accepted",
+          "deprecated",
+          "superseded"
+        ],
+        "note": "Решение живёт от черновика до замены — номера не переиспользуются."
+      },
+      {
+        "id": "review-loop",
+        "label": "Пересмотр по сроку",
+        "focus": [
+          "accepted",
+          "superseded",
+          "deprecated"
+        ],
+        "note": "У временного решения есть expiry-тег; просрочка видна механически."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Статусы решения"
+    },
+    {
+      "id": "review",
+      "label": "Пересмотр по сроку (expiry)"
+    },
+    {
+      "id": "terminal",
+      "label": "Завершение"
+    }
+  ],
+  "states": [
+    {
+      "id": "draft",
+      "type": "start",
+      "label": "Draft",
+      "sublabel": "обсуждение до записи",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "proposed",
+      "type": "active",
+      "label": "Proposed",
+      "sublabel": "записан до реализации",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "линтер следит"
+    },
+    {
+      "id": "accepted",
+      "type": "active",
+      "label": "Accepted",
+      "sublabel": "действует; стражи в CI",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "expiry → warn"
+    },
+    {
+      "id": "superseded",
+      "type": "success",
+      "label": "Superseded",
+      "sublabel": "заменён с ссылкой",
+      "lane": "terminal",
+      "col": 0,
+      "tag": "связь обязательна"
+    },
+    {
+      "id": "deprecated",
+      "type": "failure",
+      "label": "Deprecated",
+      "sublabel": "снят без замены",
+      "lane": "terminal",
+      "col": 1,
+      "tag": "terminal"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "write",
+      "from": "draft",
+      "to": "proposed",
+      "label": "запись до кода",
+      "labelDy": -46
+    },
+    {
+      "id": "adopt",
+      "from": "proposed",
+      "to": "accepted",
+      "label": "решение человека A3",
+      "labelAt": [
+        325,
+        122
+      ]
+    },
+    {
+      "id": "replace",
+      "from": "accepted",
+      "to": "superseded",
+      "label": "новый ADR",
+      "labelAt": [
+        320,
+        428
+      ]
+    },
+    {
+      "id": "retire",
+      "from": "accepted",
+      "to": "deprecated",
+      "variant": "security"
+    }
+  ]
+}

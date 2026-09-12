@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Как работает активационный стиринг",
+    "output": "aiml/demos/steering/steering.html",
+    "viewBox": [
+      1080,
+      820
+    ],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "extraction",
+        "label": "1. Извлечение",
+        "focus": [
+          "pairs",
+          "base",
+          "extract"
+        ],
+        "note": "Разность средних активаций на контрастных промптах даёт направление признака."
+      },
+      {
+        "id": "vector",
+        "label": "2. Вектор и сила",
+        "focus": [
+          "extract",
+          "vector"
+        ],
+        "note": "Слой ℓ* и KL-калибровка α: предел силы, за которым распределение ломается."
+      },
+      {
+        "id": "intervention",
+        "label": "3. Вмешательство",
+        "focus": [
+          "vector",
+          "hook"
+        ],
+        "note": "На каждом шаге генерации активация сдвигается на α·v; веса не меняются."
+      },
+      {
+        "id": "evidence",
+        "label": "4. Доказательства",
+        "focus": [
+          "hook",
+          "verdict"
+        ],
+        "note": "Причинность подтверждает интервенция, а не корреляция активаций."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Данные"
+    },
+    {
+      "label": "Извлечение"
+    },
+    {
+      "label": "Вектор"
+    },
+    {
+      "label": "Правка"
+    },
+    {
+      "label": "Проверка"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pairs",
+      "type": "database",
+      "label": "Пары",
+      "sublabel": "±примеры",
+      "stage": 0,
+      "row": 1,
+      "width": 132,
+      "height": 74,
+      "tag": "D+, D−"
+    },
+    {
+      "id": "base",
+      "type": "backend",
+      "label": "База LLM",
+      "sublabel": "веса заморожены",
+      "stage": 0,
+      "row": 3,
+      "width": 132,
+      "height": 74,
+      "tag": "forward"
+    },
+    {
+      "id": "extract",
+      "type": "backend",
+      "label": "Разность",
+      "sublabel": "r = µ+ − µ−",
+      "stage": 1,
+      "row": 2,
+      "width": 132,
+      "height": 74,
+      "tag": "слой ℓ"
+    },
+    {
+      "id": "vector",
+      "type": "database",
+      "label": "Вектор v",
+      "sublabel": "слой ℓ*, сила α",
+      "stage": 2,
+      "row": 2,
+      "width": 132,
+      "height": 74,
+      "tag": "KL ≤ ε"
+    },
+    {
+      "id": "hook",
+      "type": "messagebus",
+      "label": "Residual",
+      "sublabel": "h′ = h + α·v",
+      "stage": 3,
+      "row": 2,
+      "width": 132,
+      "height": 74,
+      "tag": "шаг t"
+    },
+    {
+      "id": "verdict",
+      "type": "security",
+      "label": "Проба",
+      "sublabel": "сдвиг поведения",
+      "stage": 4,
+      "row": 2,
+      "width": 132,
+      "height": 74,
+      "tag": "evidence"
+    }
+  ],
+  "flows": [
+    {
+      "id": "pairs-extract",
+      "from": "pairs",
+      "to": "extract",
+      "label": "промпты",
+      "variant": "emphasis",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "base-extract",
+      "from": "base",
+      "to": "extract",
+      "label": "прогон",
+      "variant": "default",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "extract-vector",
+      "from": "extract",
+      "to": "vector",
+      "label": "среднее",
+      "variant": "emphasis",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "vector-hook",
+      "from": "vector",
+      "to": "hook",
+      "label": "v и α",
+      "variant": "emphasis",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "hook-verdict",
+      "from": "hook",
+      "to": "verdict",
+      "label": "выход",
+      "variant": "emphasis",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Режимы правки активации",
+      "items": [
+        "Аддитивно: h′ = h + α·v — просто, но норма активаций растёт",
+        "Ротация в 2D-плоскости: ‖h′‖ = ‖h‖, управляет угол θ",
+        "SAE-латент: z′ = z + α·s⊙Z̄ — правит разреженные признаки"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Побочные эффекты и границы",
+      "items": [
+        "Чувствительность к α: перебор ломает распределение следующего токена",
+        "Направление слоя-специфично; перенос на другие задачи не гарантирован",
+        "Правка против refusal снимает защиту модели — security-граница"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Родственный метод: abliteration",
+      "items": [
+        "То же направление вычитается из матриц: W′ = W − r̂r̂ᵀW",
+        "Веса меняются необратимо, инференс-хук не нужен",
+        "Требует калибровочных наборов harmful / harmless"
+      ]
+    }
+  ]
+}

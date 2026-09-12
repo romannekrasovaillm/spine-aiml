@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[aws-builders] Новые сетевые вызовы? Проверь: таймауты по p99.9, ретраи в одном слое, без fallback (arch-ml skills search builders)'"
+          }
+        ]
+      }
+    ]
+  }
+}

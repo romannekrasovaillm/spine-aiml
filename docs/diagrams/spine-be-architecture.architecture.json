@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Spine-BE: агентная платформа (единый бинарник arch-be)",
+    "locale": "en"
+  },
+  "components": [
+    {
+      "id": "tui",
+      "type": "frontend",
+      "label": "TUI",
+      "sublabel": "интерактивный терминал",
+      "tag": "surfaces",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "Headless CLI",
+      "sublabel": "run -q, CI",
+      "tag": "surfaces",
+      "pos": [
+        260,
+        80
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "sdk",
+      "type": "frontend",
+      "label": "SDK",
+      "sublabel": "Python / Rust / Java",
+      "tag": "surfaces",
+      "pos": [
+        480,
+        80
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "mcp",
+      "type": "messagebus",
+      "label": "MCP",
+      "sublabel": "протокол доступа",
+      "tag": "surfaces",
+      "pos": [
+        700,
+        80
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "agent-loop",
+      "type": "backend",
+      "label": "Агентный цикл",
+      "sublabel": "оркестрация и инструменты",
+      "tag": "core",
+      "pos": [
+        260,
+        230
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "skills",
+      "type": "backend",
+      "label": "Скиллы",
+      "sublabel": "библиотека методик",
+      "tag": "core",
+      "pos": [
+        40,
+        230
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "plugins",
+      "type": "backend",
+      "label": "Плагины",
+      "sublabel": "расширения и адаптеры",
+      "tag": "core",
+      "pos": [
+        480,
+        230
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "fitness",
+      "type": "security",
+      "label": "Fitness control",
+      "sublabel": "CONSTRAINTS, гейты",
+      "tag": "control",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "rubrics",
+      "type": "security",
+      "label": "Рубрики",
+      "sublabel": "оценка документов",
+      "tag": "control",
+      "pos": [
+        260,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "security",
+      "label": "Evidence",
+      "sublabel": "доказательства гейтов",
+      "tag": "control",
+      "pos": [
+        480,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "archify",
+      "type": "backend",
+      "label": "Archify",
+      "sublabel": "Node CLI, vendor/",
+      "tag": "diagrams",
+      "pos": [
+        700,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "presets",
+      "type": "cloud",
+      "label": "Пресеты PAY/CMP",
+      "sublabel": "карточки адаптации",
+      "tag": "banking",
+      "pos": [
+        40,
+        530
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "rules-lib",
+      "type": "cloud",
+      "label": "Библиотека правил",
+      "sublabel": "architecture-rules",
+      "tag": "banking",
+      "pos": [
+        260,
+        530
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "demo",
+      "type": "cloud",
+      "label": "Демо",
+      "sublabel": "demo-repo, fraud",
+      "tag": "banking",
+      "pos": [
+        480,
+        530
+      ],
+      "size": [
+        140,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Поверхности",
+      "wraps": [
+        "tui",
+        "cli",
+        "sdk",
+        "mcp"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Ядро",
+      "wraps": [
+        "agent-loop",
+        "skills",
+        "plugins"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Контур контроля",
+      "wraps": [
+        "fitness",
+        "rubrics",
+        "evidence"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Контур диаграмм",
+      "wraps": [
+        "archify"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Банковская зона",
+      "wraps": [
+        "presets",
+        "rules-lib",
+        "demo"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c01",
+      "from": "tui",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c02",
+      "from": "cli",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c03",
+      "from": "sdk",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c04",
+      "from": "mcp",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c05",
+      "from": "agent-loop",
+      "to": "skills",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "c06",
+      "from": "agent-loop",
+      "to": "plugins",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c07",
+      "from": "agent-loop",
+      "to": "fitness",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "гейты"
+    },
+    {
+      "id": "c08",
+      "from": "agent-loop",
+      "to": "rubrics",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c09",
+      "from": "agent-loop",
+      "to": "evidence",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c10",
+      "from": "evidence",
+      "to": "archify",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "рендер"
+    },
+    {
+      "id": "c11",
+      "from": "rules-lib",
+      "to": "fitness",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "правила"
+    },
+    {
+      "id": "c12",
+      "from": "presets",
+      "to": "rules-lib",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "адаптация"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "surfaces",
+      "items": [
+        "TUI",
+        "Headless CLI (run -q)",
+        "SDK: Python, Rust, Java",
+        "MCP"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "core",
+      "items": [
+        "Агентный цикл с инструментами",
+        "Скиллы",
+        "Плагины"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "control",
+      "items": [
+        "Fitness control check",
+        "Рубрики",
+        "Evidence"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "diagrams",
+      "items": [
+        "Archify: Node CLI (vendor/archify)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "banking",
+      "items": [
+        "Пресеты PAY/CMP",
+        "Библиотека правил",
+        "Демо"
+      ]
+    }
+  ]
+}

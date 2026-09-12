@@ -1,0 +1,16 @@
+id = "smoke-review"
+pattern = "review_pair"
+
+[policy]
+max_parallel = 2
+require_worktree = true
+merge_gate = "owner"
+
+[defaults]
+route = "fast"
+
+[[nodes]]
+id = "impl"
+spec = "Реализовать модуль"
+agent = "smart"
+gates = ["contract"]

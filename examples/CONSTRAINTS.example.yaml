@@ -1,0 +1,126 @@
+# CONSTRAINTS.example.yaml — пример fitness functions для `arch-be control check`.
+#
+# Схема (src/control.rs, FitnessRule):
+#   rules:
+#     - name: <код правила>                      # обязательно
+#       type: must_contain | must_not_contain | each_file_must_contain |
+#             file_exists | dir_must_have_file | max_age | command_succeeds |
+#             dependency_direction | context_boundary
+#       glob: "src/**/*.rs"                      # набор файлов — строка или список;
+#                                                # dir_must_have_file — набор каталогов
+#                                                # (дефолт **/*)
+#       forbid: ["tui"]                          # dependency_direction: запрещённые модули
+#       allow: ["config", "error"]               # …или разрешённые (ровно одно из двух)
+#       model_dir: "model"                       # context_boundary: каталог модели (дефолт model)
+#       exclude_glob: "src/gen/**"               # исключения из набора — строка
+#                                                # или список (опционально)
+#       pattern: "<regex>"                       # must_contain/must_not_contain/each_file_must_contain
+#       path: "docs/adr/INDEX.md"                # file_exists/max_age — от корня репо;
+#                                                # dir_must_have_file — от каждого каталога набора
+#       max_age_days: 365                        # max_age (дни свежести)
+#       command: "cargo test"                    # command_succeeds
+#       timeout_secs: 900                        # command_succeeds (дефолт 60)
+#       severity: error | warn                   # дефолт error; error ломает итог (exit 1)
+#       # Карточка правила (опциональные метаданные):
+#       trigger: "признак применимости"            # rationale/evidence/reversibility/owner — аналогично
+#       expiry: "2027-01-01"                       # дата пересмотра; просроченное правило — warn-находка
+#
+# Семантика наборов: must_contain — «хотя бы в одном файле набора»;
+# each_file_must_contain — «в КАЖДОМ файле набора» (пустой набор — находка);
+# dir_must_have_file — «в КАЖДОМ каталоге набора есть файл path».
+rules:
+  # Слой API не ходит в БД напрямую (AD-1 слоистости): только через доменный
+  # слой. Находка — импорт драйвера БД в services/api.
+  - name: no_direct_db_from_api_layer
+    type: must_not_contain
+    glob: "services/api/**/*.rs"
+    pattern: "sqlx::|diesel::|rusqlite::"
+    severity: error
+
+  # Кодовая база — без unsafe (в харнессе это lint unsafe_code = forbid);
+  # обход через макросы тоже запрещён.
+  - name: no_unsafe_code
+    type: must_not_contain
+    glob: "src/**/*.rs"
+    pattern: "unsafe\\s*(\\{|fn|impl)"
+    severity: error
+
+  # Каждая спецификация обязана содержать «## Критерии приёмки»
+  # (дублирует сенсор required-sections на уровне кода).
+  # ВАЖНО: regex матчится против ВСЕГО файла, поэтому строчный якорь
+  # требует флага (?m) — голое «^» означает начало файла (кейс 2026-09-01).
+  - name: spec_has_acceptance_criteria
+    type: must_contain
+    glob: "docs/specs/*.md"
+    pattern: "(?m)^## Критерии приёмки$"
+    severity: error
+
+  # Позвоночник инвариантов обязателен для Standard/Critical маршрутов
+  # до старта реализации.
+  - name: spine_present
+    type: file_exists
+    path: "docs/ARCHITECTURE-SPINE.md"
+    severity: warn
+
+  # Реестр ADR ведётся с индексным файлом.
+  - name: adr_index_present
+    type: file_exists
+    path: "docs/adr/INDEX.md"
+    severity: warn
+
+  # Свежесть evidence: отчёт DR-учений не старше 365 дней (ADR-019, max_age).
+  # Нарушение — файл отсутствует либо его mtime старше now − max_age_days
+  # (в сообщении — возраст в днях против лимита).
+  - name: dr_drill_evidence_fresh
+    type: max_age
+    path: "evidence/dr-drill-report.md"
+    max_age_days: 365
+    severity: error
+
+  # Юнит-тесты обязаны проходить на гейте A4 (conformance evidence).
+  - name: unit_tests_pass
+    type: command_succeeds
+    command: "cargo test --quiet"
+    timeout_secs: 900
+    severity: error
+
+  # Заглушки в архитектурных документах запрещены: неготовое решение
+  # оформляется в Deferred с причиной и условием возврата.
+  - name: no_placeholder_markers
+    type: must_not_contain
+    glob: "docs/**/*.md"
+    pattern: "TODO|TBD|FIXME"
+    severity: warn
+
+  # «Каждый исходящий вызов имеет таймаут» (Release It!, AWS Builders' Library)
+  # в постановке each_file_must_contain: таймаут обязателен в КАЖДОМ конфиге
+  # клиента, а не «хотя бы в одном».
+  - name: every_client_config_has_timeout
+    type: each_file_must_contain
+    glob: "services/*/config/*.yaml"
+    pattern: "timeout"
+    severity: error
+
+  # «Синхронный интерфейс имеет машиночитаемый контракт» (OpenAPI Specification)
+  # в постановке dir_must_have_file: openapi.yaml у КАЖДОГО сервиса.
+  - name: every_service_has_openapi_contract
+    type: dir_must_have_file
+    glob: "services/*"
+    path: "openapi.yaml"
+    severity: error
+
+  # «Запрещённые направления зависимостей проверяются в сборке» (ArchUnit,
+  # карточка GEN-16): слой API не импортирует инфраструктуру БД и UI.
+  # Белый список (allow) fail-closed: новая зависимость ломает сборку.
+  - name: api_layer_allowed_imports
+    type: dependency_direction
+    glob: ["services/api/**/*.rs"]
+    allow: ["domain", "config", "error"]
+    severity: error
+
+  # Границы bounded contexts — из модели (ADR-030): импорт в чужой
+  # code_roots без depends_on у исходного CMP ломает сборку.
+  - name: bounded_contexts_respected
+    type: context_boundary
+    model_dir: model
+    severity: error

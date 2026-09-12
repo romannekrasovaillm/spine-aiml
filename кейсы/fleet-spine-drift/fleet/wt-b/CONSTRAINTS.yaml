@@ -1,0 +1,12 @@
+# Fitness-правила платформы инференса «Синтетика» (учебная заглушка кейса 007).
+rules:
+  - name: proto-schemas-versioned
+    type: must_contain
+    glob: "api/**/*.proto"
+    pattern: 'syntax = "proto3"'
+    severity: error
+  - name: router-no-static-routes
+    type: must_not_contain
+    glob: "router/**"
+    pattern: 'static_route'
+    severity: error

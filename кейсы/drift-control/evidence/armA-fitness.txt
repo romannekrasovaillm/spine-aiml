@@ -1,0 +1,4 @@
+Правил: 6, нарушений: 2 (error: 2, warn: 0)
+  [error] Cargo.toml:0 thiserror_for_errors — must_contain: паттерн 'thiserror' не найден ни в одном файле по glob 'Cargo.toml'
+  [error] src/**/*.rs:0 authorize_idempotent — must_contain: паттерн '[Ii]dempotenc' не найден ни в одном файле по glob 'src/**/*.rs'
+Итог: FAIL

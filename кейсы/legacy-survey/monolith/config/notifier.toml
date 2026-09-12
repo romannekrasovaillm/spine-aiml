@@ -1,0 +1,6 @@
+[broker]
+url = "amqp://guest:guest@rabbit.internal.example:5672/"
+queue = "payments.notify"
+
+[logging]
+level = "INFO"

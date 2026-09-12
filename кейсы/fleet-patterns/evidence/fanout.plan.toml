@@ -1,0 +1,21 @@
+id = "smoke-fanout"
+package = "smoke"
+pattern = "fanout"
+
+[policy]
+max_parallel = 2
+require_worktree = true
+merge_gate = "owner"
+
+[defaults]
+route = "fast"
+gates = ["contract"]
+
+[[nodes]]
+id = "n1"
+spec = "Сделать модуль 1"
+outputs = ["README.md"]
+
+[[nodes]]
+id = "n2"
+spec = "Сделать модуль 2"

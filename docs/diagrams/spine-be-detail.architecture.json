@@ -1,0 +1,1414 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Spine-BE: детальная архитектура arch-be",
+    "subtitle": "dogfood-карта · MIT-ядро + banking-зона (ADR-013) · снимок @ e1a63d6",
+    "locale": "en",
+    "visual_preset": "blueprint",
+    "repository": {
+      "url": "https://github.com/romannekrasovaillm/spine-private.git",
+      "revision": "e1a63d6738045704e6db6ffeb45aa6c534c692a1"
+    }
+  },
+  "components": [
+    {
+      "id": "tui",
+      "type": "frontend",
+      "label": "TUI",
+      "sublabel": "интерактивный терминал",
+      "tag": "surface",
+      "pos": [
+        40,
+        90
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/tui.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "Headless CLI",
+      "sublabel": "run -q · cron · CI",
+      "tag": "surface",
+      "pos": [
+        250,
+        90
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/main.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "sdk",
+      "type": "frontend",
+      "label": "SDK",
+      "sublabel": "Python · Rust · Java",
+      "tag": "surface",
+      "pos": [
+        460,
+        90
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "sdk/python/pyproject.toml",
+          "label": "sdk"
+        },
+        {
+          "path": "docs/sdk.md",
+          "label": "ADR-028"
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "type": "messagebus",
+      "label": "MCP-сервер",
+      "sublabel": "протокол инструментов",
+      "tag": "surface",
+      "pos": [
+        670,
+        90
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/mcp_server.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "kb",
+      "type": "backend",
+      "label": "База знаний",
+      "sublabel": "kb_search · BM25",
+      "tag": "core",
+      "pos": [
+        40,
+        270
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/kb.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "agent-loop",
+      "type": "backend",
+      "label": "Агентный цикл",
+      "sublabel": "инструменты · policy R0–R5",
+      "tag": "core",
+      "pos": [
+        250,
+        270
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/agent.rs",
+          "line": 1
+        },
+        {
+          "path": "src/policy.rs",
+          "line": 1
+        },
+        {
+          "path": "src/injection.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "backend",
+      "label": "LLM-слой",
+      "sublabel": "LlmProvider · OpenAI-compat",
+      "tag": "core",
+      "pos": [
+        470,
+        270
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/llm.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "subagents",
+      "type": "backend",
+      "label": "Субагенты и ralph",
+      "sublabel": "фоновые линзы · ralph",
+      "tag": "core",
+      "pos": [
+        680,
+        270
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/subagent.rs",
+          "line": 1
+        },
+        {
+          "path": "src/ralph.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "plugins",
+      "type": "backend",
+      "label": "Плагины и скиллы",
+      "sublabel": "assets/plugins (AD-10)",
+      "tag": "core",
+      "pos": [
+        40,
+        390
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/plugin.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "spine",
+      "type": "security",
+      "label": "Spine-линтер",
+      "sublabel": "AD-n: Binds/Prevents/Rule",
+      "tag": "control",
+      "pos": [
+        40,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/control.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "fitness",
+      "type": "security",
+      "label": "Fitness-гейт",
+      "sublabel": "CONSTRAINTS + ArchUnit JVM",
+      "tag": "control",
+      "pos": [
+        460,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/control.rs",
+          "line": 1
+        },
+        {
+          "path": "src/archunit.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "trace",
+      "type": "security",
+      "label": "Trace check",
+      "sublabel": "REQ→NFR→AD→CMP→INT (ADR-035)",
+      "tag": "control",
+      "pos": [
+        250,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/trace.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "contracts",
+      "type": "security",
+      "label": "Контрактный контур",
+      "sublabel": "openapi · asyncapi · diff",
+      "tag": "control",
+      "pos": [
+        670,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/openapi.rs",
+          "line": 1
+        },
+        {
+          "path": "src/asyncapi.rs",
+          "line": 1
+        },
+        {
+          "path": "src/contract_diff.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "rubrics",
+      "type": "security",
+      "label": "Рубрики-судья",
+      "sublabel": "LLM-исключение · ADR-004",
+      "tag": "control",
+      "pos": [
+        880,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/rubric.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "signif",
+      "type": "security",
+      "label": "Significance score",
+      "sublabel": "Fast / Standard / Critical",
+      "tag": "control",
+      "pos": [
+        1090,
+        560
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/control.rs",
+          "label": "ADR-034"
+        }
+      ]
+    },
+    {
+      "id": "sessions",
+      "type": "database",
+      "label": "sessions/*.jsonl",
+      "sublabel": "журнал аудита (AD-5)",
+      "tag": "data",
+      "pos": [
+        40,
+        730
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "ARCHITECTURE-SPINE.md",
+          "line": 37
+        }
+      ]
+    },
+    {
+      "id": "casemodel",
+      "type": "database",
+      "label": "model/ кейса",
+      "sublabel": "сущности и связи (ADR-003)",
+      "tag": "data",
+      "pos": [
+        460,
+        730
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/model.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "casedocs",
+      "type": "database",
+      "label": "docs/adr + SPINE",
+      "sublabel": "решения и инварианты",
+      "tag": "data",
+      "pos": [
+        670,
+        730
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/adr/ADR-003-typed-architecture-model.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "survey",
+      "type": "backend",
+      "label": "arch-be survey",
+      "sublabel": "brownfield · docs/reverse",
+      "tag": "discovery",
+      "pos": [
+        40,
+        900
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/survey.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "landscape",
+      "type": "backend",
+      "label": "Ландшафт систем",
+      "sublabel": "агрегация моделей (ADR-037)",
+      "tag": "discovery",
+      "pos": [
+        250,
+        900
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/landscape.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "adrreg",
+      "type": "backend",
+      "label": "Реестр ADR",
+      "sublabel": "агрегат docs/adr (ADR-036)",
+      "tag": "discovery",
+      "pos": [
+        460,
+        900
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/adr_registry.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "fleet",
+      "type": "backend",
+      "label": "Fleet audit",
+      "sublabel": "дрейф worktree-флота",
+      "tag": "discovery",
+      "pos": [
+        670,
+        900
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/fleet.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "archify",
+      "type": "backend",
+      "label": "Archify",
+      "sublabel": "JSON IR → HTML · SHA-256",
+      "tag": "diagrams",
+      "pos": [
+        920,
+        900
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/archify.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "mermaid",
+      "type": "backend",
+      "label": "Mermaid-рендер",
+      "sublabel": "ad-hoc ASCII-черновики",
+      "tag": "diagrams",
+      "pos": [
+        1110,
+        900
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/mermaid.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "modelx",
+      "type": "backend",
+      "label": "Типизированная модель",
+      "sublabel": "model/ · ArchiMate (ADR-032)",
+      "tag": "diagrams",
+      "pos": [
+        920,
+        1070
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/model/exchange.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "handoff",
+      "type": "backend",
+      "label": "Handoff-пакет",
+      "sublabel": ".arch-handoff · план отката",
+      "tag": "delivery",
+      "pos": [
+        40,
+        1070
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/harness.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "harnesses",
+      "type": "backend",
+      "label": "Кодовые харнессы",
+      "sublabel": "7 адаптеров · JSON-контракт",
+      "tag": "delivery",
+      "pos": [
+        250,
+        1070
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/harness.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "worktree",
+      "type": "backend",
+      "label": "Worktree",
+      "sublabel": "изолированные ветки arch/*",
+      "tag": "delivery",
+      "pos": [
+        460,
+        1070
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/worktree.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "backend",
+      "label": "Evidence / rehearsal",
+      "sublabel": "гейты A4–A5 · репетиция",
+      "tag": "delivery",
+      "pos": [
+        670,
+        1070
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/evidence.rs",
+          "line": 1
+        },
+        {
+          "path": "src/rehearsal.rs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "presets",
+      "type": "cloud",
+      "label": "Пресеты доменов",
+      "sublabel": "PAY · CMP · bank-profile",
+      "tag": "banking",
+      "pos": [
+        920,
+        1230
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/presets/payments/SPINE-PAYMENTS.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "ruleslib",
+      "type": "cloud",
+      "label": "Библиотека правил",
+      "sublabel": "волны 1–2 · 26 карточек",
+      "tag": "banking",
+      "pos": [
+        1110,
+        1230
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/library/fitness/wave1-mechanizable.yaml",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "compliance",
+      "type": "cloud",
+      "label": "Карты регулятора",
+      "sublabel": "719-П · 683-П · reg-map",
+      "tag": "banking",
+      "pos": [
+        1110,
+        1370
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/compliance/cbr-719p.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "adf",
+      "type": "cloud",
+      "label": "ADF-интеграция",
+      "sublabel": "анкета → сенсор A1 (ADR-025)",
+      "tag": "banking",
+      "pos": [
+        920,
+        1370
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/adf/adf-mapping.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "ruplugins",
+      "type": "cloud",
+      "label": "Плагины ru-*",
+      "sublabel": "30 скиллов · 6 доменов",
+      "tag": "banking",
+      "pos": [
+        920,
+        1510
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/plugins/README.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "demos",
+      "type": "cloud",
+      "label": "Демо и delivery",
+      "sublabel": "4 демо · hardening H1–H6",
+      "tag": "banking",
+      "pos": [
+        1110,
+        1510
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "banking/README.md",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "extllm",
+      "type": "external",
+      "label": "Внешние LLM API",
+      "sublabel": "DeepSeek · Kimi · GLM",
+      "tag": "dev-контур",
+      "pos": [
+        1090,
+        90
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "config.example.toml",
+          "line": 43,
+          "label": "dev-конфиг"
+        },
+        {
+          "path": "src/llm/openai_compat.rs",
+          "line": 1,
+          "label": "AD-4"
+        }
+      ]
+    },
+    {
+      "id": "llmplat",
+      "type": "cloud",
+      "label": "Локальная llm-platform",
+      "sublabel": "DGX Spark · OpenAI-compat",
+      "tag": "self-hosted",
+      "pos": [
+        1090,
+        280
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/models.md",
+          "line": 122,
+          "label": "local-qwen"
+        },
+        {
+          "path": "src/llm/openai_compat.rs",
+          "line": 1,
+          "label": "AD-4"
+        },
+        {
+          "path": "docs/adr/ADR-012-modelnaya-matrica-spine-be-gigachat-self-hosted-open-source-vnutri-perimetra-yandexgpt-isklyuchyon.md",
+          "line": 39
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Поверхности доступа",
+      "wraps": [
+        "tui",
+        "cli",
+        "sdk",
+        "mcp"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Агентное ядро — MIT (src/)",
+      "wraps": [
+        "kb",
+        "agent-loop",
+        "llm",
+        "subagents",
+        "plugins"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Контур контроля — вердикты без LLM (AD-2)",
+      "wraps": [
+        "spine",
+        "fitness",
+        "trace",
+        "contracts",
+        "rubrics",
+        "signif"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Файловая поверхность кейса (SSOT)",
+      "wraps": [
+        "sessions",
+        "casemodel",
+        "casedocs"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Обследование и агрегаты",
+      "wraps": [
+        "survey",
+        "landscape",
+        "adrreg",
+        "fleet"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Диаграммы и модель",
+      "wraps": [
+        "archify",
+        "mermaid",
+        "modelx"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Конвейер поставки",
+      "wraps": [
+        "handoff",
+        "harnesses",
+        "worktree",
+        "evidence"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Банковская зона — proprietary (ADR-013)",
+      "wraps": [
+        "presets",
+        "ruleslib",
+        "compliance",
+        "adf",
+        "ruplugins",
+        "demos"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e-tui",
+      "from": "tui",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "диалог"
+    },
+    {
+      "id": "e-cli",
+      "from": "cli",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "run -q",
+      "labelAt": [
+        345,
+        168
+      ]
+    },
+    {
+      "id": "e-sdk",
+      "from": "sdk",
+      "to": "cli",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "тонкие клиенты",
+      "labelAt": [
+        440,
+        168
+      ]
+    },
+    {
+      "id": "e-mcp",
+      "from": "mcp",
+      "to": "agent-loop",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "инструменты"
+    },
+    {
+      "id": "e-kb",
+      "from": "agent-loop",
+      "to": "kb",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "kb_search",
+      "labelAt": [
+        230,
+        266
+      ]
+    },
+    {
+      "id": "e-llm",
+      "from": "agent-loop",
+      "to": "llm",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "запросы · ретраи",
+      "labelAt": [
+        455,
+        266
+      ]
+    },
+    {
+      "id": "e-sub",
+      "from": "agent-loop",
+      "to": "subagents",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "label": "фоновые линзы",
+      "via": [
+        [
+          345,
+          358
+        ],
+        [
+          765,
+          358
+        ]
+      ],
+      "labelAt": [
+        560,
+        370
+      ]
+    },
+    {
+      "id": "e-plug",
+      "from": "agent-loop",
+      "to": "plugins",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "скиллы · хуки",
+      "via": [
+        [
+          345,
+          362
+        ],
+        [
+          125,
+          362
+        ]
+      ],
+      "labelAt": [
+        100,
+        346
+      ]
+    },
+    {
+      "id": "e-sess",
+      "from": "agent-loop",
+      "to": "sessions",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "label": "JSONL-аудит (AD-5)",
+      "labelAt": [
+        290,
+        500
+      ],
+      "via": [
+        [
+          345,
+          352
+        ],
+        [
+          234,
+          352
+        ],
+        [
+          234,
+          762
+        ]
+      ]
+    },
+    {
+      "id": "e-fit",
+      "from": "agent-loop",
+      "to": "fitness",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "гейты A0–A5",
+      "labelAt": [
+        445,
+        462
+      ],
+      "via": [
+        [
+          345,
+          470
+        ],
+        [
+          545,
+          470
+        ]
+      ]
+    },
+    {
+      "id": "e-contr",
+      "from": "agent-loop",
+      "to": "contracts",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "lint контрактов",
+      "via": [
+        [
+          345,
+          447
+        ],
+        [
+          755,
+          447
+        ]
+      ],
+      "labelAt": [
+        600,
+        452
+      ]
+    },
+    {
+      "id": "e-rubr",
+      "from": "agent-loop",
+      "to": "rubrics",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "судья рубрик (LLM)",
+      "via": [
+        [
+          345,
+          433
+        ],
+        [
+          965,
+          433
+        ]
+      ],
+      "labelAt": [
+        880,
+        425
+      ]
+    },
+    {
+      "id": "e-trace",
+      "from": "trace",
+      "to": "casemodel",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "REQ→CMP",
+      "labelAt": [
+        440,
+        679
+      ],
+      "via": [
+        [
+          335,
+          687
+        ],
+        [
+          545,
+          687
+        ]
+      ]
+    },
+    {
+      "id": "e-survey",
+      "from": "survey",
+      "to": "casedocs",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "docs/reverse"
+    },
+    {
+      "id": "e-fleet",
+      "from": "fleet",
+      "to": "worktree",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "аудит дрейфа"
+    },
+    {
+      "id": "e-ho",
+      "from": "handoff",
+      "to": "harnesses",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "прогон"
+    },
+    {
+      "id": "e-hw",
+      "from": "harnesses",
+      "to": "worktree",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "ветки arch/*",
+      "labelAt": [
+        440,
+        1148
+      ]
+    },
+    {
+      "id": "e-we",
+      "from": "worktree",
+      "to": "evidence",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "репетиция A4",
+      "labelAt": [
+        650,
+        1148
+      ]
+    },
+    {
+      "id": "e-pr",
+      "from": "presets",
+      "to": "ruleslib",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "инстанциация",
+      "labelAt": [
+        1095,
+        1208
+      ]
+    },
+    {
+      "id": "e-cr",
+      "from": "compliance",
+      "to": "ruleslib",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "регуляторные линии",
+      "labelAt": [
+        1235,
+        1330
+      ]
+    },
+    {
+      "id": "e-adf",
+      "from": "adf",
+      "to": "presets",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "сенсор A1",
+      "labelAt": [
+        1040,
+        1330
+      ]
+    },
+    {
+      "id": "e-rl",
+      "from": "ruleslib",
+      "to": "fitness",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "правила GEN/PAY",
+      "via": [
+        [
+          1190,
+          1195
+        ],
+        [
+          1315,
+          1195
+        ],
+        [
+          1315,
+          650
+        ],
+        [
+          545,
+          650
+        ]
+      ],
+      "labelAt": [
+        1250,
+        1180
+      ]
+    },
+    {
+      "id": "e-plugload",
+      "from": "ruplugins",
+      "to": "presets",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          880,
+          1542
+        ],
+        [
+          880,
+          1262
+        ]
+      ],
+      "label": "банк-профиль",
+      "labelAt": [
+        835,
+        1400
+      ]
+    },
+    {
+      "id": "e-arch",
+      "from": "evidence",
+      "to": "archify",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [
+        [
+          755,
+          1030
+        ],
+        [
+          1000,
+          1030
+        ]
+      ],
+      "label": "рендер дельт",
+      "labelAt": [
+        845,
+        1044
+      ]
+    },
+    {
+      "id": "e-extllm",
+      "from": "llm",
+      "to": "extllm",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [
+        [
+          555,
+          230
+        ],
+        [
+          1170,
+          230
+        ]
+      ],
+      "variant": "dashed",
+      "label": "только разработка — вне банка (AD-BE2)",
+      "labelAt": [
+        860,
+        244
+      ]
+    },
+    {
+      "id": "e-llmplat",
+      "from": "llm",
+      "to": "llmplat",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          555,
+          260
+        ],
+        [
+          1170,
+          260
+        ]
+      ],
+      "label": "self-hosted · openai_compat (AD-BE2)",
+      "labelAt": [
+        950,
+        276
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Поверхности",
+      "items": [
+        "TUI · Headless CLI (run -q, cron)",
+        "SDK: Python / Rust / Java (ADR-028)",
+        "MCP-сервер (ADR-008)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Агентное ядро (MIT)",
+      "items": [
+        "Цикл: инструменты + policy R0–R5 + injection-гигиена",
+        "Плагины и скиллы (AD-1, AD-10)",
+        "KB: BM25-поиск по базе знаний",
+        "LLM-трейт: GigaChat · self-hosted (llm-platform, DGX) · dev-API",
+        "Субагенты · ralph-циклы"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Контроль: вердикты без LLM (AD-2)",
+      "items": [
+        "Spine-линтер · fitness + ArchUnit JVM (ADR-039)",
+        "Trace: REQ→NFR→AD→CMP→INT (ADR-035)",
+        "Контракты: openapi · asyncapi · diff (ADR-015)",
+        "LLM-исключение: судья рубрик, k-сэмплы (ADR-004) · significance (ADR-034)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Данные и обследование",
+      "items": [
+        "sessions/*.jsonl — аудит (AD-5)",
+        "model/ кейса · docs/adr + SPINE",
+        "survey · ландшафт (ADR-037) · реестр ADR (ADR-036)",
+        "fleet audit — дрейф worktree-флота"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Банковская зона (proprietary)",
+      "items": [
+        "Пресеты: PAY-01…27 · CMP-01…13 · bank-profile",
+        "Библиотека правил: волны 1–2 (ADR-019)",
+        "ADF: анкета → сенсор A1 (ADR-025)",
+        "ru-плагины · карты 719-П/683-П · демо"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Поставка и диаграммы",
+      "items": [
+        "Handoff → 7 кодовых харнессов (ADR-001)",
+        "Worktree · evidence/rehearsal (A4–A5)",
+        "Archify: IR → HTML + SHA-256 (ADR-027)"
+      ]
+    }
+  ]
+}

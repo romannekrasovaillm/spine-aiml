@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Цикл архитектурного решения в Spine BE",
+    "output": "docs/diagrams/guide/02-decision-workflow.html",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-route",
+        "label": "Основной маршрут",
+        "focus": [
+          "intake",
+          "score",
+          "solutioning",
+          "adr",
+          "fitness",
+          "evidence",
+          "handoff",
+          "ci"
+        ],
+        "note": "От входа до пакета передачи: значимость → дизайн → решение → гейты → доказательства."
+      },
+      {
+        "id": "control-points",
+        "label": "Точки контроля",
+        "focus": [
+          "score",
+          "fitness",
+          "evidence",
+          "ci"
+        ],
+        "note": "Каждый шаг подтверждается механическим гейтом, а не обещанием."
+      },
+      {
+        "id": "escalations",
+        "label": "Эскалации человеку",
+        "focus": [
+          "score",
+          "a3",
+          "blocked",
+          "adr"
+        ],
+        "note": "Критическое и конфликтное — решением человека (A3), не модели."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "architect",
+      "label": "Архитектор"
+    },
+    {
+      "id": "agent",
+      "label": "Агент arch-be"
+    },
+    {
+      "id": "control",
+      "label": "Детерминированный контроль"
+    },
+    {
+      "id": "delivery",
+      "label": "Исполнение и CI"
+    },
+    {
+      "id": "exceptions",
+      "label": "Эскалации",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "design",
+      "label": "Проектирование",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "verify",
+      "label": "Проверка",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "deliver",
+      "label": "Передача",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "intake",
+    "score",
+    "solutioning",
+    "adr",
+    "fitness",
+    "evidence",
+    "handoff",
+    "ci"
+  ],
+  "nodes": [
+    {
+      "id": "intake",
+      "type": "frontend",
+      "lane": "architect",
+      "col": 0,
+      "label": "Вход: задача",
+      "sublabel": "от архитектора"
+    },
+    {
+      "id": "score",
+      "type": "backend",
+      "lane": "control",
+      "col": 1,
+      "label": "Significance",
+      "sublabel": "маршруты F/S/C",
+      "tag": "+ anti-bypass из диффа"
+    },
+    {
+      "id": "a3",
+      "type": "security",
+      "lane": "exceptions",
+      "col": 1,
+      "label": "Решение (A3)",
+      "sublabel": "Critical / конфликт",
+      "tag": "стоп-маршрут"
+    },
+    {
+      "id": "solutioning",
+      "type": "backend",
+      "lane": "agent",
+      "col": 2,
+      "label": "Solutioning",
+      "sublabel": "спайн · NFR · контракты"
+    },
+    {
+      "id": "adr",
+      "type": "backend",
+      "lane": "architect",
+      "col": 3,
+      "label": "ADR в git",
+      "sublabel": "альтернативы · негативы"
+    },
+    {
+      "id": "fitness",
+      "type": "backend",
+      "lane": "control",
+      "col": 4,
+      "label": "Fitness-гейты",
+      "sublabel": "64 правила · слои",
+      "tag": "exit 1 при дрейфе"
+    },
+    {
+      "id": "blocked",
+      "type": "security",
+      "lane": "exceptions",
+      "col": 4,
+      "label": "Доработка",
+      "sublabel": "гейт красный → фикс",
+      "tag": "loop"
+    },
+    {
+      "id": "evidence",
+      "type": "database",
+      "lane": "control",
+      "col": 5,
+      "label": "Evidence",
+      "sublabel": "хэши · verify"
+    },
+    {
+      "id": "handoff",
+      "type": "backend",
+      "lane": "agent",
+      "col": 5,
+      "label": "Handoff-пакет",
+      "sublabel": "TASK · контекст"
+    },
+    {
+      "id": "ci",
+      "type": "external",
+      "lane": "delivery",
+      "col": 5,
+      "label": "CI-гейты",
+      "sublabel": "кодовый харнесс → merge"
+    }
+  ],
+  "edges": [
+    {
+      "from": "intake",
+      "to": "score"
+    },
+    {
+      "from": "score",
+      "to": "solutioning",
+      "label": "маршрут выбран"
+    },
+    {
+      "from": "solutioning",
+      "to": "adr"
+    },
+    {
+      "from": "adr",
+      "to": "fitness"
+    },
+    {
+      "from": "fitness",
+      "to": "evidence",
+      "label": "PASS"
+    },
+    {
+      "from": "evidence",
+      "to": "handoff"
+    },
+    {
+      "from": "handoff",
+      "to": "ci",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          740,
+          243
+        ],
+        [
+          740,
+          491
+        ]
+      ]
+    },
+    {
+      "from": "score",
+      "to": "a3",
+      "label": "Critical",
+      "variant": "security"
+    },
+    {
+      "from": "a3",
+      "to": "solutioning",
+      "label": "решение записано в ADR",
+      "variant": "dashed"
+    },
+    {
+      "from": "fitness",
+      "to": "blocked",
+      "label": "FAIL",
+      "variant": "security"
+    },
+    {
+      "from": "blocked",
+      "to": "adr",
+      "label": "исправлено",
+      "variant": "dashed",
+      "labelAt": [
+        370,
+        415
+      ]
+    }
+  ]
+}

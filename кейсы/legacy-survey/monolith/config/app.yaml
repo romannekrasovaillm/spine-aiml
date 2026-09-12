@@ -1,0 +1,10 @@
+# Конфиг монолита (выкатывается оркестратором, в репозитории — эталон).
+services:
+  corebank:
+    url: "https://svc-loader:change_me@corebank.internal.example:8443/api/v2"
+  rates_feed:
+    url: "http://rates.internal.example:8080/feed"
+  local_stub: "http://127.0.0.1:9099/mock"
+  dev_loopback: "http://localhost:18181/debug"
+database:
+  dsn: "postgres://loader:change_me@db.internal.example:5432/ledger"

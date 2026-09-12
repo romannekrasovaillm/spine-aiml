@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "patterns-resilience",
+  "version": "1.0.0",
+  "description": "Паттерны устойчивости распределённых систем по каталогу Azure Cloud Design Patterns (Well-Architected): circuit breaker + retry, bulkhead, queue-based load leveling, cache-aside, rate limiting/throttling, health endpoint monitoring. Дистилляты с силами, trade-offs, композициями и банковскими примерами; источник указан в каждом скилле.",
+  "keywords": [
+    "patterns",
+    "resilience",
+    "reliability",
+    "circuit-breaker",
+    "bulkhead",
+    "throttling",
+    "azure",
+    "well-architected"
+  ]
+}

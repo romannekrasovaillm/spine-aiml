@@ -1,0 +1,8 @@
+[package]
+name = "payment-core"
+version = "0.1.0"
+edition = "2021"
+description = "Payment core library: Payment state machine with authorize/capture/refund, an event journal, and structured error handling"
+license = "MIT OR Apache-2.0"
+
+[dependencies]

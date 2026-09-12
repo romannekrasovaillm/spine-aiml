@@ -1,0 +1,24 @@
+flowchart TB
+  EIS["EXT: ЕИС zakupki.gov.ru — сервисы отдачи данных"]
+  CA["EXT: УЦ — проверка сертификатов УКЭП"]
+  SMTP["EXT: Email-шлюз заказчика"]
+  EISA["DMZ: eis-adapter — антикоррупционный слой, трансляция в XML-схемы ЕИС"]
+  WEB["ZONE-CORE: web-portal — ЛК заказчика и поставщика"]
+  API["ZONE-CORE: api-gateway — OpenAPI /v1"]
+  MONO["ZONE-CORE: core-monolith — извещения, заявки, протоколы, контракты, НСИ, пользователи"]
+  SIGN["ZONE-CORE: signing — КриптоПро CSP/DSS, УКЭП"]
+  NOTIF["ZONE-CORE: notification — email/уведомления ЛК"]
+  DB[("ZONE-CORE: Postgres Pro — схемы модулей, outbox, audit hash-chain")]
+  MQ[/"ZONE-CORE: RabbitMQ — доменные события"/]
+
+  WEB -->|HTTPS| API
+  API -->|REST /v1| MONO
+  MONO -->|SQL, единая транзакция с outbox| DB
+  MONO -->|доменные события| MQ
+  MQ -->|задания на публикацию| EISA
+  EISA -->|статус публикации| DB
+  EISA -->|TLS + сертификат Минцифры| EIS
+  MONO -->|sign hash| SIGN
+  SIGN -->|OCSP/CRL| CA
+  MQ --> NOTIF
+  NOTIF --> SMTP

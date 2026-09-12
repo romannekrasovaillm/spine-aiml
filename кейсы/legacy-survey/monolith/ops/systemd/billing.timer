@@ -1,0 +1,9 @@
+[Unit]
+Description=Hourly billing health-ping (legacy)
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

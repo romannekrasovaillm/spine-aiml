@@ -1,0 +1,10 @@
+# Эталонные оценки golden-документа adr_posthoc.md (рубрика adr_quality).
+# Запись задним числом («работают в production уже полгода», «документ
+# написан задним числом») — якорь 1 статус-дисциплины; остальное — середняк.
+rubric: adr_quality
+scores:
+  context: 3
+  alternatives: 3
+  negative_consequences: 3
+  reversibility: 3
+  status_discipline: 1

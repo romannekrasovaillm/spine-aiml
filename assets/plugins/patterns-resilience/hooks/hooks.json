@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[patterns-resilience] Проверьте новые внешние вызовы: таймауты, ретраи, circuit breaker (arch-ml skills search resilience)'"
+          }
+        ]
+      }
+    ]
+  }
+}

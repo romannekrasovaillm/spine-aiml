@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "rust",
+  "version": "1.0.0",
+  "description": "Каноны идиоматичного, производительного и безопасного Rust для харнесса arch-ml: шесть навыков по первоисточникам (The Rust Book, Rust API Guidelines, Async Book и документация Tokio, The Rust Performance Book, Rustonomicon, Cargo Book) — идиоматичный код и API-дизайн, обработка ошибок, ownership, асинхронность и многопоточность, тестирование (unit/integration/doctests, proptest, insta, criterion, Miri), структура проекта, Cargo, workspace, CI и semver, профилирование и оптимизация, unsafe и FFI с SAFETY-контрактами.",
+  "keywords": [
+    "rust",
+    "idiomatic",
+    "async",
+    "testing",
+    "performance",
+    "unsafe",
+    "cargo"
+  ]
+}

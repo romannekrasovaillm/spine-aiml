@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Brownfield: монолит кейса 008 — карта скрытых связей",
+    "output": "docs/diagrams/guide/09-brownfield-monolith.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "hidden-links",
+        "label": "Скрытые связи",
+        "focus": [
+          "billing",
+          "notifier",
+          "importer",
+          "payments",
+          "drop"
+        ],
+        "note": "Пять сторон пишут в одну таблицу; файловый обмен через drop/ — видно из кода, а не из вики."
+      },
+      {
+        "id": "boundaries",
+        "label": "Границы code_roots",
+        "focus": [
+          "billing",
+          "notifier",
+          "payments"
+        ],
+        "note": "context_boundary ломает сборку при импорте через границу без depends_on (ADR-030)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "billing",
+      "type": "backend",
+      "label": "billing",
+      "sublabel": "worker.py · тесты есть",
+      "pos": [
+        220,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "code_root"
+    },
+    {
+      "id": "notifier",
+      "type": "backend",
+      "label": "notifier",
+      "sublabel": "sender.py · тестов НЕТ",
+      "pos": [
+        220,
+        420
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "code_root"
+    },
+    {
+      "id": "importer",
+      "type": "backend",
+      "label": "importer",
+      "sublabel": "import_csv.py",
+      "pos": [
+        450,
+        310
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "legacy_export",
+      "type": "backend",
+      "label": "legacy_export.py",
+      "sublabel": "мёртвый feature flag",
+      "pos": [
+        450,
+        620
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "долг"
+    },
+    {
+      "id": "payments",
+      "type": "database",
+      "label": "Таблица payments",
+      "sublabel": "ОБЩАЯ — 5 сторон записи",
+      "pos": [
+        690,
+        270
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "скрытая связь"
+    },
+    {
+      "id": "drop",
+      "type": "database",
+      "label": "drop/",
+      "sublabel": "csv-обмен файлами",
+      "pos": [
+        690,
+        470
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "tag": "скрытая связь"
+    },
+    {
+      "id": "cron",
+      "type": "backend",
+      "label": "crontab + billing.timer",
+      "sublabel": "ночные джобы",
+      "pos": [
+        30,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "scripts",
+      "type": "backend",
+      "label": "scripts/*.sh + report.sql",
+      "sublabel": "ad-hoc отчётность",
+      "pos": [
+        450,
+        110
+      ],
+      "size": [
+        170,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "code_root: billing",
+      "wraps": [
+        "billing"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "code_root: notifier",
+      "wraps": [
+        "notifier"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "w1",
+      "from": "billing",
+      "to": "payments",
+      "label": "INSERT/UPDATE",
+      "labelAt": [
+        480,
+        210
+      ]
+    },
+    {
+      "id": "w2",
+      "from": "notifier",
+      "to": "payments",
+      "label": "SELECT",
+      "variant": "security",
+      "labelAt": [
+        480,
+        436
+      ],
+      "via": [
+        [
+          620,
+          452
+        ],
+        [
+          620,
+          302
+        ]
+      ],
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "w3",
+      "from": "importer",
+      "to": "payments",
+      "label": "INSERT",
+      "labelAt": [
+        580,
+        290
+      ]
+    },
+    {
+      "id": "w4",
+      "from": "scripts",
+      "to": "payments",
+      "label": "SELECT (ad-hoc)",
+      "labelAt": [
+        600,
+        190
+      ]
+    },
+    {
+      "id": "w5",
+      "from": "billing",
+      "to": "drop",
+      "label": "пишет csv",
+      "fromSide": "top",
+      "toSide": "right",
+      "via": [
+        [
+          295,
+          90
+        ],
+        [
+          880,
+          90
+        ],
+        [
+          880,
+          500
+        ]
+      ],
+      "labelAt": [
+        540,
+        76
+      ]
+    },
+    {
+      "id": "w7",
+      "from": "cron",
+      "to": "billing",
+      "label": "запуск",
+      "variant": "emphasis",
+      "labelAt": [
+        185,
+        286
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Что вскрыл survey",
+      "items": [
+        "Общая таблица payments — 5 сторон записи [confirmed]",
+        "csv drop-обмен вне любого контракта [confirmed]",
+        "notifier — без тестов [confirmed]"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Дальше по контуру",
+      "items": [
+        "code_roots + depends_on в model/ (границы — артефакт)",
+        "Дельта-спека изменения (ADDED/MODIFIED/REMOVED)",
+        "Правила: warn (аудит) → critical (после зелёного)"
+      ]
+    }
+  ]
+}

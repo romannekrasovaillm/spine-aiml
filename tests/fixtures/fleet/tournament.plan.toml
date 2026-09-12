@@ -1,0 +1,22 @@
+# Лучший из N: судья выбирает первый узел группы, прошедший все гейты.
+id = "fixture-tournament"
+package = "fixture"
+pattern = "tournament"
+
+[policy]
+max_parallel = 3
+require_worktree = true
+
+[defaults]
+route = "standard"
+gates = ["contract", { command = { cmd = "true", timeout_secs = 30 } }]
+
+[[nodes]]
+id = "try-baseline"
+spec = "Решить задачу прямым перебором; тесты обязательны."
+group = "solve"
+
+[[nodes]]
+id = "try-indexed"
+spec = "Решить задачу с индексом; тесты обязательны."
+group = "solve"

@@ -1,0 +1,12 @@
+# Eval-задача: mermaid-рендер работает (диаграмма из stdin → Unicode-арт).
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: mermaid-render
+title: Mermaid-диаграмма из stdin рендерится в Unicode-арт
+command: |
+  printf 'flowchart TD\n  A[Клиент] --> B[Шлюз]\n' | {arch} mermaid -
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "Клиент"
+  - type: must_contain
+    pattern: "Шлюз"

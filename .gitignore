@@ -1,0 +1,38 @@
+# Сборка (target/ на любом уровне — включая решения в кейсах)
+target/
+**/*.rs.bk
+
+# Python-кэш генераторов скиллов
+__pycache__/
+*.pyc
+
+# Рабочий журнал разработки — локальный, в публичный репозиторий не входит
+/AGENTS.local.md
+
+# Локальные файлы окружения и ключей
+.env
+*.pem
+*.key
+
+# Служебные каталоги сессии харнесса и песочницы сборки (не входят в коммит)
+.theseus/
+.codewhale/
+.qwen/
+.playwright-mcp/
+.cargo/
+.cargo-tmp/
+target-check/
+.target-fresh/
+
+# рабочие пакеты handoff (генерируются per-run, не для VCS)
+.arch-handoff/
+
+# вывод демо-прогонов (генерируется, не для VCS)
+registry-out/
+banking/demos/cli-from-claude-code/scenario1-headless/stderr.log
+
+# бинарь в deploy-kit — релиз-артефакт (GitHub Release), не для VCS
+deploy-kit/arch-be
+
+# Platform V arch-bench: тяжёлые прогоны (ячейки/логи) — в VCS не входят
+benchmarks/platformv-arch-bench/runs/

@@ -1,0 +1,87 @@
+# CONSTRAINTS.yaml — ГЕЙТ задачи experiment-lineage.
+# Один и тот же файл для ВСЕХ рук и повторов. Заморожен пререгистрацией.
+# Проверка: arch-ml control check <cell>/work --constraints <этот файл> --json
+# severity: critical|high -> error, medium -> warn.
+constraints:
+  - id: SVC-LIN-01
+    name: deliverable-spine
+    type: must_contain
+    glob: "docs/ARCHITECTURE-SPINE.md"
+    pattern: "(?m)^#{2,3}\\s*AD-\\d+"
+    severity: critical
+
+  - id: SVC-LIN-02
+    name: deliverable-adr
+    type: must_contain
+    glob: "docs/adr/ADR-*.md"
+    pattern: "(?m)^#\\s*ADR-\\d{3}"
+    severity: critical
+
+  - id: SVC-LIN-03
+    name: decision-approver
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "(?i)(approver|аппрувер)\\s*:\\s*\\S+"
+    severity: critical
+
+  - id: SVC-LIN-04
+    name: decision-spec-binding
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "spec:\\s*sha256:[0-9a-f]{64}"
+    severity: critical
+
+  - id: SVC-LIN-05
+    name: decision-journal-entries
+    type: must_contain
+    glob: "DECISION.md"
+    pattern: "(?m)^##\\s*(DEC|РЕШ)"
+    severity: high
+
+  - id: SVC-LIN-06
+    name: trace-addressed
+    type: must_contain
+    glob: "TRACE.md"
+    pattern: "AC-\\d{2}\\s*->\\s*ADR-\\d{3}"
+    severity: critical
+
+  - id: SVC-LIN-07
+    name: acceptance-evidence
+    type: must_contain
+    glob: "ACCEPTANCE-EVIDENCE.md"
+    pattern: "AC-\\d{2}"
+    severity: high
+
+  - id: SVC-LIN-08
+    name: adr-alternatives
+    type: must_contain
+    glob: "docs/adr/ADR-*.md"
+    pattern: "(?i)(отвергнут|альтернатив|rejected|alternatives)"
+    severity: high
+
+  - id: SVC-LIN-09
+    name: no-stub-markers
+    type: must_not_contain
+    glob:
+      - "docs/**/*.md"
+      - "DECISION.md"
+      - "TRACE.md"
+      - "ACCEPTANCE-EVIDENCE.md"
+    pattern: "(?i)\\b(TODO|TBD|FIXME)\\b"
+    severity: high
+
+  # Домен: происхождение названо явно и полно
+  - id: SVC-LIN-10
+    name: lineage-named
+    type: must_contain
+    glob: "docs/ARCHITECTURE-SPINE.md"
+    pattern: "(?i)(lineage|происхожден|родословн|провенанс)"
+    severity: high
+
+  # Домен: происхождение не объявлено изменяемым (warn — эвристика)
+  - id: SVC-LIN-11
+    name: lineage-immutable
+    type: must_not_contain
+    glob: "docs/**/*.md"
+    pattern: "(?i)(изменяем\\w*|mutable)\\s+(lineage|происхожден|провенанс)"
+    severity: medium

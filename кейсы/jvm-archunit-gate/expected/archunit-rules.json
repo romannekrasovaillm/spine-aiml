@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "base_package": "com",
+  "rules": [
+    {
+      "id": "C-01",
+      "description": "[C-01] domain_not_infrastructure: ..domain.. не зависит от com.acme.infrastructure..",
+      "severity": "error",
+      "kind": {
+        "kind": "forbidden_deps",
+        "from": "..domain..",
+        "to": [
+          "com.acme.infrastructure.."
+        ]
+      }
+    },
+    {
+      "id": "C-02",
+      "description": "[C-02] no_external_fx: .. не зависит от com.external.fx..",
+      "severity": "error",
+      "kind": {
+        "kind": "forbidden_deps",
+        "from": "..",
+        "to": [
+          "com.external.fx.."
+        ]
+      }
+    }
+  ],
+  "unsupported": []
+}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server"],
+      "env": {}
+    },
+    "pattern-web": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {}
+    }
+  }
+}

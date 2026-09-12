@@ -1,0 +1,52 @@
+{"type":"plan_started","run_id":"fpl-1789206517329","plan_id":"live-review","pattern":"review_pair","plan_path":".arch-fleet/live-review.plan.toml","plan_sha256":"8026026591e499f59de9707ed5ace341dc9219ce206e3809141d91af71f6e637","n_nodes":2,"n_waves":2,"at":"2026-09-12 12:48:37"}
+{"type":"wave_started","run_id":"fpl-1789206517329","wave":0,"nodes":["impl"],"at":"2026-09-12 12:48:37"}
+{"type":"agent_started","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","kind":"harness:worker","at":"2026-09-12 12:48:37"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:48:45"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:48:52"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:05"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:10"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:16"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:22"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:29"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:35"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:40"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:46"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:51"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:49:57"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:04"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:09"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:15"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:20"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:25"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","at":"2026-09-12 12:50:31"}
+{"type":"agent_done","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","exit_code":0,"duration_secs":116.325591628,"contract_status":"complete","at":"2026-09-12 12:50:33"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"impl","gate":"contract","verdict":"ok","detail":"статус complete; допущено: complete","at":"2026-09-12 12:50:35"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"impl","gate":"fitness","verdict":"ok","detail":"Правил: 8, нарушений: 0 (error: 0, warn: 0)","at":"2026-09-12 12:50:35"}
+{"type":"node_completed","run_id":"fpl-1789206517329","node_id":"impl","at":"2026-09-12 12:50:35"}
+{"type":"wave_started","run_id":"fpl-1789206517329","wave":1,"nodes":["review-impl"],"at":"2026-09-12 12:50:35"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"review-impl","gate":"dependency:impl","verdict":"ok","detail":"ветка arch/fpl-1789206517329-impl влита в дерево узла","at":"2026-09-12 12:50:35"}
+{"type":"agent_started","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","kind":"harness:reviewer","at":"2026-09-12 12:50:35"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:50:42"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:50:49"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:50:55"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:00"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:07"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:13"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:19"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:26"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:31"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:38"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:43"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:49"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:51:54"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:00"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:05"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:11"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:17"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:22"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:28"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:34"}
+{"type":"agent_heartbeat","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","at":"2026-09-12 12:52:39"}
+{"type":"agent_done","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","exit_code":0,"duration_secs":128.341483972,"contract_status":"missing","at":"2026-09-12 12:52:43"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"review-impl","gate":"review","verdict":"fail","detail":"вердикт not-ready: находки блокируют интеграцию","at":"2026-09-12 12:52:43"}
+{"type":"run_finished","run_id":"fpl-1789206517329","n_assigned":2,"n_done":1,"n_failed":1,"n_unassigned":0,"at":"2026-09-12 12:52:43"}

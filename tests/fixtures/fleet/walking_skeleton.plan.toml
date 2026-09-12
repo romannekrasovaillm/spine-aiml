@@ -1,0 +1,23 @@
+# Canary: сквозной срез → гейт → масштабирование.
+id = "fixture-walkingskeleton"
+package = "fixture"
+pattern = "walking_skeleton"
+
+[policy]
+max_parallel = 4
+require_worktree = true
+stop_on_gate_fail = true
+
+[skeleton]
+id = "canary"
+spec = "Минимальный сквозной срез: один сервис, один эндпоинт, один тест."
+gates = ["contract", { command = { cmd = "true", timeout_secs = 30 } }]
+
+[defaults]
+route = "standard"
+gates = ["contract"]
+
+[[nodes]]
+id = "svc-1"
+spec = "Развернуть сервис 1 по образцу canary."
+domain = "code"

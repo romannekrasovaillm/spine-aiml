@@ -1,0 +1,14 @@
+# Fitness-правила платформы инференса «Синтетика» (учебная заглушка кейса 007).
+# WT-C: ЛОКАЛЬНО ОСЛАБЛЕНО мимо дельта-протокола — намеренный дрейф копии
+# спайна для кейса 007 (severity error → warn у router-no-static-routes).
+rules:
+  - name: proto-schemas-versioned
+    type: must_contain
+    glob: "api/**/*.proto"
+    pattern: 'syntax = "proto3"'
+    severity: error
+  - name: router-no-static-routes
+    type: must_not_contain
+    glob: "router/**"
+    pattern: 'static_route'
+    severity: warn

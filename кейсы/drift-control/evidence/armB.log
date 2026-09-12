@@ -1,0 +1,38 @@
+⚠ контракт результата (```json со status) в stdout не найден
+── stdout (exit Some(0), 360.4s) ──
+Готово. Платёжное ядро создано и зафиксировано коммитом `6a0ee75`.
+
+## Что сделано
+
+Rust-библиотека `payments-core` (`Cargo.toml` + `src/lib.rs`):
+
+- **`Payment`** — сумма (i64, minor units), валюта, статус, счётчики `captured`/`refunded`, журнал событий.
+- **Переходы статусов** (`PaymentStatus`):
+  - `Pending → Authorized` (authorize)
+  - `Authorized → Captured / PartiallyCaptured` (capture, с поддержкой частичных)
+  - `Captured → PartiallyRefunded → Refunded` (refund)
+  - `Authorized → Voided` (void)
+- **Журнал** `PaymentEvent` — `Created` / `Authorized` / `Captured` / `Refunded` / `Voided`, только append.
+- **Ошибки** — enum `PaymentError` на `thiserror` (`NonPositiveAmount`, `CurrencyMismatch`, `InvalidTransition`, `CaptureExceedsAuthorized`, `RefundExceedsCaptured`).
+- **Идемпотентность** — `PaymentProcessor::authorize` держит in-memory inbox по ключу: повтор возвращает первый результат (успех — клон первого платежа, ошибка — та же ошибка) без повторного эффекта.
+- **19 юнит-тестов** — покрывают все переходы, ошибки, идемпотентность и журнал.
+
+## Проверка критериев приёмки
+
+| Правило | Результат |
+|---|---|
+| C-01 `f64` запрещён в `src/**` | ✅ нет вхождений |
+| C-02 `thiserror` в `Cargo.toml` | ✅ есть |
+| C-03 `anyhow::` / `Box<dyn` запрещены | ✅ нет |
+| C-04 `anyhow` в `Cargo.toml` запрещён | ✅ нет |
+| C-05 `Idempotenc` в `src/**` | ✅ есть |
+| C-06 `cargo test --quiet` | ✅ exit 0, 19/19 passed |
+
+`cargo test --quiet` проходит зелёным (проверял точную команду из CONSTRAINTS.yaml, exit code 0). Зависимость `thiserror 2.0.20` собирается из локального cargo-кэша, `Cargo.lock` закоммичен для воспроизводимости.
+
+Rollback: `git reset --hard fbe98bc` вернёт к baseline.
+
+── stderr ──
+[claude-code:unrecognized_model] {"model":"deepseek-v4-flash","query_source":"generate_session_title"}
+[claude-code:unrecognized_model] {"model":"deepseek-v4-pro[1m]","query_source":"sdk"}
+

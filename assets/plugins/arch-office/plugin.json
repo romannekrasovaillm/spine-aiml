@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "arch-office",
+  "version": "1.0.0",
+  "description": "Офисные артефакты solution-архитектора: генерация архитектурных документов docx (аналитический отчёт для МД, solution design, концепция/vision, интеграционная спецификация, оценка текущего состояния, план миграции), презентаций pptx (для правления и архкомитета) и таблиц xlsx (каталог систем, матрица интеграций, матрица решений, реестр рисков) через python-docx / python-pptx / openpyxl с корпоративными стилями.",
+  "keywords": [
+    "docx",
+    "pptx",
+    "xlsx",
+    "architecture-documents",
+    "solution-architect",
+    "bank",
+    "skills"
+  ]
+}

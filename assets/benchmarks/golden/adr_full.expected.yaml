@@ -1,0 +1,11 @@
+# Эталонные оценки golden-документа adr_full.md (рубрика adr_quality).
+# Полный ADR: контекст с силами и ценой бездействия, альтернативы со
+# статус-кво и причинами отказа, адресные издержки с митигацией,
+# категорированная обратимость с проверенным путём, запись до реализации.
+rubric: adr_quality
+scores:
+  context: 5
+  alternatives: 5
+  negative_consequences: 5
+  reversibility: 5
+  status_discipline: 5

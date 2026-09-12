@@ -1,0 +1,9 @@
+# Провал гейта на стадии A: stop_on_gate_fail=true, on_fail="block"
+Прогон плана smoke-pipeline-fail (pipeline): run-id fpl-1789204703399
+Узлов: 2 в 2 волнах; завершено 0, сбой 1, пропущено 1
+Остановлен по гейту: узел a: гейты не пройдены — масштабирование остановлено
+Журнал: /tmp/fleet-smoke/state/fleet/fpl-1789204703399.jsonl
+Worktree узлов: 1
+  a                        /tmp/fleet-smoke/worktrees/repo-cb088f8b0111402d/fpl-1789204703399-a
+Интеграция — только гейтом владельца: fleet merge <run-id> --owner-approve
+exit=1

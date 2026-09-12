@@ -1,0 +1,17 @@
+# Цикл к неизменной цели свежими контекстами (роль ralph).
+id = "fixture-ralph"
+package = "fixture"
+pattern = "ralph"
+
+[policy]
+max_parallel = 1
+require_worktree = true
+
+[defaults]
+route = "critical"
+gates = ["contract"]
+
+[[nodes]]
+id = "goal"
+spec = "Довести p95 эндпоинта до < 50 мс на приёмочном профиле; замеры в evidence/."
+max_rounds = 4

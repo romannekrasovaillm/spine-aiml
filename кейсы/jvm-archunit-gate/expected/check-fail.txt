@@ -1,0 +1,9 @@
+ArchUnit-гейт: исполнено правил 2, нарушений 6
+  [error] C-01 — Constructor <com.acme.domain.Order.<init>(java.lang.String, com.acme.infrastructure.OrderRepository, com.external.fx.FxClient)> has parameter of type <com.acme.infrastructure.OrderRepository> in (Order.java:0)
+  [error] C-01 — Field <com.acme.domain.Order.repository> has type <com.acme.infrastructure.OrderRepository> in (Order.java:0)
+  [error] C-01 — Method <com.acme.domain.Order.load()> calls method <com.acme.infrastructure.OrderRepository.find(java.lang.String)> in (Order.java:26)
+  [error] C-02 — Constructor <com.acme.domain.Order.<init>(java.lang.String, com.acme.infrastructure.OrderRepository, com.external.fx.FxClient)> has parameter of type <com.external.fx.FxClient> in (Order.java:0)
+  [error] C-02 — Field <com.acme.domain.Order.fxClient> has type <com.external.fx.FxClient> in (Order.java:0)
+  [error] C-02 — Method <com.acme.domain.Order.fxRate()> calls method <com.external.fx.FxClient.rate(java.lang.String)> in (Order.java:30)
+Итог: FAIL
+fail-exit=1

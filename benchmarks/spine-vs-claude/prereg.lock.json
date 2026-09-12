@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "arch_ml_version": "arch-ml 0.1.4",
+  "hashes": {
+    "PREREGISTRATION.md": "05c193a26036bba21b4792e110a0bb3149d675c1c7fafa48d4197910527704a3",
+    "SPEC.md": "0bf140c311841de6e993aa8be533632c6f7a85301bcfa87a84b57d92d3c5713b",
+    "pack/ARCHITECTURE-SPINE.md": "6db56a5eff8bcd47a2b3188b2a05c4fb126f18a92f3a735cf0ad91ce85c81224",
+    "pack/DECISION.template.md": "96daf37bf10a4066407332fdfb4676d92c131104d46f48932a6c1af7b162761f",
+    "tasks/experiment-lineage/ACCEPTANCE.md": "abbe18f65434cd5c3ed14d3b8610316ae59fea128b6ffd402abf6f55f8a4a17b",
+    "tasks/experiment-lineage/CONSTRAINTS.yaml": "35006cbd54caf6c168f6bde5d347bd834ea73dd66a88f64eb119e6146ea5a5fb",
+    "tasks/experiment-lineage/CONTEXT.md": "a84a15cbd44ad6ee3537f849e21a196450eb0a1a601374c35fc3ba4ed0988ba4",
+    "tasks/experiment-lineage/SPEC.md": "2344eb6d3e58782a7c11153f2211e24843f975f248e2621358ab920a6b2694ed",
+    "tasks/experiment-lineage/TASK.md": "87afac78bb6cdb06633bf0060b8242176eb2449213998d6d92f0066d9f075a3e",
+    "tasks/gpu-quota-policy/ACCEPTANCE.md": "3cbed34bda8c1370c0da242649b0b0b26d652afd10828e476a5a96625315705b",
+    "tasks/gpu-quota-policy/CONSTRAINTS.yaml": "22f141620c9c585be5ecc7254cc23d8bf73fe7f54ab396db534622fbe27d8c7b",
+    "tasks/gpu-quota-policy/CONTEXT.md": "b9d1ab91151c30ba4d63563e788b51fc92278a01472aad7ca222fa68ed9d0bfb",
+    "tasks/gpu-quota-policy/SPEC.md": "b7f5c71b926db9f1a488d08b1acdb2d4a025cd137f9bfe60e116778ebca3347e",
+    "tasks/gpu-quota-policy/TASK.md": "73f440ee0524cba92ecc22118a377a5ee5ea5226c3c36e3ef188af743756c36a",
+    "tasks/ml-serving-split/ACCEPTANCE.md": "5f0faf3f2970c2e8c38e48ac20ba31773d4cf90d8db6e807a593309769252143",
+    "tasks/ml-serving-split/CONSTRAINTS.yaml": "dbdd6395cd20a2f74095448482073853a03795dbd82f8b6421c9a80d2fe1766d",
+    "tasks/ml-serving-split/CONTEXT.md": "085ba86c47d903e4190970bb8e684b68d910fb2419c0a389d03ef38041d4446e",
+    "tasks/ml-serving-split/SPEC.md": "c2777ddb8c7099c4331ee43820e9bf744ecb7559af5710df9d70b83d6ed60e31",
+    "tasks/ml-serving-split/TASK.md": "b5cc6381c7139e1ee9a59117c7bcf0052dc7689bad5c99855dd9b296680b29d0",
+    "tasks/model-registry-migration/ACCEPTANCE.md": "180292621f59da1d7ccdc4c527e74de6bfae88ccf47aa6b99e6b31ad66cbf28c",
+    "tasks/model-registry-migration/CONSTRAINTS.yaml": "968b47788135f1c39db45549acc6aa82da042115611fc9bdc4dbd4b2e22e759e",
+    "tasks/model-registry-migration/CONTEXT.md": "f6afa9aa0d185aa674aba9d01714980054ce27c9d5f3cb752678e4caf66cbef8",
+    "tasks/model-registry-migration/SPEC.md": "c829be8343e10dec359af91979bf3dda7c4e40d37cdd46f9f42aec7a75aebe1f",
+    "tasks/model-registry-migration/TASK.md": "17a47c52ba877ee82fd22f0bd09efcfa4020c3235c533acf3ed4c8934dc90b02"
+  }
+}

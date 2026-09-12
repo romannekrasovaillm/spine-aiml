@@ -1,0 +1,11 @@
+Правил: 3, нарушений: 8 (error: 8, warn: 0)
+  [error] ./classes:0 C-01 — archunit: Constructor <com.acme.domain.Order.<init>(java.lang.String, com.acme.infrastructure.OrderRepository, com.external.fx.FxClient)> has parameter of type <com.acme.infrastructure.OrderRepository> in (Order.java:0)
+  [error] ./classes:0 C-01 — archunit: Field <com.acme.domain.Order.repository> has type <com.acme.infrastructure.OrderRepository> in (Order.java:0)
+  [error] ./classes:0 C-01 — archunit: Method <com.acme.domain.Order.load()> calls method <com.acme.infrastructure.OrderRepository.find(java.lang.String)> in (Order.java:26)
+  [error] ./classes:0 C-02 — archunit: Constructor <com.acme.domain.Order.<init>(java.lang.String, com.acme.infrastructure.OrderRepository, com.external.fx.FxClient)> has parameter of type <com.external.fx.FxClient> in (Order.java:0)
+  [error] ./classes:0 C-02 — archunit: Field <com.acme.domain.Order.fxClient> has type <com.external.fx.FxClient> in (Order.java:0)
+  [error] ./classes:0 C-02 — archunit: Method <com.acme.domain.Order.fxRate()> calls method <com.external.fx.FxClient.rate(java.lang.String)> in (Order.java:30)
+  [error] src/com/acme/domain/Order.java:3 domain_not_infrastructure — dependency_direction: запрещённая зависимость 'com/acme/infrastructure/OrderRepository' (forbid: 'com/acme/infrastructure')
+  [error] src/com/acme/domain/Order.java:4 no_external_fx — dependency_direction: запрещённая зависимость 'com/external/fx/FxClient' (forbid: 'com/external/fx')
+Итог: FAIL
+fail-exit=1

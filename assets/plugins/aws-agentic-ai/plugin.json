@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "aws-agentic-ai",
+  "version": "1.0.0",
+  "description": "Агентные AI-паттерны AWS Prescriptive Guidance (гайд 'Agentic AI patterns and workflows on AWS', 2026): таксономия из 10 паттернов агентов, LLM-workflows (chaining, routing, parallelization, orchestration, evaluator loops), агентные workflow-паттерны (saga orchestration, supervisor, scatter-gather) — с маппингом на банковский контур и сервисы AWS.",
+  "keywords": [
+    "aws",
+    "agentic-ai",
+    "llm",
+    "agents",
+    "multi-agent",
+    "orchestration",
+    "bedrock",
+    "patterns"
+  ]
+}

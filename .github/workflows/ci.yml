@@ -1,0 +1,137 @@
+# CI: fmt, clippy, тесты, MSRV, аудит зависимостей.
+# Решения и отложенные пункты — docs/adr/ADR-005-ci-and-cli-tests.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    # Строгий режим (P2-4 закрыта 2026-08-17): pedantic-линты зачищены,
+    # осознанные исключения — явный allow-список с обоснованием в Cargo.toml
+    # [lints.clippy]. Новое предупреждение = красная сборка.
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+
+  msrv:
+    name: MSRV 1.85 (cargo check)
+    runs-on: ubuntu-latest
+    env:
+      # rust-toolchain.toml пиннит stable и перекрывает дефолт rustup;
+      # RUSTUP_TOOLCHAIN имеет приоритет над toolchain-файлом.
+      RUSTUP_TOOLCHAIN: "1.85"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.85"
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        # rust-cache кэширует $CARGO_HOME/bin — cargo-audit собирается раз.
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit
+
+  supply-chain:
+    # Поставка (ADR-031/T5, GEN-18): SBOM (CycloneDX) + хэши артефактов —
+    # ДИТ сверяет поставку по docs/supply-chain.md, не доверяя бинарю на слово.
+    name: supply chain (SBOM + SHA256SUMS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-sbom --locked
+      - run: cargo build --release
+      - run: cargo sbom --output-format cyclone_dx_json_1_6 > sbom.cyclonedx.json
+      - run: |
+          cd target/release && sha256sum arch-ml > ../../SHA256SUMS.release && cd ../..
+          sha256sum sbom.cyclonedx.json >> SHA256SUMS.release
+          cat SHA256SUMS.release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain
+          path: |
+            sbom.cyclonedx.json
+            SHA256SUMS.release
+          retention-days: 90
+
+  dogfood:
+    # Догфудинг (AD-9 корневого ARCHITECTURE-SPINE.md): харнесс гейтит
+    # собственный репозиторий своими же механиками — spine-линтер и
+    # fitness-гейт по корневым ARCHITECTURE-SPINE.md / CONSTRAINTS.yaml.
+    # Внутри fitness-гейта — cargo fmt --check и cargo test (C-18/C-19).
+    name: dogfood (self spine + fitness)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build
+      - run: ./target/debug/arch-ml control spine ARCHITECTURE-SPINE.md
+      - run: ./target/debug/arch-ml control check . --constraints CONSTRAINTS.yaml
+      # Уникальность номеров ADR внутри проекта: два решения под одним
+      # ADR-NNN делают ссылку на номер неоднозначной, а `control check`
+      # этого не видит (C-17 проверяет только формат заголовка). `--strict`
+      # → exit 1 на любую находку реестра.
+      - run: ./target/debug/arch-ml adr registry . --strict
+      - name: personal paths scan
+        # AD-7: персональные пути не живут в репозитории; допустимы только
+        # плейсхолдеры /home/user/ (сцены скриншотов) и /home/.../ (доки).
+        # Сам workflow исключён: в нём литерально записана эта команда.
+        run: |
+          leaks=$(git grep -nI "/home/" -- . ":(exclude).github/workflows/ci.yml" | grep -vE "/home/(user/|\.\.\.)" || true)
+          if [ -n "$leaks" ]; then echo "$leaks"; exit 1; fi
+          echo "personal paths: чисто"
+
+  eval-suite:
+    # Continuous evals конфигурации харнесса (docs/evals.md): встроенный сьют
+    # agent-config прогоняется герметично (временный дом, офлайн, без ключей),
+    # гейт pass-rate 100% — деградация конфигурации ломает сборку.
+    name: eval suite (agent-config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build
+      - run: ./target/debug/arch eval run

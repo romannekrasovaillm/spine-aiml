@@ -1,0 +1,329 @@
+# =============================================================================
+# Spine AI/ML Edition — доменная зона aiml/ (лицензия фиксируется при
+# наполнении, см. NOTICE.md; ядро остаётся MIT).
+# =============================================================================
+# Доменный пресет AI/ML-исследователя (бинарь arch-ml, crate arch-harness).
+# Применение: скопировать в ~/.config/arch-ml/config.toml (или слить с
+# существующим) — замените placeholder'ы локального шлюза на свои адреса.
+#
+# Доменные инварианты контура — SPINE-ML.md рядом с этим файлом (ML-01…ML-14).
+# Ключевое разделение матрицы:
+#   * внешние фронтир-API  — разработка, ризонинг, ревью (ключи из env);
+#   * локальные open-weights за OpenAI-совместимым шлюзом (vLLM/Ollama на
+#     127.0.0.1) — приватные ходы, дешёвая массовая обработка (ML-02);
+#   * доменная модель концептов (Ариадна, 4B) — инструмент
+#     concept_search / significance_score, не исполнитель (ML-11).
+#
+# API-ключи НЕ пишутся в конфиг — только имена env-переменных (AD-3 ядра).
+# =============================================================================
+
+# Рабочий дефолт разработки — фронтир-модель с ризонингом. Любой ход, который
+# трогает приватный датасет/чекпоинт/закрытые веса, переключается на local-*
+# (ML-02: маршрутизация по чувствительности, а не по удобству).
+default_model = "deepseek"
+
+# -----------------------------------------------------------------------------
+# ВНЕШНИЕ API (разработка). Ризонинг-карты:
+#   DeepSeek V4, GLM-4.x/5.x:  thinking = { type = "enabled" | "disabled" }
+#   Kimi K3:                   reasoning_effort = "max" | "low" (не отключается)
+# Без `/think` карты не шлются — действует дефолт провайдера.
+# Актуальность id сверена с документацией провайдеров (август 2026):
+# deepseek-chat/reasoner сняты 2026-07-24 → v4-flash/v4-pro; glm-4.6 → glm-4.7.
+# -----------------------------------------------------------------------------
+
+[models.deepseek]
+# Быстрый рабочий контур: черновики кода эксперимента, разбор логов, скрипты.
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.deepseek-pro]
+# Тяжёлый ризонинг: дизайн RL-рецепта, состязательное ревью результата,
+# разбор провалившегося прогона, гейты готовности.
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 300                    # pro думает дольше — бюджет тишины выше
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm]
+# Флагман Z.AI, 1M контекст. Международная площадка; тот же ключ работает на
+# китайском open.bigmodel.cn (base_url = "https://open.bigmodel.cn/api/paas/v4").
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-5.2"
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models."glm-4.7"]
+# Прошлое поколение флагмана: дешевле вдвое — рутинный ревью, средние задачи.
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.7"
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 204800
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm-air]
+# Дешёвый рабочий контур (~$0.14/$0.86 за 1М): массовая обработка статей,
+# извлечение полей, черновики.
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.5-air"
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 120
+context_limit = 131072
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm-flash]
+# Бесплатный тариф: дайджесты arXiv, крон-задачи, черновики без бюджета.
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.7-flash"
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 120
+context_limit = 204800
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.kimi]
+# Coding-поверхность Kimi Code (доки kimi.com/code): модели k3 / k3-256k.
+# Thinking-параметры поверхность не принимает (K3 ризонит всегда); старая /v1
+# отдаёт 404. Ключ: env KIMI_API_KEY или запасной файл api_key_file.
+base_url = "https://api.kimi.com/coding/v1"
+model = "k3"
+api_key_env = "KIMI_API_KEY"
+api_key_file = "~/.kimi_api_key"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+
+# -----------------------------------------------------------------------------
+# ЛОКАЛЬНЫЕ OPEN-WEIGHTS за OpenAI-совместимым шлюзом (vLLM / Ollama / llama.cpp
+# / LM Studio на 127.0.0.1) — приватные ходы и дешёвая массовая обработка
+# (ML-02). Контекст выставляется на СЕРВЕРЕ (vLLM --max-model-len, Ollama
+# num_ctx) и здесь указывается ровно тот же — иначе компактификация считается
+# от неверного окна.
+#
+# Ключ у локального шлюза обычно не нужен, но поле api_key_env в конфиге
+# ОБЯЗАТЕЛЬНО и переменная должна быть ЗАДАНА непустой: харнесс читает ключ
+# лениво и на пустое значение отвечает отказом "нет API-ключа". Для локального
+# сервера задайте фиктивную переменную (vLLM/Ollama ключ не проверяют):
+#   export LOCAL_LLM_KEY=sk-local
+# Если сервер поднят с --api-key — положите реальный ключ в LOCAL_LLM_KEY
+# (значение в конфиг не пишется, AD-3).
+#
+# Порт по серверу: vLLM 8000 · Ollama 11434 · llama.cpp 8080 · LM Studio 1234.
+# Смена сервера — правится base_url; id модели — из `GET {base_url}/models`.
+# -----------------------------------------------------------------------------
+
+[models.local-qwen25]
+# Рабочая лошадка приватного контура: классификация, извлечение сущностей,
+# дешёвые «ходы маршрутизации». Пример vLLM: --served-model-name qwen2.5-7b-instruct.
+base_url = "http://127.0.0.1:8000/v1"
+model = "qwen2.5-7b-instruct"
+api_key_env = "LOCAL_LLM_KEY"
+max_tokens = 4096
+timeout_secs = 120
+context_limit = 32768
+
+[models.local-qwen3]
+# Qwen3: ризонинг-ветка для локальных задач, где недопустим выход за периметр.
+base_url = "http://127.0.0.1:8000/v1"
+model = "qwen3-8b"
+api_key_env = "LOCAL_LLM_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 40960
+
+[models.local-r1-distill]
+# DeepSeek-R1-Distill: локальная цепочка рассуждений для приватного анализа
+# прогонов и датасетов (thinking-карта не шлётся — ризонинг встроен в веса).
+base_url = "http://127.0.0.1:8000/v1"
+model = "deepseek-r1-distill-qwen-7b"
+api_key_env = "LOCAL_LLM_KEY"
+max_tokens = 8192
+timeout_secs = 300
+context_limit = 65536
+
+[models.local-llama]
+# Llama-семейство за Ollama (порт 11434). Для llama.cpp — 8080, LM Studio — 1234.
+base_url = "http://127.0.0.1:11434/v1"
+model = "llama-3.1-8b-instruct"
+api_key_env = "LOCAL_LLM_KEY"
+max_tokens = 4096
+timeout_secs = 120
+context_limit = 32768
+
+# -----------------------------------------------------------------------------
+# ДОМЕННАЯ МОДЕЛЬ КОНЦЕПТОВ — «Ариадна» (локальная 4B, обучена на концептах
+# arXiv 2020–2026). Стоит за инструментом concept_search / significance_score:
+# атомарный вопрос о ML-термине → ответ из доменной базы, а не из весов
+# большой модели (ML-11, ML-14). Живёт ТОЛЬКО в приватном контуре.
+#
+# Протокол: короткие самодостаточные вопросы, temperature 0–0.3, контекст у
+# 4B-модели мал (часто 2–8k) — простыни промптов не подавать. Endpoint этой
+# малой модели — доменный инструмент; исполнителя-субагента на неё НЕ
+# переводить (он остаётся на большой модели).
+# Серверы: Ollama 11434 (ниже), vLLM 8000, llama.cpp 8080 — правится base_url.
+# -----------------------------------------------------------------------------
+
+[models.ariadna]
+base_url = "http://127.0.0.1:11434/v1"
+model = "ariadna-concept-4b"
+api_key_env = "ARIADNA_KEY"          # фиктивный для локального сервера: export ARIADNA_KEY=sk-local
+max_tokens = 768
+timeout_secs = 120
+context_limit = 8192
+
+# -----------------------------------------------------------------------------
+# Агентный цикл.
+# -----------------------------------------------------------------------------
+[agent]
+max_tool_turns = 4800
+context_budget_tokens = 6000000
+stream = true
+failure_memory = "propose"            # «ошибся дважды → урок»: заметка + предложение урока
+
+# -----------------------------------------------------------------------------
+# Доменное знание (Context Supply Chain): индексируются только релевантные
+# ML-домены — библиотека статей, библиотека плагинов/скиллов, свои разборы.
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Доменная база концептов (Ариадна) — инструмент concept_search.
+# Внешняя машинно-специфичная база; путь живёт только в конфиге (AGENTS).
+# -----------------------------------------------------------------------------
+[concept]
+enabled = true
+index = "~/library/index/concept_index.json"
+
+[knowledge]
+dirs = [
+  # --- Библиотека дистиллята: методология (12 md-файлов), дайджесты статей,
+  #     блоги. Первоисточник критерия «md vs skill.md», плейбуки, рубрики.
+  "~/library/distillate",
+  # --- Педагогика: разобранные материалы — digests, faq, tracks, glossary.
+  #     Готовые объяснения и частые вопросы по ML/агентным темам.
+  "~/library/pedagogy",
+  # --- Концепты: карточки терминов (YAML-frontmatter: type/level/family/
+  #     sources/related). Источник для concept_search и словаря домена.
+  "~/library/concepts",
+  # --- Личные разборы и опорные каталоги контура.
+  "~/Документы/КОД/gigachat/РАЗБОРЫ/recipes_taxonomy",   # статьи 01–11, разборы, техотчёты
+  "~/experiments/agents/0710-ariadna/plugins",           # библиотека ML/агент/RL-скиллов
+  "~/experiments",                                        # ML-эксперименты: заметки, README, скрипты-разборы
+  "~/knowledge/ml",                                      # ЗАМЕНИТЕ на свои разборы/заметки
+]
+extensions = ["md", "txt", "rst"]
+
+# -----------------------------------------------------------------------------
+# Веб-доступ. Для публичной ML-науки ДОПУСТИМ (arXiv, HF, OpenReview): это
+# обмен открытыми знаниями, не приватным контуром. При работе с закрытыми
+# датасетами/весами канал сужается дисциплиной ML-01/ML-03 (в промпт внешнего
+# поиска приватные данные не попадают) либо выключается [web].enabled = false.
+# -----------------------------------------------------------------------------
+[web]
+enabled = true
+search_base = "https://html.duckduckgo.com/html/"
+user_agent = "arch-ml/0.1 (+aiml ml-researcher preset)"
+timeout_secs = 30
+max_fetch_chars = 24000
+
+[[web.arch_sites]]
+name = "arxiv"
+base_url = "https://arxiv.org/"
+domain = "arxiv.org"
+description = "arXiv: первоисточники статей (сверять факты и id по препринту, не по памяти)"
+
+[[web.arch_sites]]
+name = "hf-papers"
+base_url = "https://huggingface.co/papers"
+domain = "huggingface.co"
+description = "Hugging Face Papers: карточки статей, модели и датасеты"
+
+[[web.arch_sites]]
+name = "openreview"
+base_url = "https://openreview.net/"
+domain = "openreview.net"
+description = "OpenReview: рецензии конференций (ICLR/NeurIPS/ICML)"
+
+[[web.arch_sites]]
+name = "paperswithcode"
+base_url = "https://paperswithcode.com/"
+domain = "paperswithcode.com"
+description = "Papers with Code: бенчмарки и реализации"
+
+# -----------------------------------------------------------------------------
+# MCP: локальные stdio-серверы (например, к локальной базе концептов).
+# -----------------------------------------------------------------------------
+[mcp]
+servers_file = "~/.arch-ml/mcp.json"
+connect_on_start = false
+timeout_secs = 60
+
+# -----------------------------------------------------------------------------
+# Автономия. R2 — изменения без деструктива. Деструктив (удаление инстанса,
+# teardown, очистка чекпоинтов) — осознанное повышение до R4 с подтверждением;
+# перед teardown логи и чекпоинты сохраняются (ML-10).
+# -----------------------------------------------------------------------------
+[policy]
+autonomy = "R2"
+
+# Секреты вычищаются из окружения bash-команд (AD-3). Для ML-контура сюда
+# попадают HF_TOKEN, WANDB_API_KEY, провайдерные *_API_KEY — скрипту модели
+# они не видны. env_allow — точечные исключения (например, GH_TOKEN для `gh`).
+# sandbox = "none" в исследовательском контуре: обучение и инференс требуют
+# сети и GPU, bubblewrap(--unshare-net) их ломает. Для статического анализа
+# недоверенного кода включайте "bwrap" (fail-safe: нет бинаря — команда не
+# выполняется).
+[bash]
+env_scrub = true
+env_allow = []
+sandbox = "none"
+
+# -----------------------------------------------------------------------------
+# Судья рубрик (ADR-004): golden-калибровка оценок. Один и тот же судья
+# калибруется на ML-рубриках (качество разбора статьи, полнота эксперимента).
+# -----------------------------------------------------------------------------
+[judge]
+samples = 3
+unstable_stdev = 1.0
+evidence_min_similarity = 0.8
+golden_max_mae = 1.0
+
+# -----------------------------------------------------------------------------
+# Плагины: локальная библиотека + доменная библиотека ML-скиллов.
+# include_hooks для недоверенной внешней библиотеки — по решению владельца.
+# -----------------------------------------------------------------------------
+[plugins]
+dirs = [
+    "~/.arch-ml/plugins",
+    "~/experiments/agents/0710-ariadna/plugins",
+    "aiml/plugins",                     # доменные ML-плагины (относительно каталога запуска)
+]
+include_mcp = true
+include_hooks = false                # внешняя библиотека: хуки не исполняются до явного доверия
+
+# -----------------------------------------------------------------------------
+# Пути ассетов/данных.
+# -----------------------------------------------------------------------------
+[paths]
+assets_dir = "~/.arch-ml/assets"
+reports_dir = "~/.arch-ml/reports"
+sessions_dir = "~/.arch-ml/sessions"
+state_dir = "~/.arch-ml/state"
+memory_file = "~/.arch-ml/MEMORY.md"

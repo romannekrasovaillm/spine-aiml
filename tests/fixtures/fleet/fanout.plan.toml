@@ -1,0 +1,29 @@
+# Веер независимых узлов: один спайн, N исполнителей без взаимной видимости.
+id = "fixture-fanout"
+package = "fixture"
+pattern = "fanout"
+
+[policy]
+max_parallel = 4
+require_worktree = true
+merge_gate = "owner"
+
+[defaults]
+route = "standard"
+timeout_from_manifest = true
+gates = ["contract", "fitness"]
+on_fail = "block"
+
+[[nodes]]
+id = "p1-amount"
+spec = "Реализовать модуль amount по AD-1 спайна."
+required_skills = ["python"]
+domain = "code"
+outputs = ["bankcalc/amount.py"]
+
+[[nodes]]
+id = "p2-fee"
+spec = "Реализовать модуль fee по AD-3 спайна."
+required_skills = ["python"]
+domain = "code"
+outputs = ["bankcalc/fee.py"]

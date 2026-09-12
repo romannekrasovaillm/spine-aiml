@@ -1,0 +1,67 @@
+# Fitness-правила эпика bankcalc.fee (v2 — ужесточены после находок
+# состязательного ревьювера F1/F2 прогона fpl-1789206517329).
+rules:
+  - name: fee_module_present
+    type: file_exists
+    path: bankcalc/fee.py
+    severity: error
+
+  - name: fee_tests_present
+    type: file_exists
+    path: tests/test_fee.py
+    severity: error
+
+  - name: ad1_api_is_calc_fee
+    type: must_contain
+    glob: bankcalc/fee.py
+    pattern: "def calc_fee\\("
+    severity: error
+
+  - name: ad1_no_print
+    type: must_not_contain
+    glob: bankcalc/*.py
+    pattern: "\\bprint\\("
+    severity: error
+
+  # F2: `import X`-форма обходилась `from X import Y` — запрещаем обе формы.
+  - name: ad1_no_network_both_forms
+    type: must_not_contain
+    glob: bankcalc/*.py
+    pattern: "from (urllib|http|socket|requests)|import (urllib|http|socket|requests)"
+    severity: error
+
+  # F2: `must_contain "Decimal"` проходило на неиспользуемом импорте —
+  # требуем фактическое округление через Decimal.quantize.
+  - name: ad2_quantize_used
+    type: must_contain
+    glob: bankcalc/fee.py
+    pattern: "quantize\\("
+    severity: error
+
+  - name: ad2_half_up_rounding
+    type: must_contain
+    glob: bankcalc/fee.py
+    pattern: "ROUND_HALF_UP"
+    severity: error
+
+  # F1: запрет встроенного round() на float (HALF_EVEN на бинарном float —
+  # то, от чего защищает AD-2).
+  - name: ad2_no_builtin_round
+    type: must_not_contain
+    glob: bankcalc/*.py
+    pattern: "\\bround\\("
+    severity: error
+
+  # F1: тест на ТОЧНЫЙ тай-брейк, представимый в double (0.125): float+round
+  # его не проходит, Decimal+HALF_UP проходит.
+  - name: tests_discriminate_tie
+    type: must_contain
+    glob: tests/test_fee.py
+    pattern: "125\\.0|0\\.125"
+    severity: error
+
+  - name: tests_pass
+    type: command_succeeds
+    command: "python3 -m pytest -q tests/test_fee.py"
+    timeout_secs: 120
+    severity: error

@@ -1,0 +1,10 @@
+# Эталонные оценки golden-документа adr_irreversible.md
+# (рубрика adr_quality). Сильный контекст; обратимость не оценена,
+# «откатим, если что-то пойдёт не так» — дословно якорь 1.
+rubric: adr_quality
+scores:
+  context: 5
+  alternatives: 3
+  negative_consequences: 3
+  reversibility: 1
+  status_discipline: 3

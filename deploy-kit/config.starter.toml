@@ -1,0 +1,104 @@
+# =============================================================================
+# arch-ml — стартовый конфиг «под ключ»: китайские LLM + локальная модель
+# =============================================================================
+# Применение:
+#   1. cp arch-ml ~/.local/bin/ && arch-ml init
+#   2. cp config.starter.toml ~/.config/arch-ml/config.toml
+#      (или влейте нужные секции в сгенерированный конфиг — он полнее)
+#   3. export ключи (см. ниже), затем: arch-ml doctor && arch-ml run -q "Привет"
+#
+# Ключи (значения — ТОЛЬКО в окружении или файлах ключей, не в этом файле):
+#   export DEEPSEEK_API_KEY="sk-..."   # platform.deepseek.com
+#   export ZHIPU_API_KEY="..."         # z.ai (== аккаунт open.bigmodel.cn)
+#   export KIMI_API_KEY="..."          # kimi.com (Kimi Code)
+#   export LOCAL_LLM_API_KEY="local"   # формальная, для сервера без auth
+# =============================================================================
+
+default_model = "deepseek"
+
+# ── DeepSeek (Китай): дефолт. Прямой доступ из РФ, контекст 1M ─────────────
+[models.deepseek]
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.deepseek-pro]
+base_url = "https://api.deepseek.com/v1"
+model = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+max_tokens = 8192
+timeout_secs = 300
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+# ── Z.AI GLM (Китай): флагман + бесплатный тариф ────────────────────────────
+# Аккаунт на китайской площадке? base_url = "https://open.bigmodel.cn/api/paas/v4"
+[models.glm]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-5.2"
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+[models.glm-flash]
+base_url = "https://api.z.ai/api/paas/v4"
+model = "glm-4.7-flash"               # бесплатный тариф: черновики, крон
+api_key_env = "ZHIPU_API_KEY"
+max_tokens = 8192
+timeout_secs = 120
+context_limit = 204800
+thinking_on  = { thinking = { type = "enabled" } }
+thinking_off = { thinking = { type = "disabled" } }
+
+# ── Kimi (Moonshot, Китай): coding-поверхность; api.moonshot.ai НЕ менять ──
+[models.kimi]
+base_url = "https://api.kimi.com/coding/v1"
+model = "k3"
+api_key_env = "KIMI_API_KEY"
+api_key_file = "~/.kimi_api_key"      # запасной путь ключа
+max_tokens = 8192
+timeout_secs = 180
+context_limit = 1000000
+
+# ── Локальная / self-hosted модель (llama.cpp, vLLM, Ollama /v1, шлюз) ─────
+# ЗАМЕНИТЕ base_url и model на свои (точный id из GET /v1/models сервера).
+# Модель ОБЯЗАНА поддерживать tool calls (Qwen3.x и новее), иначе HTTP 400.
+# api_key_env — имя любой установленной переменной: export LOCAL_LLM_API_KEY=local
+# [models.local]
+# base_url = "http://127.0.0.1:8080/v1"
+# model = "qwen3.8-27b"
+# api_key_env = "LOCAL_LLM_API_KEY"
+# max_tokens = 4096
+# timeout_secs = 600
+# context_limit = 131072
+
+# ── Свои контекстные папки ──────────────────────────────────────────────────
+# База знаний (arch-ml kb + инструмент kb_search): реальные каталоги,
+# НЕ симлинки; md/txt/rst; новые файлы подхватываются без переиндексации.
+[knowledge]
+dirs = [
+  "~/knowledge/architecture",      # ЗАМЕНИТЕ на свои каталоги
+]
+extensions = ["md", "txt", "rst"]
+
+# Библиотека плагинов: плагин = plugin.json + skills/<имя>/SKILL.md
+[plugins]
+dirs = [
+    "~/.arch-ml/plugins",
+    # "~/my-skills/plugins",
+]
+include_mcp = true
+include_hooks = true
+
+# ── Веб-доступ: в закрытом контуре банка выключить ─────────────────────────
+# [web]
+# enabled = false

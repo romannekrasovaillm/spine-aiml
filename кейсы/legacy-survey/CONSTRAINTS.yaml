@@ -1,0 +1,39 @@
+# Fitness-правила кейса 008 (legacy-survey).
+#
+# BF-3 (гейт свежести карты обследования): survey.md — living-spec, а не
+# разовый аудит. Пока файл моложе года, карта считается действующей; по
+# истечении — обязательный пересбор `arch-be survey` (см. README кейса).
+rules:
+  - name: survey-map-fresh
+    type: max_age
+    path: docs/reverse/survey.md
+    max_age_days: 365
+    severity: error
+    rationale: карта обследования старше года — это выдумка, а не evidence
+    evidence: docs/reverse/survey.md, пересобранный arch-be survey
+    owner: solution-архитектор направления brownfield
+
+  # Границы контекстов — из модели, не из памяти (ADR-030): code_roots CMP
+  # + depends_on; импорт через границу без declared-зависимости — error.
+  # Негатив для показа: добавить в monolith/billing/worker.py строку
+  # `from notifier import sender` → FAIL с парой CMP-001 → CMP-002.
+  - name: context-boundaries
+    type: context_boundary
+    model_dir: model
+    severity: error
+    rationale: граница контекста исполняема — импорт через границу без
+      depends_on ломает сборку, добавление зависимости — изменение модели
+    owner: solution-архитектор направления brownfield
+
+  # Правило под будущий код (дельта tariffs-idempotent-consumer,
+  # changes/tariffs-idempotent-consumer/DELTA.md): тарифы — только через
+  # идемпотентного потребителя CMP-004, не синхронным вызовом фида из
+  # запросного пути /charge. Зелёное ДО и ПОСЛЕ apply.
+  - name: no-sync-tariff-call
+    type: must_not_contain
+    glob: monolith/billing/*.py
+    pattern: rates_feed|rates\.internal
+    severity: error
+    rationale: синхронный вызов rates-feed в /charge привязывает p99
+      платежа к доступности фида — запрещено дельтой 001
+    owner: solution-архитектор направления brownfield

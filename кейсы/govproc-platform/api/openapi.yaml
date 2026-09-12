@@ -1,0 +1,166 @@
+openapi: 3.1.0
+info:
+  title: GovProc Platform API
+  version: 0.1.0
+  description: |
+    Публичное API платформы B2G-закупок (44-ФЗ / 223-ФЗ).
+    Срез walking skeleton: извещение → публикация → заявка → протокол.
+    Инварианты: ARCHITECTURE-SPINE.md (AD-3 outbox/идемпотентность, AD-4 аудит, AD-5 контракты).
+servers:
+  - url: /v1
+paths:
+  /notices:
+    post:
+      summary: Создать извещение о закупке
+      operationId: createNotice
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+          description: AD-3 — все мутации идемпотентны
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NoticeCreate" }
+      responses:
+        "201":
+          description: Извещение создано (черновик)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notice" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /notices/{noticeId}/publish:
+    post:
+      summary: Подписать УКЭП и отправить на публикацию в ЕИС
+      operationId: publishNotice
+      parameters:
+        - { $ref: "#/components/parameters/noticeId" }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "202":
+          description: |
+            Принято. Публикация асинхронна (AD-3): статус
+            отслеживается через GET /notices/{noticeId}.
+            Состояния: sent → published | publication_failed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationStatus" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /notices/{noticeId}:
+    get:
+      summary: Получить извещение со статусом публикации
+      operationId: getNotice
+      parameters:
+        - { $ref: "#/components/parameters/noticeId" }
+      responses:
+        "200":
+          description: Извещение
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notice" }
+        "404": { description: Не найдено }
+  /notices/{noticeId}/bids:
+    post:
+      summary: Подать заявку на участие (поставщик)
+      operationId: submitBid
+      parameters:
+        - { $ref: "#/components/parameters/noticeId" }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BidCreate" }
+      responses:
+        "201":
+          description: Заявка принята (подпись УКЭП валидирована на границе)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bid" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+components:
+  parameters:
+    noticeId:
+      name: noticeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ValidationError:
+      description: Ошибка валидации
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Недопустимый переход состояния workflow
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    NoticeCreate:
+      type: object
+      required: [regime, title, lots, deadlineAt]
+      properties:
+        regime: { $ref: "#/components/schemas/ProcurementRegime" }
+        title: { type: string, maxLength: 500 }
+        lots:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Lot" }
+        deadlineAt: { type: string, format: date-time, description: "UTC (AD-4)" }
+    Lot:
+      type: object
+      required: [name, maxPrice, okpd2]
+      properties:
+        name: { type: string }
+        maxPrice: { type: number, minimum: 0, description: "НМЦК, руб." }
+        okpd2: { type: string, pattern: "^\\d{2}\\.\\d{2}\\.\\d{2}", description: "ОКПД2 из НСИ (AD-5)" }
+    Notice:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        regime: { $ref: "#/components/schemas/ProcurementRegime" }
+        title: { type: string }
+        status:
+          type: string
+          enum: [draft, sent, published, publication_failed, accepting_bids, closed]
+        createdAt: { type: string, format: date-time }
+    PublicationStatus:
+      type: object
+      properties:
+        noticeId: { type: string, format: uuid }
+        status: { type: string, enum: [sent, published, publication_failed] }
+        eisDocumentId: { type: string, description: "ID в ЕИС, после published" }
+    BidCreate:
+      type: object
+      required: [supplierInn, price, signature]
+      properties:
+        supplierInn: { type: string, pattern: "^\\d{10}(\\d{2})?$" }
+        price: { type: number, minimum: 0 }
+        signature: { type: string, format: byte, description: "УКЭП (base64, ГОСТ), валидация на границе (ADR-004)" }
+    Bid:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        noticeId: { type: string, format: uuid }
+        status: { type: string, enum: [accepted, rejected] }
+        submittedAt: { type: string, format: date-time }
+    ProcurementRegime:
+      type: string
+      enum: [FZ44, FZ223]
+      description: ADR-001 — правовой контур, наследуется процедурой
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        traceId: { type: string, format: uuid }

@@ -1,0 +1,11 @@
+# Эталонные оценки golden-документа adr_no_alternatives.md
+# (рубрика adr_quality). Сильный контекст, но вариант единственный
+# («другие варианты не рассматривались» — якорь 1); минусы абстрактны;
+# обратимость названа без пути; статус без expiry.
+rubric: adr_quality
+scores:
+  context: 5
+  alternatives: 1
+  negative_consequences: 3
+  reversibility: 3
+  status_discipline: 3

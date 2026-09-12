@@ -1,0 +1,34 @@
+Коммиты исполнителей (git log по worktree, 2026-08-16):
+каждый исполнитель САМ закоммитил результат — секция «Финализация» TASK.md;
+авто-коммит харнесса не понадобился ни разу (⚑-строк в выводе: 0).
+
+== p01-amount
+72a7009 Implement bankcalc.amount.validate_amount (AD-1)
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p02-money
+eac867e feat(bankcalc): реализовать модуль money с round_money и тесты
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p03-fee
+0574c04 feat(bankcalc.fee): calc_fee по базисным пунктам (AD-3)
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p04-rate
+eaf62c9 feat: bankcalc.rate — convert(amount, rate) = amount × rate (AD-4)
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p05-ids
+6b9c2c5 feat: реализовать bankcalc.ids payment_id (AD-5)
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p06-calendar
+19aaf33 реализован bankcalc.calendar: is_weekend (AD-6) + тесты
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p07-retry
+fc90423 feat(bankcalc.retry): экспоненциальный backoff (AD-7) + тесты
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p08-tax
+c7a5bc7 feat: implement bankcalc.tax (AD-8 vat) + tests
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p09-limit
+6cc2c73 Implement bankcalc.limit: daily_limit_key (AD-9) + tests
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)
+== p10-summary
+ae663ac feat(bankcalc.summary): implement summarize() per AD-10
+82d2f9d baseline: spine bankcalc-fleet (AD-1..AD-10)

@@ -1,0 +1,86 @@
+# CONSTRAINTS.yaml — fitness-правила для SYN-ACL-001 (генерируется prepare_cells.py).
+# Источник: mechanical_checks из RUBRICS.md (rubrics).
+# Проверка: arch-be control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: SP-SYN-ACL-001-01
+    name: deliverable-d1
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*резюме"
+    severity: high
+
+  - id: SP-SYN-ACL-001-02
+    name: deliverable-d2
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*схема"
+    severity: high
+
+  - id: SP-SYN-ACL-001-03
+    name: deliverable-d3
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(карта|паттерн)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-04
+    name: deliverable-d4
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*контракт"
+    severity: high
+
+  - id: SP-SYN-ACL-001-05
+    name: deliverable-d5
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(транзакц|согласованност)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-06
+    name: deliverable-d6
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(квот|лимит)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-07
+    name: deliverable-d7
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(отказоустойчив|катастрофоустойчив|\\bDR\\b)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-08
+    name: deliverable-d8
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(перевод|миграц)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-09
+    name: deliverable-d9
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*эксплуатац"
+    severity: high
+
+  - id: SP-SYN-ACL-001-10
+    name: deliverable-d10
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*трассиров"
+    severity: high
+
+  - id: SP-SYN-ACL-001-11
+    name: deliverable-d11
+    type: must_contain
+    glob: "answer.md"
+    pattern: "(?im)^#{1,3}.*(допущени|риск|альтернатив)"
+    severity: high
+
+  - id: SP-SYN-ACL-001-99
+    name: max-words
+    type: command_succeeds
+    command: "bash -c \"test $(wc -w < answer.md 2>/dev/null || echo 999999) -le 4000\""
+    severity: medium

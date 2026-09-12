@@ -1,0 +1,11 @@
+# Eval-задача: библиотека якорных рубрик читается.
+# Слой 1 (детерминированный, офлайн). См. docs/evals.md.
+id: rubrics-library
+title: Якорные рубрики развёрнуты и перечисляются
+command: "{arch} rubric list"
+checks:
+  - type: command_succeeds
+  - type: must_contain
+    pattern: "solution_architecture"
+  - type: must_contain
+    pattern: "adr_quality"

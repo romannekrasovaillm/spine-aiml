@@ -1,0 +1,33 @@
+# Произвольный граф зависимостей (супермножество остальных паттернов).
+id = "fixture-dag"
+package = "fixture"
+pattern = "dag"
+
+[policy]
+max_parallel = 3
+require_worktree = true
+
+[defaults]
+route = "standard"
+gates = ["contract"]
+on_fail = "block"
+
+[[nodes]]
+id = "schema"
+spec = "Миграция схемы данных."
+
+[[nodes]]
+id = "backfill"
+spec = "Бэкфилл данных по новой схеме."
+
+[[nodes]]
+id = "api"
+spec = "Обновить API под новую схему."
+
+[[edges]]
+from = "schema"
+to = "backfill"
+
+[[edges]]
+from = "schema"
+to = "api"

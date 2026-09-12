@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ml-selfplay",
+  "version": "1.0.0",
+  "description": "Доменный плагин AI/ML-исследователя: контракт selfplay-эпизода — как устроена генерация обучающих диалогов между агентом-средой (ENV-AGENT: генерирует задачи, ведёт состояние, даёт промежуточный отклик, грундует факты в базе концептов Ариадны) и обучаемой моделью (SOLVER). Ключевой инвариант: НИ ОДИН агент не назначает финальную награду — reward считает только внешний verifier-конвейер. Формат эпизода JSONL (episode_id/turn/actor/type/content/grounding), машина состояний INIT→TASK→SUBMIT→VERIFY→REWARD→LOG с ABORT, commit-reveal золотого эталона по sha256, режимы M1–M5, сэмплер по леджеру frontier и детекторы вырождения (коллапс, дрейф сложности, сговор env↔solver, length-bias, шаблонный коллапс, нарушение персоны). Связь с fitness/rubric-дисциплиной харнесса: reward = внешний verifier (rubric.rs weighted_total + изоляция судьи + k-сэмплов медиана), веса judge_weight/verifiable_weight = аналог весов критериев. Триггеры: «selfplay-эпизод», «ENV-AGENT», «SOLVER», «контракт эпизода», «JSONL эпизода», «внешний verifier», «reward назначает агент», «commit-reveal», «генерация selfplay-данных», «анти-дегенерация selfplay», «сговор env и solver».",
+  "keywords": [
+    "ml",
+    "selfplay",
+    "rl",
+    "env-agent",
+    "verifier"
+  ]
+}

@@ -1,0 +1,8 @@
+[Unit]
+Description=Billing worker (legacy monolith)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/monolith/billing/worker.py
+Restart=always
+User=loader

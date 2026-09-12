@@ -1,0 +1,10 @@
+# Эталонные оценки golden-документа adr_stub.md (рубрика adr_quality).
+# Заглушка из двух предложений: ни контекста, ни альтернатив, ни издержек,
+# ни обратимости, ни статуса — все критерии на якоре 1.
+rubric: adr_quality
+scores:
+  context: 1
+  alternatives: 1
+  negative_consequences: 1
+  reversibility: 1
+  status_discipline: 1

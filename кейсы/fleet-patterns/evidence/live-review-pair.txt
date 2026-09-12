@@ -1,0 +1,58 @@
+# Живой прогон review_pair на реальном харнессе (kimi-code), 2026-09-12
+# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на /home/user — гейт CI «personal paths» (AD-7).
+# $ arch-ml fleet run --repo <sandbox> --plan live-review.plan.toml
+
+Прогон плана live-review (review_pair): run-id fpl-1789206517329
+Узлов: 2 в 2 волнах; завершено 1, сбой 1, пропущено 0
+Журнал: /home/user/.arch-ml/state/fleet/fpl-1789206517329.jsonl
+Worktree узлов: 2
+  impl                     /home/user/.arch-ml/worktrees/repo-af63a34c86018bb1/fpl-1789206517329-impl
+  review-impl              /home/user/.arch-ml/worktrees/repo-af63a34c86018bb1/fpl-1789206517329-review-impl
+Интеграция — только гейтом владельца: fleet merge <run-id> --owner-approve
+
+[exited with code 1]
+
+# События журнала (heartbeat'ы свёрнуты)
+{"type":"plan_started","run_id":"fpl-1789206517329","plan_id":"live-review","pattern":"review_pair","plan_path":".arch-fleet/live-review.plan.toml","plan_sha256":"8026026591e499f59de9707ed5ace341dc9219ce206e3809141d91af71f6e637","n_nodes":2,"n_waves":2,"at":"2026-09-12 12:48:37"}
+{"type":"wave_started","run_id":"fpl-1789206517329","wave":0,"nodes":["impl"],"at":"2026-09-12 12:48:37"}
+{"type":"agent_started","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","kind":"harness:worker","at":"2026-09-12 12:48:37"}
+{"type":"agent_done","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"impl","exit_code":0,"duration_secs":116.325591628,"contract_status":"complete","at":"2026-09-12 12:50:33"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"impl","gate":"contract","verdict":"ok","detail":"статус complete; допущено: complete","at":"2026-09-12 12:50:35"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"impl","gate":"fitness","verdict":"ok","detail":"Правил: 8, нарушений: 0 (error: 0, warn: 0)","at":"2026-09-12 12:50:35"}
+{"type":"node_completed","run_id":"fpl-1789206517329","node_id":"impl","at":"2026-09-12 12:50:35"}
+{"type":"wave_started","run_id":"fpl-1789206517329","wave":1,"nodes":["review-impl"],"at":"2026-09-12 12:50:35"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"review-impl","gate":"dependency:impl","verdict":"ok","detail":"ветка arch/fpl-1789206517329-impl влита в дерево узла","at":"2026-09-12 12:50:35"}
+{"type":"agent_started","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","kind":"harness:reviewer","at":"2026-09-12 12:50:35"}
+{"type":"agent_done","run_id":"fpl-1789206517329","agent_id":"kimi-code","item_id":"review-impl","exit_code":0,"duration_secs":128.341483972,"contract_status":"missing","at":"2026-09-12 12:52:43"}
+{"type":"node_gated","run_id":"fpl-1789206517329","node_id":"review-impl","gate":"review","verdict":"fail","detail":"вердикт not-ready: находки блокируют интеграцию","at":"2026-09-12 12:52:43"}
+{"type":"run_finished","run_id":"fpl-1789206517329","n_assigned":2,"n_done":1,"n_failed":1,"n_unassigned":0,"at":"2026-09-12 12:52:43"}
+
+# Вердикт и находки ревьювера (его финальный ответ)
+• Пакет прочитан. Теперь проверю git-финализацию, прогон тестов и ключевые гипотезы о «ложных тестах».
+
+• ## Ревью: bankcalc/fee (срез AD-1/AD-2)
+
+  **Что в порядке (проверено выполнением):**
+  - Финализация по TASK.md:14-23 соблюдена: один коммит `fac6baa` поверх baseline `69ae630` (якорь отката существует, ROLLBACK.yaml:6-12), `.arch-handoff/` — только untracked, `git status` чист.
+  - `pytest` — 5/5 зелёные; правило `tests_pass` (CONSTRAINTS.yaml:45-49) пройдёт.
+  - Код модуля формально под инвариантами: одна публичная функция, приватные константы с `_`, нет print/сети/файлов (AD-1); арифметика на `Decimal` через `str()` + `quantize(ROUND_HALF_UP)` (AD-2, bankcalc/fee.py:19-20).
+
+  **Находки (все подтверждены прогоном):**
+
+  1. **Ложные тесты половины копейки — ядро гарантии AD-2 не защищено.** `tests/test_fee.py:15,17` не отличают требуемый Decimal+HALF_UP от запрещённого float+`round()`: прогон даёт `round(0.005,2)=0.01`, `round(0.025,2)=0.03` — float-реализация проходит оба ассерта (двоичные значения чуть выше десятичного тай-брейка). AD-2 именно от float-погрешности защищает (ARCHITECTURE-SPINE.md:12,16). Дискриминирующий кейс существует, но не включён: `calc_fee(10.0,125.0)` → 0.125 (точно представим в double): Decimal HALF_UP даёт 0.13, float HALF_EVEN — 0.12.
+
+  2. **Fitness-правила не связывают инварианты, которые декларируют.** CONSTRAINTS.yaml:1-3 заявляет проверку «AD-1 — одна публичная функция», но такого правила нет: `ad1_api_is_calc_fee` (:15-19) лишь требует наличие `def calc_fee(` — вторая публичная функция пройдёт гейт, нарушив ARCHITECTURE-SPINE.md:6. `ad2_decimal_used` (:33-37) и `ad2_half_up_rounding` (:39-43) — `must_contain` по токенам: удовлетворяются одним неиспользуемым импортом. `ad1_no_network` (:27-31) обходится from-формой: `re.search` по `from urllib.request import urlopen` и `from http.client import HTTPConnection` → False. Это ломает контур управления: провал гейта — сигнал отката (TASK.md:8), а на главных нарушениях он не сработает.
+
+  3. **Неконечные деньги: поведение неопределённо и противоречиво; пустой SPEC не эскалирован.** `calc_fee(nan, …)` молча возвращает `nan` (тихая порча в денежном ядре), `calc_fee(inf, …)` бросает необработанный `decimal.InvalidOperation` (bankcalc/fee.py:19-20). SPEC.md:9-25 — незаполненный шаблон, «границы ошибок» отсутствуют; TASK.md:40-42 обязывал свериться с SPEC и зафиксировать расхождения — контракт результата вернул `complete` без флагов.
+
+  4. **Нет теста отрицательных сумм.** Decimal ROUND_HALF_UP округляет от нуля: -0.125 → **-0.13** (проверено), float `round` дал бы -0.12. Сторно/возвраты — непокрытый класс расхождения (tests/test_fee.py).
+
+  5. **Незадекларированный конфликт контракта с AD-2.** TASK.md:3 требует float на границе; обратный `float()` (fee.py:20) на суммах ≥ 2^52 молча уничтожает копейки. Реализация в рамках контракта корректна, но это open_question к архитектору — не поднят.
+
+  **Минимум для READY:** дискриминирующий тай-брейк-тест `(10.0,125.0)→0.13` и негативный кейс; ужесточить гейт (подсчёт публичных def, from-формы сети, проверка использования Decimal/quantize, а не импорта); определить и зафиксировать в SPEC поведение на nan/inf (разумно — `ValueError`).
+
+  ```json
+  {"verdict":"NOT-READY","findings":[{"id":"F1","severity":"high","kind":"false_test","where":"tests/test_fee.py:15,17","evidence":"float+round(0.005,2)=0.01 и round(0.025,2)=0.03 — запрещённая AD-2 float-реализация проходит оба ассерта; дискриминирующий кейс calc_fee(10.0,125.0): Decimal HALF_UP=0.13 vs float HALF_EVEN=0.12 — в наборе отсутствует","invariant":"AD-2 (ARCHITECTURE-SPINE.md:12,16)"},{"id":"F2","severity":"high","kind":"constraints_mismatch","where":".arch-handoff/CONSTRAINTS.yaml:1-3,15-19,27-31,33-43","evidence":"заявленная проверка «одна публичная функция» отсутствует; ad2-правила — must_contain по токенам (проходят на неиспользуемом импорте); ad1_no_network обходится from-формой (re.search → False для urllib.request/http.client); гейт — сигнал отката по TASK.md:8, но на главных нарушениях не сработает","invariant":"AD-1 (ARCHITECTURE-SPINE.md:6), AD-2"},{"id":"F3","severity":"medium","kind":"edge_case+process","where":"bankcalc/fee.py:19-20; .arch-handoff/SPEC.md:9-25; .arch-handoff/TASK.md:40-42","evidence":"calc_fee(nan)→nan молча, calc_fee(inf)→необработанный decimal.InvalidOperation; SPEC — пустой шаблон, границы ошибок не определены; исполнитель вернул complete без open_questions/conflicts нарушив чеклист TASK.md:42","invariant":"AD-2 (семантика денег), TASK.md"},{"id":"F4","severity":"medium","kind":"missed_edge_case","where":"tests/test_fee.py","evidence":"нет теста отрицательных сумм; Decimal ROUND_HALF_UP округляет от нуля (-0.125→-0.13), float round дал бы -0.12 — сторно/возвраты не покрыты","invariant":"AD-2"},{"id":"F5","severity":"low","kind":"contract_conflict","where":".arch-handoff/TASK.md:3; bankcalc/fee.py:20","evidence":"float-граница по TASK против точных денег по AD-2; float() на ≥2^52 молча теряет копейки; конфликт не задекларирован в open_questions","invariant":"AD-2 vs TASK.md"}]}
+  ```
+
+

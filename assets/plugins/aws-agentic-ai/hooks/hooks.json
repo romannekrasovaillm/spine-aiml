@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[aws-agentic-ai] Проектируете агента? Сверьтесь с паттернами AWS PG (arch-ml skills search agentic)'"
+          }
+        ]
+      }
+    ]
+  }
+}
