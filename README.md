@@ -76,8 +76,8 @@ control check: fitness-гейты механически · evidence bundle · �
   исполняются и нативно, и настоящим ArchUnit по байткоду Java.
 
 <p align="center">
-  <img src="кейсы/fleet-of-ten/screenshots/run.png" alt="Флот из десяти исполнителей · a fleet of ten" width="70%">
-  <img src="кейсы/drift-control/screenshots/gate.png" alt="Спайн удержал: PASS 6/6 · spine held the line" width="70%">
+  <img src="docs/screenshots/04-rubric.png" alt="Рубрика ml_experiment_quality: оценка дизайна GRPO-эксперимента · rubric evaluation of a GRPO experiment design" width="46%">
+  <img src="docs/screenshots/05-handoff.png" alt="Handoff скелета GRPO-прогона кодовому харнессу · handing a GRPO-run skeleton to a coding harness" width="46%">
 </p>
 
 ### Что внутри
