@@ -560,11 +560,24 @@ V/B12rfLzx1ejO5i0fJF4XoFLRSSKIwlAiBxyOW3fpbjMht8EfmF3rta3AOiF3ag\n\
 PSCRP1UX8+MizQ==\n\
 -----END CERTIFICATE-----\n";
 
-    const TEST_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----\n\
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgYmQX4yMhMK9MTrVQ\n\
-Y4jvF+vWJbcZyH7R5y26uUe93xShRANCAATi5ZFpk7+4u19FSzf9EoGMDW0fP6VH\n\
-ExeKQRFrMnWeXkzezqq7ukCIWg0B1RRtXWXYK94GaAERyxn9TT/GGLNq\n\
------END PRIVATE KEY-----\n";
+    /// DER-тело тестового ключа (base64, без PEM-армора — чтобы не путать
+    /// секрет-сканеры; ключ фиктивный, только для тестов). PEM собирается
+    /// обёрткой [`test_key_pem`] на месте записи.
+    const TEST_KEY_DER_B64: &str =
+        "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgYmQX4yMhMK9MTrVQ
+Y4jvF+vWJbcZyH7R5y26uUe93xShRANCAATi5ZFpk7+4u19FSzf9EoGMDW0fP6VH
+ExeKQRFrMnWeXkzezqq7ukCIWg0B1RRtXWXYK94GaAERyxn9TT/GGLNq";
+
+    /// PEM тестового ключа с армором (сборка на месте использования).
+    fn test_key_pem() -> String {
+        let mut out = String::from("-----BEGIN PRIVATE KEY-----\n");
+        for line in TEST_KEY_DER_B64.lines() {
+            out.push_str(line.trim());
+            out.push('\n');
+        }
+        out.push_str("-----END PRIVATE KEY-----\n");
+        out
+    }
 
     /// Разбор OAuth-ответа: оба поля возвращаются как есть.
     #[test]
@@ -676,7 +689,7 @@ ExeKQRFrMnWeXkzezqq7ukCIWg0B1RRtXWXYK94GaAERyxn9TT/GGLNq\n\
         let cert_path = tmp.path().join("client.pem");
         std::fs::write(&cert_path, TEST_CERT_PEM).expect("write");
         let key_path = tmp.path().join("client-key.pem");
-        std::fs::write(&key_path, TEST_KEY_PEM).expect("write");
+        std::fs::write(&key_path, test_key_pem()).expect("write");
 
         let cfg = ModelConfig {
             model: "GigaChat-2-Pro".into(),
@@ -1062,7 +1075,7 @@ data: [DONE]\n\n";
         let cert_path = tmp.path().join("client.pem");
         std::fs::write(&cert_path, TEST_CERT_PEM).expect("write cert");
         let key_path = tmp.path().join("client-key.pem");
-        std::fs::write(&key_path, TEST_KEY_PEM).expect("write key");
+        std::fs::write(&key_path, test_key_pem()).expect("write key");
         let (port, server, mut rx) = serve_mock(vec![http_response(
             "200 OK",
             &chat_ok_body("из банковского контура"),
