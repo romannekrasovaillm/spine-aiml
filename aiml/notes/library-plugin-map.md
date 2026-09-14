@@ -17,8 +17,8 @@
 | `THEME_MAP` | `~/experiments/agents/0710-ariadna/package_themed_plugins.py:12-72` | Словарь **префикс имени скилла → имя плагина** (140 пар, напр. `"grpo-": "rl-training"`, `"memory-": "memory-systems"`, `"vllm-": "inference-engines"`) |
 | `skill_to_plugin.py` | `~/library/scripts/skill_to_plugin.py` | Роутит один SKILL.md-каталог в тематическое дерево плагинов |
 | `load_theme_map()` | `skill_to_plugin.py:35-40` | Импортирует `THEME_MAP` из пакетёра через `spec_from_file_location` |
-| `PACKAGER` | `skill_to_plugin.py:30` | **Захардкожен** на внешний путь `~/experiments/agents/0710-ariadna/package_themed_plugins.py` |
-| `DEFAULT_ROOT` | `skill_to_plugin.py:29` | **Захардкожен** на `~/experiments/agents/0710-ariadna/plugins` (внешнее дерево) |
+| `PACKAGER` | `skill_to_plugin.py:30` | **Захардкожен**: абсолютный путь вне репозитория (`/home/user/experiments/agents/0710-ariadna/package_themed_plugins.py`) |
+| `DEFAULT_ROOT` | `skill_to_plugin.py:29` | **Захардкожен**: абсолютный путь вне репозитория (`/home/user/experiments/agents/0710-ariadna/plugins`) |
 | `package_themed_plugins.py` | `SRC:7`, `DST:8` | Тот же внешний мир: `0710-ariadna/0710_v1` → `0710-ariadna/plugins` (1104 скилла) |
 
 **Важно (защита от вымысла):** `THEME_MAP` — это НЕ «тема дайджеста → плагин». Ключи в нём —
@@ -152,7 +152,7 @@ python3 ~/library/scripts/skill_to_plugin.py \
 **Режим B — синхронизация дефолтов (когда нужно без `--root`/`--theme`).**
 Правятся две константы скрипта:
 
-- `DEFAULT_ROOT` (`:29`) → `~/spine-aiml/aiml/plugins`;
+- `DEFAULT_ROOT` (`:29`) → абсолютный путь (`/home/user/spine-aiml/aiml/plugins`);
 - `PACKAGER` (`:30`) → aiml-овский файл тем (напр. `aiml/plugins/themes.py` из §4).
 
 `load_theme_map()` (`:35-40`) импортирует модуль целиком, но `main()` не запускается

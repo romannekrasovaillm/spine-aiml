@@ -1,5 +1,5 @@
 # Живой прогон review_pair на реальном харнессе (kimi-code), 2026-09-12
-# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на /home/user — гейт CI «personal paths» (AD-7).
+# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на `/home/user/` — гейт CI «personal paths» (AD-7).
 # $ arch-ml fleet run --repo <sandbox> --plan live-review.plan.toml
 
 Прогон плана live-review (review_pair): run-id fpl-1789206517329

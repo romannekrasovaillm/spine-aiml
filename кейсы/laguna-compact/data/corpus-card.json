@@ -1,0 +1,134 @@
+{
+  "card": "cpt-corpus-v12r",
+  "artifact": "претокен-кэш CPT-микса v12r (анти-форгеттинг общего языка)",
+  "date": "2026-09-14",
+  "constraint": "C-010 (AD-7: состав CPT-микса зафиксирован карточкой с хешем корпуса)",
+  "derived_from": [
+    "cpt_corpus_v12r.txt (манифест микса)",
+    "build_cpt_v12r_mix.py (сборка кэшей: chunk_tokens, смешение, shuffle)",
+    "build_cpt_v12r_pos.py, build_cpt_v12r_docs.py (варианты с позициями документов)",
+    "фактические sha256 и размеры файлов на /home/user/gb10-shared (пересчитаны 14.09.2026)"
+  ],
+  "source": {
+    "domain": {
+      "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+      "what": "концепт-карты Ariadna (домен ML/AI): определения, aliases, related, семейства",
+      "provenance": "внутренний корпус контура; каждая карточка несёт поле sources с идентификаторами arXiv",
+      "bytes": 299141131,
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c"
+    },
+    "replay": {
+      "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "what": "общий русский текст для реплея против форгеттинга общего языка",
+      "provenance": "HF-датасет wikimedia/wikipedia, конфигурация 20231101.ru (стриминг; fetch_general_replay.py), статьи <200 символов отброшены",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063"
+    },
+    "manifest": {
+      "path": "/home/user/gb10-shared/cpt_corpus_v12r.txt",
+      "what": "текстовый манифест микса (только описание: CPTDataset читает кэш по stem имени)",
+      "bytes": 1356,
+      "sha256": "c0248893ba0f12eeeeb1e5752a34e19843a39092dcb89acdfb2aaff684983863"
+    }
+  },
+  "license": {
+    "replay": "CC BY-SA 4.0 (Wikimedia, дамп 20231101.ru; атрибуция — история правок Wikipedia)",
+    "domain": "не задекларирована в контуре: концепт-карты Ariadna произведены внутри контура, поле sources ссылается на arXiv",
+    "domain_license_unresolved": true,
+    "license_status": "internal_only",
+    "license_note": "лицензия не устанавливается — режим внутреннего использования (ADR-005 Accepted, решение владельца 14.09.2026); публикация корпуса и производных (кэши, срезы, чекпойнты, отчёты с цитатами концептов) запрещена",
+    "license_adr": "ADR-005 (внутренний режим корпуса; переведён в Superseded) + ADR-011 (граница публикации: документы кейса и карточка-метаданные публикуются, корпус и производные — нет)",
+    "publication": {
+      "case_documents": "allowed",
+      "card_metadata": "allowed",
+      "corpus_and_derivatives": "prohibited",
+      "adr": "ADR-011",
+      "note": "доменных данных в кейсе нет: корпус живёт вне репозитория, в кейсе — документы, отчёты аудита (числа, пути, хеши) и эта карточка; персональные пути обезличены (/home/user/...)"
+    },
+    "note": "домен не публикуется как отдельный артефакт; вопрос лицензии поднят в отчёте S0 как открытый, а не закрыт предположением"
+  },
+  "mix": {
+    "domain_chunks": 7332,
+    "replay_chunks": 2444,
+    "chunks": 9776,
+    "tokens": 80084992,
+    "tokens_human": "≈80.1M",
+    "chunk_len": 8192,
+    "mix_domain_ratio": 0.75,
+    "mix_replay_ratio": 0.25,
+    "seed": 42,
+    "shuffle": "numpy RandomState(42).shuffle по оси чанков (chunk-level, после конкатенации домен+реплей)",
+    "arithmetic": "7332 × 8192 = 60063744 домен; 2444 × 8192 = 20021248 реплей; сумма 80084992"
+  },
+  "sha256": {
+    "cpt_corpus_v12r_8192_qwen25.npy": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+    "cpt_corpus_v12r_8192_qwen3.npy": "13f2812c47027715ca0b1cf39c5ef6ce2521006f04b5b7de7248effcd682e029",
+    "cpt_corpus_v12r_8192_qwen35.npy": "301c8ae65c8f8770e090eb119fa8a8947cfa884e14d625d1b6b717e0a8b440ff",
+    "cpt_corpus_v10.1_8192_qwen25.npy": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+  },
+  "artifacts": [
+    {
+      "path": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "role": "рабочий кэш ревизии: целевое семейство Qwen2.5-0.5B (ADR-002)",
+      "tag": "qwen25",
+      "dtype": "int32",
+      "shape": [9776, 8192],
+      "bytes": 320340096,
+      "sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f"
+    },
+    {
+      "path": "datasets/tok/cpt_corpus_v12r_8192_qwen3.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy",
+      "role": "тот же микс под Qwen3 (вне ревизии, AD-1)",
+      "tag": "qwen3",
+      "dtype": "int32",
+      "shape": [9776, 8192],
+      "bytes": 320340096,
+      "sha256": "13f2812c47027715ca0b1cf39c5ef6ce2521006f04b5b7de7248effcd682e029"
+    },
+    {
+      "path": "datasets/tok/cpt_corpus_v12r_8192_qwen35.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen35.npy",
+      "role": "тот же микс под Qwen3.5 (вне ревизии, AD-1)",
+      "tag": "qwen35",
+      "dtype": "int32",
+      "shape": [8967, 8192],
+      "bytes": 293830784,
+      "sha256": "301c8ae65c8f8770e090eb119fa8a8947cfa884e14d625d1b6b717e0a8b440ff"
+    },
+    {
+      "path": "datasets/tok/cpt_corpus_v10.1_8192_qwen25.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v10.1_8192_qwen25.npy",
+      "role": "доменный вход микса (7332 чанка, 75.0%)",
+      "tag": "qwen25",
+      "dtype": "int32",
+      "shape": [7332, 8192],
+      "bytes": 240255104,
+      "sha256": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+    }
+  ],
+  "tokenization": {
+    "special_tokens": ["<think>", "</think>", "<tool_call>", "</tool_call>",
+                       "<tool_response>", "</tool_response>", "<reasoning>", "</reasoning>"],
+    "tokenizers": {
+      "qwen25": "Qwen/Qwen2.5-0.5B",
+      "qwen3": "Qwen/Qwen3-0.6B",
+      "qwen35": "Qwen/Qwen3.5-0.8B-Base"
+    },
+    "pretokenize_scripts": ["build_cpt_v12r_mix.py", "build_cpt_v12r_pos.py",
+                            "build_cpt_v12r_docs.py", "pretokenize.py",
+                            "pretokenize_v11.py", "pretokenize_v9.py"],
+    "chunking": "chunk_tokens: нехвостовые блоки max_len (хвост < max_len отбрасывается)",
+    "guard": "C-008 / tools/check_special_tokens.py (токен-пространство, вхождения, add_special_tokens)"
+  },
+  "coupled_changes": {
+    "peak_lr_scale": 0.7,
+    "why": "анти-форгеттинг: сниженный пик WSD при CPT на доменном миксе (run_v12_ladder.sh, laguna_pipeline_v8.py --peak_lr_scale)"
+  },
+  "notes": [
+    "Кэш qwen35 содержит 8967 чанков, а не 9776: под этим тегом доменный вход cpt_corpus_v10.1_8192_qwen35.npy даёт 6523 чанка вместо 7332 (иная токенизация), 6523 + 2444 реплей = 8967. Для ревизии (qwen25) это несущественно: 9776 = 7332 + 2444.",
+    "Файлы данных не копируются в кейс: подключены симлинком datasets/ → /home/user/gb10-shared/datasets (AD-4, C-011).",
+    "Хеши пересчитаны фактически sha256sum по файлам сетевого диска, а не взяты из документации."
+  ]
+}

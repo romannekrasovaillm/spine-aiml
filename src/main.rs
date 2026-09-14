@@ -364,6 +364,81 @@ enum Cmd {
         #[command(subcommand)]
         cmd: ArchunitCmd,
     },
+    /// Реестр артефактов ML-контура: манифест весов/датасетов/токенизаторов
+    /// (`artifacts.yaml`) и механическая проверка против файловой системы.
+    Weights {
+        #[command(subcommand)]
+        cmd: WeightsCmd,
+    },
+    /// Датасет-карточки: объявленные поля против пробелов и противоречий.
+    DataCard {
+        #[command(subcommand)]
+        cmd: DataCardCmd,
+    },
+    /// Eval траекторий: метрики эпизодов (`success_rate`, `ci95`, `pass@k`).
+    Trajectory {
+        #[command(subcommand)]
+        cmd: TrajectoryCmd,
+    },
+}
+
+/// Подкоманды `arch-ml weights` (реестр артефактов, `artifacts.yaml`).
+#[derive(Subcommand)]
+enum WeightsCmd {
+    /// Объявленные артефакты манифеста (без обращения к диску).
+    List {
+        /// Манифест артефактов (по умолчанию `artifacts.yaml`).
+        #[arg(long)]
+        manifest: Option<PathBuf>,
+    },
+    /// Механическая проверка манифеста против файловой системы.
+    Verify {
+        /// Манифест артефактов (по умолчанию `artifacts.yaml`).
+        #[arg(long)]
+        manifest: Option<PathBuf>,
+        /// Вывести отчёт в JSON вместо текста.
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+/// Подкоманды `arch-ml data-card` (датасет-карточки).
+#[derive(Subcommand)]
+enum DataCardCmd {
+    /// Проверить карточки: объявленные поля, пробелы, противоречия.
+    Check {
+        /// Файл или каталог карточек (по умолчанию текущий каталог).
+        #[arg(long)]
+        cards: Option<PathBuf>,
+        /// Путь к датасету, к которому относятся проверяемые карточки.
+        /// Без флага противоречия не проверяются: существование файла по
+        /// неизвестному пути не доказать, ложно-красный недопустим.
+        #[arg(long)]
+        dataset: Option<PathBuf>,
+        /// Считать пробелы и противоречия провалом (ненулевой код возврата).
+        #[arg(long)]
+        strict: bool,
+    },
+}
+
+/// Подкоманды `arch-ml trajectory` (eval траекторий).
+#[derive(Subcommand)]
+enum TrajectoryCmd {
+    /// Посчитать метрики эпизодов из файла траекторий.
+    Metrics {
+        /// Файл траекторий (JSONL).
+        #[arg(long)]
+        input: PathBuf,
+        /// Формат входа: `auto` | `episode-jsonl` | `session-journal` | `selfplay`.
+        #[arg(long, default_value = "auto")]
+        format: String,
+        /// `k` для несмещённой оценки pass@k.
+        #[arg(long, default_value_t = 1)]
+        k: usize,
+        /// Вывести метрики в JSON вместо текста.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Подкоманды `arch-ml resources` (локальные GPU, `[[gpus.local]]`).
@@ -533,10 +608,10 @@ enum AcceptCmd {
     },
 }
 
-/// Подкоманды `arch-ml evolve` (H2.2).
+/// Подкоманды `arch-ml evolve` (H2.2, ADR-046 п.3).
 #[derive(Subcommand)]
 enum EvolveCmd {
-    /// Предложить изменение доменного слоя.
+    /// Предложить изменение доменного слоя (managed-блок) или файла ядра (file).
     Propose {
         /// Id предложения (kebab-case).
         #[arg(long)]
@@ -544,23 +619,35 @@ enum EvolveCmd {
         /// Целевой файл (относительно репо).
         #[arg(long)]
         target: String,
-        /// Managed-блок (id) внутри файла.
+        /// Managed-блок (id) внутри файла — только для mode=block.
         #[arg(long)]
-        block_id: String,
-        /// Новое тело блока.
+        block_id: Option<String>,
+        /// Новое тело блока (mode=block) либо содержимое целиком (mode=file).
         #[arg(long)]
-        content: String,
+        content: Option<String>,
+        /// Файл с новым содержимым (альтернатива --content; для mode=file).
+        #[arg(long)]
+        content_file: Option<PathBuf>,
+        /// Режим применения: block (managed-блок, дефолт) | file (замена целиком).
+        #[arg(long, default_value = "block")]
+        mode: String,
+        /// Базовый SHA-256 целевого файла (mode=file; по умолчанию — с диска).
+        #[arg(long)]
+        base_sha256: Option<String>,
         /// Именной аппрувер.
         #[arg(long)]
         approver: String,
     },
     /// Список предложений.
     List,
-    /// Коммит предложения (гейт: аппрувер + apply managed-блока).
+    /// Коммит предложения (гейт: аппрувер; для mode=file — зелёный baseline-судья).
     Commit {
         /// Id предложения.
         #[arg(long)]
         id: String,
+        /// Путь baseline-судьи (иначе `ARCH_ML_JUDGE` / `[fleet] judge_binary`).
+        #[arg(long)]
+        judge: Option<PathBuf>,
     },
     /// Отклонить предложение.
     Reject {
@@ -655,18 +742,27 @@ enum FleetCmd {
     },
     /// Гейт мерджа результата прогона флота (worktree `arch/<run-id>`) в
     /// основную ветку — «агент не имеет пути в main», интеграцию подтверждает
-    /// владелец. Без --owner-approve печатает сводку прогона (diff stat,
-    /// коммиты ветки, статус контракта из лога-evidence) и ОТКАЗЫВАЕТ мержить
-    /// (exit 1). Режим гейта — [fleet] `merge_gate` ("owner" по умолчанию,
-    /// "none" — без гейта).
+    /// владелец. Без --owner-approve и без --approver печатает сводку прогона
+    /// (diff stat, коммиты ветки, статус контракта из лога-evidence) и
+    /// ОТКАЗЫВАЕТ мержить (exit 1). Режим гейта — [fleet] `merge_gate`
+    /// ("owner" по умолчанию, "none" — без гейта).
     Merge {
         /// Run-id прогона (имя worktree без префикса arch/, напр.
         /// claude-code-20260825103000 — его сообщает `harness_run` при
         /// [fleet] `require_worktree` = true).
         run_id: String,
         /// Явное подтверждение владельца: выполнить merge в основную ветку.
+        /// Это НЕ именной обход: без --approver вердикт ревьювера `NOT-READY`
+        /// блокирует и этот путь (ADR-046, п. 2).
         #[arg(long)]
         owner_approve: bool,
+        /// Именной аппрувер: обход блокирующего вердикта ревьювера (NOT-READY)
+        /// по ветке прогона. Решение пишется в журнал приёмки
+        /// (`state_dir/accept/decisions.jsonl`) — той же записью, что у
+        /// `worktree accept --approver`; подтверждает интеграцию вместо
+        /// --owner-approve.
+        #[arg(long)]
+        approver: Option<String>,
         /// Репозиторий (по умолчанию — текущий каталог).
         #[arg(long)]
         repo: Option<PathBuf>,
@@ -687,6 +783,12 @@ enum FleetCmd {
         /// Метка пакета/эпика (для журнала).
         #[arg(long, default_value = "fleet")]
         package: String,
+        /// Baseline-судья гейтов узлов (ADR-046): путь к бинарю, собранному
+        /// ДО прогона. Приоритет над `[fleet] judge_binary`. Без флага и
+        /// конфига берётся бинарь, запустивший флот; команда гейта, зовущая
+        /// судью внутри ворктри узла, без baseline падает (самооценка).
+        #[arg(long)]
+        judge: Option<PathBuf>,
     },
     /// Управление планами флота: предложить, проверить, показать.
     Plan {
@@ -755,6 +857,16 @@ enum FleetPlanCmd {
         /// Каталог планов (дефолт `[fleet] plan_dir` = .arch-fleet).
         #[arg(long)]
         out: Option<PathBuf>,
+        /// Собрать план из набора решений (ADR-045) вместо handoff-пакета:
+        /// один узел на ADR, рёбра — из `depends_on`.
+        #[arg(long)]
+        from_adrs: bool,
+        /// Каталог ADR для `--from-adrs` (дефолт `docs/adr` от `--repo`).
+        #[arg(long)]
+        adr_dir: Option<PathBuf>,
+        /// Отбор ADR по статусу: proposed|accepted|all (дефолт proposed).
+        #[arg(long)]
+        status: Option<String>,
     },
     /// Механическая проверка плана (без LLM, без прогона): exit 1 при ошибке.
     Validate {
@@ -812,6 +924,11 @@ enum WorktreeCmd {
         /// Репозиторий (по умолчанию — текущий каталог).
         #[arg(long)]
         repo: Option<PathBuf>,
+        /// Явный именной аппрувер: обход блокирующего вердикта ревьювера
+        /// (NOT-READY) по этой ветке. Решение пишется в журнал приёмки
+        /// (`state_dir/accept/decisions.jsonl`).
+        #[arg(long)]
+        approver: Option<String>,
     },
     /// Удалить worktree без merge (только чистое).
     Drop {
@@ -952,7 +1069,9 @@ enum ControlCmd {
     Check {
         /// Репозиторий.
         repo: PathBuf,
-        /// Файл ограничений (по умолчанию <repo>/.arch-handoff/`CONSTRAINTS.yaml`).
+        /// Файл ограничений (по умолчанию — рабочий <repo>/`CONSTRAINTS.yaml`,
+        /// затем пакетный <repo>/.arch-handoff/`CONSTRAINTS.yaml` как fallback
+        /// с предупреждением).
         #[arg(long)]
         constraints: Option<PathBuf>,
         /// Машиночитаемый вывод: JSON-отчёт `FitnessReport` (SDK-контракт v1).
@@ -987,7 +1106,8 @@ enum ControlCmd {
     RulesReport {
         /// Репозиторий.
         repo: PathBuf,
-        /// Файл ограничений (по умолчанию <repo>/.arch-handoff/`CONSTRAINTS.yaml`).
+        /// Файл ограничений (по умолчанию — рабочий <repo>/`CONSTRAINTS.yaml`,
+        /// затем пакетный <repo>/.arch-handoff/`CONSTRAINTS.yaml` как fallback).
         #[arg(long)]
         constraints: Option<PathBuf>,
     },
@@ -997,7 +1117,8 @@ enum ControlCmd {
     Report {
         /// Репозиторий.
         repo: PathBuf,
-        /// Файл ограничений (по умолчанию <repo>/.arch-handoff/`CONSTRAINTS.yaml`).
+        /// Файл ограничений (по умолчанию — рабочий <repo>/`CONSTRAINTS.yaml`,
+        /// затем пакетный <repo>/.arch-handoff/`CONSTRAINTS.yaml` как fallback).
         #[arg(long)]
         constraints: Option<PathBuf>,
         /// Уровень: corp (только унаследованные правила) | all (все).
@@ -1755,6 +1876,9 @@ async fn main() -> Result<()> {
         Some(Cmd::Fleet { cmd }) => cmd_fleet(&cfg, cmd).await?,
         Some(Cmd::Survey { repo, out }) => cmd_survey(&repo, out.as_deref())?,
         Some(Cmd::Archunit { cmd }) => cmd_archunit(cmd).await?,
+        Some(Cmd::Weights { cmd }) => cmd_weights(&cfg, cmd)?,
+        Some(Cmd::DataCard { cmd }) => cmd_data_card(&cfg, cmd)?,
+        Some(Cmd::Trajectory { cmd }) => cmd_trajectory(&cfg, cmd)?,
     }
     Ok(())
 }
@@ -1956,13 +2080,22 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
         FleetCmd::Merge {
             run_id,
             owner_approve,
+            approver,
             repo,
         } => {
             let repo = match repo {
                 Some(r) => r,
                 None => std::env::current_dir().context("cwd")?,
             };
-            match arch_harness::worktree::gated_merge(cfg, &repo, &run_id, owner_approve).await? {
+            match arch_harness::worktree::gated_merge(
+                cfg,
+                &repo,
+                &run_id,
+                owner_approve,
+                approver.as_deref(),
+            )
+            .await?
+            {
                 arch_harness::worktree::MergeGateOutcome::Refused(summary) => {
                     outln!("{summary}");
                     std::process::exit(1);
@@ -1975,6 +2108,7 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
             items_file,
             plan,
             package,
+            judge,
         } => {
             let state_dir = cfg.paths.state_dir.clone();
             let agents = arch_harness::fleet_run::harness_profiles(cfg);
@@ -1988,6 +2122,7 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
                         plan,
                         &agents,
                         arch_harness::fleet_exec::ResumeMode::Fresh,
+                        judge.as_deref(),
                     )
                     .await?;
                     outp!(
@@ -2034,6 +2169,7 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
                 &run_id,
                 force_rerun,
                 &agents,
+                None,
             )
             .await?;
             outp!(
@@ -2106,7 +2242,14 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
 fn cmd_fleet_plan(cfg: &Arc<Config>, cmd: FleetPlanCmd) -> Result<()> {
     use arch_harness::fleet_plan;
     match cmd {
-        FleetPlanCmd::Propose { repo, pattern, out } => {
+        FleetPlanCmd::Propose {
+            repo,
+            pattern,
+            out,
+            from_adrs,
+            adr_dir,
+            status,
+        } => {
             let repo = match repo {
                 Some(r) => r,
                 None => std::env::current_dir().context("cwd")?,
@@ -2115,16 +2258,56 @@ fn cmd_fleet_plan(cfg: &Arc<Config>, cmd: FleetPlanCmd) -> Result<()> {
                 Some(p) => Some(fleet_plan::PatternKind::parse(&p)?),
                 None => None,
             };
-            let (plan, rationale) = fleet_plan::propose(&repo, forced)?;
             let target = out.unwrap_or_else(|| repo.join(&cfg.fleet.plan_dir));
-            let path = fleet_plan::write_plan(&plan, &target)?;
-            outln!("План записан: {}", path.display());
-            outp!("{rationale}");
-            let issues = fleet_plan::validate_plan(&plan);
-            if !issues.is_empty() {
-                outln!("\nПроверка черновика:");
-                for issue in &issues {
-                    outln!("  {:?}: {}", issue.severity, issue.message);
+            if from_adrs {
+                let dir = match adr_dir {
+                    Some(d) if d.is_absolute() => d,
+                    Some(d) => repo.join(d),
+                    None => repo.join(fleet_plan::ADR_DIR),
+                };
+                let filter = match status {
+                    Some(s) => fleet_plan::AdrStatusFilter::parse(&s)?,
+                    None => fleet_plan::AdrStatusFilter::Proposed,
+                };
+                let proposal = fleet_plan::propose_from_adrs(&dir, filter, forced)
+                    .with_context(|| format!("план из ADR каталога '{}'", dir.display()))?;
+                let path = fleet_plan::write_plan(&proposal.plan, &target)
+                    .with_context(|| format!("запись плана в '{}'", target.display()))?;
+                outln!("План записан: {}", path.display());
+                outp!("{}", proposal.rationale);
+                for w in &proposal.warnings {
+                    outln!("  ⚠ {w}");
+                }
+                let issues = fleet_plan::validate_plan(&proposal.plan);
+                if !issues.is_empty() {
+                    outln!("\nПроверка черновика:");
+                    for issue in &issues {
+                        outln!("  {:?}: {}", issue.severity, issue.message);
+                    }
+                }
+                // Гейт независимости — отказ, а не совет: пара без пути с общим
+                // путём записи не может стартовать (ADR-045). План-черновик уже
+                // записан — владелец правит рёбра, а не генерирует заново.
+                if issues
+                    .iter()
+                    .any(|i| i.severity == fleet_plan::PlanSeverity::Error)
+                {
+                    std::process::exit(1);
+                }
+            } else {
+                if adr_dir.is_some() || status.is_some() {
+                    anyhow::bail!("--adr-dir/--status имеют смысл только с --from-adrs");
+                }
+                let (plan, rationale) = fleet_plan::propose(&repo, forced)?;
+                let path = fleet_plan::write_plan(&plan, &target)?;
+                outln!("План записан: {}", path.display());
+                outp!("{rationale}");
+                let issues = fleet_plan::validate_plan(&plan);
+                if !issues.is_empty() {
+                    outln!("\nПроверка черновика:");
+                    for issue in &issues {
+                        outln!("  {:?}: {}", issue.severity, issue.message);
+                    }
                 }
             }
         }
@@ -2217,10 +2400,15 @@ async fn cmd_worktree(cfg: &Arc<Config>, cmd: WorktreeCmd) -> Result<()> {
                 arch_harness::worktree::diff(&repo_of(repo), &name).await?
             );
         }
-        WorktreeCmd::Accept { name, repo } => {
+        WorktreeCmd::Accept {
+            name,
+            repo,
+            approver,
+        } => {
             outln!(
                 "{}",
-                arch_harness::worktree::accept(cfg, &repo_of(repo), &name).await?
+                arch_harness::worktree::accept(cfg, &repo_of(repo), &name, approver.as_deref())
+                    .await?
             );
         }
         WorktreeCmd::Drop { name, repo } => {
@@ -2505,6 +2693,9 @@ async fn cmd_run(
     };
     let tools = arch_harness::tools::full_registry(&cfg);
     let cwd = std::env::current_dir().context("cwd")?;
+    // Путь проекта строкой — до того, как `cwd` уедет в `ToolContext`
+    // (владелец один): нужен как аргумент доменного хука `intent`.
+    let repo = cwd.to_string_lossy().into_owned();
     let tool_ctx = ToolContext::new(cwd, cfg.clone())
         .with_llm(registry.clone())
         .with_provider(provider.clone())
@@ -2516,7 +2707,21 @@ async fn cmd_run(
     // continuation — цель материализуется в контексте как `user`-сообщение
     // (спека `aiml/notes/goal-mode.md` §2). Дальше петля продолжает сама.
     let input = if let Some(spec) = goal_spec {
+        // Роутинг по фактам проекта: текст намерения уходит доменным хуком
+        // `intent` (плагин hypothesis-router) сразу после приёма цели, до
+        // первого хода, — «after text received, before REQ/NFR». Строка
+        // теплицы идёт в stderr (прогресс-канал): в stream/quiet-режиме
+        // stdout пайпа несёт только ответ модели. Хук не установлен или
+        // промолчал — строки нет, и выдумывать гипотезы нечем.
+        let intent_hint = arch_harness::agent::slash::intent_line(
+            &cfg.plugins.dirs,
+            Path::new(&repo),
+            &spec.objective,
+        );
         session.goal_set(spec);
+        if let Some(hint) = intent_hint {
+            let _ = writeln!(std::io::stderr().lock(), "\x1b[2m» {hint}\x1b[0m");
+        }
         session.goal_kickoff_message().unwrap_or(input)
     } else {
         input
@@ -2794,17 +2999,18 @@ fn cmd_accept(cfg: &Config, cmd: Option<AcceptCmd>) -> Result<()> {
     Ok(())
 }
 
-/// `arch-ml evolve`: guarded harness evolution (H2.2).
+/// `arch-ml evolve`: guarded harness evolution (H2.2, ADR-046 п.3).
 fn cmd_evolve(cfg: &Config, cmd: Option<EvolveCmd>) -> Result<()> {
     let state = &cfg.paths.state_dir;
     match cmd {
-        None => {
+        None | Some(EvolveCmd::List) => {
             for p in arch_harness::evolve::evolve_list(state)? {
                 outln!(
-                    "[{}] {} → {} (block {}) — {}",
+                    "[{}] {} → {} (mode {}, block {}) — {}",
                     p.status,
                     p.id,
                     p.target,
+                    p.mode,
                     p.block_id,
                     p.approver
                 );
@@ -2815,30 +3021,64 @@ fn cmd_evolve(cfg: &Config, cmd: Option<EvolveCmd>) -> Result<()> {
             target,
             block_id,
             content,
+            content_file,
+            mode,
+            base_sha256,
             approver,
         }) => {
-            let path = arch_harness::evolve::evolve_propose(
-                state, &id, &target, &block_id, &content, &approver,
-            )?;
+            let repo = std::env::current_dir().context("evolve: нет рабочего каталога")?;
+            let body = match (content, content_file) {
+                (Some(_), Some(_)) => {
+                    anyhow::bail!("evolve: укажите ровно одно из --content / --content-file")
+                }
+                (Some(text), None) => text,
+                (None, Some(path)) => std::fs::read_to_string(&path).with_context(|| {
+                    format!("evolve: не читается --content-file {}", path.display())
+                })?,
+                (None, None) => {
+                    anyhow::bail!("evolve: нужен --content (block) или --content-file (file)")
+                }
+            };
+            let req = arch_harness::evolve::ProposeRequest {
+                id: &id,
+                target: &target,
+                mode: &mode,
+                block_id: block_id.as_deref().unwrap_or(""),
+                content: &body,
+                approver: &approver,
+                base_sha256: base_sha256.as_deref(),
+            };
+            let path = arch_harness::evolve::evolve_propose(state, &repo, &req)?;
             outln!("предложение записано: {}", path.display());
         }
-        Some(EvolveCmd::List) => {
-            for p in arch_harness::evolve::evolve_list(state)? {
-                outln!(
-                    "[{}] {} → {} (block {}) — {}",
-                    p.status,
-                    p.id,
-                    p.target,
-                    p.block_id,
-                    p.approver
-                );
-            }
-        }
-        Some(EvolveCmd::Commit { id }) => {
-            let p = arch_harness::evolve::evolve_commit(state, &id)?;
+        Some(EvolveCmd::Commit { id, judge }) => {
             let repo = std::env::current_dir().context("evolve: нет рабочего каталога")?;
-            arch_harness::evolve::evolve_apply(&repo, &p)?;
-            outln!("предложение {} committed + применено к {}", p.id, p.target);
+            let proposal = arch_harness::evolve::evolve_find(state, &id)?;
+            // Правка ядра (mode=file) требует baseline-судью; managed-блоки
+            // доменного слоя гейт не проходят (поведение прежнее).
+            let gate = if proposal.mode.trim() == arch_harness::evolve::MODE_FILE {
+                let resolved = arch_harness::evolve::resolve_judge(
+                    judge.as_deref(),
+                    cfg.fleet.judge_binary.as_deref(),
+                    &repo,
+                )?;
+                Some(arch_harness::evolve::GatePlan::baseline(resolved))
+            } else {
+                None
+            };
+            let p = arch_harness::evolve::evolve_commit(state, &id, &repo, gate.as_ref())?;
+            // file-режим вносит контент уже на коммите (гейт судит внесённый
+            // контент), поэтому `apply` для него — явный отказ, а не молчаливый
+            // no-op: повторно применять нечего.
+            if p.mode.trim() != arch_harness::evolve::MODE_FILE {
+                arch_harness::evolve::evolve_apply(&repo, &p)?;
+            }
+            outln!(
+                "предложение {} (mode={}) committed + применено к {}",
+                p.id,
+                p.mode,
+                p.target
+            );
         }
         Some(EvolveCmd::Reject { id }) => {
             arch_harness::evolve::evolve_reject(state, &id)?;
@@ -3213,6 +3453,45 @@ fn cmd_publish(cmd: PublishCmd) -> Result<()> {
     Ok(())
 }
 
+/// Дефолтный ruleset control-команд: явный `--constraints`, иначе рабочий
+/// `<repo>/CONSTRAINTS.yaml`, иначе — как fallback — пакетный
+/// `<repo>/.arch-handoff/CONSTRAINTS.yaml`. Возвращает путь и метку источника
+/// (`None` — путь задан явно, объявлять нечего).
+fn control_ruleset(
+    repo: &Path,
+    explicit: Option<PathBuf>,
+) -> Result<(PathBuf, Option<arch_harness::control::ResolvedRuleset>)> {
+    if let Some(path) = explicit {
+        return Ok((path, None));
+    }
+    let resolved = arch_harness::control::resolve_ruleset_required(repo)?;
+    Ok((resolved.path.clone(), Some(resolved)))
+}
+
+/// Предупреждение в stderr, если найден только пакетный файл (PASS по
+/// заготовке — не полный контроль). stdout не трогает: JSON-отчёты и
+/// markdown-отчёты остаются парсимыми.
+fn warn_ruleset(repo: &Path, resolved: Option<&arch_harness::control::ResolvedRuleset>) {
+    if let Some(warning) = resolved.and_then(|r| r.warning(repo)) {
+        eprintln!("[warning] {warning}");
+    }
+}
+
+/// Объявляет источник правил (stdout) + предупреждение о заготовке (stderr).
+/// Только для `check` — гейта, чей контракт прямо требует печатать, какой
+/// ruleset проверялся.
+fn announce_ruleset(repo: &Path, resolved: Option<&arch_harness::control::ResolvedRuleset>) {
+    warn_ruleset(repo, resolved);
+    let Some(resolved) = resolved else {
+        return;
+    };
+    outln!(
+        "Ruleset: {} ({})",
+        resolved.path.display(),
+        resolved.kind.label()
+    );
+}
+
 fn cmd_control(cfg: &arch_harness::config::Config, cmd: ControlCmd) -> Result<()> {
     match cmd {
         ControlCmd::Check {
@@ -3220,15 +3499,19 @@ fn cmd_control(cfg: &arch_harness::config::Config, cmd: ControlCmd) -> Result<()
             constraints,
             json,
         } => {
-            let c = constraints.unwrap_or_else(|| repo.join(".arch-handoff/CONSTRAINTS.yaml"));
+            let (c, resolved) = control_ruleset(&repo, constraints)?;
             let report = arch_harness::control::check(&repo, &c)?;
             if json {
+                // JSON-контракт: источник и предупреждение не подмешиваются
+                // в stdout (парсер отчёта), только в stderr.
+                warn_ruleset(&repo, resolved.as_ref());
                 // SDK-контракт v1: машиночитаемый отчёт, exit code как в текстовом режиме.
                 outln!(
                     "{}",
                     serde_json::to_string(&report).expect("FitnessReport сериализуется")
                 );
             } else {
+                announce_ruleset(&repo, resolved.as_ref());
                 outln!("{}", report.summary);
                 // Наследование корп-спайна (extends): метки источников видны
                 // в выводе (docs/corp-spine.md).
@@ -3381,7 +3664,8 @@ fn cmd_control(cfg: &arch_harness::config::Config, cmd: ControlCmd) -> Result<()
             }
         }
         ControlCmd::RulesReport { repo, constraints } => {
-            let c = constraints.unwrap_or_else(|| repo.join(".arch-handoff/CONSTRAINTS.yaml"));
+            let (c, resolved) = control_ruleset(&repo, constraints)?;
+            warn_ruleset(&repo, resolved.as_ref());
             outp!("{}", arch_harness::control::rules_report(&repo, &c)?);
         }
         ControlCmd::Report {
@@ -3390,9 +3674,10 @@ fn cmd_control(cfg: &arch_harness::config::Config, cmd: ControlCmd) -> Result<()
             level,
             json,
         } => {
-            let c = constraints.unwrap_or_else(|| repo.join(".arch-handoff/CONSTRAINTS.yaml"));
+            let (c, resolved) = control_ruleset(&repo, constraints)?;
             let report = arch_harness::control::control_report(&repo, &c, &level)?;
             if json {
+                warn_ruleset(&repo, resolved.as_ref());
                 // SDK-контракт v1: машиночитаемый отчёт; report — отчётность,
                 // exit code гейт не дублирует.
                 outln!(
@@ -3400,6 +3685,7 @@ fn cmd_control(cfg: &arch_harness::config::Config, cmd: ControlCmd) -> Result<()
                     serde_json::to_string(&report).expect("ControlReport сериализуется")
                 );
             } else {
+                warn_ruleset(&repo, resolved.as_ref());
                 outp!("{}", arch_harness::control::render_control_report(&report));
             }
         }
@@ -3662,6 +3948,211 @@ fn cmd_skills(cfg: &Config, cmd: SkillsCmd) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// `arch-ml weights`: реестр артефактов ML-контура (`artifacts.yaml`).
+fn cmd_weights(_cfg: &Config, cmd: WeightsCmd) -> Result<()> {
+    match cmd {
+        WeightsCmd::List { manifest } => {
+            let path =
+                manifest.unwrap_or_else(|| PathBuf::from(arch_harness::weights::DEFAULT_MANIFEST));
+            let m = arch_harness::weights::load_manifest(&path)?;
+            outln!("Артефактов: {} ({})", m.artifacts.len(), path.display());
+            for a in &m.artifacts {
+                outln!(
+                    "  {:<24} {:<10} {}",
+                    a.id,
+                    artifact_kind_str(a.kind),
+                    a.path.display()
+                );
+            }
+        }
+        WeightsCmd::Verify { manifest, json } => {
+            let path =
+                manifest.unwrap_or_else(|| PathBuf::from(arch_harness::weights::DEFAULT_MANIFEST));
+            let m = arch_harness::weights::load_manifest(&path)?;
+            let root = std::env::current_dir().context("текущий каталог")?;
+            let report = arch_harness::weights::verify(&m, &root);
+            if json {
+                let (ok, warn, fail) = report.counts();
+                let v = serde_json::json!({
+                    "ok": ok,
+                    "warn": warn,
+                    "fail": fail,
+                    "checks": report.checks.iter().map(|c| serde_json::json!({
+                        "id": c.id,
+                        "status": check_status_str(c.status),
+                        "detail": c.detail,
+                    })).collect::<Vec<_>>(),
+                });
+                outln!("{}", serde_json::to_string_pretty(&v)?);
+            } else {
+                outp!("{}", arch_harness::weights::render_report(&report));
+            }
+            if report.has_failures() {
+                return Err(anyhow::anyhow!("проверка артефактов: есть провалы"));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Строковая метка роли артефакта.
+fn artifact_kind_str(kind: Option<arch_harness::weights::ArtifactKind>) -> &'static str {
+    match kind {
+        Some(arch_harness::weights::ArtifactKind::Weights) => "weights",
+        Some(arch_harness::weights::ArtifactKind::Dataset) => "dataset",
+        Some(arch_harness::weights::ArtifactKind::Tokenizer) => "tokenizer",
+        Some(arch_harness::weights::ArtifactKind::Other) => "other",
+        None => "-",
+    }
+}
+
+/// Строковая метка статуса проверки артефакта.
+fn check_status_str(status: arch_harness::weights::CheckStatus) -> &'static str {
+    match status {
+        arch_harness::weights::CheckStatus::Ok => "ok",
+        arch_harness::weights::CheckStatus::Warn => "warn",
+        arch_harness::weights::CheckStatus::Fail => "fail",
+    }
+}
+
+/// `arch-ml data-card`: датасет-карточки.
+///
+/// Семантика `check` зафиксирована ядром `dataset_card`:
+/// - пустое обязательное поле — декларация-пробел, НЕ провал (карточек на
+///   диске может не быть, ложно-красный недопустим);
+/// - противоречия (`sha256`/`records` объявлены, а файла датасета нет)
+///   проверяются только при явном `--dataset`: без пути «файла нет» не
+///   доказать, поэтому без флага проблема не выдумывается.
+///
+/// `--strict` сохраняет смысл: и пробелы, и противоречия дают ненулевой код
+/// возврата с разбивкой в тексте ошибки.
+fn cmd_data_card(_cfg: &Config, cmd: DataCardCmd) -> Result<()> {
+    match cmd {
+        DataCardCmd::Check {
+            cards,
+            dataset,
+            strict,
+        } => {
+            let root = cards.unwrap_or_else(|| PathBuf::from("."));
+            let files = collect_card_files(&root)?;
+            if files.is_empty() {
+                outln!("Карточек не найдено: {}", root.display());
+            }
+            let mut gaps = 0usize;
+            let mut problems = 0usize;
+            for p in &files {
+                let card = arch_harness::dataset_card::load_card(p)?;
+                let mut report = arch_harness::dataset_card::validate(&card, dataset.as_deref());
+                // В отчёте CLI остаётся путь карточки (семантика ядра:
+                // `report.path` — путь известного вызывающему файла).
+                report.path.clone_from(p);
+                gaps += report.missing.len();
+                problems += report.problems.len();
+                outp!("{}", arch_harness::dataset_card::render_report(&report));
+            }
+            outln!(
+                "Карточек: {} (пробелов: {gaps}, проблем: {problems})",
+                files.len()
+            );
+            if strict && (gaps > 0 || problems > 0) {
+                return Err(anyhow::anyhow!(
+                    "data-card --strict: пробелов {gaps}, проблем {problems}"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Собрать YAML-файлы карточек из каталога (рекурсивно) или один файл.
+fn collect_card_files(root: &Path) -> Result<Vec<PathBuf>> {
+    if root.is_file() {
+        return Ok(vec![root.to_path_buf()]);
+    }
+    let mut out = Vec::new();
+    for entry in walkdir::WalkDir::new(root) {
+        let entry = entry.with_context(|| format!("обход {}", root.display()))?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let is_yaml = entry
+            .path()
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("yaml") || e.eq_ignore_ascii_case("yml"));
+        if is_yaml {
+            out.push(entry.path().to_path_buf());
+        }
+    }
+    Ok(out)
+}
+
+/// `arch-ml trajectory`: метрики eval-траекторий.
+fn cmd_trajectory(_cfg: &Config, cmd: TrajectoryCmd) -> Result<()> {
+    match cmd {
+        TrajectoryCmd::Metrics {
+            input,
+            format,
+            k,
+            json,
+        } => {
+            let fmt = if format == "auto" {
+                detect_input_format(&input)?
+            } else {
+                parse_format_name(&format).ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "неизвестный формат «{format}» (ожидалось auto|episode-jsonl|session-journal|selfplay)"
+                    )
+                })?
+            };
+            let episodes = arch_harness::trajectory::parse_episodes(&input, fmt)?;
+            let m = arch_harness::trajectory::compute(&episodes, k);
+            if json {
+                let v = serde_json::json!({
+                    "episodes": m.episodes,
+                    "tasks": m.tasks,
+                    "labeled": m.labeled,
+                    "successes": m.successes,
+                    "success_rate": m.success_rate,
+                    "ci95": m.ci95,
+                    "pass_at_k": m.pass_at_k,
+                    "k": m.k,
+                    "mean_steps": m.mean_steps,
+                    "mean_tokens": m.mean_tokens,
+                    "invalid_tool_calls": m.invalid_tool_calls,
+                });
+                outln!("{}", serde_json::to_string_pretty(&v)?);
+            } else {
+                outp!("{}", arch_harness::trajectory::render_metrics(&m));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Определить формат траекторий по первой значимой строке файла.
+fn detect_input_format(path: &Path) -> Result<arch_harness::trajectory::InputFormat> {
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("чтение {}", path.display()))?;
+    for line in text.lines() {
+        if line.trim().is_empty() || line.trim_start().starts_with('#') {
+            continue;
+        }
+        return arch_harness::trajectory::detect_format(line)
+            .ok_or_else(|| anyhow::anyhow!("не удалось определить формат {}", path.display()));
+    }
+    Err(anyhow::anyhow!("файл пуст: {}", path.display()))
+}
+
+/// Разобрать имя формата траекторий (кроме `auto`).
+fn parse_format_name(name: &str) -> Option<arch_harness::trajectory::InputFormat> {
+    match name {
+        "episode-jsonl" => Some(arch_harness::trajectory::InputFormat::EpisodeJsonl),
+        "session-journal" => Some(arch_harness::trajectory::InputFormat::SessionJournal),
+        "selfplay" => Some(arch_harness::trajectory::InputFormat::Selfplay),
+        _ => None,
+    }
 }
 
 /// `arch-ml plugins`: пакеты скиллов + MCP.

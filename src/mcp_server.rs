@@ -345,15 +345,27 @@ impl McpServe {
         struct Args {
             /// Корень репозитория клиента.
             repo: String,
-            /// Файл ограничений (дефолт `<repo>/.arch-handoff/CONSTRAINTS.yaml`).
+            /// Файл ограничений (дефолт — рабочий `<repo>/CONSTRAINTS.yaml`,
+            /// затем пакетный `<repo>/.arch-handoff/CONSTRAINTS.yaml`).
             constraints: Option<String>,
         }
         let args: Args = parse_args(args, "fitness_check")?;
         let repo = PathBuf::from(args.repo);
-        let constraints = args.constraints.map_or_else(
-            || repo.join(".arch-handoff/CONSTRAINTS.yaml"),
-            PathBuf::from,
-        );
+        // Дефолт — рабочий ruleset (C-037, ADR-011): пакетная заготовка
+        // только как fallback, о ней клиент предупреждается в ответе.
+        let (constraints, resolved) = if let Some(path) = args.constraints {
+            (PathBuf::from(path), None)
+        } else {
+            let resolved = control::resolve_ruleset_required(&repo)
+                .map_err(|e| CallError::execution("fitness_check", e))?;
+            (resolved.path.clone(), Some(resolved))
+        };
+        let warning = resolved
+            .as_ref()
+            .and_then(|r| r.warning(&repo))
+            .unwrap_or_default();
+        let ruleset = constraints.display().to_string();
+        let ruleset_kind = resolved.as_ref().map_or("явный путь", |r| r.kind.label());
         let report = blocking("fitness_check", move || control::check(&repo, &constraints)).await?;
         Ok(json!({
             "passed": report.passed,
@@ -361,6 +373,9 @@ impl McpServe {
             "issue_count": report.issues.len(),
             "issues": report.issues,
             "summary": report.summary,
+            "ruleset": ruleset,
+            "ruleset_kind": ruleset_kind,
+            "warning": warning,
         }))
     }
 
@@ -887,7 +902,7 @@ fn tool_specs() -> Vec<Value> {
                     "repo": {"type": "string", "description": "Корень репозитория"},
                     "constraints": {
                         "type": "string",
-                        "description": "Путь к CONSTRAINTS.yaml (по умолчанию <repo>/.arch-handoff/CONSTRAINTS.yaml)",
+                        "description": "Путь к CONSTRAINTS.yaml (по умолчанию рабочий <repo>/CONSTRAINTS.yaml, затем пакетный <repo>/.arch-handoff/CONSTRAINTS.yaml)",
                     },
                 },
                 "required": ["repo"],

@@ -48,6 +48,20 @@ const TOP_DRIFT: usize = 20;
 /// рекомендует prune worktree.
 const PRUNE_AGE_DAYS: u64 = 30;
 
+/// Дефолтный порог «target пережил узел» в часах: непустой каталог сборки, в
+/// котором дольше порога не менялся ни один файл/подкаталог, при отсутствии
+/// свежей активности считается брошенным — кандидат на уборку.
+///
+/// Почему 24 ч: в живом прогоне сборка пишет в `target/` непрерывно (свежий
+/// mtime), поэтому активный узел под правило не попадает; сутки простоя уже
+/// означают, что дерево не строят, а суточная задержка не трогает worktree,
+/// которые ещё могут понадобиться для ревью или добивания задачи. Существующий
+/// `PRUNE_AGE_DAYS = 30` относится к удалению всего worktree — это тяжелее и
+/// необратимее, чем уборка каталога сборки, поэтому порог для target намеренно
+/// заметно короче. Настраивается через [`audit_with`] и параметр инструмента
+/// `fleet_audit.stale_target_hours`.
+pub const DEFAULT_STALE_TARGET_HOURS: u64 = 24;
+
 /// Расхождение по одному относительному пути.
 #[derive(Debug, Clone, Serialize)]
 pub struct DriftEntry {
@@ -83,6 +97,16 @@ pub struct WorktreeSummary {
     /// Полных дней с последнего коммита (для рекомендации prune); None —
     /// возраст неизвестен (см. `last_commit_age`).
     pub age_days: Option<u64>,
+    /// В worktree есть НЕПУСТОЙ каталог сборки `target/` (признак «target
+    /// пережил узел»).
+    pub target_nonempty: bool,
+    /// Часов с последнего изменения внутри `target/` (максимум mtime файлов и
+    /// подкаталогов); None — каталога нет или он пуст.
+    pub target_age_hours: Option<u64>,
+    /// `target/` непуст и не менялся дольше порога аудита — кандидат на
+    /// уборку. Это WARN: [`FleetReport::has_drift`] и exit code аудита от него
+    /// НЕ зависят (деградация гейта только сломала бы CI).
+    pub stale_target: bool,
 }
 
 /// Отчёт аудита флота.
@@ -108,6 +132,11 @@ pub struct FleetReport {
     pub drift: Vec<DriftEntry>,
     /// Сводки по worktree.
     pub per_worktree: Vec<WorktreeSummary>,
+    /// Порог (часы), по которому считался [`WorktreeSummary::stale_target`].
+    pub stale_target_hours: u64,
+    /// Метки worktree с брошенным `target/` — warn «кандидат на уборку».
+    /// Не влияет на `has_drift` и exit code.
+    pub stale_targets: Vec<String>,
     /// Обнаружен дрейф (гейт CI: exit 1).
     pub has_drift: bool,
 }
@@ -247,11 +276,76 @@ fn last_commit_age(root: &Path) -> Option<(u64, String)> {
     Some((days, rel.trim().to_string()))
 }
 
+/// Unix-секунды самого свежего mtime среди ФАЙЛОВ каталога (подкаталоги и
+/// симлинки не учитываются, за симлинками не идём). Каталоги исключены
+/// намеренно: их mtime меняется при создании/удалении записей, а активность
+/// сборки видна именно по времени записи файлов. None — файлов нет/нечитаемо.
+fn newest_mtime_secs(root: &Path) -> Option<u64> {
+    let mut newest: Option<u64> = None;
+    for entry in WalkDir::new(root).follow_links(false).into_iter().flatten() {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let Ok(md) = entry.metadata() else { continue };
+        let Ok(modified) = md.modified() else {
+            continue;
+        };
+        let Ok(since) = modified.duration_since(std::time::UNIX_EPOCH) else {
+            continue; // mtime до эпохи — пропускаем
+        };
+        let secs = since.as_secs();
+        newest = Some(newest.map_or(secs, |n| n.max(secs)));
+    }
+    newest
+}
+
+/// Полных часов с момента `unix_secs` (0 для метки «из будущего» — часы сбиты).
+fn hours_since(unix_secs: u64) -> u64 {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    now.saturating_sub(unix_secs) / 3600
+}
+
+/// Метрики `target/` одного worktree: `(непуст, часов с последней правки,
+/// брошен)`. Активность узла трактуется по свежести каталога сборки: пока
+/// сборка пишет в `target/`, mtime свежий и правило молчит. Живой, но ничего
+/// не пишущий узел (ревью без компиляции) от брошенного неотличим — поэтому
+/// это warn с ручной проверкой, а не автоматическая уборка.
+fn target_metrics(root: &Path, threshold_hours: u64) -> (bool, Option<u64>, bool) {
+    let target = root.join("target");
+    if !target.is_dir() {
+        return (false, None, false);
+    }
+    let nonempty = std::fs::read_dir(&target).is_ok_and(|mut d| d.next().is_some());
+    if !nonempty {
+        return (false, None, false);
+    }
+    let age = newest_mtime_secs(&target).map(hours_since);
+    let stale = age.is_some_and(|h| h > threshold_hours);
+    (true, age, stale)
+}
+
 /// Аудит флота worktree: дубли, ядро, дрейф копий спайна.
 ///
 /// # Errors
 /// Пустой набор корней; корень не существует или не каталог; ошибка чтения.
 pub fn audit(roots: &[PathBuf], include: &[String]) -> Result<FleetReport> {
+    audit_with(roots, include, DEFAULT_STALE_TARGET_HOURS)
+}
+
+/// Аудит с настраиваемым порогом «target пережил узел» (часы). Правило
+/// `stale_target` — WARN: оно попадает в [`FleetReport::stale_targets`] и
+/// текстовый отчёт, но НЕ влияет на `has_drift` и exit code аудита. Порог N =
+/// 0 помечает любой непустой target (кроме изменённого в текущий час).
+///
+/// # Errors
+/// Пустой набор корней; корень не существует или не каталог; ошибка чтения.
+pub fn audit_with(
+    roots: &[PathBuf],
+    include: &[String],
+    stale_target_hours: u64,
+) -> Result<FleetReport> {
     if roots.is_empty() {
         return Err(HarnessError::Control(
             "fleet audit: не заданы worktree — передайте пути позиционно или --repo <path>".into(),
@@ -319,12 +413,22 @@ pub fn audit(roots: &[PathBuf], include: &[String]) -> Result<FleetReport> {
     };
 
     let mut drift = Vec::new();
+    let mut stale_targets: Vec<String> = Vec::new();
     let mut per_worktree: Vec<WorktreeSummary> = labels
         .iter()
         .enumerate()
         .map(|(idx, label)| {
             let (age_days, age_rel) =
                 last_commit_age(&roots[idx]).map_or((None, None), |(d, r)| (Some(d), Some(r)));
+            let (target_nonempty, target_age_hours, stale_target) =
+                target_metrics(&roots[idx], stale_target_hours);
+            if stale_target {
+                stale_targets.push(format!(
+                    "{}: непустой target старше {stale_target_hours} ч (возраст {} ч) — кандидат на уборку",
+                    roots[idx].display(),
+                    target_age_hours.map_or_else(|| "?".to_string(), |h| h.to_string()),
+                ));
+            }
             WorktreeSummary {
                 label: label.clone(),
                 path: roots[idx].display().to_string(),
@@ -334,6 +438,9 @@ pub fn audit(roots: &[PathBuf], include: &[String]) -> Result<FleetReport> {
                 disk_size: disk_size_human(&roots[idx]),
                 last_commit_age: age_rel,
                 age_days,
+                target_nonempty,
+                target_age_hours,
+                stale_target,
             }
         })
         .collect();
@@ -378,6 +485,8 @@ pub fn audit(roots: &[PathBuf], include: &[String]) -> Result<FleetReport> {
         core_files,
         drift,
         per_worktree,
+        stale_target_hours,
+        stale_targets,
         has_drift,
     })
 }
@@ -431,17 +540,17 @@ pub fn render_text_opts(report: &FleetReport, stable: bool) -> String {
         }
     }
     // Рекомендация prune: worktree с известным возрастом старше PRUNE_AGE_DAYS.
-    let stale: Vec<&WorktreeSummary> = report
+    let prune_candidates: Vec<&WorktreeSummary> = report
         .per_worktree
         .iter()
         .filter(|w| w.age_days.is_some_and(|d| d > PRUNE_AGE_DAYS))
         .collect();
-    if !stale.is_empty() {
+    if !prune_candidates.is_empty() {
         let _ = writeln!(
             out,
             "\nРекомендация prune (worktree старше {PRUNE_AGE_DAYS} дней):"
         );
-        for w in stale {
+        for w in prune_candidates {
             let _ = writeln!(
                 out,
                 "  {} — {} дн., на диске {}: git worktree remove {}",
@@ -451,6 +560,28 @@ pub fn render_text_opts(report: &FleetReport, stable: bool) -> String {
                 w.path,
             );
         }
+    }
+    // WARN (не fail): непустой target пережил узел. Возраст берётся по самому
+    // свежему mtime внутри target/: живой билд постоянно его обновляет, поэтому
+    // «старый» target означает, что узел не активен (или давно завершён и
+    // забыт). Это рекомендация человеку, а не блокирующее условие: has_drift и
+    // exit code аудита не меняются. Колонка волатильна, поэтому в `stable`
+    // (золотые файлы/CI) блок не печатается.
+    if !stable && !report.stale_targets.is_empty() {
+        let _ = writeln!(
+            out,
+            "\nWARN: target пережил узел — непустой target старше {} ч и без активности \
+             (кандидат на уборку; вердикт не меняется):",
+            report.stale_target_hours
+        );
+        for note in &report.stale_targets {
+            let _ = writeln!(out, "  {note}");
+        }
+        let _ = writeln!(
+            out,
+            "  убрать: rm -rf <worktree>/target — при повторном прогоне узла target пересоберётся \
+             (accept/drop снимают target вместе с worktree)"
+        );
     }
     if !report.drift.is_empty() {
         let _ = writeln!(out, "\nТоп расходящихся файлов (до {TOP_DRIFT}):");
@@ -516,6 +647,13 @@ impl Tool for FleetAuditTool {
                         "type": "string",
                         "enum": ["text", "json"],
                         "description": "Формат сводки (по умолчанию text)"
+                    },
+                    "stale_target_hours": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Порог WARN «target пережил узел» в часах: непустой target, \
+                            не обновлявшийся дольше порога, помечается кандидатом на уборку \
+                            (по умолчанию 24; вердикт PASS/DRIFT не меняется)"
                     }
                 }
             }),
@@ -550,7 +688,11 @@ impl Tool for FleetAuditTool {
             })
             .unwrap_or_default();
         let format = args.get("format").and_then(Value::as_str).unwrap_or("text");
-        let report = match audit(&roots, &include) {
+        let stale_target_hours = args
+            .get("stale_target_hours")
+            .and_then(Value::as_u64)
+            .unwrap_or(DEFAULT_STALE_TARGET_HOURS);
+        let report = match audit_with(&roots, &include, stale_target_hours) {
             Ok(r) => r,
             Err(e) => return Ok(ToolOutput::err(format!("fleet_audit: {e}"))),
         };
@@ -757,6 +899,7 @@ mod tests {
         let v: Value = serde_json::from_str(&out.content).expect("json");
         assert_eq!(v["has_drift"], true);
         assert_eq!(v["total_files"], 12);
+        assert_eq!(v["stale_target_hours"], DEFAULT_STALE_TARGET_HOURS);
         // Пустой вызов — ошибка с подсказкой, не паника.
         let out = tool.call(json!({}), &ctx).await.expect("call empty");
         assert!(out.is_error);
@@ -874,5 +1017,136 @@ mod tests {
         assert!(text.contains("Рекомендация prune"), "{text}");
         assert!(text.contains("git worktree remove"), "{text}");
         assert!(text.contains("old-wt"), "{text}");
+    }
+
+    /// Непустой `<root>/target/` с mtime, откатанным на `age_hours` назад
+    /// (0 — оставить «сейчас»). Через `File::set_modified`, без внешних утилит.
+    fn write_target(root: &Path, age_hours: u64) {
+        let f = root.join("target/debug/arch-ml");
+        write_file(&f, "bin\n");
+        if age_hours == 0 {
+            return;
+        }
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("часы")
+            .as_secs()
+            .saturating_sub(age_hours * 3600);
+        let when = std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+        std::fs::File::options()
+            .write(true)
+            .open(&f)
+            .expect("open target")
+            .set_modified(when)
+            .expect("set_modified");
+    }
+
+    /// Похожий на рабочий worktree: спайн-файл, чтобы аудит не ругался на пустоту.
+    fn make_wt(base: &Path, name: &str) -> PathBuf {
+        let root = base.join(name);
+        write_file(&root.join("ARCHITECTURE-SPINE.md"), "# Spine\n");
+        root
+    }
+
+    #[test]
+    fn stale_target_flagged_fresh_and_active_not() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let old = make_wt(tmp.path(), "old");
+        let fresh = make_wt(tmp.path(), "fresh");
+        let none = make_wt(tmp.path(), "none");
+        write_target(&old, 100); // 100 ч без правок — узел мёртв
+        write_target(&fresh, 0); // сборка «прямо сейчас» — узел активен
+        // none — target/ вообще нет
+
+        let report = audit(&[old.clone(), fresh.clone(), none.clone()], &[]).expect("audit");
+        let by = |name: &str| {
+            report
+                .per_worktree
+                .iter()
+                .find(|w| w.label == name)
+                .expect("worktree")
+        };
+        assert!(by("old").target_nonempty);
+        assert!(by("old").stale_target, "{:?}", by("old"));
+        assert!(by("old").target_age_hours.is_some_and(|h| h >= 99));
+        assert!(by("fresh").target_nonempty);
+        assert!(!by("fresh").stale_target, "{:?}", by("fresh"));
+        assert!(!by("none").target_nonempty);
+        assert!(!by("none").stale_target);
+
+        assert_eq!(report.stale_targets.len(), 1, "{:?}", report.stale_targets);
+        assert!(
+            report.stale_targets[0].contains("old"),
+            "{:?}",
+            report.stale_targets
+        );
+        // WARN не превращается в FAIL: дрейфа нет, вердикт PASS.
+        assert!(!report.has_drift, "{report:?}");
+
+        let text = render_text(&report);
+        assert!(text.contains("target пережил узел"), "{text}");
+        assert!(
+            text.contains(&DEFAULT_STALE_TARGET_HOURS.to_string()),
+            "{text}"
+        );
+        assert!(text.contains("rm -rf"), "{text}");
+        assert!(text.contains("PASS"), "{text}");
+        assert!(!text.contains("DRIFT"), "{text}");
+    }
+
+    #[test]
+    fn stale_target_threshold_is_configurable() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let wt = make_wt(tmp.path(), "wt");
+        write_target(&wt, 10); // 10 ч
+
+        // Дефолт 24 ч: 10 ч — ещё «свежий».
+        let def = audit(std::slice::from_ref(&wt), &[]).expect("audit");
+        assert_eq!(def.stale_target_hours, DEFAULT_STALE_TARGET_HOURS);
+        assert!(def.stale_targets.is_empty(), "{:?}", def.stale_targets);
+        assert!(!def.per_worktree[0].stale_target);
+
+        // Порог 1 ч: тот же target — уже кандидат.
+        let tight = audit_with(std::slice::from_ref(&wt), &[], 1).expect("audit_with");
+        assert_eq!(tight.stale_target_hours, 1);
+        assert_eq!(tight.stale_targets.len(), 1, "{:?}", tight.stale_targets);
+        assert!(tight.per_worktree[0].stale_target);
+        let text = render_text(&tight);
+        assert!(text.contains("старше 1 ч"), "{text}");
+
+        // Порог 0 ч по-прежнему не трогает вердикт.
+        assert!(!tight.has_drift);
+    }
+
+    #[test]
+    fn empty_or_missing_target_is_not_stale() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let missing = make_wt(tmp.path(), "missing");
+        let empty = make_wt(tmp.path(), "empty");
+        std::fs::create_dir_all(empty.join("target")).expect("mkdir target");
+        // Пустой каталог target/ (без файлов) — не «пережил узел».
+        let report = audit(&[missing.clone(), empty.clone()], &[]).expect("audit");
+        assert!(
+            report.stale_targets.is_empty(),
+            "{:?}",
+            report.stale_targets
+        );
+        for w in &report.per_worktree {
+            assert!(!w.target_nonempty, "{w:?}");
+            assert!(!w.stale_target, "{w:?}");
+        }
+        let text = render_text(&report);
+        assert!(!text.contains("target пережил узел"), "{text}");
+    }
+
+    #[test]
+    fn stable_render_omits_volatile_stale_target_section() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let wt = make_wt(tmp.path(), "wt");
+        write_target(&wt, 100);
+        let report = audit_with(std::slice::from_ref(&wt), &[], 1).expect("audit_with");
+        assert_eq!(report.stale_targets.len(), 1);
+        let stable = render_text_opts(&report, true);
+        assert!(!stable.contains("target пережил узел"), "{stable}");
     }
 }

@@ -1,0 +1,22 @@
+{
+  "name": "hypothesis-router",
+  "version": "0.1.0",
+  "description": "Память о намерении с жизненным циклом и роутинг гипотез по фактам проекта: карточки HYPOTHESIS.md, хук на вход намерения / сборку handoff / принятие результата, fitness-правила.",
+  "skills": ["skills/hypothesis-card"],
+  "hooks": {
+    "intent": "hooks/hypothesis-hook.sh intent",
+    "pre_handoff": "hooks/hypothesis-hook.sh pre-handoff",
+    "post_accept": "hooks/hypothesis-hook.sh post-accept",
+    "library_changed": "hooks/hypothesis-hook.sh refresh"
+  },
+  "commands": ["commands/hypotheses.md"],
+  "env": {
+    "HYPOTHESES_DIR": "~/hypotheses",
+    "HYPOTHESIS_MIN_SCORE": "2",
+    "HYPOTHESES_MAX_CARDS": "8 (pre-handoff) / 5 (intent); 0 — без ограничения",
+    "HYPOTHESIS_DEDUPE": "0.5 (Jaccard-порог перекрытия; 0 — выключено)",
+    "HYPOTHESIS_ANNOTATE": ""
+  },
+  "deterministic": true,
+  "requires_llm": false
+}

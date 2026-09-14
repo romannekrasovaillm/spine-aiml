@@ -15,7 +15,7 @@
 //! `plugins.include_hooks = true` (конвертер — `hooks::specs_from_plugin_json`);
 //! в `arch-ml plugins show`, но не исполняет.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -41,6 +41,11 @@ pub struct PluginManifest {
     /// Ключевые слова.
     #[serde(default)]
     pub keywords: Vec<String>,
+    /// Доменные хуки плагина: событие → команда с аргументами
+    /// (например `{"pre_handoff": "hooks/hook.sh pre-handoff"}`). Ядро их не
+    /// исполняет само — резолвит [`crate::hypothesis::domain_hooks`].
+    #[serde(default)]
+    pub hooks: BTreeMap<String, String>,
 }
 
 /// Метаданные скилла (из frontmatter SKILL.md).
@@ -425,6 +430,10 @@ pub fn mcp_servers(plugins: &[Plugin]) -> Vec<McpServerConfig> {
                     command: command.to_string(),
                     args,
                     env,
+                    // Манифест лежит в корне плагина: относительные пути автора
+                    // (`./servers/x/server.py`, `./bin/server`) толкуются от него,
+                    // а не от cwd харнесса.
+                    cwd: Some(p.dir.clone()),
                 });
             }
         }
@@ -653,6 +662,28 @@ mod tests {
     }
 
     #[test]
+    fn manifest_reads_hooks_map_and_tolerates_absence() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        put(
+            tmp.path(),
+            "plug-hooks/plugin.json",
+            r#"{"name":"plug-hooks","version":"0.1.0","description":"роутер","skills":["skills/x"],"hooks":{"intent":"hooks/h.sh intent","pre_handoff":"hooks/h.sh pre-handoff","library_changed":"hooks/h.sh refresh"},"fitness":["f.yaml"],"deterministic":true}"#,
+        );
+        put(tmp.path(), "plug-hooks/skills/x/SKILL.md", SKILL_A);
+        let plugins = discover(&[tmp.path().to_path_buf()]);
+        let p = &plugins[0];
+        assert_eq!(p.manifest.hooks.len(), 3, "hooks: {:?}", p.manifest.hooks);
+        assert_eq!(
+            p.manifest.hooks.get("pre_handoff").map(String::as_str),
+            Some("hooks/h.sh pre-handoff")
+        );
+        // Манифест без hooks читается как раньше и получает пустую карту.
+        let plain: PluginManifest =
+            serde_json::from_str(r#"{"name":"old","version":"1.0.0"}"#).expect("plain manifest");
+        assert!(plain.hooks.is_empty());
+    }
+
+    #[test]
     fn frontmatter_tolerates_colons_and_folding() {
         let tmp = tempfile::tempdir().expect("tmp");
         // Двоеточие внутри description — serde_yaml_ng упал бы, построчный парсер — нет.
@@ -716,6 +747,9 @@ mod tests {
         let fs = servers.iter().find(|s| s.name == "plug-a.fs").expect("fs");
         assert_eq!(fs.command, "npx");
         assert_eq!(fs.env.get("ROOT").map(String::as_str), Some("/tmp"));
+        // Относительные пути сервера резолвятся от корня объявившего плагина.
+        let cwd = fs.cwd.as_deref().expect("cwd объявлен");
+        assert!(cwd.ends_with("plug-a"), "cwd: {}", cwd.display());
     }
 
     #[test]

@@ -16,6 +16,13 @@
 //! LLM-вердикт ([`ReviewVerdict`]) принимается только для БЛОКИРОВКИ и никогда
 //! для выбора «лучшего кода» — выбор в турнире делает детерминированный
 //! порядок гейтов.
+//!
+//! Политика судьи (ADR-046): команда гейта, зовущая судью ВНУТРИ ворктри узла,
+//! — самооценка: дельта, меняющая проверки, судила бы себя сама. Такая команда
+//! исполняется только baseline-судьёй, зафиксированным до прогона узлов
+//! ([`GateContext::judge`]); без baseline гейт падает. Судья вне ворктри —
+//! штатный случай: поведение прежнее, но в отчёт попадают путь и `sha256`
+//! фактического судьи.
 
 use std::path::{Path, PathBuf};
 
@@ -354,6 +361,10 @@ pub struct GateContext<'a> {
     pub contract: &'a ContractParse,
     /// Уровень автономии (для классификации `Command`-гейта).
     pub policy: crate::policy::Policy,
+    /// Baseline-судья, зафиксированный ДО прогона узла (ADR-046): команда
+    /// `Command`-гейта, зовущая судью внутри ворктри, исполняется этим
+    /// бинарём; `None` — baseline не задан, такая команда падает.
+    pub judge: Option<&'a Path>,
 }
 
 /// Прогоняет гейты последовательно; первый `Fail` не отменяет остальные —
@@ -541,10 +552,242 @@ fn run_outputs(paths: &[String], ctx: &GateContext<'_>) -> GateReport {
     )
 }
 
+/// Имя бинаря-судьи: команда гейта, зовущая его, — это приёмка.
+pub const JUDGE_BINARY: &str = "arch-ml";
+
+/// Текст отказа при самооценке без baseline-судьи (ADR-046).
+pub const SELF_ASSESSMENT_DENIED: &str =
+    "самооценка запрещена: укажите baseline-судью (--judge или [fleet] judge_binary)";
+
+/// Граница токена команды (`sh -c`): те же разделители, что в
+/// [`crate::policy`] — сравнение идёт по токену, а не подстрокой, иначе путь
+/// `~/notes/arch-ml.md` считался бы вызовом судьи.
+fn is_token_sep(c: char) -> bool {
+    c.is_whitespace()
+        || matches!(
+            c,
+            ';' | '|' | '&' | '(' | ')' | '`' | '$' | '>' | '<' | '=' | '"' | '\''
+        )
+}
+
+/// Ищет в команде токен судьи: голое `arch-ml` либо путь к нему
+/// (`./target/debug/arch-ml`). `None` — команда судью не зовёт.
+#[must_use]
+pub fn find_judge_token(cmd: &str) -> Option<String> {
+    cmd.split(is_token_sep)
+        .find(|t| !t.is_empty() && t.rsplit('/').next() == Some(JUDGE_BINARY))
+        .map(str::to_owned)
+}
+
+/// Где находится судья, которого зовёт команда узла.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum JudgePlacement {
+    /// Внутри ворктри узла — самооценка.
+    Inside(PathBuf),
+    /// Вне ворктри узла — штатный судья.
+    Outside(PathBuf),
+}
+
+/// Лежит ли путь внутри каталога узла (сравнение канонизированных путей;
+/// несуществующий путь сравнивается лексически).
+fn is_inside(path: &Path, repo: &Path) -> bool {
+    let repo = repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf());
+    let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    path.starts_with(&repo)
+}
+
+/// Находит `arch-ml` в `PATH` (первое совпадение), без внешних крейтов.
+fn which_in_path(name: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|dir| dir.join(name))
+        .find(|p| p.is_file())
+}
+
+/// Классифицирует положение судьи относительно ворктри узла.
+///
+/// Голое имя ищется в `PATH`; ненайденное голое имя считается самооценкой —
+/// «внешность» судьи недоказана, а политика обязана падать закрыто.
+fn locate_judge(token: &str, repo: &Path) -> JudgePlacement {
+    let candidate = if token.contains('/') {
+        let raw = Path::new(token);
+        let abs = if raw.is_absolute() {
+            raw.to_path_buf()
+        } else {
+            repo.join(raw)
+        };
+        Some(abs.canonicalize().unwrap_or(abs))
+    } else {
+        which_in_path(token)
+    };
+    match candidate {
+        Some(abs) if is_inside(&abs, repo) => JudgePlacement::Inside(abs),
+        Some(abs) => JudgePlacement::Outside(abs),
+        None => JudgePlacement::Inside(PathBuf::from(token)),
+    }
+}
+
+/// Экранирует подставляемый путь для `sh -c`: подмена не должна менять
+/// структуру команды (пробелы и кавычки в пути — не границы аргументов).
+fn shell_quote(raw: &str) -> String {
+    let safe = !raw.is_empty()
+        && raw
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '_' | '-' | '+'));
+    if safe {
+        return raw.to_string();
+    }
+    let mut out = String::with_capacity(raw.len() + 2);
+    out.push('\'');
+    for c in raw.chars() {
+        if c == '\'' {
+            out.push_str("'\\''");
+        } else {
+            out.push(c);
+        }
+    }
+    out.push('\'');
+    out
+}
+
+/// Подменяет ТОЛЬКО токен судьи, остальной текст команды сохраняя дословно.
+#[must_use]
+pub fn substitute_judge(cmd: &str, token: &str, replacement: &str) -> String {
+    if token.is_empty() {
+        return cmd.to_string();
+    }
+    let mut out = String::with_capacity(cmd.len());
+    let mut rest = cmd;
+    while let Some(pos) = rest.find(token) {
+        let before_ok = rest[..pos].chars().next_back().is_none_or(is_token_sep);
+        let after = &rest[pos + token.len()..];
+        let after_ok = after.chars().next().is_none_or(is_token_sep);
+        out.push_str(&rest[..pos]);
+        if before_ok && after_ok {
+            out.push_str(replacement);
+        } else {
+            out.push_str(token);
+        }
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
+/// `sha256:<hex>` файла (байты, без канонизации текста); `None` — не читается.
+#[must_use]
+pub fn file_sha256(path: &Path) -> Option<String> {
+    let bytes = std::fs::read(path).ok()?;
+    Some(crate::managed::Sha256::of_bytes(&bytes).as_marker())
+}
+
+/// Фиксирует baseline-судью ДО прогона узлов (ADR-046).
+///
+/// Приоритет: явный `--judge` → `[fleet] judge_binary` → бинарь, запустивший
+/// флот ([`std::env::current_exe`]). Что кандидат оказался ВНУТРИ ворктри
+/// конкретного узла, проверяет [`run_command`] — там известен каталог узла.
+#[must_use]
+pub fn resolve_judge_baseline(
+    explicit: Option<&Path>,
+    configured: Option<&Path>,
+) -> Option<PathBuf> {
+    if let Some(p) = explicit {
+        return Some(p.to_path_buf());
+    }
+    if let Some(p) = configured {
+        return Some(p.to_path_buf());
+    }
+    std::env::current_exe().ok()
+}
+
+/// Решение политики судьи по конкретной команде.
+enum JudgeDecision {
+    /// Команда судью не зовёт — исполняется как есть.
+    NoJudge,
+    /// Судья вне ворктри: команда как есть, в отчёт — путь судьи.
+    External(PathBuf),
+    /// Судья внутри ворктри: команда с подменённым токеном.
+    Substituted {
+        /// Команда с baseline-путём вместо токена судьи.
+        cmd: String,
+        /// Фактический судья.
+        judge: PathBuf,
+        /// Подменённый токен (для отчёта).
+        token: String,
+    },
+}
+
+/// Применяет политику судьи к команде гейта.
+///
+/// `Err` — готовый отчёт-`Fail`: команда недопустима к исполнению (ADR-046).
+fn decide_judge(
+    cmd: &str,
+    name: &str,
+    ctx: &GateContext<'_>,
+) -> std::result::Result<JudgeDecision, GateReport> {
+    let Some(token) = find_judge_token(cmd) else {
+        return Ok(JudgeDecision::NoJudge);
+    };
+    match locate_judge(&token, ctx.repo) {
+        JudgePlacement::Outside(path) => Ok(JudgeDecision::External(path)),
+        JudgePlacement::Inside(_) => match ctx.judge {
+            // Baseline внутри ворктри узла — не baseline: судью контролирует
+            // тот же исполнитель, приёмка принадлежала бы оцениваемому дереву.
+            Some(b) if is_inside(b, ctx.repo) => Err(GateReport::new(
+                name,
+                Verdict::Fail,
+                format!(
+                    "{SELF_ASSESSMENT_DENIED}; baseline внутри ворктри узла: {}",
+                    b.display()
+                ),
+            )),
+            Some(b) if !b.is_file() => Err(GateReport::new(
+                name,
+                Verdict::Fail,
+                format!("baseline-судья не найден: {}", b.display()),
+            )),
+            Some(b) => Ok(JudgeDecision::Substituted {
+                cmd: substitute_judge(cmd, &token, &shell_quote(&b.to_string_lossy())),
+                judge: b.to_path_buf(),
+                token,
+            }),
+            None => Err(GateReport::new(name, Verdict::Fail, SELF_ASSESSMENT_DENIED)),
+        },
+    }
+}
+
+/// Строка отчёта о фактическом судье: путь и `sha256` файла.
+fn judge_note(path: &Path, substituted_token: Option<&str>) -> String {
+    let sha = file_sha256(path).unwrap_or_else(|| "sha256:н/д".to_string());
+    match substituted_token {
+        Some(token) => format!(
+            "судья: {} ({sha}); подменён токен '{token}'",
+            path.display()
+        ),
+        None => format!("судья: {} ({sha})", path.display()),
+    }
+}
+
 /// Гейт детерминированной команды (тесты). Деструктивная команда на текущем
 /// R-уровне получает `Warn` с объяснением — молча не исполняется.
+///
+/// Самооценка (судья внутри ворктри узла) проверяется ДО политики инструмента:
+/// недопустимость приёмки не зависит от того, дошла бы команда до запуска.
 async fn run_command(cmd: &str, timeout_secs: u64, ctx: &GateContext<'_>) -> Result<GateReport> {
     let name = format!("command:{cmd}");
+    let (exec_cmd, note) = match decide_judge(cmd, &name, ctx) {
+        Ok(JudgeDecision::NoJudge) => (cmd.to_string(), String::new()),
+        Ok(JudgeDecision::External(path)) => (cmd.to_string(), judge_note(&path, None)),
+        Ok(JudgeDecision::Substituted { cmd, judge, token }) => {
+            (cmd, judge_note(&judge, Some(&token)))
+        }
+        Err(report) => return Ok(report),
+    };
+    let suffix = if note.is_empty() {
+        String::new()
+    } else {
+        format!("; {note}")
+    };
     let args = serde_json::json!({ "command": cmd });
     match ctx.policy.check("bash", &args) {
         crate::policy::PolicyDecision::Allow => {}
@@ -566,7 +809,7 @@ async fn run_command(cmd: &str, timeout_secs: u64, ctx: &GateContext<'_>) -> Res
     let mut command = tokio::process::Command::new("sh");
     command
         .arg("-c")
-        .arg(cmd)
+        .arg(&exec_cmd)
         .current_dir(ctx.repo)
         .kill_on_drop(true)
         .stdout(std::process::Stdio::piped())
@@ -584,7 +827,7 @@ async fn run_command(cmd: &str, timeout_secs: u64, ctx: &GateContext<'_>) -> Res
             return Ok(GateReport::new(
                 name,
                 Verdict::Fail,
-                format!("таймаут {timeout_secs} с"),
+                format!("таймаут {timeout_secs} с{suffix}"),
             ));
         }
     };
@@ -594,13 +837,13 @@ async fn run_command(cmd: &str, timeout_secs: u64, ctx: &GateContext<'_>) -> Res
         Ok(GateReport::new(
             name,
             Verdict::Ok,
-            format!("exit 0 ({})", output.status),
+            format!("exit 0 ({}){suffix}", output.status),
         ))
     } else {
         Ok(GateReport::new(
             name,
             Verdict::Fail,
-            format!("exit {code:?}; stderr: {tail}"),
+            format!("exit {code:?}; stderr: {tail}{suffix}"),
         ))
     }
 }
@@ -669,12 +912,32 @@ mod tests {
         stdout: &'a str,
         contract: &'a ContractParse,
     ) -> GateContext<'a> {
+        ctx_with_judge(repo, stdout, contract, None)
+    }
+
+    fn ctx_with_judge<'a>(
+        repo: &'a Path,
+        stdout: &'a str,
+        contract: &'a ContractParse,
+        judge: Option<&'a Path>,
+    ) -> GateContext<'a> {
         GateContext {
             repo,
             stdout,
             contract,
             policy: crate::policy::Policy::parse("R2").expect("policy"),
+            judge,
         }
+    }
+
+    /// Пишет исполняемый скрипт-маркер (POSIX `sh`).
+    #[cfg(unix)]
+    fn write_script(path: &Path, body: &str) {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::write(path, format!("#!/bin/sh\n{body}\n")).expect("скрипт");
+        let mut perms = std::fs::metadata(path).expect("метаданные").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).expect("chmod");
     }
 
     #[test]
@@ -774,5 +1037,160 @@ mod tests {
         let ctx = ctx_for(dir.path(), "болтовня без вердикта", &contract);
         let report = run_review(ReviewVerdict::Ready, &ctx);
         assert!(report.failed(), "{report:?}");
+    }
+
+    #[test]
+    fn judge_token_found_by_boundary_not_substring() {
+        assert_eq!(
+            find_judge_token("./target/debug/arch-ml control check .").as_deref(),
+            Some("./target/debug/arch-ml")
+        );
+        assert_eq!(
+            find_judge_token("arch-ml control check .").as_deref(),
+            Some("arch-ml")
+        );
+        // Путь к одноимённому .md — не вызов судьи (границы токена, не подстрока).
+        assert_eq!(find_judge_token("cat notes/arch-ml.md"), None);
+        assert_eq!(find_judge_token("pytest -q"), None);
+        assert_eq!(find_judge_token(""), None);
+    }
+
+    #[test]
+    fn baseline_priority_flag_then_config() {
+        let flag = Path::new("/opt/flag/arch-ml");
+        let config = Path::new("/opt/config/arch-ml");
+        assert_eq!(
+            resolve_judge_baseline(Some(flag), Some(config)).as_deref(),
+            Some(flag)
+        );
+        assert_eq!(
+            resolve_judge_baseline(None, Some(config)).as_deref(),
+            Some(config)
+        );
+    }
+
+    #[test]
+    fn judge_substitution_touches_only_token() {
+        let cmd = "cd /w && ./target/debug/arch-ml control check . > out.txt";
+        assert_eq!(
+            substitute_judge(cmd, "./target/debug/arch-ml", "/base/arch-ml"),
+            "cd /w && /base/arch-ml control check . > out.txt"
+        );
+        // Тот же токен как часть большего слова не подменяется.
+        assert_eq!(
+            substitute_judge("sh arch-ml-wrap.sh", "arch-ml", "/base/arch-ml"),
+            "sh arch-ml-wrap.sh"
+        );
+    }
+
+    /// Самооценка с baseline: гейт исполняется baseline-судьёй, бинарь внутри
+    /// ворктри узла не вызывается (ADR-046, п. 1).
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn command_gate_self_assessment_uses_baseline_judge() {
+        let repo = tempfile::tempdir().expect("repo");
+        let base = tempfile::tempdir().expect("baseline");
+        let inner_marker = repo.path().join("inner-ran");
+        let base_marker = base.path().join("baseline-ran");
+        write_script(
+            &repo.path().join("arch-ml"),
+            &format!("touch '{}'", inner_marker.display()),
+        );
+        let baseline = base.path().join("arch-ml");
+        write_script(&baseline, &format!("touch '{}'", base_marker.display()));
+        let contract = ContractParse::Missing;
+        let ctx = ctx_with_judge(repo.path(), "", &contract, Some(&baseline));
+        let report = run_command("./arch-ml control check .", 60, &ctx)
+            .await
+            .expect("гейт");
+        assert!(!report.failed(), "{report:?}");
+        assert!(base_marker.is_file(), "baseline не исполнен: {report:?}");
+        assert!(
+            !inner_marker.exists(),
+            "бинарь внутри ворктри исполнен — самооценка: {report:?}"
+        );
+        assert!(
+            report.detail.contains("подменён токен './arch-ml'"),
+            "{report:?}"
+        );
+        assert!(
+            report.detail.contains(&baseline.display().to_string()),
+            "{report:?}"
+        );
+    }
+
+    /// Самооценка без baseline — `Fail` с текстом ADR-046 (прежний warn
+    /// осознанно усилен до отказа).
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn command_gate_self_assessment_fails_without_baseline() {
+        let repo = tempfile::tempdir().expect("repo");
+        let inner = repo.path().join("inner-ran");
+        write_script(
+            &repo.path().join("arch-ml"),
+            &format!("touch '{}'", inner.display()),
+        );
+        let contract = ContractParse::Missing;
+        let ctx = ctx_for(repo.path(), "", &contract);
+        let report = run_command("./target/debug/arch-ml control check .", 60, &ctx)
+            .await
+            .expect("гейт");
+        assert!(report.failed(), "{report:?}");
+        assert_eq!(report.result, "fail");
+        assert_eq!(
+            report.detail,
+            "самооценка запрещена: укажите baseline-судью (--judge или [fleet] judge_binary)"
+        );
+        assert!(!inner.exists(), "запрещённая команда всё же исполнена");
+    }
+
+    /// Судья вне ворктри — поведение прежнее, в отчёт идут путь и sha256.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn command_gate_external_judge_is_ok_and_names_path() {
+        let repo = tempfile::tempdir().expect("repo");
+        let ext = tempfile::tempdir().expect("внешний");
+        let judge = ext.path().join("arch-ml");
+        write_script(&judge, "exit 0");
+        let contract = ContractParse::Missing;
+        let ctx = ctx_for(repo.path(), "", &contract);
+        let cmd = format!("{} control check .", judge.display());
+        let report = run_command(&cmd, 60, &ctx).await.expect("гейт");
+        assert!(!report.failed(), "{report:?}");
+        let canon = judge.canonicalize().expect("canon");
+        assert!(
+            report.detail.contains(&canon.display().to_string()),
+            "{report:?}"
+        );
+        assert!(report.detail.contains("sha256:"), "{report:?}");
+        assert!(!report.detail.contains("подменён"), "{report:?}");
+    }
+
+    /// Команда без судьи — самооценки нет, поведение не меняется.
+    #[tokio::test]
+    async fn command_gate_without_judge_unchanged() {
+        let repo = tempfile::tempdir().expect("repo");
+        let contract = ContractParse::Missing;
+        let ctx = ctx_for(repo.path(), "", &contract);
+        let report = run_command("echo hi", 60, &ctx).await.expect("гейт");
+        assert!(!report.failed(), "{report:?}");
+        assert!(report.detail.starts_with("exit 0"), "{report:?}");
+        assert!(!report.detail.contains("судья"), "{report:?}");
+    }
+
+    /// Baseline внутри ворктри узла — не baseline: `Fail`, а не подмена.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn command_gate_baseline_inside_worktree_fails() {
+        let repo = tempfile::tempdir().expect("repo");
+        let inner = repo.path().join("arch-ml");
+        write_script(&inner, "exit 0");
+        let contract = ContractParse::Missing;
+        let ctx = ctx_with_judge(repo.path(), "", &contract, Some(&inner));
+        let report = run_command("./arch-ml control check .", 60, &ctx)
+            .await
+            .expect("гейт");
+        assert!(report.failed(), "{report:?}");
+        assert!(report.detail.contains("самооценка запрещена"), "{report:?}");
     }
 }

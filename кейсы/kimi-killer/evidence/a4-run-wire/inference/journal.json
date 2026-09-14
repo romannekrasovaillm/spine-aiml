@@ -1,0 +1,25 @@
+{
+  "device_kind": "cpu",
+  "prompt_ids": [
+    4,
+    10,
+    20,
+    30,
+    40,
+    50
+  ],
+  "max_new_tokens": 8,
+  "temperature": 0.0,
+  "seed": 0,
+  "generated_ids": [
+    50,
+    48,
+    465,
+    205,
+    205,
+    69,
+    52,
+    72
+  ],
+  "note": "Локальный инференс (CPU JAX) — провод «чекпойнт → генерация»; это НЕ стадия spark_inference (стенд gb10/DGX Spark)."
+}

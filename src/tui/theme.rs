@@ -23,6 +23,8 @@ struct Palette {
     orange: (u8, u8, u8),
     red: (u8, u8, u8),
     muted: (u8, u8, u8),
+    /// Подсказка клавиши (номер варианта в ask-модалке).
+    num_key: (u8, u8, u8),
     code_bg: (u8, u8, u8),
     code_fg: (u8, u8, u8),
     sel_bg: (u8, u8, u8),
@@ -39,6 +41,7 @@ const DARK: Palette = Palette {
     orange: (0xff, 0x9e, 0x64),
     red: (0xf7, 0x76, 0x8e),
     muted: (0x6b, 0x73, 0x9e),
+    num_key: (0x7a, 0xa2, 0xf7),
     code_bg: (0x24, 0x28, 0x3b),
     code_fg: (0xa9, 0xb1, 0xd6),
     sel_bg: (0x28, 0x34, 0x57),
@@ -49,13 +52,18 @@ const DARK: Palette = Palette {
 /// контраст ≥ 4.5:1 к фону (проверяется тестом).
 const LIGHT: Palette = Palette {
     bg: (0xe1, 0xe2, 0xe7),
-    fg: (0x37, 0x60, 0xbf),
+    // `fg` затемнён относительно канонического Day-синего #3760bf (контраст
+    // 4.5:1): основной текст обязан быть САМОЙ контрастной ролью палитры.
+    // Иначе в ask-модалке метка (`base()`) читалась хуже своего номера
+    // (`number_key()`, 5.5:1) — подпись проигрывала служебной цифре.
+    fg: (0x2d, 0x4a, 0x9e),
     accent: (0x0d, 0x6c, 0x8c),
     purple: (0x7a, 0x45, 0xc9),
     green: (0x4d, 0x6a, 0x30),
     orange: (0x8f, 0x54, 0x00),
     red: (0xc0, 0x1e, 0x52),
     muted: (0x5f, 0x67, 0x97),
+    num_key: (0x2e, 0x4f, 0xb8),
     code_bg: (0xd2, 0xd4, 0xde),
     code_fg: (0x2f, 0x56, 0xab),
     sel_bg: (0xb9, 0xc6, 0xec),
@@ -80,6 +88,10 @@ pub(crate) struct Theme {
     pub(crate) red: Color,
     /// Приглушённый текст: muted.
     pub(crate) muted: Color,
+    /// Подсказка клавиши-номера (номер варианта в ask-модалке). Отдельно от
+    /// `muted`: цифра — это не украшение строки, а сама команда, и обязана
+    /// читаться (контраст к фону ≥ 4.5:1, мелкий текст).
+    num_key: Color,
     /// Фон код-панели markdown.
     code_bg: Color,
     /// Текст код-панели markdown.
@@ -159,6 +171,7 @@ impl Theme {
             orange: paint(p.orange, Color::Yellow),
             red: paint(p.red, Color::Red),
             muted: paint(p.muted, Color::DarkGray),
+            num_key: paint(p.num_key, Color::LightBlue),
             code_bg: paint(p.code_bg, Color::Reset),
             code_fg: paint(p.code_fg, Color::DarkGray),
             sel_bg: paint(p.sel_bg, Color::Reset),
@@ -192,6 +205,23 @@ impl Theme {
             s.add_modifier(Modifier::BOLD)
         } else if self.is_mono() {
             s.add_modifier(Modifier::DIM)
+        } else {
+            s
+        }
+    }
+
+    /// Подсказка клавиши-номера (цифра варианта в ask-модалке).
+    ///
+    /// Отдельный токен, а не `muted()`: цифра в строке варианта — это не
+    /// приглушённая метка, а сама команда выбора, поэтому она держит
+    /// контраст к фону ≥ 4.5:1 (мелкий текст, правило
+    /// `tui-color-theming`). В монохроме носитель вторичности — DIM, и
+    /// номер намеренно рисуется БЕЗ него: `muted()` там тускнеет, а номер
+    /// обязан остаться ярче метки. В контрастной теме — BOLD.
+    pub(crate) fn number_key(&self) -> Style {
+        let s = Style::default().fg(self.num_key).bg(self.bg);
+        if self.high_contrast {
+            s.add_modifier(Modifier::BOLD)
         } else {
             s
         }
@@ -433,11 +463,19 @@ impl Glyphs {
     }
 
     /// Иконки вкладок правой панели (в порядке `RightTab::ALL`).
-    pub(crate) fn tab_icons(self) -> [&'static str; 4] {
+    ///
+    /// Субагенты — `◉` (U+25C9, Geometric Shapes — тот же блок, что уже
+    /// используемые `◇ ◈ ▶`). Требования к глифу вкладки (урок инцидента
+    /// 07.09: редкий символ выпал в fontconfig-фолбэк и разъехался сеткой):
+    /// одна ячейка, BMP и широкая моноширинная поддержка. Проверка на этой
+    /// машине (`fc-list ":charset=<cp>" family | grep -ci mono`): `◉` = 8
+    /// семейств против 2 у `✦`/`☰` — редкие глифы отвергнуты. ASCII-двойник
+    /// `@` — намёк на адрес/хэндл агента, всегда одна ячейка.
+    pub(crate) fn tab_icons(self) -> [&'static str; 5] {
         if self.unicode {
-            ["◇", "✓", "◈", "▶"]
+            ["◇", "✓", "◈", "▶", "◉"]
         } else {
-            ["<>", "+", "#", ">"]
+            ["<>", "+", "#", ">", "@"]
         }
     }
 
@@ -645,7 +683,18 @@ mod tests {
         assert_eq!(g.gauge_empty(), "▱");
         assert_eq!(g.spinner()[0], "⠋");
         assert_eq!(g.pulse()[3], "●");
-        assert_eq!(g.tab_icons(), ["◇", "✓", "◈", "▶"]);
+        assert_eq!(g.tab_icons(), ["◇", "✓", "◈", "▶", "◉"]);
+    }
+
+    /// Число иконок обязано совпадать с числом вкладок `RightTab::ALL`:
+    /// иначе `tab_icons()[i]` в баре панели паникует на новой вкладке.
+    #[test]
+    fn tab_icons_cover_every_right_tab() {
+        use crate::tui::app::RightTab;
+        let u = Glyphs { unicode: true };
+        let a = Glyphs { unicode: false };
+        assert_eq!(u.tab_icons().len(), RightTab::ALL.len());
+        assert_eq!(a.tab_icons().len(), RightTab::ALL.len());
     }
 
     /// Контраст текста к фону по WCAG 2.x: обычный текст ≥ 4.5:1,
@@ -664,8 +713,40 @@ mod tests {
             assert!(contrast(p.orange, p.bg) >= 4.5, "{name}: orange");
             assert!(contrast(p.red, p.bg) >= 4.5, "{name}: red");
             assert!(contrast(p.muted, p.bg) >= 3.0, "{name}: muted");
+            // Цифра варианта — команда, а не метка: держит порог мелкого
+            // текста 4.5:1 (в отличие от muted).
+            assert!(
+                contrast(p.num_key, p.bg) >= 4.5,
+                "{name}: num_key {:?}",
+                contrast(p.num_key, p.bg)
+            );
+            // Иерархия ask-модалки: метка варианта (`base()` = fg) — контент,
+            // номер (`number_key()` = num_key) — лишь подсказка клавиши.
+            // Подпись обязана читаться НЕ хуже своего номера, иначе главный
+            // текст строки проигрывает служебной цифре (исходный дефект:
+            // метка `muted()` 3:1 против номера 4.5:1). Порядок зафиксирован
+            // вот этим сравнением.
+            assert!(
+                contrast(p.fg, p.bg) >= contrast(p.num_key, p.bg),
+                "{name}: метка {:?} бледнее номера {:?}",
+                contrast(p.fg, p.bg),
+                contrast(p.num_key, p.bg)
+            );
             assert!(contrast(p.code_fg, p.code_bg) >= 4.5, "{name}: код-панель");
         }
+    }
+
+    /// В монохроме носитель вторичности — атрибут DIM. Метка ask-варианта
+    /// (`base`) и номер (`number_key`) оба обязаны идти БЕЗ него: иначе
+    /// подпись строки тусклее собственного номера — та же инверсия иерархии,
+    /// что и по контрасту, только средствами атрибутов.
+    #[test]
+    fn mono_label_is_not_dimmer_than_number() {
+        let t = Theme::dark(ColorLevel::Mono);
+        assert!(!t.base().add_modifier.contains(Modifier::DIM));
+        assert!(!t.number_key().add_modifier.contains(Modifier::DIM));
+        // Контроль: приглушённый стиль DIM несёт — потому метке его и нельзя.
+        assert!(t.muted().add_modifier.contains(Modifier::DIM));
     }
 
     /// Относительная яркость и коэффициент контраста WCAG.

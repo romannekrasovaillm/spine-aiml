@@ -93,10 +93,32 @@ pub(crate) const BINDINGS: &[Binding] = &[
         keys: "PgUp/PgDn",
         codes: &["pageup", "pagedown"],
         label: "прокрутка",
-        desc: "Прокрутка диалога (работает и во время хода модели)",
+        desc: "Страница: активной правой панели, иначе диалога (панель скрыта F5 — снова диалог; работает и во время хода)",
         group: Group::Navigation,
         hint: true,
         priority: 20,
+        keep: false,
+    },
+    Binding {
+        ctx: Ctx::ChatIdle,
+        keys: "Ctrl+U/Ctrl+D",
+        codes: &["ctrl+u", "ctrl+d"],
+        label: "полстраницы",
+        desc: "Полстраницы активной правой панели, иначе диалога — синоним PgUp/PgDn",
+        group: Group::Navigation,
+        hint: false,
+        priority: 22,
+        keep: false,
+    },
+    Binding {
+        ctx: Ctx::ChatIdle,
+        keys: "g/G",
+        codes: &["g", "G"],
+        label: "начало/конец",
+        desc: "К началу / концу списка правой панели (только при пустом поле ввода: в наборе буква — это текст)",
+        group: Group::Navigation,
+        hint: false,
+        priority: 21,
         keep: false,
     },
     Binding {
@@ -225,7 +247,9 @@ pub(crate) const BINDINGS: &[Binding] = &[
     Binding {
         ctx: Ctx::ChatIdle,
         keys: "Tab/Shift+Tab",
-        codes: &["tab", "shift+tab"],
+        // `backtab` — то, чем Shift+Tab реально приходит без kitty-протокола
+        // (см. `handle_chat_key`); в подписи он остаётся «Shift+Tab».
+        codes: &["tab", "shift+tab", "backtab"],
         label: "вкладки",
         desc: "Следующая / предыдущая вкладка панели; Tab сначала дополняет слэш-команду",
         group: Group::Panels,
@@ -302,10 +326,10 @@ pub(crate) const BINDINGS: &[Binding] = &[
     },
     Binding {
         ctx: Ctx::ChatIdle,
-        keys: "F1–F3, F6",
-        codes: &["f1", "f2", "f3", "f6"],
+        keys: "F1–F3, F6–F7",
+        codes: &["f1", "f2", "f3", "f6", "f7"],
         label: "вкладка",
-        desc: "Mermaid · Рубрика · Знания · Флот — прыжок в конкретную вкладку (показывает панель, если скрыта F5)",
+        desc: "Mermaid · Рубрика · Знания · Флот · Субагенты — прыжок в конкретную вкладку (показывает панель, если скрыта F5)",
         group: Group::Panels,
         hint: false,
         priority: 70,
@@ -469,13 +493,28 @@ pub(crate) const BINDINGS: &[Binding] = &[
     },
     Binding {
         ctx: Ctx::Ask,
-        keys: "1–9",
+        keys: "1-9",
         codes: &["1", "2", "3", "4", "5", "6", "7", "8", "9"],
         label: "быстро",
         desc: "Быстрый выбор варианта по номеру",
         group: Group::Typing,
         hint: true,
         priority: 12,
+        keep: false,
+    },
+    Binding {
+        // Листание длинного списка. В строке подсказок эти клавиши появляются
+        // только при переполнении окна (`ask_hint_line` в render.rs), поэтому
+        // `hint: false`; в справке — всегда, потому что справка описывает
+        // возможности, а не текущее состояние списка.
+        ctx: Ctx::Ask,
+        keys: "PgUp/PgDn/Home/End",
+        codes: &["pageup", "pagedown", "home", "end"],
+        label: "листать",
+        desc: "Листать список вариантов, когда он длиннее окна",
+        group: Group::Navigation,
+        hint: false,
+        priority: 14,
         keep: false,
     },
     Binding {
@@ -524,6 +563,35 @@ fn bindings_for(ctx: Ctx) -> impl Iterator<Item = &'static Binding> {
     BINDINGS
         .iter()
         .filter(move |b| b.ctx == ctx || (b.ctx == Ctx::Global && inherits_globals))
+}
+
+/// Нормализованные коды клавиш контекста `ctx` в порядке объявления.
+///
+/// Реестр — единственный источник правды о том, какие клавиши контекст
+/// обещает. Тест сверяет этот список с фактическим обработчиком контекста
+/// (для ask-модалки — `App::handle_ask_key`), поэтому «обработчик умеет
+/// клавишу, о которой нигде не сказано» или «подсказка обещает клавишу без
+/// обработчика» валит тест, а не всплывает у пользователя.
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "сверка реестра с обработчиком — тест, в рантайме не читается"
+    )
+)]
+pub(crate) fn codes(ctx: Ctx) -> Vec<&'static str> {
+    bindings_for(ctx)
+        .flat_map(|b| b.codes.iter().copied())
+        .collect()
+}
+
+/// Действие контекста `ctx`, владеющее нормализованным кодом `code`.
+///
+/// Нужно рендеру ask-модалки: строки подсказок (`ask_hint_line`) строятся из
+/// реестра, а не переписывают подписи руками — иначе реестр и подсказка
+/// разъезжаются.
+pub(crate) fn action(ctx: Ctx, code: &str) -> Option<&'static Binding> {
+    bindings_for(ctx).find(|b| b.codes.contains(&code))
 }
 
 /// Строка подсказок клавиш для статус-бара: приоритетные действия текущего

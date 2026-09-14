@@ -1,0 +1,31 @@
+{
+  "id": "corruption-l1-00",
+  "source": "corruption",
+  "prompt": "Восстанови архитектурные гейты кейса до зелёного статуса: fitness (CONSTRAINTS.yaml), spine и trace должны пройти без error-находок, не внося новых нарушений.",
+  "workspace": {
+    "format": "git-bundle",
+    "bundle_sha256": "91580f00bf6815828e8e53c4c805c60490fc0ae862c4f853feba60161b8deef6",
+    "base_commit": "91580f00bf6815828e8e53c4c805c60490fc0ae8"
+  },
+  "objective": {
+    "kind": "restore-gates",
+    "tests_cmd": "true"
+  },
+  "verifier": {
+    "constraints": "CONSTRAINTS.yaml",
+    "spine": true,
+    "trace": true,
+    "hidden_constraints_sha256": "fa7a348278d67bfd6b4a77f113a043800346c10f7cbc286b8359d3192ea2d488"
+  },
+  "budget_seconds": 1800,
+  "max_tokens": 131072,
+  "thinking_budget": 8192,
+  "attempts": 2,
+  "difficulty": {
+    "R": 41,
+    "H": 0.046511627906976744,
+    "S": 3727,
+    "level": "L1"
+  },
+  "seed": 13371100
+}

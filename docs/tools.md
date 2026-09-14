@@ -95,7 +95,8 @@
 |---|---|---|
 | `propose_options` | Модальная панель выбора в TUI: 2–4 варианта, ответ уходит модели как результат инструмента | `question`*; `options`* — массив `{label, description}` (2–4); `recommended` — label рекомендуемого |
 
-- Клавиши панели: `↑/↓`/`j/k` — курсор, `Enter` — подтвердить, `1`–`4` — мгновенный выбор, `Esc` — «реши сам, агент» (модель получает явный отказ и действует самостоятельно).
+- Клавиши панели: `↑/↓`/`j/k` — курсор, `Home`/`End` и `PgUp`/`PgDn` — прыжок по списку (`PgUp`/`PgDn` — на 10 пунктов), `Enter` — подтвердить, `1`–`9` — мгновенный выбор по номеру, `Esc` — «реши сам, агент» (модель получает явный отказ и действует самостоятельно).
+- Диапазон цифр панель считает сама по числу пунктов (`1`–`n`) и в подсказке обещает только то, что клавиши делают: у `propose_options` пунктов не больше четырёх, поэтому для него это всегда `1`–`4`; быстрые клавиши есть только у первых девяти — дальше стрелками. Цифра вне списка не молчит, а отвечает тостом.
 - Рекомендуемый вариант помечен `★` и предвыбран курсором.
 - В headless (`arch-ml run`) панели нет — модель получает инструкцию перечислить варианты текстом.
 - Модель обучена звать его только для значимых развилок (архитектура, компромиссы, риск), не для мелочей.
@@ -270,7 +271,7 @@ CDP-хелпер (`assets/computer/cdp.mjs`, Node ≥ 18) встроен в би
 | `trace_check` | Трассируемость как fitness-функция (ADR-006): покрытие звеньев REQ → NFR → AD/ADR → CMP → правило CONSTRAINTS.yaml, поимённые сироты, сверка модели со spine; AD без правила и без `unverifiable` — error. Отчёт markdown (годится для evidence bundle) | `dir` (корень кейса, по умолчанию текущий каталог) |
 | `adr_new` | ADR по шаблону AI-DLC в `docs/adr/` (очередной номер, kebab-title) | `title`* |
 | `spine_lint` | Линтер ARCHITECTURE-SPINE.md: дубли AD-id, пустые Binds/Prevents/Rule, заглушки, непиннутые версии | `path`* |
-| `fitness_check` | Fitness functions из CONSTRAINTS.yaml по репозиторию → PASS/FAIL с находками `file:line` | `repo`*; `constraints` (путь к YAML, иначе `<repo>/.arch-handoff/CONSTRAINTS.yaml`) |
+| `fitness_check` | Fitness functions из CONSTRAINTS.yaml по репозиторию → PASS/FAIL с находками `file:line` | `repo`*; `constraints` (путь к YAML, иначе рабочий `<repo>/CONSTRAINTS.yaml`, затем пакетный `<repo>/.arch-handoff/CONSTRAINTS.yaml` как fallback) |
 | `openapi_lint` | Линтер контрактов OpenAPI 3.x (walking skeleton, ADR-015): semver `info.version` (OA-001), версионный префикс путей `/v<число>/` (OA-002), `Idempotency-Key` на mutating-операциях (OA-003), ошибки 4xx/5xx/default с `application/problem+json` по RFC 7807 (OA-004), `operationId` (OA-005). YAML и JSON, без `$ref`-резолюции (Deferred) | `path`* — файл контракта (yaml/yml/json) |
 | `asyncapi_lint` | Линтер контрактов AsyncAPI 2.x/3.x (walking skeleton, ADR-015): semver `info.version` (AA-001), message/messages у операций (AA-002), payload-схема сообщений (AA-003), стабильный id события (`messageId`/`x-message-id`/`key`) на publish/send для идемпотентности потребителя (AA-004), наличие `servers` и каналов/операций (AA-005). YAML и JSON, без `$ref`-резолюции и trait-полей (Deferred) | `path`* — файл контракта (yaml/yml/json) |
 | `contract_diff` | Сравнение двух версий контракта OpenAPI 3.x на breaking changes (walking skeleton, ADR-015): удалённые пути (CD-001), операции (CD-002), обязательные параметры / ставшие required (CD-003), коды ответов (CD-004), смена типов полей схем (CD-006); добавленные пути/операции/необязательные параметры/коды ответов (CD-005, non-breaking). YAML и JSON, без `$ref`-резолюции и глубокой рекурсии (Deferred) | `old`*, `new`* — пути к старой и новой версиям контракта (yaml/yml/json) |

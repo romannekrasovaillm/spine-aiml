@@ -49,7 +49,7 @@ claude mcp add arch-spine -- arch-ml mcp serve
 | Инструмент | Аргументы | Verdict |
 |---|---|---|
 | `spine_lint` | `path` | линтер ARCHITECTURE-SPINE.md: `passed=false` при находках error (дубли AD-id, пустые Binds/Prevents/Rule, заглушки, непиннутые версии, битые ссылки AD) |
-| `fitness_check` | `repo`, `constraints?` | прогон CONSTRAINTS.yaml (дефолт `<repo>/.arch-handoff/CONSTRAINTS.yaml`): must_contain / must_not_contain / each_file_must_contain / file_exists / dir_must_have_file / max_age / command_succeeds; `passed=false` — правила нарушены |
+| `fitness_check` | `repo`, `constraints?` | прогон CONSTRAINTS.yaml (дефолт — рабочий `<repo>/CONSTRAINTS.yaml`, затем пакетный `<repo>/.arch-handoff/CONSTRAINTS.yaml` как fallback; в ответе `ruleset`/`ruleset_kind`/`warning`): must_contain / must_not_contain / each_file_must_contain / file_exists / dir_must_have_file / max_age / command_succeeds; `passed=false` — правила нарушены |
 | `significance_score` | `triggers` | маршрут значимости Fast/Standard/Critical по 15 триггерам (информационный, без `passed`) |
 | `trace_check` | `case` | позвенная трассируемость `REQ → NFR → AD/ADR → CMP → правило`: AD без правила и без `unverifiable` — error; verdict + `report_markdown` для evidence bundle |
 | `model_query` | `dir?`, `id?`, `type?` | список сущностей модели (фильтр по типу) или карточка сущности со связями и обратными ссылками |
@@ -108,12 +108,15 @@ printf '%s\n' \
 Путь — `mcp.servers_file` (дефолт `~/.arch-ml/mcp.json`; `arch-ml init`
 кладёт образец). Формат:
 
+**ВНИМАНИЕ:** пути в `args` не раскрываются — ни харнессом, ни внешним
+сервером. Указывайте абсолютный путь; тильда станет буквальным каталогом `~`.
+
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/Документы"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/Документы"]
     },
     "fetch": {
       "command": "uvx",

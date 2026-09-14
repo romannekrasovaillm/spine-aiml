@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error::{HarnessError, Result};
 use crate::tool::ToolContext;
@@ -37,8 +37,16 @@ pub enum SlashOutcome {
     /// Выход из приложения.
     Quit,
     /// `/goal <спека>` или `/goal resume`: цель поставлена (возобновлена) —
-    /// UI запускает первый терн петли. Текст — отчёт для пользователя.
-    GoalStarted(String),
+    /// UI запускает первый терн петли.
+    GoalStarted {
+        /// Отчёт о постановке цели для блока диалога.
+        text: String,
+        /// Первая строка доменного хука `intent` — гипотезы теплицы,
+        /// пересекающиеся с намерением (см. `docs/hypotheses.md`). TUI
+        /// показывает её в строке состояния; `None` — плагина нет или хук
+        /// промолчал. Хук вызван ровно один раз, здесь, а не в рендере.
+        intent_hint: Option<String>,
+    },
     /// Неизвестная команда.
     Unknown(String),
     /// Ввод не является слэш-командой — передать модели.
@@ -85,7 +93,7 @@ pub async fn execute(
             Ok(SlashOutcome::NewSession)
         }
         "/quit" => Ok(SlashOutcome::Quit),
-        "/goal" => cmd_goal(rest, session),
+        "/goal" => cmd_goal(rest, session, ctx),
         "/tools" => Ok(SlashOutcome::Handled(tools_text(session))),
         "/prompts" => cmd_prompts(rest, ctx),
         "/mermaid" => cmd_mermaid(rest, ctx),
@@ -107,6 +115,7 @@ pub async fn execute(
         "/skills" => Ok(cmd_skills(rest, ctx)),
         "/skill" => cmd_skill(rest, session, ctx),
         "/plugins" => Ok(cmd_plugins(rest, ctx)),
+        "/hypotheses" => Ok(cmd_hypotheses(rest, ctx)),
         "/agents" => Ok(SlashOutcome::Handled(cmd_agents(ctx))),
         "/worktree" => cmd_worktree_list(ctx).await,
         "/distill" => cmd_distill(rest, session, ctx).await,
@@ -166,6 +175,10 @@ pub fn catalog() -> Vec<(&'static str, &'static str)> {
         ("/skills [query]", "поиск по библиотеке скиллов"),
         ("/skill <name>", "загрузить скилл в контекст"),
         ("/plugins", "плагины: скиллы + MCP"),
+        (
+            "/hypotheses [текст]",
+            "гипотезы из теплицы по фактам проекта и намерению",
+        ),
         ("/agents", "субагенты: спеки из плагинов + фоновые задачи"),
         ("/worktree", "изолированные git worktree агентов (список)"),
         (
@@ -259,14 +272,16 @@ async fn cmd_compact(session: &mut AgentSession) -> Result<SlashOutcome> {
 ///
 /// Цель без критерия и проверки отклоняется: цель-направление («найди все
 /// баги») даёт немедленный blocked или бесконечную работу (спека §8).
-fn cmd_goal(rest: &str, session: &mut AgentSession) -> Result<SlashOutcome> {
+fn cmd_goal(rest: &str, session: &mut AgentSession, ctx: &ToolContext) -> Result<SlashOutcome> {
     if let Some(arg) = rest.strip_prefix("replace ") {
         let spec = crate::goal::GoalSpec::parse_set(arg.trim())?;
+        // Строка теплицы считается по НОВОМУ намерению, до того как спека
+        // переехала в сессию.
+        let intent_hint = intent_line(&ctx.config.plugins.dirs, &ctx.cwd, &spec.objective);
         session.goal_replace(spec);
-        return Ok(SlashOutcome::GoalStarted(format!(
-            "♻ цель заменена\n{}",
-            goal_status_text(session)
-        )));
+        let mut text = format!("♻ цель заменена\n{}", goal_status_text(session));
+        push_intent_hint(&mut text, intent_hint.as_deref());
+        return Ok(SlashOutcome::GoalStarted { text, intent_hint });
     }
     if let Some(arg) = rest.strip_prefix("next ") {
         if session.goal().is_none() {
@@ -275,10 +290,17 @@ fn cmd_goal(rest: &str, session: &mut AgentSession) -> Result<SlashOutcome> {
             ));
         }
         let spec = crate::goal::GoalSpec::parse_set(arg.trim())?;
+        // Строка теплицы считается по намерению, которое в очередь кладём, —
+        // ровно как в ветках новой и заменённой цели: иначе очередь целей была
+        // бы единственным способом поставить намерение, о котором гипотезы не
+        // спрашивают (обещание docs/slash_commands.md). Уходит в подтверждение,
+        // а не в строку состояния: там живёт намерение ТЕКУЩЕЙ цели.
+        let intent_hint = intent_line(&ctx.config.plugins.dirs, &ctx.cwd, &spec.objective);
         session.goal_push_next(spec);
-        return Ok(SlashOutcome::Handled(
-            "цель поставлена в очередь: станет видимой агенту после завершения текущей".into(),
-        ));
+        let mut text =
+            "цель поставлена в очередь: станет видимой агенту после завершения текущей".to_string();
+        push_intent_hint(&mut text, intent_hint.as_deref());
+        return Ok(SlashOutcome::Handled(text));
     }
     match rest {
         "" | "status" => Ok(SlashOutcome::Handled(goal_status_text(session))),
@@ -293,9 +315,12 @@ fn cmd_goal(rest: &str, session: &mut AgentSession) -> Result<SlashOutcome> {
         }
         "resume" => {
             if session.goal_resume() {
-                Ok(SlashOutcome::GoalStarted(
-                    "▶ цель возобновлена — продолжаю работу".into(),
-                ))
+                // Возобновление не приносит нового намерения — старая строка
+                // теплицы (если была) уже показана при постановке.
+                Ok(SlashOutcome::GoalStarted {
+                    text: "▶ цель возобновлена — продолжаю работу".into(),
+                    intent_hint: None,
+                })
             } else {
                 Ok(SlashOutcome::Handled(
                     "возобновлять нечего: цели нет или она не на паузе".into(),
@@ -311,13 +336,49 @@ fn cmd_goal(rest: &str, session: &mut AgentSession) -> Result<SlashOutcome> {
         }
         _ => {
             let spec = crate::goal::GoalSpec::parse_set(rest)?;
+            // Роутинг по фактам проекта: текст намерения уходит доменным хуком
+            // `intent` (плагин hypothesis-router), и первая строка ответа —
+            // гипотезы теплицы, пересекающиеся с задачей. Пока цель уже
+            // известна, но ход ещё не начат, — «after text received, before
+            // REQ/NFR». Хук не установлен — строки нет, и выдумывать нечего.
+            let intent_hint = intent_line(&ctx.config.plugins.dirs, &ctx.cwd, &spec.objective);
             session.goal_set(spec);
-            Ok(SlashOutcome::GoalStarted(format!(
-                "🎯 цель принята\n{}",
-                goal_status_text(session)
-            )))
+            let mut text = format!("🎯 цель принята\n{}", goal_status_text(session));
+            push_intent_hint(&mut text, intent_hint.as_deref());
+            Ok(SlashOutcome::GoalStarted { text, intent_hint })
         }
     }
+}
+
+/// Дописывает строку теплицы к отчёту о постановке цели отдельной строкой.
+fn push_intent_hint(text: &mut String, hint: Option<&str>) {
+    if let Some(hint) = hint {
+        text.push('\n');
+        text.push_str(hint);
+    }
+}
+
+/// Первая строка доменного хука `intent` для текста намерения: гипотезы
+/// теплицы, пересекающиеся с задачей и фактами проекта `cwd` (роутинг по
+/// фактам — `docs/hypotheses.md`).
+///
+/// Единая точка входа для `/hypotheses`, `/goal` и строки состояния TUI:
+/// одна реализация — одна семантика. `None` означает «показывать нечего»:
+/// плагин `hypothesis-router` не установлен, его хук вернул ненулевой код
+/// (ошибка аргументов/окружения) или пустую строку. Выдумывать гипотезы
+/// вместо хука нельзя — это разные вещи: факт из теплицы и догадка модели.
+///
+/// Хук ограничен таймаутом (5 с, `crate::hypothesis`) и не блокирует харнесс;
+/// при нескольких плагинах с событием `intent` порядок детерминирован
+/// (каталоги и имена — по возрастанию, `std::fs::read_dir` + сортировка в
+/// `crate::hypothesis::domain_hooks`), поэтому берётся стабильно первый.
+#[must_use]
+pub fn intent_line(plugin_dirs: &[PathBuf], cwd: &Path, intent: &str) -> Option<String> {
+    let repo = cwd.to_string_lossy();
+    crate::hypothesis::run_event(plugin_dirs, "intent", &[intent, repo.as_ref()], cwd)
+        .into_iter()
+        .find(|outcome| outcome.code == 0 && !outcome.line.trim().is_empty())
+        .map(|outcome| outcome.line)
 }
 
 /// Текст статуса цели для `/goal status` и отчётов о постановке.
@@ -738,7 +799,8 @@ fn cmd_handoff(rest: &str, ctx: &ToolContext) -> Result<SlashOutcome> {
     )))
 }
 
-/// `/control <repo>`: fitness functions из `.arch-handoff/CONSTRAINTS.yaml`.
+/// `/control <repo>`: fitness functions из рабочего `<repo>/CONSTRAINTS.yaml`
+/// (fallback — пакетный `.arch-handoff/CONSTRAINTS.yaml` с предупреждением).
 fn cmd_control(rest: &str, ctx: &ToolContext) -> Result<SlashOutcome> {
     if rest.is_empty() {
         return Ok(SlashOutcome::Handled(
@@ -746,13 +808,19 @@ fn cmd_control(rest: &str, ctx: &ToolContext) -> Result<SlashOutcome> {
         ));
     }
     let repo = ctx.resolve(rest);
-    let report = crate::control::check(&repo, &repo.join(".arch-handoff/CONSTRAINTS.yaml"))?;
+    let resolved = crate::control::resolve_ruleset_required(&repo)?;
+    let report = crate::control::check(&repo, &resolved.path)?;
     let verdict = if report.passed { "PASS" } else { "FAIL" };
     let mut out = format!(
-        "контроль {}: {verdict}\n{}\n",
+        "контроль {}: {verdict}\nRuleset: {} ({})\n{}\n",
         repo.display(),
+        resolved.path.display(),
+        resolved.kind.label(),
         report.summary
     );
+    if let Some(warning) = resolved.warning(&repo) {
+        let _ = writeln!(out, "[warning] {warning}");
+    }
     for i in &report.issues {
         let _ = writeln!(
             out,
@@ -1068,6 +1136,46 @@ fn cmd_plugins(rest: &str, ctx: &ToolContext) -> SlashOutcome {
         );
     }
     SlashOutcome::Handled(out)
+}
+
+/// `/hypotheses [текст]`: гипотезы теплицы, пересекающиеся с проектом и
+/// намерением. Печатает первую строку ответа доменного хука `intent` как есть
+/// (`docs/hypotheses.md`).
+///
+/// Три честных исхода: хук не объявлен (плагин не установлен) — «нечего
+/// показать», без выдуманного списка гипотез; код 0 — строка хука дословно;
+/// ненулевой код — код и причина, а не результат. Пустой аргумент — легальный
+/// вызов: хук сопоставит только факты проекта.
+fn cmd_hypotheses(rest: &str, ctx: &ToolContext) -> SlashOutcome {
+    let repo = ctx.cwd.to_string_lossy().into_owned();
+    let outcomes = crate::hypothesis::run_event(
+        &ctx.config.plugins.dirs,
+        "intent",
+        &[rest, repo.as_str()],
+        &ctx.cwd,
+    );
+    let Some(outcome) = outcomes.first() else {
+        return SlashOutcome::Handled(
+            "плагин hypothesis-router не установлен: команде нечего показать".into(),
+        );
+    };
+    if outcome.code != 0 {
+        let reason = if outcome.line.trim().is_empty() {
+            "без пояснения".to_string()
+        } else {
+            outcome.line.clone()
+        };
+        return SlashOutcome::Handled(format!(
+            "хук intent завершился с кодом {}: {reason}",
+            outcome.code
+        ));
+    }
+    if outcome.line.trim().is_empty() {
+        return SlashOutcome::Handled(
+            "хук intent промолчал: гипотез, пересекающихся с задачей, нет".into(),
+        );
+    }
+    SlashOutcome::Handled(outcome.line.clone())
 }
 
 /// `/agents`: спецификации субагентов из плагинов + статусы фоновых задач.
@@ -2014,6 +2122,203 @@ mod tests {
         }
     }
 
+    /// Как [`make_fixture`], но каталоги плагинов заданы явно: тест не зависит
+    /// от библиотеки в `~/.arch-ml/plugins`.
+    fn make_fixture_with_plugin_dirs(
+        dir: &Path,
+        plugin_dirs: Vec<PathBuf>,
+    ) -> (AgentSession, ToolContext) {
+        let mut cfg = Config::default();
+        cfg.paths.sessions_dir = dir.join("sessions");
+        cfg.paths.assets_dir = dir.join("assets");
+        cfg.paths.state_dir = dir.join("state");
+        cfg.agent.stream = false;
+        cfg.plugins.dirs = plugin_dirs;
+        cfg.plugins.include_hooks = false;
+        let config = Arc::new(cfg);
+        let session = AgentSession::new(
+            config.clone(),
+            Arc::new(StubLlm),
+            ToolRegistry::new(),
+            ToolContext::new(dir.to_path_buf(), config.clone()),
+            "sys".into(),
+        );
+        let ctx = ToolContext::new(dir.to_path_buf(), config);
+        (session, ctx)
+    }
+
+    /// Раскладывает плагин-заглушку с доменным хуком `intent` (тело скрипта
+    /// `body`) и возвращает каталог-корень для `cfg.plugins.dirs`: тем самым
+    /// проверяется весь путь манифест → `domain_hooks` → `run_hook` → строка.
+    fn stub_intent_plugin(root: &Path, body: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt as _;
+        let dir = root.join("hyp-stub");
+        let hook = dir.join("hooks");
+        std::fs::create_dir_all(&hook).expect("mkdir hooks");
+        std::fs::write(
+            dir.join("plugin.json"),
+            r#"{"name":"hyp-stub","hooks":{"intent":"hooks/intent.sh intent"}}"#,
+        )
+        .expect("manifest");
+        let script = hook.join("intent.sh");
+        std::fs::write(&script, body).expect("script");
+        let mut perms = std::fs::metadata(&script).expect("meta").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&script, perms).expect("chmod");
+        root.to_path_buf()
+    }
+
+    #[tokio::test]
+    async fn hypotheses_without_plugin_says_so_plainly() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let empty = tmp.path().join("no-plugins");
+        std::fs::create_dir_all(&empty).expect("mkdir");
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![empty]);
+
+        match execute("/hypotheses хочу обучить 3B", &mut s, &ctx)
+            .await
+            .expect("ok")
+        {
+            SlashOutcome::Handled(text) => {
+                assert!(text.contains("не установлен"), "{text}");
+                assert!(text.contains("нечего показать"), "{text}");
+                // Честность важнее полноты: выдуманных гипотез в выводе нет.
+                assert!(!text.contains("laguna"), "{text}");
+                assert!(!text.contains("гипотезы, пересекающиеся"), "{text}");
+            }
+            other => panic!("ожидался Handled, получено {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn hypotheses_prints_hook_line_as_is() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dirs = stub_intent_plugin(
+            tmp.path(),
+            "#!/bin/sh\nprintf 'гипотезы, пересекающиеся с задачей: stub — поднять?\\n'\n",
+        );
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![dirs]);
+
+        match execute("/hypotheses хочу обучить 3B на GB10", &mut s, &ctx)
+            .await
+            .expect("ok")
+        {
+            SlashOutcome::Handled(text) => assert_eq!(
+                text, "гипотезы, пересекающиеся с задачей: stub — поднять?",
+                "строка хука печатается как есть, без обёрток"
+            ),
+            other => panic!("ожидался Handled, получено {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn hypotheses_reports_hook_failure_as_failure() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dirs = stub_intent_plugin(
+            tmp.path(),
+            "#!/bin/sh\necho 'нет каталога карточек'\nexit 3\n",
+        );
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![dirs]);
+
+        match execute("/hypotheses", &mut s, &ctx).await.expect("ok") {
+            SlashOutcome::Handled(text) => {
+                assert!(text.contains("кодом 3"), "{text}");
+                assert!(text.contains("нет каталога карточек"), "{text}");
+            }
+            other => panic!("ожидался Handled, получено {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn goal_carries_intent_hint_from_plugin() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dirs = stub_intent_plugin(
+            tmp.path(),
+            "#!/bin/sh\nprintf 'гипотезы, пересекающиеся с задачей: stub — поднять?\\n'\n",
+        );
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![dirs]);
+
+        match execute("/goal обучить 3B || loss падает || true", &mut s, &ctx)
+            .await
+            .expect("ok")
+        {
+            SlashOutcome::GoalStarted { text, intent_hint } => {
+                assert_eq!(
+                    intent_hint.as_deref(),
+                    Some("гипотезы, пересекающиеся с задачей: stub — поднять?"),
+                    "строка хука едет в UI отдельным полем"
+                );
+                assert!(text.contains("цель принята"), "{text}");
+                assert!(
+                    text.ends_with("— поднять?"),
+                    "и дублируется в отчёте о постановке: {text}"
+                );
+            }
+            other => panic!("ожидался GoalStarted, получено {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn queued_goal_carries_intent_hint() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dirs = stub_intent_plugin(
+            tmp.path(),
+            "#!/bin/sh\nprintf 'гипотезы, пересекающиеся с задачей: очередь — поднять?\\n'\n",
+        );
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![dirs]);
+        execute("/goal обучить 3B || loss падает || true", &mut s, &ctx)
+            .await
+            .expect("текущая цель");
+
+        // Обещание docs/slash_commands.md: хук intent зовётся и на `next` —
+        // иначе очередь целей была бы единственным способом поставить
+        // намерение, о котором гипотезы не спрашивают.
+        match execute(
+            "/goal next дообучить 7B || loss падает || true",
+            &mut s,
+            &ctx,
+        )
+        .await
+        .expect("ok")
+        {
+            SlashOutcome::Handled(text) => {
+                assert!(text.contains("в очередь"), "{text}");
+                assert!(
+                    text.ends_with("— поднять?"),
+                    "строка хука обязана дойти до пользователя: {text}"
+                );
+            }
+            other => panic!("ожидался Handled, получено {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn goal_without_intent_plugin_has_no_hint() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let empty = tmp.path().join("no-plugins");
+        std::fs::create_dir_all(&empty).expect("mkdir");
+        let (mut s, ctx) = make_fixture_with_plugin_dirs(tmp.path(), vec![empty]);
+
+        match execute("/goal обучить 3B || loss падает || true", &mut s, &ctx)
+            .await
+            .expect("ok")
+        {
+            SlashOutcome::GoalStarted { text, intent_hint } => {
+                assert!(intent_hint.is_none(), "выдумывать гипотезы нечем");
+                assert!(!text.contains("гипотезы"), "{text}");
+            }
+            other => panic!("ожидался GoalStarted, получено {other:?}"),
+        }
+        // `next` не несёт нового намерения — строки теплицы у него нет.
+        match execute("/goal next вторая || готово || true", &mut s, &ctx)
+            .await
+            .expect("ok")
+        {
+            SlashOutcome::Handled(text) => assert!(!text.contains("гипотезы"), "{text}"),
+            other => panic!("ожидался Handled, получено {other:?}"),
+        }
+    }
+
     #[tokio::test]
     async fn goal_set_requires_criterion_and_check() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -2032,7 +2337,7 @@ mod tests {
         .await
         .expect("ok")
         {
-            SlashOutcome::GoalStarted(text) => {
+            SlashOutcome::GoalStarted { text, .. } => {
                 assert!(text.contains("цель принята"), "{text}");
                 assert!(
                     text.contains("state") || text.contains("состояние"),
@@ -2075,7 +2380,7 @@ mod tests {
         );
 
         match execute("/goal resume", &mut s, &ctx).await.expect("ok") {
-            SlashOutcome::GoalStarted(_) => {}
+            SlashOutcome::GoalStarted { .. } => {}
             other => panic!("ожидался GoalStarted, получено {other:?}"),
         }
         assert_eq!(
@@ -2112,7 +2417,7 @@ mod tests {
             .await
             .expect("ok")
         {
-            SlashOutcome::GoalStarted(text) => assert!(text.contains("заменена"), "{text}"),
+            SlashOutcome::GoalStarted { text, .. } => assert!(text.contains("заменена"), "{text}"),
             other => panic!("ожидался GoalStarted, получено {other:?}"),
         }
         let goal = s.goal().expect("цель");

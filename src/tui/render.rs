@@ -11,7 +11,6 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::block::Title;
 use ratatui::widgets::{
     Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap,
 };
@@ -23,8 +22,31 @@ use super::app::{App, ChatBlock, Panels, RightTab, Screen, ToastLevel, ToolLive,
 use super::text::{markdown_lines, wrap_line};
 use super::theme::Theme;
 
-/// Ширина правой колонки (вкладки).
+/// Базовая ширина правой колонки (вкладки). 42 = внутренние 40 ячеек: чат —
+/// главный экран (при канонических 80×24 ему остаётся 38 клеток против 25 при
+/// 55), а бар вкладок честно деградирует в компактный режим «иконки + подпись
+/// активной». Полный бар из пяти подписей требует 53 ячейки (юникод) / 54
+/// (ASCII: `< >` — две клетки) и в 40 не влезает ни на какой ширине терминала,
+/// поэтому деградация здесь не зависит от `term_w` — это цена за широкий чат.
+/// Раньше база была 55 «под полный бар», но это отнимало у чата треть ширины
+/// на 80×24 ради подписей, которые и так доступны как иконки с подсказкой.
+/// Число 42, а не произвольное: при 43 внутренняя ширина диалога падает до 41
+/// и первая строка баннера (43 клетки) начинает обрезаться.
 const RIGHT_WIDTH: u16 = 42;
+/// Минимум, который обязан получить диалог (tui-layout-components: главная
+/// область не сжимается ниже своего минимума ради боковой панели).
+const DIALOG_MIN_WIDTH: u16 = 24;
+/// Минимум, при котором правая панель ещё читаема: рамка (2) + заголовок
+/// вкладки. Ниже — панель прячется, диалог забирает экран целиком.
+const RIGHT_MIN_WIDTH: u16 = 28;
+/// Минимум клеток под подсказки клавиш в статус-баре. В 48 помещаются
+/// `Enter отправить · Esc прервать · ? помощь · q выход` — первичные действия;
+/// половины строки на 60 колонках (30) хватало только на `?`/`q`, и Enter/Esc
+/// исчезали (обнаруживаемость не должна зависеть от длины соседних сегментов).
+const STATUS_HINTS_MIN: usize = 48;
+/// Сколько клеток статус-бара обязано остаться под модель и контекст при
+/// сколь угодно длинных подсказках.
+const STATUS_LEFT_MIN: usize = 12;
 /// Максимум строк блока «мысли» в диалоге (компактность; хвост — счётчиком).
 const MAX_THINKING_LINES: usize = 6;
 /// Замедление пульса «модель думает»: кадр раз в N тиков тикера (120 мс).
@@ -53,6 +75,39 @@ fn truncate_chars(s: &str, max: usize) -> String {
     format!("{cut}…")
 }
 
+/// Обрезает строку метки до `max` ЯЧЕЕК (не символов: кириллица и глифы
+/// шириной 2 не должны разъезжаться), добавляя многоточие темы (`…`/`...`).
+///
+/// Зачем отдельно от [`truncate_chars`]: метка ask-варианта делит строку со
+/// звёздочкой рекомендации, и усечение обязано оставить место ИМЕННО под неё.
+/// Раньше длинная метка вытесняла `★` за край панели — рекомендация терялась
+/// первой, хотя это самый важный знак строки. Считаем в ячейках, чтобы
+/// обрезка совпала с тем, что реально нарисует терминал.
+fn fit_label_cells(s: &str, max: usize, dots: &str) -> String {
+    if UnicodeWidthStr::width(s) <= max {
+        return s.to_string();
+    }
+    let dots_w = UnicodeWidthStr::width(dots);
+    if max <= dots_w {
+        // Даже под многоточие места нет — отдаём его целиком: лучше знак
+        // усечения, чем молча срезанный хвост без намёка на продолжение.
+        return dots.to_string();
+    }
+    let budget = max - dots_w;
+    let mut out = String::new();
+    let mut used = 0usize;
+    for ch in s.chars() {
+        let w = UnicodeWidthChar::width(ch).unwrap_or(0);
+        if used + w > budget {
+            break;
+        }
+        out.push(ch);
+        used += w;
+    }
+    out.push_str(dots);
+    out
+}
+
 /// Грубая оценка токенов и скорости стрима, (токены, ток/с): 4 байта ≈
 /// 1 токен — та же конвенция, что `ChatMessage::rough_tokens`; скорость
 /// считается с 0,5 с стрима (раньше — шум деления на миллисекунды).
@@ -69,7 +124,23 @@ fn stream_tok_rate(bytes: usize, secs: f64) -> (usize, usize) {
 /// Ширина правой колонки: под широкий mermaid-арт панель растёт (до 60%
 /// терминала), чтобы схема помещалась целиком, без горизонтального клипа.
 /// На остальных вкладках — фиксированная [`RIGHT_WIDTH`].
+///
+/// Возвращается ФАКТИЧЕСКИ выделяемая ширина, а не номинал: на узком
+/// терминале `Length(42)` в паре с `Min(24)` выигрывал и сжимал диалог до
+/// 18 клеток — `Min` не защищает от превышения суммы. Поэтому здесь панель
+/// уступает диалогу его минимум, сжимается до [`RIGHT_MIN_WIDTH`] и, если
+/// и этого не хватает, скрывается совсем (0) — диалог забирает весь экран
+/// (tui-design-principles, адаптивность: минимум размера + брейкпоинты).
 fn right_panel_width(app: &App, term_w: u16) -> u16 {
+    let room = term_w.saturating_sub(DIALOG_MIN_WIDTH);
+    if room < RIGHT_MIN_WIDTH {
+        return 0;
+    }
+    nominal_right_width(app, term_w).min(room)
+}
+
+/// Номинал ширины панели без учёта тесноты терминала.
+fn nominal_right_width(app: &App, term_w: u16) -> u16 {
     if app.right_tab() != RightTab::Mermaid {
         return RIGHT_WIDTH;
     }
@@ -251,13 +322,26 @@ fn draw_chat(f: &mut Frame, app: &mut App) {
         Constraint::Length(1),
     ])
     .split(f.area());
-    let right_w = if app.right_visible {
+    // Блокирующая ask-модалка забирает место у правой панели: пока она
+    // открыта, панель не рисуется, а колонка диалога разворачивается на всю
+    // ширину. Так рамка модалки гарантированно остаётся ВНУТРИ рамки панели
+    // диалога — ни одну чужую рамку она не перечёркивает, и при этом не
+    // приходится ужимать саму модалку до ширины колонки диалога (на 60–110
+    // колонках это стоило бы сегментов подсказки: реестр клавиш не влезал).
+    // Панель — хром, модалка — главное содержимое момента (AP1: главное не
+    // приносится в жертву хрому). Взаимодействовать с панелью всё равно
+    // нельзя: модалка блокирующая, ввод перехвачен.
+    let modal_open = app.ask.is_some();
+    let right_w = if app.right_visible && !modal_open {
         right_panel_width(app, f.area().width)
     } else {
         0
     };
-    let cols =
-        Layout::horizontal([Constraint::Min(24), Constraint::Length(right_w)]).split(rows[0]);
+    let cols = Layout::horizontal([
+        Constraint::Min(DIALOG_MIN_WIDTH),
+        Constraint::Length(right_w),
+    ])
+    .split(rows[0]);
 
     draw_dialog(f, cols[0], app, &theme);
     // Очередь сообщений — плавающей карточкой внизу окна логов (над вводом).
@@ -281,8 +365,13 @@ fn draw_chat(f: &mut Frame, app: &mut App) {
     if app.viewer.is_some() {
         draw_viewer(f, f.area(), app, &theme);
     }
-    if app.ask.is_some() {
-        draw_ask(f, f.area(), app, &theme);
+    if modal_open {
+        // Область модалки — полоса диалога `rows[0]`. Когда модалка открыта,
+        // она совпадает с рамкой панели диалога (правая панель не рисуется,
+        // см. `right_w` выше), поэтому модалка центрируется внутри неё и не
+        // пересекает ничьих рамок. Высота ужимается под `rows[0]`, так что
+        // строка ввода и статус-бар остаются чистыми.
+        draw_ask(f, rows[0], app, &theme);
     }
 }
 
@@ -290,7 +379,7 @@ fn draw_chat(f: &mut Frame, app: &mut App) {
 /// (реестр `keymap` — единый источник со строкой подсказок). Фон под окном
 /// не затемняем: справка не блокирует сценарий, а подсказывает.
 fn draw_help(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
-    let sections = super::keymap::sections(app.chat_ctx());
+    let sections = super::keymap::sections(app.help_ctx());
     // Ширина колонки описания: остальное — под клавиши и отступы.
     let width = area.width.saturating_sub(8).clamp(40, 84).min(area.width);
     let inner_w = usize::from(width.saturating_sub(4)).max(1);
@@ -477,9 +566,31 @@ fn hclip_line(line: &Line<'_>, offset: usize) -> Line<'static> {
     Line::from(spans)
 }
 
+/// Заголовок ask-модалки и хвост клавиши `Esc` для её подсказки — по виду
+/// вопроса.
+///
+/// Вынесено из [`draw_ask`], потому что тот же хвост печатает строка состояния,
+/// пока модалка открыта (статус-бар обязан повторять клавиши верхнего слоя, а
+/// не чата). Один источник — один текст: иначе заголовок говорил бы «решение за
+/// вами», а футер — «отмена».
+fn ask_chrome(kind: crate::tui::app::AskKind, theme: &Theme) -> (String, &'static str) {
+    let mark = theme.glyphs.context();
+    match kind {
+        crate::tui::app::AskKind::Tool => (
+            format!(" {mark} решение за вами "),
+            // Коротко: «Esc решить» честно называет отказ (инструмент решит
+            // сам), а длинный хвост «решить агенту» вытеснял из подсказки
+            // страничные клавиши на 80 колонках (обрезка по сегментам).
+            " решить",
+        ),
+        crate::tui::app::AskKind::ModelPicker => (format!(" {mark} выбор модели "), " отмена"),
+        crate::tui::app::AskKind::SessionPicker => (format!(" {mark} выбор сессии "), " отмена"),
+    }
+}
+
 /// Модальная панель выбора вариантов (инструмент `propose_options)`:
 /// центрированное окно поверх чата — вопрос, варианты, курсор, подсказки.
-fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
+fn draw_ask(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     let Some(ask) = &app.ask else {
         return;
     };
@@ -509,20 +620,7 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     .split(cols[1]);
     let panel = rows[1];
 
-    let (title, esc_hint) = match ask.kind {
-        crate::tui::app::AskKind::Tool => (
-            format!(" {} решение за вами ", theme.glyphs.context()),
-            " решить агенту",
-        ),
-        crate::tui::app::AskKind::ModelPicker => (
-            format!(" {} выбор модели ", theme.glyphs.context()),
-            " отмена",
-        ),
-        crate::tui::app::AskKind::SessionPicker => (
-            format!(" {} выбор сессии ", theme.glyphs.context()),
-            " отмена",
-        ),
-    };
+    let (title, esc_hint) = ask_chrome(ask.kind, theme);
     let block = Block::default()
         .borders(Borders::ALL)
         .border_set(theme.glyphs.border_set())
@@ -562,36 +660,60 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     // Диапазон строк выбранного варианта — для автоскролла за курсором.
     let mut sel_start = 0usize;
     let mut sel_end = 0usize;
+    // Ширина номера — по числу вариантов, ФИКСИРОВАННАЯ на весь список:
+    // иначе «10. » сдвигал метку на клетку вправо (пункт с двузначным номером
+    // читался иначе, чем соседи), а вместе с меткой ехала и звёздочка.
+    let num_w = ask.options.len().max(1).to_string().len();
     for (i, opt) in ask.options.iter().enumerate() {
         let current = i == ask.selected;
         if current {
             sel_start = opt_lines.len();
         }
         let recommended = ask.recommended.as_deref() == Some(opt.label.as_str());
-        // Маркер выбора — U+203A, а не U+276F «❯»: последнего нет в
-        // Ubuntu Sans Mono, и fontconfig-фолбэк рисовал глиф вне сетки,
-        // затирая следующие ячейки (инцидент 07.09: съедалась цифра «1.»
-        // первого пункта ask-модалки). U+203A есть в шрифте — без фолбэка.
-        let (mark, num_style) = if current {
-            (
-                format!("{} ", theme.glyphs.cursor()),
-                Style::default()
-                    .fg(theme.cyan)
-                    .bg(theme.bg)
-                    .add_modifier(Modifier::BOLD),
-            )
+        // Маркер выбора — ТОЛЬКО ASCII `"> "` (не выбран — `"  "`), ровно
+        // две ячейки. Здесь стоял Unicode-глиф: сначала U+276F «❯», затем
+        // U+203A «›». Оба — структурно хрупкие: если глифа нет в шрифте,
+        // fontconfig-фолбэк рисует его ВНЕ моноширинной сетки и затирает
+        // соседние ячейки. Инцидент 07.09: «›» съел цифру «1.» первого
+        // пункта ask-модалки — цифры вариантов пропали. Причина не в
+        // конкретном глифе, а в том, что перед критичной цифрой вообще
+        // стоял не-ASCII символ. ASCII-маркер закрывает класс инцидента
+        // навсегда: `">"` и пробел есть в любом моноширинном шрифте.
+        // НЕ возвращать сюда глиф и не переносить эту логику на
+        // `theme.glyphs.cursor()` — он остаётся для курсора ввода.
+        let (mark, row_style, num_style) = if current {
+            let sel = Style::default()
+                .fg(theme.cyan)
+                .bg(theme.bg)
+                .add_modifier(Modifier::BOLD);
+            ("> ", sel, sel)
         } else {
-            ("  ".to_string(), theme.muted())
+            // Иерархия выправлена: МЕТКА (то, что выбирают) — основной текст
+            // `base()` (контраст ≥ 4.5:1, в монохроме без DIM), а НОМЕР —
+            // акцент формы `number_key()`. Раньше было наоборот: метка шла
+            // `muted()` (3:1, в монохроме ещё и DIM), а номер — ярче метки,
+            // то есть подпись читалась хуже собственного порядкового номера.
+            ("  ", theme.base(), theme.number_key())
         };
         let star = if recommended {
             format!(" {}", theme.glyphs.star())
         } else {
             String::new()
         };
+        // Метке — остаток строки после маркера (2), номера (`num_w + 2`) и
+        // РЕЗЕРВА под звёздочку (2). Резерв считаем до усечения: звезда
+        // рекомендации не должна уезжать за край, даже если метка длинная.
+        let star_w = if recommended {
+            UnicodeWidthStr::width(star.as_str())
+        } else {
+            0
+        };
+        let label_budget = inner_w.saturating_sub(2 + num_w + 2).saturating_sub(star_w);
+        let label = fit_label_cells(&opt.label, label_budget, theme.glyphs.ellipsis());
         opt_lines.push(Line::from(vec![
-            Span::styled(mark, num_style),
-            Span::styled(format!("{}. ", i + 1), num_style),
-            Span::styled(opt.label.clone(), num_style),
+            Span::styled(mark, row_style),
+            Span::styled(format!("{:>num_w$}. ", i + 1), num_style),
+            Span::styled(label, row_style),
             Span::styled(star, Style::default().fg(theme.orange).bg(theme.bg)),
         ]));
         if !opt.description.is_empty() {
@@ -609,19 +731,19 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             sel_end = opt_lines.len();
         }
     }
-    let key = |k: &str| Span::styled(k.to_string(), theme.heading());
-    let sep = |t: String| Span::styled(t, theme.muted());
-    let hint_line = Line::from(vec![
-        key(theme.glyphs.up_down()),
-        sep(" выбор · ".into()),
-        key("Enter"),
-        sep(" подтвердить · ".into()),
-        key("1-4"),
-        sep(" быстро · ".into()),
-        key("Esc"),
-        sep(esc_hint.into()),
-        sep(format!(" · {}/{}", ask.selected + 1, ask.options.len())),
-    ]);
+    let n = ask.options.len();
+    // Счётчик позиции (`N/M`) — ОТДЕЛЬНАЯ правоприжатая зона фиксированной
+    // ширины, а не хвост подсказки. Раньше он дописывался в конец одной
+    // строки, и при узкой панели Paragraph (без wrap) клипал справа первым
+    // именно его — «часть контекста», ради которой модалка существует,
+    // пропадала раньше, чем подсказка о стрелках. Теперь место под счётчик
+    // резервируется ДО подсказки, и обрезаться может только подсказка.
+    let counter = if n > 0 {
+        format!("{}/{}", ask.selected + 1, n)
+    } else {
+        String::new()
+    };
+    let counter_w = u16_sat(UnicodeWidthStr::width(counter.as_str()));
     // Раскладка: вопрос (+пустая строка) сверху, подсказки — последняя
     // строка панели, опции — прокручиваемая середина.
     let header_h = u16::try_from(question_lines.len() + 1).unwrap_or(u16::MAX);
@@ -634,19 +756,46 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         height: 1,
         ..inner
     };
+    let (hint_area, counter_area) = if counter_w == 0 {
+        (
+            footer,
+            Rect {
+                x: footer.x + footer.width,
+                width: 0,
+                ..footer
+            },
+        )
+    } else {
+        let cols = Layout::horizontal([
+            Constraint::Min(0),
+            Constraint::Length(counter_w.saturating_add(1)),
+        ])
+        .split(footer);
+        (cols[0], cols[1])
+    };
     let body = Rect {
         y: inner.y + header.height,
         height: inner.height.saturating_sub(header.height).saturating_sub(1),
         ..inner
     };
-    let mut head_lines = question_lines;
-    head_lines.push(Line::default());
-    f.render_widget(Paragraph::new(head_lines), header);
-    f.render_widget(Paragraph::new(vec![hint_line]), footer);
     // Окно прокрутки за курсором (минимальное): вниз — ровно до показа
     // описания выбранного, вверх — пункт в топ.
     let visible = usize::from(body.height);
     let total = opt_lines.len();
+    // Запоминаем реальную высоту тела: app.rs берёт от неё шаг `PgUp`/`PgDn`
+    // (был константой 10, не связанной с окном терминала).
+    app.ask_viewport = visible;
+    // Подсказка собирается ЗДЕСЬ, когда окно уже известно: страничные клавиши
+    // обещаем только если список длиннее окна (обещать листать нечего листать
+    // — ложь). Честная подсказка обещает только то, что клавиши реально делают
+    // (app.rs, `handle_ask_key`).
+    let hint_line = ask_hint_line(
+        theme,
+        n,
+        esc_hint,
+        total > visible,
+        usize::from(hint_area.width),
+    );
     let mut offset = 0usize;
     if visible > 0 && total > visible {
         offset = sel_start.min(total - visible);
@@ -654,10 +803,176 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             offset = sel_end - visible;
         }
     }
+    let mut head_lines = question_lines;
+    head_lines.push(Line::default());
+    f.render_widget(Paragraph::new(head_lines), header);
+    f.render_widget(Paragraph::new(vec![hint_line]), hint_area);
+    if counter_w > 0 {
+        f.render_widget(
+            Paragraph::new(counter)
+                .alignment(Alignment::Right)
+                .style(theme.number_key()),
+            counter_area,
+        );
+    }
     f.render_widget(
         Paragraph::new(opt_lines).scroll((u16::try_from(offset).unwrap_or(u16::MAX), 0)),
         body,
     );
+}
+
+/// Подсказка клавиш ask-модалки.
+///
+/// Порядок сегментов — по значимости слева направо, потому что `Paragraph`
+/// без переноса обрезает строку СПРАВА: то, что обязано быть видно (навигация,
+/// страничные клавиши при переполнении), стоит левее декоративного «быстрого»
+/// диапазона и хвоста `Esc`. `paging` включает `PgUp`/`PgDn`/`Home`/`End`
+/// только когда список длиннее окна: когда листать нечего, обещание листания —
+/// такая же ложь, как молчание о нём, когда листать нужно. Текст подсказки
+/// обязан совпадать с тем, что реально делает `handle_ask_key` (app.rs).
+fn ask_hint_line(
+    theme: &Theme,
+    n: usize,
+    esc_hint: &str,
+    paging: bool,
+    width: usize,
+) -> Line<'static> {
+    struct Seg {
+        keys: String,
+        label: String,
+        /// Порядок отображения слева направо.
+        display: u8,
+        /// Порядок удержания: меньше — нужнее, уходит последним.
+        keep: u8,
+    }
+
+    let key = |k: &str| Span::styled(k.to_string(), theme.heading());
+    let sep = |t: &str| Span::styled(t.to_string(), theme.muted());
+
+    // Подписи и стабильные клавиши берём из реестра клавиш: он объявляет
+    // действие один раз, и подсказка не может обещать то, чего обработчик
+    // не делает (см. `App::handle_ask_key`). Исключение — стрелки: их вид
+    // зависит от набора глифов (↑/↓ или ^/v), а реестр статичен.
+    let from_registry = |code: &str, fallback: &str, labels: bool| -> String {
+        super::keymap::action(super::keymap::Ctx::Ask, code)
+            .map_or(fallback, |b| if labels { b.label } else { b.keys })
+            .to_string()
+    };
+    let label = |code: &str, fallback: &str| from_registry(code, fallback, true);
+    let rkey = |code: &str, fallback: &str| from_registry(code, fallback, false);
+
+    let mut segs: Vec<Seg> = Vec::new();
+    if n == 0 {
+        // Выбирать не из чего — единственное действие «ответить».
+        segs.push(Seg {
+            keys: rkey("enter", "Enter"),
+            label: "ответить".to_string(),
+            display: 2,
+            keep: 0,
+        });
+    } else {
+        // Стрелки — то, чем модалку листают; оставляем до последнего.
+        segs.push(Seg {
+            keys: theme.glyphs.up_down().to_string(),
+            label: label("up", "выбор"),
+            display: 0,
+            keep: 4,
+        });
+        if paging {
+            // Список длиннее окна: без этих клавиш хвост достаётся только по
+            // одной строке. При переполнении диапазон цифр не показываем —
+            // страница важнее.
+            segs.push(Seg {
+                keys: rkey("pageup", "PgUp/PgDn/Home/End"),
+                label: label("pageup", "листать"),
+                display: 1,
+                keep: 3,
+            });
+        } else {
+            let keys = if n == 1 {
+                // «1-1» — диапазон из одного числа, читателю он ничего не
+                // сообщает.
+                "1".to_string()
+            } else if n <= 9 {
+                format!("1-{n}")
+            } else {
+                // Компактно и честно: «1-9 + ↑/↓» говорит, что клавиши есть
+                // только у первых девяти, остальное — стрелками.
+                format!("1-9 + {}", theme.glyphs.up_down())
+            };
+            segs.push(Seg {
+                keys,
+                label: label("1", "быстро"),
+                display: 3,
+                keep: 2,
+            });
+        }
+        segs.push(Seg {
+            keys: rkey("enter", "Enter"),
+            label: label("enter", "подтвердить"),
+            display: 2,
+            keep: 0,
+        });
+    }
+    segs.push(Seg {
+        keys: rkey("esc", "Esc"),
+        label: esc_hint.trim_start().to_string(),
+        display: 4,
+        keep: 1,
+    });
+
+    let seg_w = |s: &Seg| {
+        UnicodeWidthStr::width(s.keys.as_str()) + 1 + UnicodeWidthStr::width(s.label.as_str())
+    };
+    let joined = |v: &[&Seg]| -> usize {
+        v.iter().map(|s| seg_w(s)).sum::<usize>() + v.len().saturating_sub(1) * 3
+    };
+
+    // Обрезка — по сегментам, с многоточием: `Paragraph` без переноса резал
+    // строку по клетке и рвал слово пополам («Enter подтвердить» → «Ent»).
+    // Уходят первыми наименее нужные: сначала стрелки, потом листание, потом
+    // цифры; Enter и Esc остаются всегда (без них модалка непонятна).
+    let all: Vec<&Seg> = segs.iter().collect();
+    let mut chosen: Vec<&Seg> = Vec::new();
+    let mut truncated = false;
+    if joined(&all) > width {
+        truncated = true;
+        let budget = width.saturating_sub(4); // « · …»
+        let mut by_keep: Vec<&Seg> = segs.iter().collect();
+        by_keep.sort_by_key(|s| s.keep);
+        for s in by_keep {
+            let mut cand = chosen.clone();
+            cand.push(s);
+            if joined(&cand) <= budget {
+                chosen = cand;
+            }
+        }
+        chosen.sort_by_key(|s| s.display);
+    } else {
+        chosen = all;
+    }
+
+    let mut spans: Vec<Span<'static>> = Vec::new();
+    if chosen.is_empty() {
+        spans.push(Span::styled(
+            theme.glyphs.ellipsis().to_string(),
+            theme.muted(),
+        ));
+    } else {
+        for (i, s) in chosen.iter().enumerate() {
+            if i > 0 {
+                spans.push(sep(" · "));
+            }
+            spans.push(key(&s.keys));
+            spans.push(sep(&format!(" {}", s.label)));
+        }
+        if truncated {
+            // Многоточие — из набора глифов: в ASCII-режиме «…» — чужой
+            // символ (см. theme::Glyphs::ellipsis).
+            spans.push(sep(&format!(" · {}", theme.glyphs.ellipsis())));
+        }
+    }
+    Line::from(spans)
 }
 
 /// Центральная колонка: блоки диалога с переносом и прокруткой.
@@ -697,10 +1012,15 @@ fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
         idx += 1;
     }
     if empty_log {
-        lines.push(Line::from(Span::styled(
-            "Пусто. Напишите сообщение — или ? — список клавиш, /help — команды.",
-            theme.muted(),
-        )));
+        // Обязательно через `wrap_line`: раньше подсказка была одной длинной
+        // строкой и в узком диалоге молча обрезалась вместе с путём к справке.
+        lines.extend(wrap_line(
+            &Line::from(Span::styled(
+                "Пусто. Напишите сообщение — или ? — список клавиш, /help — команды.",
+                theme.muted(),
+            )),
+            inner_w,
+        ));
         lines.push(Line::default());
     }
 
@@ -794,7 +1114,7 @@ fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     // (B6: полоса скролла есть, числовой ориентир — нет).
     let block = if max_scroll > 0 {
         let pos = format!(" {}/{} ", skip + 1, total);
-        block.title(Title::from(Span::styled(pos, theme.muted())).alignment(Alignment::Right))
+        block.title_top(Line::from(Span::styled(pos, theme.muted())).right_aligned())
     } else {
         block
     };
@@ -964,16 +1284,17 @@ fn tool_run_lines(
         ));
         // Живой хвост вывода выполняющегося вызова: «что происходит сейчас»
         // вместо немого спиннера на долгих командах (сборка, тесты).
-        if matches!(state, ToolState::Running)
-            && let Some(l) = item_live
-            && !l.tail.is_empty()
-        {
-            let tail: Vec<&str> = l.tail.lines().collect();
-            for t in &tail[tail.len().saturating_sub(TOOL_TAIL_LINES)..] {
-                out.push(Line::from(Span::styled(
-                    format!("  {}", truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)),
-                    theme.muted().add_modifier(Modifier::ITALIC),
-                )));
+        if matches!(state, ToolState::Running) {
+            if let Some(l) = item_live {
+                if !l.tail.is_empty() {
+                    let tail: Vec<&str> = l.tail.lines().collect();
+                    for t in &tail[tail.len().saturating_sub(TOOL_TAIL_LINES)..] {
+                        out.push(Line::from(Span::styled(
+                            format!("  {}", truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)),
+                            theme.muted().add_modifier(Modifier::ITALIC),
+                        )));
+                    }
+                }
             }
         }
         let is_last = i == items.len() - 1;
@@ -1085,10 +1406,58 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
     }
 }
 
-/// Правая колонка: вкладки Mermaid / Рубрика / Знания.
+/// Ступень деградации бара вкладок (см. [`draw_right`]).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TabLabels {
+    /// Полный бар: подпись у каждой вкладки.
+    Full,
+    /// Компактный: подпись только у активной, остальные — иконками.
+    Compact,
+    /// Только иконки (крайний случай узкой панели).
+    Icons,
+}
+
+/// Подпись вкладки для заголовка панели. Базовая — [`RightTab::title`];
+/// у «Субагентов» при непустом реестре — счётчик `(бегут/всего)`
+/// («Субагенты (2/7)»). Пара чисел, а не одно: сессия, где все задачи уже
+/// завершены, всё равно показывает `(0/7)` — панель не пуста, и заголовок
+/// обязан это отражать (tui-design-principles #5, «проектируй все состояния»:
+/// состояние не должно исчезать вместе с процессом; у списка — счётчик).
+/// Ноль записей — чистая подпись, чтобы пустой реестр не рябил «(0/0)».
+/// Длину массива [`Theme::glyphs.tab_icons`] это не ломает: иконки берутся
+/// отдельно, по индексу вкладки в [`RightTab::ALL`]. `Флот` счётчик не
+/// получает сознательно — он показывает завершённые прогоны с диска, а не
+/// число задач реестра.
+fn tab_label(app: &App, tab: RightTab) -> String {
+    if tab == RightTab::Subagents {
+        let total = app.subagents_total();
+        if total > 0 {
+            return format!(
+                "{} {}",
+                tab.title(),
+                subagents_ratio(app.subagents_running(), total)
+            );
+        }
+    }
+    tab.title().to_string()
+}
+
+/// Пара чисел счётчика субагентов — `(бегут/всего)`, в скобках. Один факт —
+/// один формат: заголовок вкладки [`tab_label`] («Субагенты (2/2)») и сегмент
+/// статус-бара («субагенты (2/2)») берут её отсюда, поэтому не могут разойтись
+/// ни в порядке чисел, ни в разделителе (п.6 — согласование форматов).
+fn subagents_ratio(running: usize, total: usize) -> String {
+    format!("({running}/{total})")
+}
+
+/// Правая колонка: вкладки Mermaid / Рубрика / Знания / Флот / Субагенты.
 /// Mermaid — без переносов (арт клипается), остальные — с переносом.
-fn draw_right(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
+/// Содержимое прокручивается: панель узкая, список задач/лог легко длиннее
+/// её высоты, поэтому рендер клампит сдвиг и показывает полосу прокрутки и
+/// счётчик.
+fn draw_right(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     let inner_w = usize::from(area.width.saturating_sub(2)).max(1);
+    let active = app.right_tab();
     // Арт шире даже расширенной панели (кап 60%)? Подскажем путь: F4.
     let mermaid_clipped = app
         .panels
@@ -1098,9 +1467,10 @@ fn draw_right(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         .max()
         .unwrap_or(0)
         > inner_w;
-    let mut title_spans = Vec::new();
-    let tab_style = |tab: &RightTab, theme: &Theme| {
-        if *tab == app.right_tab() {
+    // `active` захвачен по значению: замыкание не держит ссылку на `app`, и
+    // ниже можно писать клампнутый скролл обратно в `app`.
+    let tab_style = move |tab: &RightTab, theme: &Theme| {
+        if *tab == active {
             Style::default()
                 .fg(theme.bg)
                 .bg(theme.cyan)
@@ -1109,55 +1479,44 @@ fn draw_right(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             theme.muted()
         }
     };
-    for (i, tab) in RightTab::ALL.iter().enumerate() {
-        let icon = theme.glyphs.tab_icons()[i];
-        // Подписи вкладок — всегда короткие: длинный хинт в заголовке
-        // обрезал соседние вкладки у правого края (кейс 2026-09-02).
-        title_spans.push(Span::styled(
-            format!(" {icon} {} ", tab.title()),
-            tab_style(tab, theme),
-        ));
-    }
-    if spans_width(&title_spans) > inner_w {
-        // Не влезает полный бар (4 вкладки × подписи): деградация ступенями —
-        // сначала активная с подписью + иконки остальных (ориентир виден),
-        // иначе — только иконки (все 4 вкладки всё равно видны; раньше
-        // «Флот» просто срезался у правого края панели).
-        let active = app.right_tab();
-        let mut compact: Vec<Span> = RightTab::ALL
+    // Подписи вкладок — всегда короткие: длинный хинт в заголовке обрезал
+    // соседние вкладки у правого края (кейс 2026-09-02).
+    let make_tabs = |labels: TabLabels| -> Vec<Span<'static>> {
+        RightTab::ALL
             .iter()
             .enumerate()
             .map(|(i, tab)| {
-                if *tab == active {
-                    Span::styled(
-                        format!(" {} {} ", theme.glyphs.tab_icons()[i], tab.title()),
-                        tab_style(tab, theme),
-                    )
+                let icon = theme.glyphs.tab_icons()[i];
+                let show = labels == TabLabels::Full || *tab == active;
+                let text = if labels != TabLabels::Icons && show {
+                    format!(" {icon} {} ", tab_label(app, *tab))
                 } else {
-                    Span::styled(
-                        format!(" {} ", theme.glyphs.tab_icons()[i]),
-                        tab_style(tab, theme),
-                    )
-                }
+                    format!(" {icon} ")
+                };
+                Span::styled(text, tab_style(tab, theme))
             })
-            .collect();
-        title_spans = compact;
-    }
-    let mut block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(theme.glyphs.border_set())
-        .border_style(theme.border())
-        .title(Line::from(title_spans));
-    if mermaid_clipped {
-        // Хинт F4 — в НИЖНИЙ заголовок (справа), а не в бар вкладок.
-        block = block.title_bottom(Line::from(Span::styled(
-            " F4 — вся схема ".to_string(),
-            theme.muted(),
-        )));
-    }
+            .collect()
+    };
+    // Деградация ступенями, НЕЗАВИСИМО от ширины терминала: при базовой
+    // ширине панели 42 (внутренних 40) полный бар из пяти подписей (53 ячейки
+    // в юникоде, 54 в ASCII — у `< >` две клетки) не влезает никогда. Значит,
+    // на любой ширине активная подпись обязана остаться видимой: раньше
+    // порог зависел от `term_w`, и ASCII-пользователь на широком терминале
+    // видел только глифы `< > + # > @`, где два `>` неразличимы.
+    let full = make_tabs(TabLabels::Full);
+    let title_spans = if spans_width(&full) <= inner_w {
+        full
+    } else {
+        let compact = make_tabs(TabLabels::Compact);
+        if spans_width(&compact) <= inner_w {
+            compact
+        } else {
+            make_tabs(TabLabels::Icons)
+        }
+    };
 
-    let tab = app.right_tab();
-    let content = app.panels.content(tab);
+    let tab = active;
+    let content = app.panels.content(tab).to_string();
     let mut lines: Vec<Line<'static>> = Vec::new();
     if content.is_empty() {
         lines.extend(wrap_line(
@@ -1178,7 +1537,68 @@ fn draw_right(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             ));
         }
     }
-    f.render_widget(Paragraph::new(lines).block(block), area);
+
+    // Прокрутка: вьюпорт — внутренняя высота панели; сдвиг клампится по
+    // содержимому и пишется обратно (тот же приём, что у help-скролла), иначе
+    // после смены вкладки остался бы «мёртвый» запас и панель казалась бы
+    // пустой. `set_right_viewport` даёт шаг страничной прокрутки клавишам.
+    let viewport = usize::from(area.height.saturating_sub(2)).max(1);
+    app.set_right_viewport(viewport);
+    let max_scroll = lines.len().saturating_sub(viewport);
+    // Границу знает только рендер: `G` (прыжок к концу) берёт её отсюда.
+    app.set_right_max_scroll(max_scroll);
+    if app.right_scroll() > max_scroll {
+        app.set_right_scroll(max_scroll);
+    }
+    let scroll = app.right_scroll();
+
+    let mut block = Block::default()
+        .borders(Borders::ALL)
+        .border_set(theme.glyphs.border_set())
+        .border_style(theme.border())
+        .title(Line::from(title_spans));
+    if mermaid_clipped {
+        // Хинт F4 — в НИЖНИЙ заголовок (слева), а не в бар вкладок.
+        block = block.title_bottom(Line::from(Span::styled(
+            " F4 — вся схема ".to_string(),
+            theme.muted(),
+        )));
+    }
+    // Переполнение обязано быть видимым: счётчик «первая-последняя/всего» и,
+    // если позволяет высота, полоса прокрутки на правой кромке. Раньше хвост
+    // длинного списка молча срезался и был недостижим.
+    if max_scroll > 0 {
+        let end = (scroll + viewport).min(lines.len());
+        let pos = format!(" PgUp/PgDn · g/G {}-{}/{} ", scroll + 1, end, lines.len());
+        block = block
+            .title_bottom(Line::from(Span::styled(pos, theme.muted())).alignment(Alignment::Right));
+    }
+    f.render_widget(
+        Paragraph::new(lines)
+            .block(block)
+            .scroll((u16_sat(scroll), 0)),
+        area,
+    );
+
+    if max_scroll > 0 && area.height > 3 {
+        let sb_area = Rect {
+            x: area.x + area.width.saturating_sub(1),
+            y: area.y + 1,
+            width: 1,
+            height: area.height.saturating_sub(2),
+        };
+        let mut sb_state = ScrollbarState::new(max_scroll)
+            .position(scroll)
+            .viewport_content_length(viewport);
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some(theme.glyphs.scroll_track()))
+            .thumb_symbol(theme.glyphs.scroll_thumb())
+            .track_style(theme.muted())
+            .thumb_style(Style::default().fg(theme.cyan).bg(theme.bg));
+        f.render_stateful_widget(scrollbar, sb_area, &mut sb_state);
+    }
 }
 
 /// Максимум видимых строк поля ввода (дальше окно следует за курсором).
@@ -1265,8 +1685,12 @@ fn draw_queue_overlay(f: &mut Frame, dialog: Rect, app: &App, theme: &Theme) {
         } else {
             theme.glyphs.bullet()
         };
+        // Порядковый номер — ВПЕРЁД маркера: глиф `▶`/`•` вне ASCII и его
+        // ширина в чужом моноширинном шрифте не гарантирована (инцидент
+        // 07.09 — fontconfig-фолбэк ломал сетку). Начало строки всегда
+        // «N. » из ASCII-цифр и точки, номер не съезжает вместе с маркером.
         lines.push(Line::from(Span::styled(
-            format!("{marker} {}. {text}{fold}", i + 1),
+            format!("{}. {marker} {text}{fold}", i + 1),
             style,
         )));
     }
@@ -1409,16 +1833,25 @@ fn draw_input_state(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
                 }
             }
         };
-        let mut spans = vec![
-            Span::styled(
-                label,
-                Style::default()
-                    .fg(theme.purple)
-                    .bg(theme.bg)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled("  ·  ", theme.muted()),
-        ];
+        let mut spans = vec![Span::styled(
+            label,
+            Style::default()
+                .fg(theme.purple)
+                .bg(theme.bg)
+                .add_modifier(Modifier::BOLD),
+        )];
+        // Открытая ask-модалка — верхний слой: клавиши уходят ей, и обещание
+        // «Esc — прервать» (или «Enter — в очередь») стало бы ложью: Esc
+        // отклоняет выбор, Enter выбирает пункт. Клавиши модалки печатает её
+        // собственный футер, а строка состояния честно сообщает только факт.
+        if app.ask.is_some() {
+            f.render_widget(
+                Paragraph::new(Line::from(spans)).alignment(Alignment::Right),
+                area,
+            );
+            return;
+        }
+        spans.push(Span::styled("  ·  ", theme.muted()));
         if app.queue.is_empty() {
             spans.push(Span::styled("Esc — прервать", theme.muted()));
         } else {
@@ -1442,37 +1875,113 @@ fn draw_input_state(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             .alignment(Alignment::Right),
             area,
         );
+    } else if let Some(hint) = app
+        .intent_hint()
+        // Под ask-модалкой строки теплицы нет: модалка — верхний слой, её
+        // футер печатает свои клавиши, а хвост строки хука («… — поднять?»)
+        // читался бы как живой вопрос, ответить на который нечем. Та же
+        // причина, по которой строка состояния под модалкой не обещает
+        // «Esc — прервать» (см. ветку `app.thinking()` выше).
+        .filter(|_| app.ask.is_none())
+    {
+        // Факт, а не действие: строка теплицы гипотез, пересекающихся с
+        // намерением цели (первая строка доменного хука `intent`). Считана
+        // один раз при постановке цели — рендер процессов не запускает.
+        // Во время хода строка уступает живому статусу терна (ветка выше
+        // вернулась), после хода возвращается; в диалоге она всё это время
+        // видна в подтверждении цели.
+        let label = fit_label_cells(hint, usize::from(area.width), theme.glyphs.ellipsis());
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(label, theme.muted())))
+                .alignment(Alignment::Right),
+            area,
+        );
     }
 }
 
-/// Статус-бар: бейдж модели | индикатор контекста | cwd | заметки | подсказки.
+/// Статус-бар: бейдж модели | индикатор контекста | счётчик субагентов | toast |
+/// заметка | cwd | подсказки клавиш.
+///
+/// Правая колонка — подсказки клавиш ([`super::keymap::hints`]): они важнее
+/// всего (tui-design-principles #6, обнаруживаемость). Левая — атомарные
+/// сегменты по убыванию важности: бейдж модели → шкала контекста → счётчик
+/// субагентов → toast → заметка (усекается с `…`) → cwd. Счётчик не режется
+/// посередине: он либо влезает целиком в одной из своих форм, либо уступает
+/// соседу (п.5, «никогда не рвать число и не исчезать молча»). Раскладка
+/// предвычисляется целиком: выбор формы счётчика зависит от того, сколько
+/// клеток осталось после бейджа и шкалы.
 fn draw_status(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
-    let mut spans = vec![Span::styled(format!(" {} ", app.model_name), theme.badge())];
-    // Индикатор заполнения контекста — сразу после бейджа модели.
-    spans.extend(context_spans(app, theme));
-    // Фоновые субагенты/ralph-циклы: имена (видимость запуска), не только счётчик.
-    let running = app.subagents_running();
-    if running > 0 {
-        let names = app.running_subagent_names();
-        let label = if names.is_empty() {
-            format!("субагенты: {running}")
-        } else if names.len() <= 3 {
-            format!("субагенты: {}", names.join(", "))
-        } else {
-            format!(
-                "субагенты: {} (+{})",
-                names[..3].join(", "),
-                names.len() - 3
-            )
-        };
-        spans.push(Span::styled(
-            format!(
-                "  · {} {label} ",
-                theme.glyphs.spinner()[app.anim_frame(theme.glyphs.spinner().len())]
-            ),
-            Style::default().fg(theme.green).bg(theme.bg),
-        ));
+    let width = usize::from(area.width);
+    let hint_budget = (width / 2)
+        .max(STATUS_HINTS_MIN)
+        .min(width.saturating_sub(STATUS_LEFT_MIN));
+    // Под открытой ask-модалкой подсказку собирает тот же построитель, что
+    // рисует футер модалки: статическая таблица реестра обещала бы «1-9» и
+    // стрелки и при пустом списке, и при одном варианте, а клавиши `Esc`
+    // (приоритетнее цифр) вылетали бы первыми по правилам общей обрезки.
+    // Число вариантов — состояние кадра, поэтому фильтрует рендер, а подписи
+    // по-прежнему берутся из реестра.
+    let hint_spans = match app.ask.as_ref() {
+        Some(ask) if matches!(app.hint_ctx(), super::keymap::Ctx::Ask) => {
+            let (_, esc_tail) = ask_chrome(ask.kind, theme);
+            ask_hint_line(theme, ask.options.len(), esc_tail, false, hint_budget).spans
+        }
+        _ => super::keymap::hints(app.hint_ctx(), hint_budget, theme),
+    };
+    let hint_w = spans_width(&hint_spans);
+    let left_budget = width.saturating_sub(hint_w + 2);
+
+    let badge = Span::styled(format!(" {} ", app.model_name), theme.badge());
+    let badge_w = UnicodeWidthStr::width(app.model_name.as_str()) + 2; // « %s »
+    let ctx = context_spans(app, theme);
+    let ctx_w = spans_width(&ctx);
+    // Счётчик фоновых субагентов: атомарный сегмент той же формы, что заголовок
+    // вкладки. Список имён раньше не имел границы длины, обрезался рендером
+    // жёстко (без `…`) и вытеснял подсказки — на 60×16 пропадали Enter/Esc;
+    // сам же счётчик на 60 колонках исчезал целиком, а на 80 рвался посередине
+    // числа (дефект №5). Теперь у него две формы и явный приоритет уступок.
+    let counter = subagent_counter(app, theme);
+    let (full_w, compact_w) = match &counter {
+        Some((full, compact, _)) => (
+            UnicodeWidthStr::width(full.as_str()),
+            UnicodeWidthStr::width(compact.as_str()),
+        ),
+        None => (0, 0),
+    };
+    let has_counter = counter.is_some();
+    // Порядок уступок: (шкала + полная) → (шкала + компактная) → (полная без
+    // шкалы) → (компактная без шкалы) → счётчика нет вовсе. Ни в одной из форм
+    // число не рвётся: сегмент вставляется целиком по свободному месту.
+    let with_ctx_full = has_counter && badge_w + ctx_w + full_w <= left_budget;
+    let with_ctx_compact =
+        !with_ctx_full && has_counter && badge_w + ctx_w + compact_w <= left_budget;
+    let bare_full =
+        !with_ctx_full && !with_ctx_compact && has_counter && badge_w + full_w <= left_budget;
+    let bare_compact = !with_ctx_full
+        && !with_ctx_compact
+        && !bare_full
+        && has_counter
+        && badge_w + compact_w <= left_budget;
+    let keep_ctx = if has_counter {
+        with_ctx_full || with_ctx_compact
+    } else {
+        // Счётчика нет (реестр пуст) — шкала контекста никому не уступает,
+        // кроме собственного невмещения в остаток строки.
+        badge_w + ctx_w <= left_budget
+    };
+
+    let mut spans = vec![badge];
+    if keep_ctx {
+        spans.extend(ctx);
     }
+    if let Some((full, compact, style)) = counter {
+        if with_ctx_full || bare_full {
+            spans.push(Span::styled(full, style));
+        } else if with_ctx_compact || bare_compact {
+            spans.push(Span::styled(compact, style));
+        }
+    }
+
     // Тост последнего действия — важнее постоянных заметок: он про то,
     // что только что произошло. Успех несёт символ `ok`, ошибка — `err`:
     // цвет здесь дублируется знаком (правило «цвет не в одиночку»).
@@ -1490,20 +1999,10 @@ fn draw_status(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         spans.push(Span::styled(format!("  · {mark} {}", toast.text), style));
     }
 
-    // Порядок важности в узком окне: подсказки клавиш (обнаруживаемость,
-    // E6) → индикаторы модели/контекста → заметка (урезается) → cwd.
-    // Поэтому подсказкам отдаётся до половины строки, а cwd добавляется
-    // последним и уходит первым: «где я» пользователь знает из оболочки,
-    // а «что нажать» — только отсюда.
-    let width = usize::from(area.width);
-    let hint_spans = super::keymap::hints(app.hint_ctx(), width / 2, theme);
-    let hint_w = spans_width(&hint_spans);
-    let left_budget = width.saturating_sub(hint_w + 2);
-
+    // Заметка уступает подсказкам (они важнее, E6): что не влезло в
+    // left_budget, урезаем с `…`, а не рвём на полуслове у границы подсказок;
+    // совсем узко — заметка пропускается целиком.
     if let Some(extra) = app.status_extra() {
-        // Заметка уступает подсказкам (они важнее, E6): что не влезло в
-        // left_budget, урезаем с `…`, а не рвём на полуслове у границы
-        // подсказок; совсем узко — заметка пропускается целиком.
         let style = Style::default().fg(theme.orange).bg(theme.bg);
         let used = spans_width(&spans);
         let tail = format!("  · {extra}");
@@ -1520,6 +2019,8 @@ fn draw_status(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         }
     }
 
+    // cwd добавляется последним и уходит первым: «где я» пользователь знает из
+    // оболочки, а «что нажать» — только отсюда.
     let cwd = Span::styled(
         format!("  {}", shorten_path(&app.tool_ctx.cwd)),
         theme.muted(),
@@ -1531,8 +2032,87 @@ fn draw_status(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     let cols =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(u16_sat(hint_w))]).split(area);
 
-    f.render_widget(Paragraph::new(Line::from(spans)), cols[0]);
+    f.render_widget(
+        Paragraph::new(Line::from(clip_spans(spans, left_budget, theme))),
+        cols[0],
+    );
     f.render_widget(Paragraph::new(Line::from(hint_spans)), cols[1]);
+}
+
+/// Формы счётчика субагентов для статус-бара: (полная, компактная, стиль).
+/// `None` — реестр пуст, показывать нечего.
+///
+/// Полная форма — та же пара чисел и скобки, что у заголовка вкладки
+/// [`tab_label`] (п.6: один факт — один формат); пока задачи бегут, она несёт
+/// спиннер и зелёный цвет (движение видно без чтения числа), у завершённого
+/// реестра приглушена. Компактная форма заменяет слово иконкой вкладки
+/// «Субагенты»: на 60 колонках статус-бар терял счётчик целиком, а на 80 рвал
+/// его посередине числа, потому что сегмент вытеснялся рендером. Компактная
+/// форма влезает на обеих ширинах, не разрывая числа (п.5).
+fn subagent_counter(app: &App, theme: &Theme) -> Option<(String, String, Style)> {
+    let total = app.subagents_total();
+    if total == 0 {
+        return None;
+    }
+    let running = app.subagents_running();
+    let ratio = subagents_ratio(running, total);
+    // Иконка вкладки «Субагенты» — тот же знак, что в ряду вкладок справа,
+    // поэтому компактная форма однозначно читается (и ASCII-безопасна:
+    // в ASCII-режиме иконки заменяются на `@`/`<>`/…).
+    let icon = theme.glyphs.tab_icons()[RightTab::ALL
+        .iter()
+        .position(|t| *t == RightTab::Subagents)
+        .unwrap_or(0)];
+    if running > 0 {
+        let spin = theme.glyphs.spinner()[app.anim_frame(theme.glyphs.spinner().len())];
+        Some((
+            format!("  · {spin} субагенты {ratio} "),
+            format!(" {icon}{running}/{total}"),
+            Style::default().fg(theme.green).bg(theme.bg),
+        ))
+    } else {
+        Some((
+            format!("  · субагенты {ratio} "),
+            format!(" {icon}{running}/{total}"),
+            theme.muted(),
+        ))
+    }
+}
+
+/// Обрезка строки спанов до `max` клеток с многоточием на конце.
+///
+/// Стиль усечённого спана сохраняется (акцент/цвет не теряются), `…` —
+/// приглушённый. Ширина считается по отображаемым клеткам, а не по байтам:
+/// кириллица и гуттеры — по 1, бокс-арт — по 1, а `Span.content` хранит
+/// байты (tui-accessibility-compat: границы режутся по клеткам).
+fn clip_spans(spans: Vec<Span<'static>>, max: usize, theme: &Theme) -> Vec<Span<'static>> {
+    if spans_width(&spans) <= max {
+        return spans;
+    }
+    if max == 0 {
+        return Vec::new();
+    }
+    let budget = max - 1; // одна клетка — под `…`
+    let mut out: Vec<Span<'static>> = Vec::new();
+    let mut used = 0usize;
+    for s in spans {
+        if used >= budget {
+            break;
+        }
+        let w = UnicodeWidthStr::width(s.content.as_ref());
+        if used + w <= budget {
+            used += w;
+            out.push(s);
+        } else {
+            let clipped = clip_display_width(s.content.as_ref(), budget - used);
+            if !clipped.is_empty() {
+                out.push(Span::styled(clipped, s.style));
+            }
+            break;
+        }
+    }
+    out.push(Span::styled("…", theme.muted()));
+    out
 }
 
 /// Подсветка совпадений `needle` (нижний регистр) в строке: спаны режутся
@@ -1682,6 +2262,7 @@ fn shorten_path(path: &Path) -> String {
 mod tests {
     use super::*;
     use crate::tui::app::testing::{self, test_app};
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
 
@@ -1762,6 +2343,51 @@ mod tests {
         assert!(app.has_input_state());
     }
 
+    #[test]
+    fn intent_hint_renders_in_input_status_row_and_yields_to_modal() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let hint =
+            "гипотезы: laguna-gb10-ladder — поднять? · балл 3 · порог 2 · источник routing.json";
+        testing::set_intent_hint(&mut app, Some(hint));
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(text.contains(hint), "строки теплицы нет на экране:\n{text}");
+
+        // Под блокирующей ask-модалкой строки нет: это факт о намерении, а не
+        // живой вопрос (модалка — верхний слой, отвечать на него некуда).
+        app.open_model_picker();
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            !text.contains("поднять?"),
+            "строка теплицы просочилась под модалку:\n{text}"
+        );
+        app.ask = None;
+
+        // Узкий терминал: строка режется по клеткам с многоточием, а не
+        // ломается на середине слова и не уезжает на второй ряд.
+        let mut narrow = Terminal::new(TestBackend::new(60, 24)).expect("term");
+        narrow.draw(|f| app.render(f)).expect("draw");
+        let rows: Vec<String> = buffer_rows(&narrow).iter().map(|r| r.concat()).collect();
+        let dots = app.theme.glyphs.ellipsis();
+        let row = rows
+            .iter()
+            .find(|r| r.contains("гипотезы"))
+            .unwrap_or_else(|| panic!("строки теплицы нет на узком экране: {rows:?}"));
+        assert!(row.contains(dots), "длинная строка не обрезана: {row:?}");
+        assert!(
+            !row.contains("routing.json"),
+            "хвост строки обязан быть отрезан, а не перенесён: {row:?}"
+        );
+        assert_eq!(
+            rows.iter().filter(|r| r.contains("гипотезы")).count(),
+            1,
+            "обрезка не должна оставлять вторую строку: {rows:?}"
+        );
+    }
+
     /// Текстовое содержимое буфера `TestBackend` (построчно).
     fn buffer_text(term: &Terminal<TestBackend>) -> String {
         let buf = term.backend().buffer();
@@ -1774,6 +2400,89 @@ mod tests {
             s.push('\n');
         }
         s
+    }
+
+    /// Ширина диалога в клетках по верхней рамке: индекс первой `╮` + 1.
+    fn dialog_width(term: &Terminal<TestBackend>) -> usize {
+        buffer_rows(term)[0]
+            .iter()
+            .position(|c| c == "╮")
+            .map(|i| i + 1)
+            .expect("верхняя рамка диалога с углом ╮")
+    }
+
+    /// Схлопнутый текст левой колонки (диалог шириной `width`): подстроки,
+    /// которые могут переноситься в узком диалоге, не должны ломаться о
+    /// перенос, а соседняя правая панель — попадать в склейку. Вертикальные
+    /// рамки выкидываем: `│` между словами разорвала бы поиск подстроки.
+    fn flat_dialog(term: &Terminal<TestBackend>, width: u16) -> String {
+        let buf = term.backend().buffer();
+        let mut s = String::new();
+        for y in 0..buf.area.height {
+            for x in 0..width.min(buf.area.width) {
+                let sym = buf[(x, y)].symbol();
+                s.push_str(if sym == "│" { " " } else { sym });
+            }
+            s.push(' ');
+        }
+        s.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
+    /// Строки буфера как ячейки (символ на колонку) — для проверок колонок
+    /// и ASCII-префикса перед номером варианта.
+    fn buffer_rows(term: &Terminal<TestBackend>) -> Vec<Vec<String>> {
+        let buf = term.backend().buffer();
+        let area = buf.area;
+        (0..area.height)
+            .map(|y| {
+                (0..area.width)
+                    .map(|x| buf[(x, y)].symbol().to_string())
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// Колонка начала последовательности `"{n}. "` в строке буфера, но
+    /// только если перед ней стоит маркер варианта (ровно две ячейки ASCII:
+    /// `"> "` у выбранного, `"  "` у остальных). Ограничение отсекает
+    /// ложные совпадения вроде `"1. "` внутри `"11. "` или подстроки метки.
+    fn option_number_col(row: &[String], n: usize) -> Option<usize> {
+        let needle: Vec<String> = format!("{n}. ").chars().map(|c| c.to_string()).collect();
+        if row.len() < needle.len() + 2 {
+            return None;
+        }
+        (2..=row.len() - needle.len()).find(|&c| {
+            row[c..c + needle.len()] == needle[..] && (row[c - 2] == " " || row[c - 2] == ">")
+        })
+    }
+
+    /// Первая строка с номером `n` и колонкой его начала.
+    fn find_option_number(rows: &[Vec<String>], n: usize) -> (usize, usize) {
+        rows.iter()
+            .enumerate()
+            .find_map(|(y, row)| option_number_col(row, n).map(|c| (y, c)))
+            .unwrap_or_else(|| panic!("номер «{n}. » не найден в буфере"))
+    }
+
+    /// Ask-модалка с заданными пунктами (label, description) для тестов.
+    fn ask_app(options: Vec<(&str, &str)>) -> App {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.ask = Some(crate::tui::app::AskState {
+            question: "Выберите вариант".into(),
+            options: options
+                .into_iter()
+                .map(|(label, description)| crate::tool::AskOption {
+                    label: label.into(),
+                    description: description.into(),
+                })
+                .collect(),
+            recommended: None,
+            selected: 0,
+            reply: None,
+            kind: crate::tui::app::AskKind::Tool,
+        });
+        app
     }
 
     #[test]
@@ -1797,9 +2506,11 @@ mod tests {
             text.contains("Напишите сообщение"),
             "пустое состояние не подсказывает, что делать:\n{text}"
         );
+        // Подсказка переносится в узком диалоге — сверяем по схлопнутому тексту.
+        let flat = flat_dialog(&terminal, 100 - RIGHT_WIDTH);
         assert!(
-            text.contains("? — список клавиш"),
-            "нет пути к справке:\n{text}"
+            flat.contains("? — список клавиш"),
+            "нет пути к справке:\n{flat}"
         );
     }
 
@@ -1813,9 +2524,15 @@ mod tests {
         let text = buffer_text(&terminal);
         for needle in [
             "Диалог",
+            // Бар вкладок на базовой ширине деградирует до компактного: подпись
+            // активной вкладки + иконки всех пяти (полный бар из подписей
+            // требует 53 клетки и в 40 не влезает). Иконки — отдельно ниже.
             "Mermaid",
-            "Рубрика",
-            "Знания",
+            "◇",
+            "✓",
+            "◈",
+            "▶",
+            "◉",
             "›",
             "test:model",
             // Подсказки клавиш приходят из реестра `keymap`: пара «клавиша подпись».
@@ -1983,35 +2700,80 @@ mod tests {
     }
 
     #[test]
-    fn narrow_panel_degrades_tab_strip_to_icons_with_all_tabs() {
+    fn tab_strip_keeps_active_label_and_all_icons_at_normal_width() {
+        use crate::tui::app::RightTab;
+        // Полный бар из пяти подписей требует 53 клетки (юникод) / 54 (ASCII)
+        // и в базовые внутренние 40 не влезает ни на одной ширине терминала —
+        // это цена за широкий чат (RIGHT_WIDTH=42). Значит, бар обязан честно
+        // деградировать: подпись активной вкладки + иконки всех пяти, ни одна
+        // вкладка не срезана у правого края.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_tab = RightTab::Subagents;
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("Субагенты"),
+            "подпись активной вкладки:\n{text}"
+        );
+        for icon in ["◇", "✓", "◈", "▶", "◉"] {
+            assert!(text.contains(icon), "нет иконки {icon}:\n{text}");
+        }
+        for other in ["Mermaid", "Рубрика", "Знания", "Флот"] {
+            assert!(!text.contains(other), "неактивные — без подписей:\n{text}");
+        }
+    }
+
+    #[test]
+    fn compact_tab_strip_keeps_all_five_icons() {
         use crate::tui::app::RightTab;
         let mut app = test_app();
         app.screen = Screen::Chat;
-        app.right_tab = RightTab::Fleet;
-        // Широкий терминал: полный бар — все 4 вкладки текстом (панель 42,
-        // бар из 40 ячеек влезает ровно).
-        let mut wide = Terminal::new(TestBackend::new(150, 24)).expect("term");
-        wide.draw(|f| app.render(f)).expect("draw");
-        let text = buffer_text(&wide);
-        for t in ["Mermaid", "Рубрика", "Знания", "Флот"] {
-            assert!(text.contains(t), "нет вкладки {t}:\n{text}");
-        }
-        // 64 колонки (диалог сжат до минимума): полный бар не влезает —
-        // деградация: активная с подписью + иконки остальных; все 4 видны.
+        app.right_tab = RightTab::Subagents;
         let mut term = Terminal::new(TestBackend::new(64, 24)).expect("term");
         term.draw(|f| app.render(f)).expect("draw");
         let text = buffer_text(&term);
-        for icon in ["◇", "✓", "◈", "▶"] {
+        for icon in ["◇", "✓", "◈", "▶", "◉"] {
             assert!(text.contains(icon), "нет иконки {icon}:\n{text}");
         }
         assert!(
-            text.contains("Флот"),
+            text.contains("Субагенты"),
             "активная вкладка с подписью в компактном баре:\n{text}"
         );
         assert!(
             !text.contains("Знания"),
             "неактивные вкладки — только иконками:\n{text}"
         );
+    }
+
+    #[test]
+    fn ascii_tab_strip_shows_active_label_and_all_icons_at_any_width() {
+        use crate::tui::app::RightTab;
+        // Дефект: в ASCII полный бар — 54 клетки (у `< >` две клетки), поэтому
+        // на широком терминале бар «деградировал» даже когда места вдоволь, и
+        // подписи не показывались никогда, а два `>` были неразличимы. Теперь
+        // деградация не зависит от `term_w`: активную подпись видно всегда.
+        for w in [60u16, 80, 100, 200] {
+            for active in [RightTab::Mermaid, RightTab::Subagents] {
+                let mut app = ascii_app();
+                app.right_tab = active;
+                let mut term = Terminal::new(TestBackend::new(w, 24)).expect("term");
+                term.draw(|f| app.render(f)).expect("draw");
+                let text = buffer_text(&term);
+                assert!(
+                    text.contains(active.title()),
+                    "ASCII: подпись активной вкладки «{}» пропала при ширине {w}:\n{text}",
+                    active.title()
+                );
+                for icon in ["<>", "+", "#", ">", "@"] {
+                    assert!(
+                        text.contains(icon),
+                        "ASCII: иконка {icon} срезана при ширине {w}:\n{text}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
@@ -2059,7 +2821,6 @@ mod tests {
     #[test]
     fn status_bar_shows_running_subagents_count() {
         use crate::subagent::{SubagentRegistry, SubagentTask, TaskStatus};
-        let _tmp = tempfile::tempdir().expect("tmp");
         let registry = SubagentRegistry::new();
         registry.insert(SubagentTask {
             id: "sa-t-00".into(),
@@ -2077,11 +2838,335 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(110, 24)).expect("terminal");
         terminal.draw(|f| app.render(f)).expect("draw");
         let text = buffer_text(&terminal);
+        // Дефект №5: сегмент показывал СПИСОК имён, который рос без границы и
+        // выдавливал подсказки. Теперь — счётчик «работает/всего», имена живут
+        // только на вкладке «Субагенты».
         assert!(
-            text.contains("субагенты: general"),
-            "индикатор в статус-баре показывает имена:\n{text}"
+            text.contains("субагенты (1/1)"),
+            "сегмент статус-бара — счётчик, а не список имён:\n{text}"
+        );
+        assert!(
+            !text.contains("general"),
+            "имена субагентов в статус-бар больше не протекают:\n{text}"
         );
         assert!(app.needs_tick(), "тики идут, пока крутятся субагенты");
+    }
+
+    /// Приложение с `n` работающими фоновыми задачами (реестр в памяти).
+    fn app_with_running_tasks(n: usize) -> App {
+        use crate::subagent::{SubagentRegistry, SubagentTask, TaskStatus};
+        let registry = SubagentRegistry::new();
+        for i in 0..n {
+            registry.insert(SubagentTask {
+                id: format!("sa-t-{i:02}"),
+                agent: "general".into(),
+                task: "разведка".into(),
+                status: TaskStatus::Running,
+                report: String::new(),
+                started_at: "2026-08-15".into(),
+                finished_at: None,
+            });
+        }
+        let mut app = test_app();
+        app.tool_ctx = app.tool_ctx.clone().with_subagents(registry);
+        app.screen = Screen::Chat;
+        app
+    }
+
+    #[test]
+    fn subagents_tab_title_reflects_running_count() {
+        // Заголовок — часть индикации хода исполнения: «Субагенты (2/3)» видно,
+        // не открывая вкладку. Счётчик говорит и о работающих, и о всех
+        // строках реестра (правило #5: состояние списка видно снаружи).
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_tab = RightTab::Subagents;
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(text.contains("Субагенты"), "подпись вкладки:\n{text}");
+        assert!(
+            !text.contains("Субагенты ("),
+            "при пустом реестре счётчика нет — панель пуста, шум не нужен:\n{text}"
+        );
+
+        let mut app = app_with_running_tasks(2);
+        app.right_tab = RightTab::Subagents;
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("Субагенты (2/2)"),
+            "заголовок отражает работающие задачи:\n{text}"
+        );
+    }
+
+    /// Дефект №7: сессия, где ВСЕ задачи уже завершены (`running == 0`), но
+    /// реестр не пуст, раньше теряла и счётчик в заголовке, и сегмент статуса:
+    /// панель с содержимым выглядела как пустая. Правило tui-design-principles
+    /// #5 («проектируй все состояния», список обязан показывать счётчик):
+    /// счётчик присутствует всегда, когда есть строки, а не только пока идёт ход.
+    #[test]
+    fn subagents_counter_present_when_all_tasks_finished() {
+        use crate::subagent::{SubagentRegistry, SubagentTask, TaskStatus};
+        let registry = SubagentRegistry::new();
+        for i in 0..7 {
+            registry.insert(SubagentTask {
+                id: format!("sa-d-{i:02}"),
+                agent: "general".into(),
+                task: "разведка".into(),
+                status: TaskStatus::Done,
+                report: String::new(),
+                started_at: "2026-08-15".into(),
+                finished_at: Some("2026-08-15".into()),
+            });
+        }
+        let mut app = test_app();
+        app.tool_ctx = app.tool_ctx.clone().with_subagents(registry);
+        app.screen = Screen::Chat;
+        app.right_tab = RightTab::Subagents;
+        assert_eq!(app.subagents_running(), 0);
+        assert_eq!(app.subagents_total(), 7);
+
+        let mut term = Terminal::new(TestBackend::new(110, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("Субагенты (0/7)"),
+            "все завершены — заголовок всё равно считает строки:\n{text}"
+        );
+        assert!(
+            text.contains("субагенты (0/7)"),
+            "сегмент статус-бара виден и без работающих задач:\n{text}"
+        );
+    }
+
+    #[test]
+    fn right_panel_scrolls_to_the_end_of_long_content() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.panels.mermaid = (1..=40)
+            .map(|i| format!("строка {i:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(text.contains("строка 01"), "начало списка:\n{text}");
+        assert!(!text.contains("строка 40"), "хвост за вьюпортом:\n{text}");
+        assert!(
+            text.contains("PgUp/PgDn · g/G 1-"),
+            "счётчик показанного с РАБОТАЮЩИМИ клавишами (панель переполнена):\n{text}"
+        );
+
+        // Хвост достижим: сдвиг вниз до конца, рендер клампит его по
+        // содержимому и пишет обратно — панель не «залипает».
+        app.set_right_scroll(usize::MAX);
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(text.contains("строка 40"), "хвост достижим:\n{text}");
+        assert!(!text.contains("строка 01"), "начало уехало:\n{text}");
+        assert_eq!(
+            app.right_scroll(),
+            40 - app.right_viewport,
+            "сдвиг клампится по содержимому"
+        );
+        assert!(text.contains("40/40"), "счётчик конца:\n{text}");
+    }
+
+    /// Дефект №4: `Length(42)` справа в паре с `Min(24)` выигрывал спор за
+    /// место, и на узком терминале диалог сжимался ниже объявленного минимума
+    /// (при 60 — до 18 клеток). Теперь панель уступает диалогу его минимум;
+    /// на широких терминалах раскладка не меняется.
+    #[test]
+    fn dialog_keeps_its_minimum_width_on_narrow_terminals() {
+        // (ширина терминала, ожидаемая ширина диалога): 60 и 80 — панель
+        // сжата/закрыта в пользу диалога, 100 и 200 — прежние 42 у панели.
+        let cases = [(60u16, 24usize), (80, 38), (100, 58), (200, 158)];
+        for (w, want) in cases {
+            let mut app = test_app();
+            app.screen = Screen::Chat;
+            let mut term = Terminal::new(TestBackend::new(w, 24)).expect("term");
+            term.draw(|f| app.render(f)).expect("draw");
+            let dw = dialog_width(&term);
+            assert!(
+                dw >= DIALOG_MIN_WIDTH as usize,
+                "ширина {w}: диалог {dw} меньше минимума {DIALOG_MIN_WIDTH}"
+            );
+            assert_eq!(dw, want, "ширина {w}: диалог получил не свою долю");
+        }
+    }
+
+    /// Дефект №5: список имён субагентов в статус-баре рос без границы и
+    /// выдавливал основные подсказки — при 60×16 «Enter»/«Esc» исчезали.
+    /// Теперь имена живут на вкладке, а статус несёт счётчик; бюджет подсказок
+    /// защищён (правило #6: подсказки всегда на виду).
+    #[test]
+    fn narrow_status_bar_keeps_primary_hints() {
+        let mut app = app_with_running_tasks(3);
+        let mut term = Terminal::new(TestBackend::new(60, 16)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("Enter"),
+            "основная подсказка Enter уцелела:\n{text}"
+        );
+        assert!(
+            text.contains("Esc"),
+            "основная подсказка Esc уцелела:\n{text}"
+        );
+        assert!(
+            !text.contains("general"),
+            "имена субагентов в статус-бар не протекают:\n{text}"
+        );
+    }
+
+    /// П.5: счётчик субагентов не рвётся посередине числа и не исчезает молча.
+    /// На 60 колонках он раньше не выводился вовсе, на 80 — обрезался рендером
+    /// посередине («⠋…»). Проверяем все три ширины: пара чисел целиком, в полной
+    /// форме (`субагенты (3/3)`) или компактной (иконка вкладки `◉3/3`), и
+    /// отсутствие обрубков вроде `3/ ` или `3/…`.
+    #[test]
+    fn subagents_counter_stays_whole_on_narrow_widths() {
+        for w in [60u16, 80, 100] {
+            for unicode in [true, false] {
+                let mut app = app_with_running_tasks(3);
+                if !unicode {
+                    app.caps.unicode = false;
+                    app.theme = Theme::for_caps(&app.caps);
+                }
+                let mut term = Terminal::new(TestBackend::new(w, 16)).expect("term");
+                term.draw(|f| app.render(f)).expect("draw");
+                let rows = buffer_rows(&term);
+                let status = rows.last().cloned().unwrap_or_default().join("");
+                assert!(
+                    status.contains("3/3"),
+                    "ширина {w} (unicode={unicode}): счётчик исчез из статуса — \
+                     молчаливое выпадение, которого п.5 не допускает:\n{status}"
+                );
+                assert!(
+                    !status.contains("3/ ") && !status.contains("3/…") && !status.contains("(3/ "),
+                    "ширина {w} (unicode={unicode}): число счётчика обрублено посередине:\n{status}"
+                );
+            }
+        }
+    }
+
+    /// П.6: заголовок вкладки и статус-бар показывают один факт одним форматом
+    /// («Субагенты (3/3)» / «субагенты (3/3)»). Регистр различается только
+    /// потому, что заголовок — часть подписи вкладки; скобки, порядок чисел и
+    /// разделитель совпадают.
+    #[test]
+    fn subagents_counter_format_matches_tab_title() {
+        let mut app = app_with_running_tasks(3);
+        app.right_tab = RightTab::Subagents;
+        let mut term = Terminal::new(TestBackend::new(110, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("Субагенты (3/3)"),
+            "заголовок вкладки несёт счётчик:\n{text}"
+        );
+        assert!(
+            text.contains("субагенты (3/3)"),
+            "статус-бар несёт тот же счётчик тем же форматом:\n{text}"
+        );
+        assert!(
+            !text.contains("субагенты: 3/3"),
+            "старый формат с двоеточием не должен остаться (п.6):\n{text}"
+        );
+    }
+
+    /// Дефект №6: индикатор прокрутки обязан называть клавиши, которые
+    /// реально работают. Раньше панель слушала только `Ctrl+U/D` (и ненадёжные
+    /// `Alt+PgUp/PgDn`), а обычные `PgUp/PgDn` уходили в диалог — индикатор
+    /// врал. Проверяем каждую клавишу из строки `PgUp/PgDn · g/G`.
+    #[test]
+    fn every_key_named_in_scroll_indicator_actually_scrolls() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.panels.mermaid = (1..=60)
+            .map(|i| format!("строка {i:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("PgUp/PgDn"),
+            "индикатор называет PgUp/PgDn:\n{text}"
+        );
+        assert!(text.contains("g/G"), "индикатор называет g/G:\n{text}");
+
+        let key = |c, m| KeyEvent::new(c, m);
+        // PgDn — вниз, PgUp — к началу.
+        app.handle_key(key(KeyCode::PageDown, KeyModifiers::NONE));
+        assert!(app.right_scroll() > 0, "PgDn обязан прокручивать вниз");
+        app.handle_key(key(KeyCode::PageUp, KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 0, "PgUp обязан вернуть к началу");
+
+        // Синонимы Ctrl+D/Ctrl+U ведут себя так же.
+        app.handle_key(key(KeyCode::Char('d'), KeyModifiers::CONTROL));
+        assert!(app.right_scroll() > 0, "Ctrl+D — синоним вниз");
+        app.handle_key(key(KeyCode::Char('u'), KeyModifiers::CONTROL));
+        assert_eq!(app.right_scroll(), 0, "Ctrl+U — синоним к началу");
+
+        // G — в самый низ (клампится рендером), g — в самое начало.
+        app.handle_key(key(KeyCode::Char('G'), KeyModifiers::SHIFT));
+        assert_eq!(app.right_scroll(), app.right_max, "G — конец списка");
+        term.draw(|f| app.render(f)).expect("draw");
+        assert!(
+            buffer_text(&term).contains("строка 60"),
+            "G показал хвост:\n{}",
+            buffer_text(&term)
+        );
+        app.handle_key(key(KeyCode::Char('g'), KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 0, "g — начало списка");
+        term.draw(|f| app.render(f)).expect("draw");
+        assert!(
+            buffer_text(&term).contains("строка 01"),
+            "g показал начало:\n{}",
+            buffer_text(&term)
+        );
+    }
+
+    #[test]
+    fn tab_switch_refreshes_panel_content_immediately() {
+        // Дефект: Tab/Shift+Tab ждали тикового опроса и до ~0.5 с показывали
+        // заглушку, хотя реестр в памяти. Теперь переключение само
+        // перечитывает «живую» вкладку — старый кадр не мелькает.
+        let mut app = app_with_running_tasks(1);
+        app.right_tab = RightTab::Mermaid;
+        app.panels.subagents = "устаревший кадр".into();
+        app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT));
+        assert_eq!(app.right_tab, RightTab::Subagents);
+        let mut term = Terminal::new(TestBackend::new(100, 24)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&term);
+        assert!(
+            text.contains("general"),
+            "содержимое обновилось на этом же кадре:\n{text}"
+        );
+        assert!(
+            !text.contains("устаревший кадр"),
+            "старый кадр не мелькает:\n{text}"
+        );
+    }
+
+    #[test]
+    fn right_panel_scroll_resets_on_tab_switch() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.set_right_scroll(7);
+        // Shift+Tab: Mermaid → Субагенты, прокрутка обязана обнулиться, иначе
+        // новая вкладка открывалась бы с середины.
+        app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT));
+        assert_eq!(app.right_tab, RightTab::Subagents);
+        assert_eq!(
+            app.right_scroll(),
+            0,
+            "прокрутка не залипает на новой вкладке"
+        );
     }
 
     /// Цвет заливки первой ячейки шкалы контекста в буфере (None — не найдена).
@@ -2165,16 +3250,16 @@ mod tests {
         let text = buffer_text(&terminal);
         assert!(text.contains("очередь · 2"), "заголовок карточки:\n{text}");
         assert!(
-            text.contains("▶ 1. первое в очереди"),
+            text.contains("1. ▶ первое в очереди"),
             "первое — следующее на запуск:\n{text}"
         );
         // Многострочное сообщение — первой строкой с маркером ↵.
         assert!(
-            text.contains("• 2. второе ↵"),
+            text.contains("2. • второе ↵"),
             "вторая строка с маркером переноса:\n{text}"
         );
         // Карточка очереди — В окне логов: выше поля ввода (строки с «›»).
-        let q_row = text.lines().position(|l| l.contains("▶ 1.")).expect("▶");
+        let q_row = text.lines().position(|l| l.contains("1. ▶")).expect("▶");
         let i_row = text.lines().position(|l| l.contains('›')).expect("›");
         assert!(
             q_row < i_row,
@@ -2190,6 +3275,42 @@ mod tests {
             input_rows <= 4,
             "поле ввода не раздувается очередью:\n{text}"
         );
+    }
+
+    /// Инвариант класса 07.09: номер строки очереди — из ASCII и стоит ПЕРЕД
+    /// маркером. Иначе ширина не-ASCII глифа в чужом шрифте сдвигает номер.
+    #[test]
+    fn queue_ordinal_is_ascii_and_precedes_marker() {
+        use crate::tui::app::testing::set_thinking;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        set_thinking(&mut app, true);
+        app.queue.push_back("первое".into());
+        app.queue.push_back("второе".into());
+        let mut term = Terminal::new(TestBackend::new(100, 30)).expect("term");
+        term.draw(|f| app.render(f)).expect("draw");
+        let rows = buffer_rows(&term);
+        for n in ["1. ▶", "2. •"] {
+            let row = rows
+                .iter()
+                .find(|r| r.join("").contains(n))
+                .unwrap_or_else(|| panic!("нет строки очереди {n:?}"));
+            let row = row.join("");
+            let idx = row.find(n).expect("номер");
+            let before = &row[..idx];
+            assert!(
+                !before.contains('▶') && !before.contains('•'),
+                "маркер стоит перед номером: {before:?}"
+            );
+            assert!(
+                row[idx..].starts_with(n),
+                "строка должна начинаться с ASCII-номера: {row:?}"
+            );
+            assert!(
+                n.chars().take(3).all(|c| c.is_ascii()),
+                "номер не ASCII: {n:?}"
+            );
+        }
     }
 
     #[test]
@@ -2291,10 +3412,17 @@ mod tests {
         assert!(text.contains('█'), "бегунок скроллбара:\n{text}");
         assert!(text.contains(" ▼ "), "кнопка к свежему ответу:\n{text}");
         assert!(app.jump_btn.is_some(), "область кнопки выставлена рендером");
-        // Кнопка — в правом нижнем углу диалога (диалог 58 колонок при 100).
+        // Кнопка — в правом нижнем углу диалога. Ширину диалога не хардкодим:
+        // она = терминал − правая панель, а [`RIGHT_WIDTH`] может меняться.
         let btn = app.jump_btn.expect("кнопка");
+        let dialog_w = 100u16 - RIGHT_WIDTH;
         assert_eq!(btn.width, 3);
-        assert!(btn.x >= 50 && btn.y >= 20, "позиция кнопки: {btn:?}");
+        assert_eq!(
+            btn.x + btn.width,
+            dialog_w - 1,
+            "кнопка прижата к правому краю диалога: {btn:?}"
+        );
+        assert!(btn.y >= 20, "кнопка у нижнего края: {btn:?}");
     }
 
     #[test]
@@ -2363,8 +3491,8 @@ mod tests {
     #[test]
     fn ask_modal_long_option_keeps_number() {
         // Регрессия по инциденту 07.09: в ask-модалке с длинным первым пунктом
-        // (выбран, с маркером «›») номер «1.» обязан оставаться в буфере —
-        // инвариант рендера опций при усечении длинной строки.
+        // (выбран, с ASCII-маркером «> ») номер «1.» обязан оставаться в
+        // буфере — инвариант рендера опций при усечении длинной строки.
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.ask = Some(crate::tui::app::AskState {
@@ -2400,6 +3528,387 @@ mod tests {
         assert!(
             text.contains("3. Локальные"),
             "третий пункт после скролла:\n{text}"
+        );
+    }
+
+    #[test]
+    fn ask_option_number_is_preceded_only_by_ascii_marker() {
+        // Инвариант, закрывающий класс инцидента 07.09 навсегда: перед
+        // номером варианта не должно быть НИ ОДНОГО не-ASCII символа —
+        // иначе fontconfig при отсутствии глифа рисует фолбэк вне
+        // моноширинной сетки и затирает цифру. Проверяем оба набора глифов
+        // (Unicode и ASCII-фолбэк): класс дефекта не зависит от шрифта.
+        for unicode in [true, false] {
+            let mut app = if unicode {
+                test_app()
+            } else {
+                let mut a = test_app();
+                a.caps.unicode = false;
+                a.theme = Theme::for_caps(&a.caps);
+                a
+            };
+            app.screen = Screen::Chat;
+            // 12 пунктов: номера 10-12 двузначные — маркер не должен
+            // «разъезжаться» на смене ширины номера.
+            app.ask = Some(crate::tui::app::AskState {
+                question: "Выберите вариант".into(),
+                options: (0..12)
+                    .map(|i| crate::tool::AskOption {
+                        label: format!("ВАРИАНТ-{i}"),
+                        description: String::new(),
+                    })
+                    .collect(),
+                recommended: None,
+                selected: 3,
+                reply: None,
+                kind: crate::tui::app::AskKind::Tool,
+            });
+            let mut terminal = Terminal::new(TestBackend::new(100, 40)).expect("terminal");
+            terminal.draw(|f| app.render(f)).expect("draw");
+            let rows = buffer_rows(&terminal);
+            for n in 1..=12usize {
+                let (y, col) = find_option_number(&rows, n);
+                assert!(col >= 2, "номер «{n}. » без маркера (unicode={unicode})");
+                let (mark0, mark1) = (&rows[y][col - 2], &rows[y][col - 1]);
+                assert!(
+                    mark0.is_ascii() && mark1.is_ascii(),
+                    "перед номером «{n}. » не-ASCII маркер {mark0:?}{mark1:?} (unicode={unicode})"
+                );
+                assert!(
+                    mark0 == ">" || mark0 == " ",
+                    "маркер «{n}. » не '>' и не пробел: {mark0:?} (unicode={unicode})"
+                );
+                assert_eq!(mark1, " ", "второй байт маркера «{n}. » не пробел");
+                // Сам номер с точкой заканчивается ASCII-пробелом.
+                let dot = format!("{n}. ");
+                let cells: String = rows[y][col..col + dot.len()].concat();
+                assert!(cells.is_ascii(), "номер «{n}. » не ASCII: {cells:?}");
+                assert_eq!(cells, dot, "номер «{n}. » повреждён");
+            }
+        }
+    }
+
+    #[test]
+    fn ask_option_number_sits_in_constant_column() {
+        // Цифры должны стоять в фиксированной колонке независимо от числа
+        // пунктов и длины меток: иначе колонка «пляшет» и список читается
+        // хуже (моноширинная сетка, `tui-layout-components`).
+        let cases: Vec<Vec<(&str, &str)>> = vec![
+            vec![("Kafka", "масштаб")],
+            vec![("Kafka", "масштаб"), ("NATS", "лёгкий")],
+            vec![
+                ("Короткий", ""),
+                ("Вариант подлиннее, чем все остальные вместе", ""),
+                ("Средний вариант", ""),
+                ("Ещё", ""),
+                ("Пятый", ""),
+            ],
+        ];
+        let mut cols = Vec::new();
+        for options in cases {
+            let mut app = ask_app(options);
+            let mut terminal = Terminal::new(TestBackend::new(100, 40)).expect("terminal");
+            terminal.draw(|f| app.render(f)).expect("draw");
+            let rows = buffer_rows(&terminal);
+            cols.push(find_option_number(&rows, 1).1);
+        }
+        assert!(
+            cols.windows(2).all(|w| w[0] == w[1]),
+            "колонка номера не постоянна: {cols:?}"
+        );
+    }
+
+    #[test]
+    fn ask_hint_range_is_honest() {
+        // Клавиши быстрого выбора — только '1'..='9' (app.rs). Подсказка не
+        // имеет права обещать больше, чем есть: 2 пункта → «1-2»,
+        // 12 пунктов → «1-9 + ↑/↓» (клавиши только у первых девяти, дальше
+        // стрелками), 0 пунктов → никакого диапазона. Счётчик позиции
+        // (`{selected+1}/{len}`) при этом обязан остаться виден — ради него
+        // подсказка и укорочена.
+        let render = |options: Vec<(&str, &str)>| -> String {
+            let mut app = ask_app(options);
+            let mut terminal = Terminal::new(TestBackend::new(100, 40)).expect("terminal");
+            terminal.draw(|f| app.render(f)).expect("draw");
+            buffer_text(&terminal)
+        };
+
+        let two = render(vec![("Kafka", ""), ("NATS", "")]);
+        assert!(two.contains("1-2"), "для двух пунктов ждали «1-2»:\n{two}");
+        assert!(!two.contains("дальше"), "2 пункта — оговорка не нужна");
+        assert!(!two.contains("1-4"), "жёсткий «1-4» больше не показываем");
+
+        let many = render((0..12).map(|_| ("Вариант", "")).collect());
+        assert!(
+            many.contains("1-9 +"),
+            "для 12 пунктов ждали «1-9 + ↑/↓»:\n{many}"
+        );
+        assert!(
+            !many.contains("1-12"),
+            "обещать 1-12 нельзя — клавиш только девять:\n{many}"
+        );
+        assert!(
+            many.contains("/12"),
+            "счётчик позиции вытеснен подсказкой (потерян контекст):\n{many}"
+        );
+
+        let zero = render(vec![]);
+        assert!(
+            !zero.contains("быстро"),
+            "без пунктов нечего предлагать:\n{zero}"
+        );
+        assert!(!zero.contains("1-"), "нет пунктов — нет диапазона:\n{zero}");
+
+        // У одного пункта диапазона «1-1» быть не должно: это диапазон из
+        // одного числа, читателю он ничего не сообщает — в подсказке просто «1».
+        let one = render(vec![("Единственный", "")]);
+        assert!(
+            !one.contains("1-1"),
+            "для одного пункта ждали «1», а не «1-1»:\n{one}"
+        );
+        assert!(
+            one.contains("1 быстро"),
+            "нет честной подсказки «1»:\n{one}"
+        );
+
+        // У нуля пунктов не обещаем ни стрелок, ни цифр: выбирать не из чего,
+        // единственное осмысленное действие — «ответить».
+        assert!(
+            !zero.contains("выбор"),
+            "без пунктов нечего выбирать стрелками:\n{zero}"
+        );
+        assert!(
+            zero.contains("ответить"),
+            "нулевой список обязан оставить путь «ответить»:\n{zero}"
+        );
+    }
+
+    /// Счётчик позиции `N/M` обязан выживать при узкой модалке в обоих
+    /// наборах глифов и при любом числе пунктов: это самый ценный элемент
+    /// подсказки (сколько всего вариантов и где курсор). Раньше он был
+    /// хвостом одной строки и клипался первым; теперь под него резервируется
+    /// отдельная правоприжатая зона.
+    #[test]
+    fn ask_counter_survives_narrow_width_in_unicode_and_ascii() {
+        for unicode in [true, false] {
+            for n in [2usize, 4, 12] {
+                for width in [60u16, 80] {
+                    let mut app = if unicode { test_app() } else { ascii_app() };
+                    app.screen = Screen::Chat;
+                    app.ask = Some(crate::tui::app::AskState {
+                        question: "Выберите вариант съёмки прототипа".into(),
+                        options: (0..n)
+                            .map(|i| crate::tool::AskOption {
+                                label: format!("Вариант-{i}"),
+                                description: String::new(),
+                            })
+                            .collect(),
+                        recommended: None,
+                        selected: 1,
+                        reply: None,
+                        kind: crate::tui::app::AskKind::Tool,
+                    });
+                    let mut terminal =
+                        Terminal::new(TestBackend::new(width, 40)).expect("terminal");
+                    terminal.draw(|f| app.render(f)).expect("draw");
+                    let text = buffer_text(&terminal);
+                    let counter = format!("2/{n}");
+                    assert!(
+                        text.contains(&counter),
+                        "счётчик «{counter}» потерян (width={width}, n={n}, unicode={unicode}):\n{text}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Подсказка обязана называть страничные клавиши ровно тогда, когда список
+    /// длиннее окна: `PgUp`/`PgDn`/`Home`/`End` упомянуты при переполнении и
+    /// молчат, когда листать нечего (обещание несуществующего листания — такая
+    /// же ложь, как умолчание о нём). Раньше подсказка была статичной и эти
+    /// клавиши не называла вовсе, хотя хендлер их обрабатывал.
+    #[test]
+    fn ask_hint_names_page_keys_only_when_list_overflows_window() {
+        for unicode in [true, false] {
+            let mut terminal = Terminal::new(TestBackend::new(80, 24)).expect("terminal");
+            // Переполнение: 12 вариантов с описанием (24 строки) не влезают в
+            // тело модалки — подсказка обязана назвать страничные клавиши.
+            let mut over = if unicode { test_app() } else { ascii_app() };
+            over.screen = Screen::Chat;
+            over.ask = Some(crate::tui::app::AskState {
+                question: "Выберите вариант".into(),
+                options: (0..12)
+                    .map(|i| crate::tool::AskOption {
+                        label: format!("Вариант-{i}"),
+                        description: "описание".into(),
+                    })
+                    .collect(),
+                recommended: None,
+                selected: 0,
+                reply: None,
+                kind: crate::tui::app::AskKind::Tool,
+            });
+            terminal.draw(|f| over.render(f)).expect("draw");
+            let text = buffer_text(&terminal);
+            assert!(
+                over.ask_viewport > 0 && over.ask_viewport < 24,
+                "рендер обязан записать высоту тела модалки (unicode={unicode}): \
+                 ask_viewport={}",
+                over.ask_viewport
+            );
+            assert!(
+                text.contains("PgUp/PgDn"),
+                "при переполнении подсказка обязана назвать PgUp/PgDn \
+                 (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                text.contains("Home/End"),
+                "при переполнении подсказка обязана назвать Home/End \
+                 (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                text.contains("/12"),
+                "счётчик позиции обязан остаться и при переполнении \
+                 (unicode={unicode}):\n{text}"
+            );
+
+            // Список короче окна: страничные клавиши не обещаем.
+            let mut fits = if unicode { test_app() } else { ascii_app() };
+            fits.screen = Screen::Chat;
+            fits.ask = Some(crate::tui::app::AskState {
+                question: "Выберите вариант".into(),
+                options: (0..3)
+                    .map(|i| crate::tool::AskOption {
+                        label: format!("Вариант-{i}"),
+                        description: String::new(),
+                    })
+                    .collect(),
+                recommended: None,
+                selected: 0,
+                reply: None,
+                kind: crate::tui::app::AskKind::Tool,
+            });
+            terminal.draw(|f| fits.render(f)).expect("draw");
+            let text = buffer_text(&terminal);
+            assert!(
+                !text.contains("PgUp"),
+                "без переполнения подсказка не смеет обещать листание \
+                 (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                !text.contains("Home/End"),
+                "без переполнения подсказка не смеет обещать Home/End \
+                 (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                text.contains("1-3"),
+                "когда листать нечего, остаётся честный быстрый диапазон \
+                 (unicode={unicode}):\n{text}"
+            );
+        }
+    }
+
+    /// Длинная рекомендованная метка обязана: (1) получить многоточие-индикатор
+    /// усечения и (2) не вытеснить звёздочку рекомендации за край панели.
+    /// Регрессия: раньше звезда резервировалась хвостом и пропадала первой —
+    /// ровно тот знак, ради которого строка помечена.
+    #[test]
+    fn ask_long_recommended_label_keeps_star_and_ellipsis() {
+        let long = "Очень длинная метка варианта, которая заведомо не помещается целиком \
+                    в узкой модалке и должна быть усечена с явным индикатором обрезки";
+        for unicode in [true, false] {
+            let mut app = if unicode { test_app() } else { ascii_app() };
+            app.screen = Screen::Chat;
+            app.ask = Some(crate::tui::app::AskState {
+                question: "Выберите вариант".into(),
+                options: vec![crate::tool::AskOption {
+                    label: long.into(),
+                    description: String::new(),
+                }],
+                recommended: Some(long.into()),
+                selected: 0,
+                reply: None,
+                kind: crate::tui::app::AskKind::Tool,
+            });
+            let dots = app.theme.glyphs.ellipsis().to_string();
+            let star = app.theme.glyphs.star().to_string();
+            let mut terminal = Terminal::new(TestBackend::new(60, 30)).expect("terminal");
+            terminal.draw(|f| app.render(f)).expect("draw");
+            let text = buffer_text(&terminal);
+            assert!(
+                text.contains(&dots),
+                "усечение без индикатора «{dots}» (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                text.contains(&star),
+                "звёздочка «{star}» вытеснена длинной меткой (unicode={unicode}):\n{text}"
+            );
+        }
+    }
+
+    /// Двузначный номер не должен сдвигать метку: «10. » и « 1. » обязаны
+    /// начинать подпись в одной колонке (фиксированная ширина поля номера).
+    #[test]
+    fn ask_two_digit_number_keeps_label_column() {
+        let labels: Vec<String> = (1..=12).map(|i| format!("L{i:02}")).collect();
+        let mut app = ask_app(labels.iter().map(|l| (l.as_str(), "")).collect::<Vec<_>>());
+        app.ask.as_mut().expect("ask").selected = 0;
+        let mut terminal = Terminal::new(TestBackend::new(100, 40)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let rows = buffer_rows(&terminal);
+        let label_col = |lab: &str| -> usize {
+            let cells: Vec<String> = lab.chars().map(|c| c.to_string()).collect();
+            for row in &rows {
+                if row.len() >= cells.len() {
+                    if let Some(c) = (0..=row.len() - cells.len())
+                        .find(|&c| row[c..c + cells.len()] == cells[..])
+                    {
+                        return c;
+                    }
+                }
+            }
+            panic!("метка «{lab}» не найдена в буфере");
+        };
+        let cols: Vec<usize> = labels.iter().map(|l| label_col(l)).collect();
+        assert!(
+            cols.windows(2).all(|w| w[0] == w[1]),
+            "колонка метки пляшет на двузначных номерах: {cols:?}"
+        );
+    }
+
+    /// Рендер-замок к theme-тесту `mono_label_is_not_dimmer_than_number`:
+    /// в буфере подпись невыбранного варианта обязана идти основным текстом
+    /// (`base()`), а номер — служебным акцентом (`number_key()`), а не наоборот.
+    #[test]
+    fn ask_option_label_uses_body_style_not_number_style() {
+        let mut app = ask_app(vec![("Kafka", ""), ("NATS", "")]);
+        app.ask.as_mut().expect("ask").selected = 0;
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let rows = buffer_rows(&terminal);
+        let buf = terminal.backend().buffer();
+        // Невыбранный пункт «NATS» — метка базовым стилем.
+        let needle: Vec<String> = "NATS".chars().map(|c| c.to_string()).collect();
+        let (y, x) = rows
+            .iter()
+            .enumerate()
+            .find_map(|(y, row)| {
+                (0..=row.len().saturating_sub(needle.len()))
+                    .find(|&x| row[x..x + needle.len()] == needle[..])
+                    .map(|x| (y, x))
+            })
+            .expect("метка NATS не найдена");
+        assert_eq!(
+            buf[(x as u16, y as u16)].fg,
+            app.theme.base().fg.unwrap(),
+            "метка невыбранного варианта не основным текстом"
+        );
+        // Номер «2. » этой же строки — служебным акцентом.
+        let dcol = option_number_col(&rows[y], 2).expect("номер «2. »");
+        assert_eq!(
+            buf[(dcol as u16, y as u16)].fg,
+            app.theme.number_key().fg.unwrap(),
+            "номер варианта не акцентом формы"
         );
     }
 
@@ -2938,5 +4447,390 @@ mod tests {
             "выбранный последний пункт обязан быть виден:\n{text}"
         );
         assert!(text.contains("12/12"), "индикатор позиции:\n{text}");
+    }
+
+    /// Текст подсказки модалки: срез строки буфера между её левой рамкой и
+    /// правой зоной со счётчиком. Нужен, чтобы проверять усечение подсказки
+    /// по границам сегментов, а не по клеткам.
+    fn ask_footer_hint(term: &Terminal<TestBackend>, counter: &str) -> String {
+        let rows = buffer_rows(term);
+        let cells: Vec<String> = counter.chars().map(|c| c.to_string()).collect();
+        for row in &rows {
+            let start = (0..row.len().saturating_sub(cells.len()))
+                .find(|&i| row[i..i + cells.len()] == cells[..]);
+            let Some(start) = start else { continue };
+            let border = row[..start].iter().rposition(|c| c == "│" || c == "|");
+            let Some(border) = border else { continue };
+            return row[border + 2..start].concat().trim_end().to_string();
+        }
+        panic!("строка подсказки со счётчиком «{counter}» не найдена");
+    }
+
+    /// Открытая ask-модалка — верхний слой: статус-бар обязан показывать
+    /// клавиши модалки, а не чата, даже когда чат занят и есть очередь.
+    /// Раньше `hint_ctx()` отдавал `ChatBusy`, и под модалкой висели
+    /// «Enter — в очередь», «Esc — прервать» — обещания, которые модалка
+    /// перехватывала (Enter выбирает пункт, Esc отклоняет).
+    #[test]
+    fn open_modal_replaces_chat_keys_in_status_bar() {
+        for unicode in [true, false] {
+            for width in [60u16, 80, 100] {
+                let mut app = if unicode { test_app() } else { ascii_app() };
+                app.screen = Screen::Chat;
+                testing::set_thinking(&mut app, true);
+                app.queue.push_back("следующее сообщение".into());
+                app.ask = Some(crate::tui::app::AskState {
+                    question: "Выберите вариант".into(),
+                    options: vec![
+                        crate::tool::AskOption {
+                            label: "Kafka".into(),
+                            description: String::new(),
+                        },
+                        crate::tool::AskOption {
+                            label: "NATS".into(),
+                            description: String::new(),
+                        },
+                    ],
+                    recommended: None,
+                    selected: 0,
+                    reply: None,
+                    kind: crate::tui::app::AskKind::Tool,
+                });
+                let mut terminal = Terminal::new(TestBackend::new(width, 24)).expect("terminal");
+                terminal.draw(|f| app.render(f)).expect("draw");
+                assert!(
+                    matches!(app.hint_ctx(), crate::tui::keymap::Ctx::Ask),
+                    "контекст подсказок под модалкой не Ask (width={width}, \
+                     unicode={unicode})"
+                );
+                let rows = buffer_rows(&terminal);
+                let status = rows.last().expect("статус-бар").concat();
+                for needle in ["Enter", "Esc", "подтвердить"] {
+                    assert!(
+                        status.contains(needle),
+                        "статус-бар под модалкой без клавиши «{needle}» \
+                         (width={width}, unicode={unicode}):\n{status}"
+                    );
+                }
+                for banned in ["в очередь", "прервать", "очередь", "отправить"]
+                {
+                    assert!(
+                        !status.contains(banned),
+                        "статус-бар под модалкой обещает клавишу чата «{banned}» \
+                         (width={width}, unicode={unicode}):\n{status}"
+                    );
+                }
+                // Строка состояния занятого чата сообщает только факт «думает» —
+                // без «Esc — прервать» и без «очередь: N».
+                let state = rows
+                    .iter()
+                    .find(|r| r.concat().contains("думает"))
+                    .expect("строка состояния занятого чата")
+                    .concat();
+                assert!(
+                    !state.contains("прервать") && !state.contains("очередь:"),
+                    "строка состояния под модалкой обещает прерывание/очередь:\n{state}"
+                );
+                // Нигде на экране не должно остаться обещания прервать ход.
+                let text = buffer_text(&terminal);
+                assert!(
+                    !text.contains("прервать"),
+                    "под модалкой остался текст «прервать» (width={width}, \
+                     unicode={unicode}):\n{text}"
+                );
+            }
+        }
+    }
+
+    /// Справка под модалкой описывает клавиши МОДАЛКИ, а не чата: `help_ctx`
+    /// обязан подчиняться `hint_ctx`. Раньше `?` под модалкой показывал раздел
+    /// чата («Enter — отправить», «Esc — прервать») — справка врала о том,
+    /// куда уйдут клавиши.
+    #[test]
+    fn help_overlay_under_modal_describes_modal_keys() {
+        let mut app = ask_app(vec![("Kafka", ""), ("NATS", "")]);
+        app.help = true;
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        for needle in [
+            "Перемещение по вариантам",
+            "Выбрать текущий вариант",
+            "Быстрый выбор варианта по номеру",
+            "Отказ от выбора",
+        ] {
+            assert!(
+                text.contains(needle),
+                "справка под модалкой не описывает клавишу модалки «{needle}»:\n{text}"
+            );
+        }
+        for banned in ["Поставить набранное в очередь", "Прервать ход", "прервать"]
+        {
+            assert!(
+                !text.contains(banned),
+                "справка под модалкой описывает клавишу чата «{banned}»:\n{text}"
+            );
+        }
+    }
+
+    /// Подсказка модалки усекается по границам сегментов с многоточием, а не
+    /// рвёт слово по клетке: при ширине 60 «Enter подтвердить» не смеет
+    /// превратиться в «Ent». Проверяем 2/4/12 пунктов и переполнение
+    /// (страничные клавиши) в обоих наборах глифов и на ширинах 60/80/100.
+    #[test]
+    fn ask_hint_truncates_on_segment_boundaries_not_mid_word() {
+        for unicode in [true, false] {
+            let up_down = if unicode { "↑/↓" } else { "Up/Down" };
+            let dots = if unicode { "…" } else { "..." };
+            for width in [60u16, 80, 100] {
+                for (n, desc) in [(2usize, false), (4, false), (12, false), (12, true)] {
+                    let mut app = if unicode { test_app() } else { ascii_app() };
+                    app.screen = Screen::Chat;
+                    app.ask = Some(crate::tui::app::AskState {
+                        question: "Выберите вариант".into(),
+                        options: (0..n)
+                            .map(|i| crate::tool::AskOption {
+                                label: format!("Вариант-{i}"),
+                                description: if desc {
+                                    "описание".into()
+                                } else {
+                                    String::new()
+                                },
+                            })
+                            .collect(),
+                        recommended: None,
+                        selected: 0,
+                        reply: None,
+                        kind: crate::tui::app::AskKind::Tool,
+                    });
+                    let mut terminal =
+                        Terminal::new(TestBackend::new(width, 24)).expect("terminal");
+                    terminal.draw(|f| app.render(f)).expect("draw");
+                    let hint = ask_footer_hint(&terminal, &format!("1/{n}"));
+
+                    let body = hint
+                        .strip_suffix(&format!(" · {dots}"))
+                        .unwrap_or(hint.as_str());
+                    let truncated = body.len() != hint.len();
+                    let segs: Vec<&str> = if body.is_empty() {
+                        Vec::new()
+                    } else {
+                        body.split(" · ").collect()
+                    };
+
+                    // Полный сегмент — единственная допустимая форма: разрыв
+                    // внутри слова дал бы обрывок вроде «Ent».
+                    let mut full: Vec<String> = vec![
+                        format!("{up_down} выбор"),
+                        "Enter подтвердить".into(),
+                        "Esc решить".into(),
+                    ];
+                    if desc {
+                        full.push("PgUp/PgDn/Home/End листать".into());
+                    } else if n <= 9 {
+                        full.push(format!("1-{n} быстро"));
+                    } else {
+                        full.push(format!("1-9 + {up_down} быстро"));
+                    }
+                    for seg in &segs {
+                        assert!(
+                            full.iter().any(|f| f == seg),
+                            "сегмент «{seg}» — не целый (разрыв слова?) \
+                             (width={width}, n={n}, desc={desc}, unicode={unicode}); \
+                             подсказка: {hint:?}"
+                        );
+                    }
+                    // Многоточие — только хвост усечения, не внутри текста.
+                    assert!(
+                        hint.matches(dots).count() <= 1,
+                        "многоточие появилось в середине подсказки \
+                         (width={width}, n={n}, unicode={unicode}): {hint:?}"
+                    );
+
+                    // Тест ровно про усечение на ширине 60: там не влезает
+                    // ни один полный набор сегментов.
+                    if width == 60 {
+                        assert!(
+                            truncated,
+                            "на ширине 60 подсказка обязана усечься \
+                             (n={n}, desc={desc}, unicode={unicode}): {hint:?}"
+                        );
+                    }
+                    if truncated {
+                        // Без Enter и Esc модалка непонятна — они остаются
+                        // последними (приоритет удержания).
+                        assert!(
+                            segs.iter().any(|s| s.starts_with("Enter")),
+                            "при усечении потерян Enter (width={width}, n={n}, \
+                             unicode={unicode}): {hint:?}"
+                        );
+                        assert!(
+                            segs.iter().any(|s| s.starts_with("Esc")),
+                            "при усечении потерян Esc (width={width}, n={n}, \
+                             unicode={unicode}): {hint:?}"
+                        );
+                        assert!(
+                            !segs.is_empty(),
+                            "усечение до пустого тела (width={width}, n={n}): {hint:?}"
+                        );
+                    } else {
+                        assert_eq!(
+                            segs.len(),
+                            full.len(),
+                            "без усечения обязаны быть все сегменты \
+                             (width={width}, n={n}, desc={desc}, unicode={unicode}): {hint:?}"
+                        );
+                    }
+                    // Страничные клавиши — когда список листается; на ширинах
+                    // 80/100 для этого хватает места.
+                    if desc && width >= 80 {
+                        assert!(
+                            segs.contains(&"PgUp/PgDn/Home/End листать"),
+                            "переполнение: на ширине {width} подсказка обязана \
+                             назвать листание (unicode={unicode}): {hint:?}"
+                        );
+                    }
+                    if !desc && width >= 80 {
+                        let digits = if n <= 9 {
+                            format!("1-{n} быстро")
+                        } else {
+                            format!("1-9 + {up_down} быстро")
+                        };
+                        assert!(
+                            segs.contains(&digits.as_str()),
+                            "на ширине {width} обязан влезть быстрый диапазон \
+                             «{digits}» (n={n}, unicode={unicode}): {hint:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// 60×16 с 6 пунктами: рамка модалки не пересекает рамку панели диалога
+    /// и не наезжает на строку ввода/статуса — при нехватке высоты список
+    /// ужимается (с прокруткой), а не рисуется поверх чужого хрома.
+    #[test]
+    fn ask_modal_at_sixty_by_sixteen_does_not_cover_chrome() {
+        for unicode in [true, false] {
+            let mut app = if unicode { test_app() } else { ascii_app() };
+            app.screen = Screen::Chat;
+            app.ask = Some(crate::tui::app::AskState {
+                question: "Выберите вариант".into(),
+                options: (0..6)
+                    .map(|i| crate::tool::AskOption {
+                        label: format!("Вариант-{i}"),
+                        description: "описание варианта".into(),
+                    })
+                    .collect(),
+                recommended: None,
+                selected: 0,
+                reply: None,
+                kind: crate::tui::app::AskKind::Tool,
+            });
+            let mut terminal = Terminal::new(TestBackend::new(60, 16)).expect("terminal");
+            terminal.draw(|f| app.render(f)).expect("draw");
+            let rows = buffer_rows(&terminal);
+            let (top_corner, bottom_corner) = if unicode { ("╭", "╰") } else { ("+", "+") };
+            let top_right = if unicode { "╮" } else { "+" };
+            let cursor = if unicode { "›" } else { ">" };
+
+            let dialog_top = rows
+                .iter()
+                .position(|r| r.concat().contains("Диалог"))
+                .expect("шапка панели диалога");
+            let dialog_bottom = (dialog_top + 1..rows.len())
+                .find(|&y| rows[y][0] == bottom_corner)
+                .expect("нижняя рамка панели диалога");
+            let modal_top = rows
+                .iter()
+                .position(|r| r.concat().contains("решение за вами"))
+                .expect("шапка модалки");
+            let modal_left = rows[modal_top]
+                .iter()
+                .position(|c| c == top_corner)
+                .expect("левый верхний угол модалки");
+            let modal_bottom = (modal_top + 1..rows.len())
+                .find(|&y| rows[y][modal_left] == bottom_corner)
+                .expect("нижняя рамка модалки");
+            let input_y = rows
+                .iter()
+                .position(|r| r[0] == cursor)
+                .expect("строка ввода с курсором");
+
+            assert!(
+                modal_top > dialog_top,
+                "рамка модалки наехала на шапку панели (unicode={unicode}): \
+                 modal_top={modal_top}, dialog_top={dialog_top}"
+            );
+            assert!(
+                modal_bottom < dialog_bottom,
+                "рамка модалки пересекает нижнюю рамку панели \
+                 (unicode={unicode}): modal_bottom={modal_bottom}, \
+                 dialog_bottom={dialog_bottom}"
+            );
+            assert!(
+                modal_bottom < input_y,
+                "рамка модалки наехала на строку ввода (unicode={unicode}): \
+                 modal_bottom={modal_bottom}, input_y={input_y}"
+            );
+            // Горизонталь и главное правило: под блокирующей модалкой правая
+            // панель не рисуется вовсе, поэтому перечёркивать её рамку
+            // нечему, а колонка диалога занимает всю ширину — рамка модалки
+            // строго внутри рамки панели диалога. Это и есть проверяемая
+            // инварианта: «пересечений рамок нет» при любой трактовке.
+            let text = buffer_text(&terminal);
+            assert!(
+                !text.contains("Mermaid"),
+                "под блокирующей модалкой правая панель осталась нарисованной \
+                 и её рамка перечёркнута модалкой (unicode={unicode}):\n{text}"
+            );
+            let dialog_right = rows[0]
+                .iter()
+                .rposition(|c| *c == top_right)
+                .expect("правый верхний угол панели диалога");
+            let horizontal = if unicode { "─" } else { "-" };
+            let mut modal_right = modal_left + 1;
+            while modal_right + 1 < rows[modal_top].len()
+                && rows[modal_top][modal_right] == horizontal
+            {
+                modal_right += 1;
+            }
+            assert!(
+                modal_right < dialog_right,
+                "рамка модалки вышла за рамку панели диалога \
+                 (unicode={unicode}): правый край модалки={modal_right}, \
+                 правый край панели={dialog_right}"
+            );
+            // Строка ввода читаема: курсор на месте и никаких рамок модалки.
+            let input = rows[input_y].concat();
+            assert!(
+                input.starts_with(cursor),
+                "строка ввода без курсора (unicode={unicode}): {input:?}"
+            );
+            for glyph in ["│", "|", "╭", "╰", "─"] {
+                assert!(
+                    !input.contains(glyph),
+                    "строка ввода залеплена рамкой «{glyph}» (unicode={unicode}): {input:?}"
+                );
+            }
+            // Список ужат: последний пункт за окном, а не нарисован поверх.
+            let text = buffer_text(&terminal);
+            assert!(
+                text.contains("Вариант-0"),
+                "первый пункт обязан быть виден (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                !text.contains("Вариант-5"),
+                "шестой пункт обязан уйти за окно прокрутки, а не рисоваться \
+                 поверх хрома (unicode={unicode}):\n{text}"
+            );
+            assert!(
+                app.ask_viewport > 0 && app.ask_viewport < 6 * 3,
+                "модалка обязана ужать список под высоту диалога \
+                 (unicode={unicode}): ask_viewport={}",
+                app.ask_viewport
+            );
+        }
     }
 }

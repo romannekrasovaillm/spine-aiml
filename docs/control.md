@@ -137,8 +137,10 @@ arch-ml control sensors examples/specs
 ## Fitness functions (`control check`)
 
 Машинно-проверяемые утверждения о репозитории из `CONSTRAINTS.yaml`
-(по умолчанию `<repo>/.arch-handoff/CONSTRAINTS.yaml`, `--constraints` —
-другой файл). Итог PASS, если нет находок с severity `error`; **при FAIL —
+(по умолчанию — рабочий `<repo>/CONSTRAINTS.yaml`, затем пакетный
+`<repo>/.arch-handoff/CONSTRAINTS.yaml` как fallback с предупреждением, что
+проверяется заготовка; `--constraints` — другой файл). Итог PASS, если нет
+находок с severity `error`; **при FAIL —
 exit code 1** (годится для CI). Обход пропускает служебные и производные
 каталоги — `.git`, `target`, `node_modules`, `dist`, `__pycache__`, `.next`,
 `.pytest_cache` и `.arch-handoff`: правила целятся в артефакты реализации,
@@ -372,7 +374,8 @@ arch-ml control rules-report . --constraints CONSTRAINTS.yaml
 # правил 13, суммарный effort_hours 6.5 (покрыто 2 правил)
 ```
 
-- `--constraints` — как у `check` (дефолт `<repo>/.arch-handoff/CONSTRAINTS.yaml`);
+- `--constraints` — как у `check` (дефолт — рабочий `<repo>/CONSTRAINTS.yaml`,
+  затем пакетный `<repo>/.arch-handoff/CONSTRAINTS.yaml` как fallback);
 - просрочка expiry — та же логика даты, что у warn-находки в `check`;
 - git-прокси — `git log --since="90 days ago" --oneline -- <файл>`; вне
   git-репозитория (или без git) — строка «недоступно», не ошибка;
@@ -542,9 +545,22 @@ arch-ml control adr "Оркестрация платежа — отдельны�
 
 Номер — `max(существующие ADR-NNN-*) + 1`; каталог создаётся при отсутствии.
 Имя файла — `ADR-NNN-kebab-title.md` (не-ASCII, включая кириллицу, → `-`,
-без транслитерации). Шаблон AI-DLC с placeholder-комментариями:
+без транслитерации). Шаблон AI-DLC с placeholder-комментариями; первым
+блоком — YAML-frontmatter (ADR-045): `depends_on`/`affects`/`spec_files`
+дают рёбра и артефакты плана флота (`fleet plan propose --from-adrs`),
+пустые списки заполняет автор решения:
 
 ```
+---
+id: ADR-003
+title: "<title>"
+status: Proposed
+date: "<дата>"
+depends_on: []
+affects: []
+spec_files: []
+---
+
 # ADR-003. <title>
 - Date: <дата>
 - Status: Proposed

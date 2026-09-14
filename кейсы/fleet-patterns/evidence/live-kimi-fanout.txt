@@ -1,5 +1,5 @@
 # Живой прогон на РЕАЛЬНОМ харнессе (kimi-code), 2026-09-12
-# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на /home/user — гейт CI «personal paths» (AD-7).
+# ПРИМЕЧАНИЕ: пути домашнего каталога заменены на `/home/user/` — гейт CI «personal paths» (AD-7).
 # $ arch-ml fleet run --repo <sandbox> --plan live-smoke-kimi.plan.toml
 
 Прогон плана live-smoke-kimi (fanout): run-id fpl-1789206260662

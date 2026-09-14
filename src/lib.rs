@@ -16,6 +16,7 @@
 //! assert!(cfg.models.contains_key("deepseek"));
 //! ```
 
+pub mod accept_gate;
 pub mod adr_registry;
 pub mod agent;
 pub mod agentsmd;
@@ -33,6 +34,7 @@ pub mod context_plan;
 pub mod contract_diff;
 pub mod control;
 pub mod cron;
+pub mod dataset_card;
 pub mod delta;
 pub mod detectors;
 pub mod distill;
@@ -53,6 +55,7 @@ pub mod governance;
 pub mod gpu;
 pub mod harness;
 pub mod hooks;
+pub mod hypothesis;
 pub mod injection;
 pub mod kb;
 pub mod landscape;
@@ -85,8 +88,10 @@ pub mod survey;
 pub mod tool;
 pub mod tools;
 pub mod trace;
+pub mod trajectory;
 pub mod tui;
 pub mod web;
+pub mod weights;
 pub mod worktree;
 
 pub use config::Config;

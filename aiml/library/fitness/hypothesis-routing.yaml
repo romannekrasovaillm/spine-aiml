@@ -1,0 +1,124 @@
+# Fitness-правила роутинга гипотез (плагин aiml/plugins/hypothesis-router).
+#
+# Размещение: библиотека доменных правил aiml/. Это ЕДИНСТВЕННЫЙ источник
+# правил роутинга: `arch-ml control check --constraints
+# aiml/library/fitness/hypothesis-routing.yaml`. Копии правил в формате
+# плагина (вложенный `check:`, `description:`, плейсхолдеры) в репозитории
+# нет намеренно: ядро читает из манифеста плагина только name/version/
+# description/keywords/hooks, файл правил плагина никто не исполняет, а две
+# расходящиеся копии — это два источника правды (оператор по докам плагина
+# поставил бы файл, который движок отвергает).
+#
+# ПУТЬ К ПЛАГИНУ. Движок исполняет команду через `bash -c` с cwd = корень
+# ПРОВЕРЯЕМОГО репозитория (src/control.rs, run_with_timeout), поэтому
+# относительный путь `aiml/plugins/...` разрешается только внутри spine-aiml.
+# Правило, которое из-за этого обвиняло бы чужой репозиторий (код 127 —
+# «файл не найден»), было бы хуже молчания. Поэтому:
+#   * HYP-01 вообще не ходит в плагин — наличие HYPOTHESES.json проверяется
+#     прямо в пакете, значит правило работает в любом репозитории;
+#   * HYP-03 ходит в скрипт разбора карточек и требует его наличия: путь
+#     берётся из $HYPOTHESIS_PLUGIN (абсолютный путь к каталогу плагина),
+#     иначе — репо-относительный; не нашли скрипт — правило ПРОПУСКАЕТСЯ с
+#     явным сообщением, а не выносит провал.
+#
+# Схема — как в wave1-ml-experiment.yaml: корень `constraints:`, карточка
+# правила (trigger/rationale/evidence/reversibility/owner/expiry), проверка —
+# command_succeeds. Команда исполняется `bash -c` с cwd = корень репозитория
+# (src/control.rs, run_with_timeout), таймаут по умолчанию 60 с.
+#
+# Отличия от родного файла плагина (осознанные, смысл сохранён):
+#   * severity — канонические error|warn движка; `warning` из плагина
+#     нормализатор не принимает (src/control.rs, normalize_severity), поэтому
+#     `hypothesis_handoff_attached` и `hypothesis_routing_fresh` = warn
+#     (не блокируют, поднять до error после обкатки).
+#   * нет подстановки {handoff_dir}/{project_name} — пути и env вычисляет
+#     сама команда; handoff-правило срабатывает ТОЛЬКО при наличии .arch-handoff.
+#   * `hypothesis_touch_on_accept` переведено в unverifiable: post-accept
+#     пишет в журнал карточек и как исполняемое правило давал бы побочный
+#     эффект на каждом `control check`.
+
+constraints:
+  # ── Handoff-пакет содержит роутинг гипотез (plugin: hypothesis_handoff_attached) ─
+  # Trigger: собран handoff-пакет (.arch-handoff). False-positive вне handoff
+  # исключён гардом `test -d .arch-handoff || exit 0`.
+  - id: HYP-01
+    name: hypothesis_handoff_attached
+    type: command_succeeds
+    command: >-
+      test -d .arch-handoff || exit 0;
+      test -f .arch-handoff/HYPOTHESES.json && exit 0;
+      echo "pre-handoff не выполнен: в .arch-handoff нет HYPOTHESES.json";
+      exit 1
+    timeout_secs: 120
+    severity: warn
+    trigger: "в репозитории есть каталог .arch-handoff (собран handoff-пакет)"
+    rationale: "латентная гипотеза полезна в момент выбора направления; если pre-handoff не выполнен, скиллы из теплицы не попадут в MANIFEST и исполнитель их не увидит"
+    evidence: ".arch-handoff/HYPOTHESES.json"
+    reversibility: "обратимо"
+    owner: "архитектор"
+    expiry: "2027-03-01"
+
+  # ── routing.json не старее самой свежей карточки (plugin: hypothesis_routing_fresh) ─
+  # Детерминированный слой читает routing.json, а не карточки: устаревшая
+  # таблица = новая гипотеза не может всплыть. Без каталога карточек — pass.
+  - id: HYP-02
+    name: hypothesis_routing_fresh
+    type: command_succeeds
+    command: >-
+      H="${HYPOTHESES_DIR:-$HOME/hypotheses}";
+      case "$H" in "~/"*) H="$HOME/${H#~/}" ;; esac;
+      test -d "$H" || exit 0;
+      c=$(find "$H" -maxdepth 2 -name HYPOTHESIS.md -print -quit);
+      test -n "$c" || exit 0;
+      test -f "$H/routing.json" || { echo "routing.json отсутствует (нужен refresh)"; exit 1; };
+      s=$(find "$H" -maxdepth 2 -name HYPOTHESIS.md -newer "$H/routing.json" -print -quit);
+      test -z "$s" || { echo "routing.json старее карточек: $s"; exit 1; }
+    timeout_secs: 120
+    severity: warn
+    trigger: "карточки гипотез изменены/добавлены (library_changed)"
+    rationale: "устаревший routing.json означает, что гипотеза существует, но не участвует в роутинге — иллюзия памяти"
+    evidence: "$HYPOTHESES_DIR/routing.json"
+    reversibility: "обратимо"
+    owner: "архитектор"
+    expiry: "2027-03-01"
+
+  # ── У каждой карточки есть хотя бы один триггер (plugin: hypothesis_card_has_triggers) ─
+  # Карточка без триггеров — заметка: не всплывает и создаёт иллюзию памяти.
+  # Отсутствие каталога карточек провалом не считается.
+  - id: HYP-03
+    name: hypothesis_card_has_triggers
+    type: command_succeeds
+    command: >-
+      P="${HYPOTHESIS_PLUGIN:-aiml/plugins/hypothesis-router}";
+      R="$P/skills/hypothesis-card/scripts/card_review.py";
+      test -f "$R" || { echo "правило пропущено: не найден $R (задайте HYPOTHESIS_PLUGIN абсолютным путём к плагину)"; exit 0; };
+      H="${HYPOTHESES_DIR:-$HOME/hypotheses}";
+      case "$H" in "~/"*) H="$HOME/${H#~/}" ;; esac;
+      test -d "$H" || exit 0;
+      out=$(python3 "$R" --dir "$H")
+      || { echo "card_review.py не отработал"; exit 1; };
+      if printf '%s\n' "$out" | grep -q 'нет триггеров'; then
+        printf '%s\n' "$out" | grep 'нет триггеров'; exit 1;
+      fi
+    timeout_secs: 120
+    severity: error
+    trigger: "карточки гипотез изменены/добавлены (library_changed)"
+    rationale: "карточка без триггеров не участвует в роутинге: память о намерении есть, поднять её нечем"
+    evidence: "$HYPOTHESES_DIR/*/HYPOTHESIS.md"
+    reversibility: "обратимо"
+    owner: "архитектор"
+    expiry: "2027-03-01"
+
+  # ── Касания карточек после принятия результата (plugin: hypothesis_touch_on_accept) ─
+  # Ручной контроль: исполняется человеком/hook'ом post-accept, не движком —
+  # иначе `control check` писал бы в журнал при каждом прогоне.
+  - id: HYP-04
+    name: hypothesis_touch_on_accept
+    unverifiable: true
+    severity: warn
+    trigger: "принят результат задачи, поднявшей карточку (accept_worktree)"
+    rationale: "касания — единственные данные для повышения/понижения состояний; без них жизненный цикл не работает и теплица только растёт"
+    evidence: "$HYPOTHESES_DIR/*/HYPOTHESIS.md (раздел Журнал)"
+    reversibility: "частично (запись в журнал остаётся)"
+    owner: "архитектор"
+    expiry: "2027-03-01"

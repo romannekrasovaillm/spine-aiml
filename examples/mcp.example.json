@@ -2,7 +2,7 @@
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/Документы"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/Документы"]
     },
     "fetch": {
       "command": "uvx",

@@ -152,4 +152,6 @@ CPT/SFT/RLHF/RL/RLVR, дистилляция, steering, сборка агент�
 - `docs/models.md` — поля `[models.*]`, `context_limit`, фабрики провайдеров
 - `docs/architecture.md`, `docs/theseus_hardening.md` — агентный цикл и компактификация, наследуемые без изменений
 - Дорожная карта Spine BE (2026-09-11) — оси 3 (hybrid local↔frontier) и 5 (Harness Card, доменный бенчмарк)
-- Доменная библиотека: `~/experiments/agents/0710-ariadna/plugins/` (категории `postrain`, `cpt`, `distillation`, `ml-infrastructure`)
+- Доменная библиотека: `/home/user/experiments/agents/0710-ariadna/plugins/` (категории `postrain`, `cpt`, `distillation`, `ml-infrastructure`)
+
+> ПРИМЕЧАНИЕ: пути домашнего каталога заменены на `/home/user/` — гейт CI «personal paths» (AD-7).

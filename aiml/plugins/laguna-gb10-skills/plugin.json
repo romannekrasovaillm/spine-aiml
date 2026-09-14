@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "laguna-gb10-skills",
+  "version": "1.0.0",
+  "description": "Доменный плагин лесенки маленьких моделей на NVIDIA GB10 / DGX Spark (UMA, единая память CPU+GPU): запуск и восстановление прогона CPT → SFT → RL, оценка стадий на OOD, диагностика патологий CPT, здоровье RL и интерпретационный отчёт по прогону. Знает проверенную конфигурацию для 1.5B/3B и типовые падения (rc=137 OOM, rc=1 NVRM, незавершённый проход). Триггеры: «запусти/перезапусти лесенку», «что с прогоном v12/v13», «почему упал CPT/SFT/RL», «OOM на Spark», «сравни стадии», «что дал SFT/RL», «судья упал / API_DOWN», «после CPT модель отвечает одно и то же», «template domination», «язык рассуждений сменился», «как идёт RL», «энтропия/KL», «модель забыла базу», «напиши отчёт по прогону».",
+  "keywords": [
+    "gb10",
+    "dgx-spark",
+    "uma",
+    "cpt",
+    "sft",
+    "grpo",
+    "ladder",
+    "ood-eval",
+    "template-domination",
+    "rl-health"
+  ],
+  "skills": [
+    "skills/cpt-template-check",
+    "skills/ladder-interpretation-report",
+    "skills/laguna-ladder-run",
+    "skills/ood-stage-eval",
+    "skills/rl-health-check"
+  ]
+}

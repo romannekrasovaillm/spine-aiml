@@ -134,4 +134,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build
-      - run: ./target/debug/arch eval run
+      - run: ./target/debug/arch-ml eval run

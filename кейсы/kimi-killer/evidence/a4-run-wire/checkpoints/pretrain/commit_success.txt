@@ -1,0 +1,1 @@
+Checkpoint commit was successful to /home/user/.arch-ml/worktrees/kimi-killer-5df653ef7612bd7b/fpl-1789308601900-n4-verify-paths/кейсы/kimi-killer/evidence/a4-run-wire/checkpoints/pretrain

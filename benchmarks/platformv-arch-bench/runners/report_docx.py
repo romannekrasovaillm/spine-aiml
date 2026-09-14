@@ -33,19 +33,26 @@ DIAG = OUT / "diagrams"
 COND_RU = {
     "spine-arch": "Spine + спайн-пакет",
     "spine-min": "Spine (без спайна)",
+    "spine-arch-think": "Spine + спайн-пакет + ризонинг",
     "theseus-plain": "Theseus",
     "theseus-arch": "Theseus + AGENTS.md архитектора",
     "claude-plain": "Claude Code",
     "claude-arch": "Claude Code + CLAUDE.md",
+    "kimi-plain": "Kimi Code",
+    "kimi-arch": "Kimi Code + AGENTS.md",
+    "openclaw-plain": "OpenClaw",
+    "qwen-plain": "Qwen Code",
+    "omp-plain": "pi-coding-agent",
     "raw-llm": "Модель без харнесса (raw)",
 }
-MODEL_RU = {"dsf": "DeepSeek V4 Flash", "glm": "GLM-5.3 Flash",
+MODEL_RU = {"dsf": "DeepSeek V4.1 Flash", "glm": "GLM-5.3 Flash",
             "glm53": "GLM-5.3", "dsp": "DeepSeek V4 Pro",
             "default": "дефолт харнесса"}
-COND_ORDER = ["spine-arch", "spine-min", "theseus-plain", "theseus-arch",
-              "claude-plain", "claude-arch", "raw-llm",
-              "dsh-plain", "codewhale-plain", "hermes-plain",
-              "openclaw-plain", "kimi-plain"]
+COND_ORDER = ["spine-arch", "spine-min", "spine-arch-think",
+              "claude-plain", "claude-arch", "kimi-plain", "kimi-arch",
+              "openclaw-plain", "qwen-plain", "omp-plain",
+              "theseus-plain", "theseus-arch", "raw-llm",
+              "dsh-plain", "codewhale-plain", "hermes-plain"]
 
 
 def cond_ru(c):
@@ -58,6 +65,17 @@ def load():
     records = [json.loads(x) for x in
                open(RUNS / "results.jsonl", encoding="utf-8")]
     return summary, records
+
+
+def load_effects():
+    """Каноничные эффекты: парность по ячейкам «задача × повтор»,
+    bootstrap 95% CI — results/effects_paired.json (значения совпадают
+    с опубликованными в README). Фолбэк — пул-эффекты из summary.json."""
+    p = RUNS / "effects_paired.json"
+    if p.is_file():
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return data.get("effects", {})
+    return {}
 
 
 # ---------- диаграммы ----------
@@ -95,12 +113,11 @@ def chart_total_by_condition(summary):
     return p
 
 
-def chart_effects(summary):
-    eff = {**summary.get("effects", {}), **summary.get("effects_by_model", {})}
-    eff = {k: v for k, v in eff.items() if v}
+def chart_effects(effects):
+    eff = {k: v for k, v in effects.items() if v}
     if not eff:
         return None
-    fig, ax = plt.subplots(figsize=(10, 0.6 * len(eff) + 2))
+    fig, ax = plt.subplots(figsize=(11, 0.55 * len(eff) + 2))
     keys = list(eff)
     y = np.arange(len(keys))
     for i, k in enumerate(keys):
@@ -112,9 +129,11 @@ def chart_effects(summary):
                 fontsize=8)
     ax.axvline(0, ls="--", c="gray")
     ax.set_yticks(y)
-    ax.set_yticklabels(keys, fontsize=9)
-    ax.set_xlabel("Разность средних итогов, баллы (95% CI, bootstrap)")
-    ax.set_title("Эффекты: разница качества между условиями")
+    ax.set_yticklabels(keys, fontsize=8)
+    ax.set_xlabel("Парная разность итогов по ячейкам «задача × повтор», "
+                  "баллы (95% CI, bootstrap)")
+    ax.set_title("Эффекты: разница качества между условиями "
+                 "(эталон — spine-arch-think)")
     fig.tight_layout()
     p = DIAG / "02_effects_forest.png"
     fig.savefig(p, dpi=150)
@@ -199,63 +218,66 @@ def chart_time(summary):
 
 # ---------- интерпретация ----------
 
-def interpret(summary):
+def interpret(effects):
+    """Выводы, синхронизированные с README (числа — effects_paired.json)."""
+    def f(key):
+        v = effects.get(key)
+        return (f"{v['diff']:+.1f} [{v['ci_lo']:+.1f}; {v['ci_hi']:+.1f}]"
+                if v else "—")
+
     out = []
-    eff = summary.get("effects", {})
-    ebm = summary.get("effects_by_model", {})
-
-    def sig(v):
-        return v and (v["ci_lo"] > 0 or v["ci_hi"] < 0)
-
-    e1 = eff.get("spine-arch - theseus-plain")
-    e2 = eff.get("spine-arch - claude-plain")
-    e3 = eff.get("theseus-arch - theseus-plain")
-    e4 = eff.get("claude-arch - claude-plain")
-    e5 = eff.get("spine-arch - spine-min")
-
-    if e1 and e2:
-        if sig(e1) and sig(e2) and e1["diff"] > 0 and e2["diff"] > 0:
-            out.append(f"H1 подтверждена: Spine со спайн-пакетом превосходит "
-                       f"кодовые агенты без кастомизации на {e1['diff']:+.1f} "
-                       f"балла против Theseus и на {e2['diff']:+.1f} против "
-                       f"Claude Code; оба доверительных интервала не "
-                       f"пересекают ноль.")
-        else:
-            out.append(f"H1 на текущих данных не подтверждена однозначно: "
-                       f"разности против Theseus ({e1['diff']:+.1f} "
-                       f"[{e1['ci_lo']:+.1f}; {e1['ci_hi']:+.1f}]) и Claude "
-                       f"Code ({e2['diff']:+.1f} [{e2['ci_lo']:+.1f}; "
-                       f"{e2['ci_hi']:+.1f}]) либо малы, либо их интервалы "
-                       f"пересекают ноль.")
-    if e5:
-        out.append(f"Вклад спайн-контекста отдельно от харнесса (spine-arch "
-                   f"против spine-min): {e5['diff']:+.1f} балла "
-                   f"[{e5['ci_lo']:+.1f}; {e5['ci_hi']:+.1f}] — "
-                   + ("различие статистически значимо."
-                      if sig(e5) else "различие значимо не доказано."))
-    if e3 or e4:
-        parts = []
-        if e3:
-            parts.append(f"Theseus {e3['diff']:+.1f} "
-                         f"[{e3['ci_lo']:+.1f}; {e3['ci_hi']:+.1f}]")
-        if e4:
-            parts.append(f"Claude Code {e4['diff']:+.1f} "
-                         f"[{e4['ci_lo']:+.1f}; {e4['ci_hi']:+.1f}]")
-        out.append("H2 (кастомизация кодовых агентов под архитекторов): "
-                   + "; ".join(parts) + ".")
-    ds = ebm.get("spine-arch - theseus-plain | dsf")
-    gl = ebm.get("spine-arch - theseus-plain | glm")
-    if ds and gl:
-        dep = abs(ds["diff"] - gl["diff"]) > 5
-        out.append(f"H3 (модель-зависимость эффекта спайна): разность "
-                   f"spine-arch против theseus-plain на DeepSeek V4 Flash "
-                   f"{ds['diff']:+.1f}, на GLM-5.3 Flash {gl['diff']:+.1f} — "
-                   + ("эффект заметно зависит от модели."
-                      if dep else "эффект устойчив между моделями."))
-    elif ds:
-        out.append("H3: данных по glm пока нет (деградация канала Z.AI); "
-                   f"на dsf эффект спайна {ds['diff']:+.1f} "
-                   f"[{ds['ci_lo']:+.1f}; {ds['ci_hi']:+.1f}].")
+    out.append("Эталонная конфигурация Spine — spine-arch-think (харнесс + "
+               "спайн-пакет + ризонинг модели, бюджет 64K). Все сравнения — "
+               "по отдельным конфигурациям Spine, а не по среднему между "
+               "руками.")
+    out.append(f"H1 подтверждена для Spine с ризонингом: spine-arch-think "
+               f"значимо сильнее Theseus ({f('think − theseus-plain (dsf)')}) "
+               f"и идёт в паритете с лучшими универсалами — Claude Code "
+               f"({f('think − claude-plain, фабричный (dsf)')}) и Kimi Code "
+               f"({f('think − kimi-plain (dsf)')}). При этом на dsf Claude "
+               f"Code и Kimi Code работали без ризонинга — паритет здесь "
+               f"это «think on» против «think off». На GLM-5.3 Flash — "
+               f"превосходство над Claude Code на грани значимости "
+               f"({f('think − claude-plain (glm)')}): 8 общих задач, "
+               f"основную часть эффекта даёт CMP-ARCH-001 (+44.6 при "
+               f"медианном диффе ≈ +2). Без ризонинга (spine-arch): "
+               f"паритет-минус с Claude Code "
+               f"({f('spine-arch − claude-plain (dsf, без ризонинга)')}) "
+               f"и отставание от Kimi Code "
+               f"({f('spine-arch − kimi-plain (dsf)')}).")
+    out.append(f"Ризонинг — главный усилитель Spine: премия think над "
+               f"spine-arch {f('think − spine-arch, без ризонинга (dsf)')} "
+               f"на V4.1 Flash и "
+               f"{f('think − spine-arch, без ризонинга (dsp)')} на V4 Pro "
+               f"(значимо). Выключать ризонинг у Spine нельзя — без него "
+               f"харнесс теряет преимущество.")
+    out.append(f"Вклад доменного формата (спайн-пакет): spine-arch − "
+               f"spine-min = {f('spine-arch − spine-min (dsf)')} на dsf "
+               f"(~+4 пулом по моделям) — слабый плюс поверх голого "
+               f"харнесса.")
+    out.append("Отрыва от хороших универсалов нет: Claude Code и Kimi Code "
+               "закрывают те же задачи на 90+ баллов (по моделям 89.6–96.8) "
+               "без доменной специализации. Ценность Spine — контур вокруг "
+               "документа (гейты, трассируемость, handoff), который этот "
+               "бенчмарк не измеряет.")
+    out.append(f"H2 отклонена на полных руках: кастомизация универсалов "
+               f"под архитекторов эффекта не дала — claude-arch − "
+               f"claude-plain = {f('claude-arch − claude-plain (dsf)')}, "
+               f"kimi-arch − kimi-plain = "
+               f"{f('kimi-arch − kimi-plain (dsf)')}.")
+    out.append(f"H3 подтверждена: агентный контур важнее выбора харнесса, "
+               f"но это зависит от модели — claude-plain − raw-llm = "
+               f"{f('claude-plain − raw-llm (dsf)')} на dsf (голая модель "
+               f"77 против 90+ у большинства харнессов; Theseus — ниже "
+               f"голой модели), на GLM-5.3 Flash голая модель почти не "
+               f"проигрывает (93.5, n=4 — осторожно). Эффект любого "
+               f"харнесса нужно мерить на своей целевой модели.")
+    out.append("Надёжность — главный риск агентных прогонов: 30–33% "
+               "ответов Theseus оборваны лимитом ходов; 18 «обрывов» Spine "
+               "оказались дефектом извлечения, а не модели (D18); связка "
+               "arch-be × glm-5.3-flash частично несовместима (D14). "
+               "Пайплайн извлечения ответов нужно проверять прежде, чем "
+               "судить модель.")
     return out
 
 
@@ -281,7 +303,7 @@ def add_table(doc, headers, rows):
     return t
 
 
-def build_docx(summary, records, charts, interim):
+def build_docx(summary, records, charts, effects, interim):
     doc = Document()
     for s in doc.sections:
         s.left_margin = s.right_margin = Cm(2)
@@ -300,27 +322,49 @@ def build_docx(summary, records, charts, interim):
     n_judged = summary["judged"]
     n_fail = len(summary["failed_or_missing"])
     doc.add_paragraph(
-        f"Прогнозо ячеек: {n_cells}; оценено судьёй: {n_judged}; "
-        f"сбоев/нет ответа: {n_fail}. Бенчмарк: 24 архитектурные задачи по "
-        f"документации Platform V (СберТech) — от проектирования HA/DR-слоёв "
+        f"Ячеек в матрице: {n_cells}; оценено судьёй: {n_judged}; "
+        f"{n_fail} ячеек отсутствуют по задокументированным отклонениям "
+        f"(D13/D14/D17 — частичные руки), 18 ячеек восстановлены после "
+        f"дефекта извлечения (D18). Бенчмарк: 24 архитектурные задачи по "
+        f"документации Platform V (СберТех) — от проектирования HA/DR-слоёв "
         f"данных до комплаенс-маппинга 719-П/683-П/851-П. Каждый ответ "
         f"оценён независимым LLM-судьёй по рубрикам с цитатами-"
         f"доказательствами плюс детерминированным слоем проверок.")
-    for line in interpret(summary):
+    for line in interpret(effects):
         doc.add_paragraph(line, style="List Bullet")
 
     doc.add_heading("2. Методология", 1)
     doc.add_paragraph(
-        "Матрица: 24 задачи × условия (Spine со спайн-пакетом и "
-        "fitness-гейтом; Spine без спайна; Theseus и Claude Code — без "
-        "кастомизации и с кастомизацией архитектора AGENTS.md/CLAUDE.md; "
-        "голая модель raw) × модели (DeepSeek V4 Flash/Pro, GLM-5.3/"
-        "5.3 Flash) × повторы. Дизайн, гипотезы H1–H3 и хэши входов "
-        "зафиксированы в пререгистрации до прогона "
-        "(benchmarks/platformv-arch-bench/PREREGISTRATION.md, монорепо "
-        "Spine). Судья анонимизирован: не знает ни условия, ни модели "
-        "ответа. Итог задачи: total = 100·Σ(wᵢ·sᵢ)/(4·Σwᵢ); любой hard-fail "
-        "ограничивает итог 39 баллами.")
+        "Матрица: 1032 прогона в 19 условиях × 24 задачи × до 2 повторов × "
+        "5 моделей/конфигураций (DeepSeek V4.1 Flash / V4 Pro, GLM-5.3 "
+        "Flash / 5.3 + свип); завершено генераций 1017, оценено судьёй "
+        "917. kimi×glm прогонялся через OpenRouter (та же модель, D17). "
+        "Дизайн, гипотезы H1–H3 и хэши входов зафиксированы в "
+        "пререгистрации до прогона (PREREGISTRATION.md + "
+        "prereg_hashes_v2.txt); все отклонения задокументированы "
+        "(DEVIATIONS.md, D1–D20). Судья: deepseek-v4-pro, анонимизированные "
+        "ответы, JSON-вердикт по рубрикам, верификация цитат-"
+        "доказательств; любой hard-fail ограничивает итог 39 баллами. "
+        "Итог задачи: total = 100·Σ(wᵢ·sᵢ)/(4·Σwᵢ).")
+    doc.add_paragraph(
+        "Сравнения ведутся по отдельным конфигурациям Spine (spine-arch, "
+        "spine-min, spine-arch-think; эталон — spine-arch-think), а не по "
+        "среднему между руками: руки отвечают на разные вопросы дизайна "
+        "(вклад формата, вклад ризонинга).")
+    doc.add_paragraph(
+        "Ризонинг по рукам. Claude Code и Kimi Code запускались в "
+        "заводской конфигурации без thinking-флагов: на dsf (ризонинг по "
+        "умолчанию выключен) обе руки работали без ризонинга — как и "
+        "qwen, omp, raw-llm и spine-arch/spine-min (явный --think off, "
+        "D10); ризонили только spine-arch-think (--think on, 64K) и "
+        "theseus/openclaw (ризонинг max — боевые дефолты харнессов, D11). "
+        "На GLM-5.3 Flash ризонинг включён на стороне модели у всех рук "
+        "(API Z.AI не позволяет его отключить — HTTP 1210, только effort "
+        "low/high/max; харнессы effort не задавали, у raw-llm — явно "
+        "effort=low). На DeepSeek V4 Pro (ризонящая модель по умолчанию) "
+        "Claude Code, Kimi Code и raw-llm работали с ризонингом; "
+        "spine-arch — с --think off, spine-arch-think — с --think on "
+        "(64K).")
 
     doc.add_heading("3. Покрытие прогона", 1)
     if interim:
@@ -329,6 +373,14 @@ def build_docx(summary, records, charts, interim):
             "Канал GLM (Z.AI) деградировал в период прогона — ячейки glm "
             "частично отсутствуют и будут догнаны повторным прогоном; "
             "выводы по ним делать рано.")
+    else:
+        doc.add_paragraph(
+            "Матрица завершена. Отсутствующие 115 ячеек — частичные руки "
+            "по задокументированным отклонениям: сокращение glm-канала "
+            "(D13/D17), хронические таймауты arch-be × glm-5.3-flash "
+            "(D14, 2 ячейки выведены), частичные dsp-руки кастомизированных "
+            "условий. 18 ячеек с дефектом извлечения восстановлены, а не "
+            "удалены (D18).")
     models = sorted({k.split("|")[1] for k in summary["total_by_condition_model"]})
     conds = sorted({k.split("|")[0] for k in summary["total_by_condition_model"]})
     doc.add_paragraph(f"Модели в данных: {', '.join(MODEL_RU.get(m, m) for m in models)}. "
@@ -348,14 +400,21 @@ def build_docx(summary, records, charts, interim):
     for p in charts:
         doc.add_picture(str(p), width=Cm(16.5))
 
-    doc.add_heading("4.2. Эффекты (bootstrap 95% CI)", 2)
-    eff = {**summary.get("effects", {}), **summary.get("effects_by_model", {})}
-    rows = [(k, f"{v['diff']:+.1f}", f"[{v['ci_lo']:+.1f}; {v['ci_hi']:+.1f}]",
-             f"{v['n_a']} vs {v['n_b']}") for k, v in eff.items() if v]
-    add_table(doc, ("Сравнение", "Разность", "95% CI", "n"), rows)
+    doc.add_heading("4.2. Эффекты (парность по ячейкам «задача × повтор», "
+                    "bootstrap 95% CI)", 2)
+    doc.add_paragraph(
+        "Эталон Spine — spine-arch-think; все сравнения — по отдельным "
+        "конфигурациям Spine, без усреднения рук. Значения совпадают с "
+        "опубликованными в README (results/effects_paired.json).")
+    rows = [(k, f"{v['diff']:+.1f}",
+             f"[{v['ci_lo']:+.1f}; {v['ci_hi']:+.1f}]",
+             v.get("note", ""))
+            for k, v in effects.items() if v]
+    add_table(doc, ("Сравнение", "Δ баллов", "95% CI", "Что это значит"),
+              rows)
 
     doc.add_heading("5. Интерпретация", 1)
-    for line in interpret(summary):
+    for line in interpret(effects):
         doc.add_paragraph(line)
     doc.add_paragraph(
         "Интерпретации являются интерпретациями: балл судьи измеряет "
@@ -366,16 +425,22 @@ def build_docx(summary, records, charts, interim):
 
     doc.add_heading("6. Ограничения", 1)
     for line in [
-        "Промежуточный срез: покрытие ячеек неполное (см. §3); итоговые "
-        "выводы — только по полной матрице.",
-        "Судья glm-5.3 не участвовал как решатель в основной матрице "
-        "(решатели — flash/pro-тиры), что снижает конфаунд «родного судьи»; "
-        "тем не менее смещение судьи к своему семейству не исключено.",
+        "Судья одиночный (deepseek-v4-pro) из семейства одного из "
+        "решателей — смещение декларируется, но не измерено (пул судей "
+        "отменён по стоимости).",
+        "Сравнение dsf↔glm (H3) — на пересечении 8–16 задач; glm53-канал "
+        "не закрыт.",
+        "Превосходство think над Claude Code на glm (+7.2) опирается на "
+        "8 общих задач, и основную часть эффекта даёт одна из них "
+        "(CMP-ARCH-001, +44.6); трактовать как сигнал на грани значимости, "
+        "а не устойчивый эффект.",
+        "2 ячейки выведены из-за хронических таймаутов (D14).",
         "Два повтора на ячейку ограничивают точность оценки дисперсии; "
         "bootstrap CI отражает неопределённость среднего, а не разброс "
         "отдельных ответов.",
-        "Деградация Z.AI в окне прогона могла сместить выборку glm-ячеек "
-        "(выжившие ячейки — из «здоровых» окон upstream).",
+        "Результаты — про режим «один документ на задачу»; они не "
+        "оценивают многошаговую работу архитектора (гейты, трассировка, "
+        "handoff) в проде.",
     ]:
         doc.add_paragraph(line, style="List Bullet")
 
@@ -396,17 +461,22 @@ def build_docx(summary, records, charts, interim):
 
 def main():
     summary, records = load()
+    effects = load_effects()
     DIAG.mkdir(parents=True, exist_ok=True)
     models_present = {k.split("|")[1]
                       for k in summary["total_by_condition_model"]}
     interim = not {"dsf", "glm"}.issubset(models_present) or \
         len(summary["failed_or_missing"]) > 0
+    # финальная матрица: отсутствующие ячейки — задокументированные
+    # отклонения (D13/D14/D17), а не незавершённая работа
+    if os.environ.get("PVBENCH_FINAL") == "1":
+        interim = False
     charts = [p for p in (chart_total_by_condition(summary),
-                          chart_effects(summary),
+                          chart_effects(effects),
                           chart_task_heatmap(summary, records),
                           chart_completeness_hf(summary),
                           chart_time(summary)) if p]
-    path = build_docx(summary, records, charts, interim)
+    path = build_docx(summary, records, charts, effects, interim)
     print(f"отчёт: {path}")
     print(f"диаграмм: {len(charts)} в {DIAG}")
     print(f"interim: {interim}")

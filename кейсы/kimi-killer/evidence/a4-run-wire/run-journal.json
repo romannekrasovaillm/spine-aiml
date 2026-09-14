@@ -1,0 +1,130 @@
+{
+  "schema": "a4-run-journal/v1",
+  "seed": 0,
+  "steps": 1,
+  "tasks": 10,
+  "config": {
+    "vocab_size": 512,
+    "hidden": 64,
+    "tie_embeddings": true,
+    "num_layers": 4,
+    "num_kda_layers": 3,
+    "num_mla_layers": 1,
+    "num_heads": 4,
+    "head_dim": 16,
+    "kda_dk": 16,
+    "kda_dv": 16,
+    "kda_decay_rank": 16,
+    "kda_short_conv_kernel": 4,
+    "kda_g_min": -5.0,
+    "mla_latent_dim": 32,
+    "mla_head_dim": 16,
+    "mla_top_k": 512,
+    "mla_index_heads": 1,
+    "mla_index_dim": 128,
+    "swa_window": 128,
+    "swa_share_kda_projections": true,
+    "qat_kv_enabled": false,
+    "attn_dense_reference": true,
+    "indexer_seed": 0,
+    "mla_pool_block": 64,
+    "mla_pool_size": 0,
+    "mla_layer_modes": [],
+    "attn_fused_assembly": true,
+    "attn_topk_exact": false,
+    "mlp_intermediate": 128,
+    "siti_beta_gate": 4.0,
+    "siti_beta_up": 25.0,
+    "moe_dense_layers": 1,
+    "moe_latent_dim": 32,
+    "moe_num_routed": 6,
+    "moe_num_shared": 2,
+    "moe_top_k": 2,
+    "moe_expert_intermediate": 16,
+    "moe_shared_intermediate": 32,
+    "qb_weight": 0.01,
+    "routing_seed": 0,
+    "mtp_layers": 1,
+    "mtp_loss_weight": 0.1,
+    "attnres_blocks": 1,
+    "attnres_block_size": 4,
+    "vit_patch": 14,
+    "vit_hidden": 32,
+    "vit_depth": 2,
+    "vit_heads": 2,
+    "vit_mlp": 64,
+    "image_size": 56,
+    "pretrain_dtype": "bf16",
+    "context_curriculum": [
+      8192,
+      65536
+    ],
+    "curriculum_split": [
+      0.9,
+      0.1
+    ],
+    "weight_decay": 0.1,
+    "warmup_ratio": 0.01,
+    "lr_schedule": "cosine",
+    "qat_enabled": false
+  },
+  "backend": {
+    "platform": "cpu",
+    "device_kind": "cpu",
+    "jax_version": "0.10.2",
+    "matmul_precision": "None"
+  },
+  "model_weights_sha256": "c14ac8eb16e1b3ea4e7a927ffd922d5024f7da3f3e20dde6ec89f00a72588c69",
+  "dataset_sha256": "3298145700f4d199970a250d0e6964eb817cce742e6c905d6a2ebaa6738df45c",
+  "run_ref": "кейсы/kimi-killer/evidence/a4-run-wire/run-journal.json",
+  "stages": [
+    {
+      "name": "pretrain_checkpoint",
+      "status": "executed",
+      "evidence": [
+        "checkpoint=кейсы/kimi-killer/evidence/a4-run-wire/checkpoints/pretrain",
+        "tree_hash=c14ac8eb16e1b3ea4e7a927ffd922d5024f7da3f3e20dde6ec89f00a72588c69",
+        "steps=1"
+      ]
+    },
+    {
+      "name": "spark_inference",
+      "status": "skipped",
+      "evidence": [
+        "причина: инференс исполнен локально на CPU JAX, а не на стенде gb10/DGX Spark; подмена стенда запрещена (ADR-010). Локальный журнал: кейсы/kimi-killer/evidence/a4-run-wire/inference/journal.json"
+      ]
+    },
+    {
+      "name": "rl_environment",
+      "status": "executed",
+      "evidence": [
+        "run_manifest=кейсы/kimi-killer/evidence/a4-run-wire/env/summary.json",
+        "tasks=10",
+        "pass=0"
+      ]
+    },
+    {
+      "name": "sft",
+      "status": "absent",
+      "evidence": [
+        "причина: кода SFT нет (ADR-005 п. 1 не реализован)"
+      ]
+    },
+    {
+      "name": "rl_base_scheme",
+      "status": "absent",
+      "evidence": [
+        "причина: кода RL по схеме базы нет (ADR-005 п. 2 не реализован)"
+      ]
+    }
+  ],
+  "pipeline_complete": false,
+  "note": "Модель для wire-прогона — small_config (vocab 512), как в функциональных тестах net/tests/; полный конфиг 1B неисполним на CPU.",
+  "manifest_generation": {
+    "attempted": true,
+    "returncode": 0,
+    "stdout": "манифест записан: кейсы/kimi-killer/evidence/a4-skeleton-run-manifest.json",
+    "stderr": "покрытие частично (spark_inference, sft, rl_base_scheme): pipeline_complete=false, гейт A4 остаётся красным (штатно, ADR-014)."
+  },
+  "manifest_out": "кейсы/kimi-killer/evidence/a4-skeleton-run-manifest.json"
+}

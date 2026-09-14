@@ -114,7 +114,7 @@ push/PR — джоба `eval-suite` в `.github/workflows/ci.yml`.
 3. Правила для встроенного сьюта: только офлайн-команды через `{arch}`,
    обязательна проверка `command_succeeds`; prompt/рубрики — в
    пользовательские сьюты (герметичность CI без ключей важнее).
-4. Локальная проверка перед коммитом: `cargo build && ./target/debug/arch eval run`.
+4. Локальная проверка перед коммитом: `cargo build && ./target/debug/arch-ml eval run`.
 
 ## Ограничения
 

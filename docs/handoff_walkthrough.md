@@ -23,8 +23,10 @@ CodeWhale) — без потери архитектурного контекст
    - `ARCHITECTURE.md` — **epic-context** (~800–1500 токенов, окно якорной
      рубрики `handoff_quality`): спайн, затронутые ADR, границы «что нельзя
      трогать»;
-   - `CONSTRAINTS.yaml` — fitness-правила под стек репозитория (заготовка,
-     переписывается под spine AD-n перед передачей);
+   - `CONSTRAINTS.yaml` — рабочий ruleset кейса: при наличии
+     `<repo>/CONSTRAINTS.yaml` копируется он (ADR-011, п. 5), без рабочего
+     файла — заготовка под стек репозитория, переписываемая под spine AD-n
+     перед передачей;
    - `ROLLBACK.yaml` — машиночитаемый план отката (baseline-якорь + шаги):
      репетируется на гейте A4 (`arch control gate A4 <repo> --rehearse`,
      см. `docs/control.md`); для маршрута Critical пакет без якоря и плана

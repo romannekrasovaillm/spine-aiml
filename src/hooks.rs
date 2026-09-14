@@ -48,11 +48,19 @@ pub enum HookEvent {
     SessionEnd,
     /// Пользователь отправил промпт; exit 2 отклоняет промпт целиком.
     UserPromptSubmit,
+    /// Доменное намерение (вход в задачу через плагин-роутер гипотез).
+    Intent,
+    /// Перед сборкой handoff-пакета.
+    PreHandoff,
+    /// После принятия результата прогона.
+    PostAccept,
+    /// Библиотека скиллов/плагинов изменилась (перестройка индекса).
+    LibraryChanged,
 }
 
 impl HookEvent {
     /// Все события в фиксированном порядке (валидация конфига, тесты).
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 11] = [
         Self::PreToolUse,
         Self::PostToolUse,
         Self::PreCompact,
@@ -60,6 +68,10 @@ impl HookEvent {
         Self::SessionStart,
         Self::SessionEnd,
         Self::UserPromptSubmit,
+        Self::Intent,
+        Self::PreHandoff,
+        Self::PostAccept,
+        Self::LibraryChanged,
     ];
 
     /// Стабильное имя события (как в конфиге).
@@ -73,13 +85,24 @@ impl HookEvent {
             Self::SessionStart => "SessionStart",
             Self::SessionEnd => "SessionEnd",
             Self::UserPromptSubmit => "UserPromptSubmit",
+            Self::Intent => "intent",
+            Self::PreHandoff => "pre_handoff",
+            Self::PostAccept => "post_accept",
+            Self::LibraryChanged => "library_changed",
         }
     }
 
-    /// Разбор имени из конфига; `None` при неизвестном.
+    /// Разбор имени из конфига; `None` при неизвестном. Принимает дефисные
+    /// синонимы доменных событий (`pre-handoff`, `post-accept`) — так они
+    /// пишутся в команде `plugin.json`.
     #[must_use]
     pub fn from_name(name: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|e| e.as_str() == name)
+        match name {
+            "pre-handoff" => Some(Self::PreHandoff),
+            "post-accept" => Some(Self::PostAccept),
+            "library-changed" => Some(Self::LibraryChanged),
+            _ => Self::ALL.into_iter().find(|e| e.as_str() == name),
+        }
     }
 
     /// Блокирующее ли событие (exit 2 имеет силу отказа).
@@ -360,6 +383,46 @@ mod tests {
         assert!(HookEvent::PreToolUse.is_blocking());
         assert!(HookEvent::UserPromptSubmit.is_blocking());
         assert!(!HookEvent::PostToolUse.is_blocking());
+    }
+
+    #[test]
+    fn domain_events_parse_with_dash_synonyms() {
+        // Каноничные имена доменных событий (совпадают с ключами plugin.json).
+        assert_eq!(HookEvent::from_name("intent"), Some(HookEvent::Intent));
+        assert_eq!(
+            HookEvent::from_name("pre_handoff"),
+            Some(HookEvent::PreHandoff)
+        );
+        assert_eq!(
+            HookEvent::from_name("post_accept"),
+            Some(HookEvent::PostAccept)
+        );
+        assert_eq!(
+            HookEvent::from_name("library_changed"),
+            Some(HookEvent::LibraryChanged)
+        );
+        // Дефисные синонимы — как в команде plugin.json.
+        assert_eq!(
+            HookEvent::from_name("pre-handoff"),
+            Some(HookEvent::PreHandoff)
+        );
+        assert_eq!(
+            HookEvent::from_name("post-accept"),
+            Some(HookEvent::PostAccept)
+        );
+        assert_eq!(
+            HookEvent::from_name("library-changed"),
+            Some(HookEvent::LibraryChanged)
+        );
+        // Доменные события — наблюдатели, не блокируют ход.
+        for ev in [
+            HookEvent::Intent,
+            HookEvent::PreHandoff,
+            HookEvent::PostAccept,
+            HookEvent::LibraryChanged,
+        ] {
+            assert!(!ev.is_blocking(), "{} не должен блокировать", ev.as_str());
+        }
     }
 
     #[test]

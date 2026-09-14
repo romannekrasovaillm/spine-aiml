@@ -37,7 +37,7 @@
 
 ```
 my-plugin/
-├── plugin.json            # манифест: $schema, name, version, description, keywords
+├── plugin.json            # манифест: $schema, name, version, description, keywords, hooks (доменные)
 ├── skills/<name>/
 │   ├── SKILL.md           # frontmatter (name, description) + методика
 │   └── references/        # шаблоны, примеры (подгружаются по требованию)
@@ -53,6 +53,15 @@ my-plugin/
 хуками конфига при старте сессии; выключается `[plugins] include_hooks = false`.
 Включайте исполнение только для доверенных библиотек — хуки исполняют
 shell-команды плагинов.
+
+Дополнительно манифест поддерживает карту **доменных хуков** `hooks`
+(`{"<событие>": "<команда с аргументами>"}`): агентский цикл их не
+исполняет — резолвят и запускают доменные механизмы
+(`hypothesis::domain_hooks` / `run_event`, ADR-047; пример —
+роутинг гипотез `aiml/plugins/hypothesis-router`, `docs/hypotheses.md`).
+Первый токен команды резолвится от каталога плагина, несуществующий файл
+пропускается без ошибки, ненулевой код выхода и таймаут не роняют вызвавшую
+операцию (исход едет в outcome-запись).
 
 Субагент (`agents/<name>.md`: frontmatter `name`/`description`/`tools` + тело =
 системный промпт) запускается в фоне инструментом `subagent_run` — свежий

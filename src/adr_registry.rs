@@ -780,6 +780,26 @@ mod tests {
     }
 
     #[test]
+    fn registry_strict_is_clean_for_adr_new_files() {
+        // ADR, созданные `control::adr_new` (frontmatter + сохранённая шапка
+        // `- Date:`/`- Status:`), обязаны индексироваться без находок: гейт
+        // `adr registry --strict` в CI (dogfood) остаётся зелёным.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("root");
+        let adr_dir = root.join("docs/adr");
+        crate::control::adr_new(&adr_dir, "Первое решение").unwrap();
+        crate::control::adr_new(&adr_dir, "Второе решение").unwrap();
+        let report = build_registry(&root).unwrap();
+        assert_eq!(report.entries.len(), 2, "{:?}", report.entries);
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+        assert_eq!(exit_code(&report, true), 0);
+        // Шапка читается из тела, несмотря на frontmatter.
+        assert_eq!(report.entries[0].status.as_deref(), Some("Proposed"));
+        assert_eq!(report.entries[0].date.as_deref().map(str::len), Some(10));
+        assert_eq!(report.entries[0].title, "Первое решение");
+    }
+
+    #[test]
     fn registry_markdown_renders_table_and_findings() {
         let dir = tempfile::tempdir().unwrap();
         let root = fixture(dir.path());

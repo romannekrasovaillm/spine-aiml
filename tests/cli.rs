@@ -182,6 +182,47 @@ fn control_check_passing_constraints_exits_0() {
     cmd.assert().success().stdout(contains("Итог: PASS"));
 }
 
+/// Дефолтный поиск ruleset'а: рабочий `<repo>/CONSTRAINTS.yaml` приоритетнее
+/// пакетной заготовки `.arch-handoff/CONSTRAINTS.yaml` (C-037, ADR-011 п. 5).
+#[test]
+fn control_check_defaults_to_working_ruleset_over_packet() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    // Пакетная заготовка сломала бы прогон: требует отсутствующий файл.
+    let repo = repo_with_constraints(tmp.path(), &constraints_yaml("PACKET-ONLY.md"));
+    // Рабочий ruleset в корне: требование выполнено.
+    std::fs::write(
+        repo.join("CONSTRAINTS.yaml"),
+        constraints_yaml("WORKING.md"),
+    )
+    .expect("рабочий ruleset");
+    std::fs::write(repo.join("WORKING.md"), "# ok\n").expect("working file");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("control").arg("check").arg(repo.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("Итог: PASS"))
+        .stdout(contains("(рабочий ruleset)"));
+}
+
+/// Только пакетный файл — fallback: источник объявлен как пакетная заготовка,
+/// а в stderr уходит предупреждение (PASS по заготовке — не полный контроль).
+#[test]
+fn control_check_packet_fallback_warns_about_stub() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let repo = repo_with_constraints(tmp.path(), &constraints_yaml("docs/SPINE.md"));
+    let docs = repo.join("docs");
+    std::fs::create_dir_all(&docs).expect("mkdir docs");
+    std::fs::write(docs.join("SPINE.md"), "# spine\n").expect("write spine");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("control").arg("check").arg(repo.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("(пакетная заготовка)"))
+        .stderr(contains("проверяется пакетная заготовка"));
+}
+
 /// `arch-ml control spine` на чистом spine-файле → exit 0.
 #[test]
 fn control_spine_clean_exits_0() {
@@ -774,4 +815,259 @@ fn resources_recommend_local_first() {
         .stdout(contains("влезает ($0)"))
         .stdout(contains("ssh gb10-fast"))
         .stdout(contains("cloud"));
+}
+
+/// Датасет-карточка без пробелов (все `REQUIRED_FIELDS` объявлены) с
+/// заявленным `sha256`: годится для проверки ветки противоречий.
+const FULL_CARD_WITH_SHA: &str = "dataset: demo\nsource: https://example.test/demo\n\
+     license: MIT\nsplits: [train, test]\ntokenizer: qwen\ndedup: exact\n\
+     contamination: none\nsha256: ba7816bf\n";
+
+/// Записать карточку `name` в каталог `dir`; вернуть путь к файлу.
+fn write_card(dir: &Path, name: &str, yaml: &str) -> PathBuf {
+    std::fs::create_dir_all(dir).expect("mkdir cards");
+    let path = dir.join(name);
+    std::fs::write(&path, yaml).expect("write card");
+    path
+}
+
+/// `--dataset` на несуществующий путь: объявленный `sha256` даёт проблему
+/// (ядро `dataset_card`), с `--strict` — exit 1 (D4: ветка противоречий
+/// достижима из CLI).
+#[test]
+fn data_card_absent_dataset_reports_problem_and_strict_exits_1() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cards = tmp.path().join("cards");
+    write_card(&cards, "demo.yaml", FULL_CARD_WITH_SHA);
+    let absent = tmp.path().join("data/demo.jsonl");
+
+    // Без --strict: проблема видна в тексте, пробелов нет — код 0.
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("data-card")
+        .arg("check")
+        .arg("--cards")
+        .arg(cards.as_os_str())
+        .arg("--dataset")
+        .arg(absent.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("проблема:"))
+        .stdout(contains("sha256"))
+        .stdout(contains("отсутствующем датасете"))
+        .stdout(contains("demo.jsonl"))
+        .stdout(contains("проблем: 1"));
+
+    // --strict: противоречие — провал с разбивкой в тексте ошибки.
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("data-card")
+        .arg("check")
+        .arg("--cards")
+        .arg(cards.as_os_str())
+        .arg("--dataset")
+        .arg(absent.as_os_str())
+        .arg("--strict");
+    cmd.assert()
+        .code(1)
+        .stderr(contains("проблем 1"))
+        .stderr(contains("пробелов 0"));
+}
+
+/// `--dataset` на существующий файл: противоречия нет, exit 0 (пробелов в
+/// карточке тоже нет).
+#[test]
+fn data_card_existing_dataset_has_no_problem_exits_0() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cards = tmp.path().join("cards");
+    write_card(&cards, "demo.yaml", FULL_CARD_WITH_SHA);
+    let present = tmp.path().join("data/demo.jsonl");
+    std::fs::create_dir_all(present.parent().expect("каталог датасета")).expect("mkdir data");
+    std::fs::write(&present, b"{}").expect("write dataset");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("data-card")
+        .arg("check")
+        .arg("--cards")
+        .arg(cards.as_os_str())
+        .arg("--dataset")
+        .arg(present.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("проблем: 0"))
+        .stdout(contains("проблема:").not());
+}
+
+/// Без `--dataset` противоречие не выдумывается: «файла нет» по неизвестному
+/// пути не доказано, ложный красный запрещён.
+#[test]
+fn data_card_without_dataset_hides_problems_exits_0() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cards = tmp.path().join("cards");
+    write_card(&cards, "demo.yaml", FULL_CARD_WITH_SHA);
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("data-card")
+        .arg("check")
+        .arg("--cards")
+        .arg(cards.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("проблем: 0"))
+        .stdout(contains("проблема:").not());
+}
+
+/// Пробелы обязательных полей + `--strict` → exit 1 (существующее поведение
+/// не сломано, разбивка в тексте ошибки).
+#[test]
+fn data_card_strict_gaps_exit_1() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cards = tmp.path().join("cards");
+    write_card(&cards, "demo.yaml", "dataset: demo\n");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("data-card")
+        .arg("check")
+        .arg("--cards")
+        .arg(cards.as_os_str())
+        .arg("--strict");
+    cmd.assert()
+        .code(1)
+        .stdout(contains("пробелы:"))
+        .stderr(contains("пробелов 6"))
+        .stderr(contains("проблем 0"));
+}
+
+/// Пишет фикстурный каталог решений ADR внутри `repo/docs/adr`.
+fn write_adr_fixture(repo: &Path, name: &str, body: &str) {
+    let dir = repo.join("docs/adr");
+    std::fs::create_dir_all(&dir).expect("каталог docs/adr");
+    std::fs::write(dir.join(name), body).expect("запись ADR");
+}
+
+/// Документ ADR с frontmatter (`extra` — дополнительные YAML-строки).
+fn adr_fixture_doc(id: &str, title: &str, status: &str, extra: &str) -> String {
+    format!("---\nid: {id}\ntitle: {title}\nstatus: {status}\n{extra}---\n\n# {id}. {title}\n")
+}
+
+/// `fleet plan propose --from-adrs` пишет черновик плана (exit 0), когда
+/// независимые решения не пересекаются путями записи (ADR-045).
+#[test]
+fn fleet_plan_propose_from_adrs_writes_plan() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let repo = tmp.path().join("repo");
+    std::fs::create_dir_all(&repo).expect("repo");
+    write_adr_fixture(
+        &repo,
+        "ADR-001-first.md",
+        &adr_fixture_doc("ADR-001", "Первое решение", "proposed", ""),
+    );
+    write_adr_fixture(
+        &repo,
+        "ADR-002-second.md",
+        &adr_fixture_doc(
+            "ADR-002",
+            "Второе решение",
+            "proposed",
+            "depends_on: [ADR-001]\naffects:\n  - src/b.rs\n",
+        ),
+    );
+    let out = tmp.path().join("plans");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("fleet")
+        .arg("plan")
+        .arg("propose")
+        .arg("--from-adrs")
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .arg("--out")
+        .arg(out.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("План записан"))
+        .stdout(contains("docs-adr-from-adrs"))
+        .stdout(contains("ADR-001"))
+        .stdout(contains("ADR-002"));
+
+    let plans: Vec<PathBuf> = std::fs::read_dir(&out)
+        .expect("каталог планов")
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| path.extension().is_some_and(|e| e == "toml"))
+        .collect();
+    assert_eq!(plans.len(), 1, "{plans:?}");
+    let text = std::fs::read_to_string(&plans[0]).expect("план читается");
+    assert!(text.contains("id = \"adr-001\""), "{text}");
+    assert!(text.contains("depends_on = [\"adr-001\"]"), "{text}");
+}
+
+/// Два независимых решения объявили запись в один путь — механический гейт
+/// отказывает: exit 1, диагностика называет обе стороны и пересечение.
+#[test]
+fn fleet_plan_propose_from_adrs_refuses_shared_output_path() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let repo = tmp.path().join("repo");
+    std::fs::create_dir_all(&repo).expect("repo");
+    for (name, id) in [("ADR-010-a.md", "ADR-010"), ("ADR-011-b.md", "ADR-011")] {
+        write_adr_fixture(
+            &repo,
+            name,
+            &adr_fixture_doc(
+                id,
+                "Правка TUI-слоя",
+                "proposed",
+                "affects:\n  - src/tui/app.rs\n",
+            ),
+        );
+    }
+    let out = tmp.path().join("plans");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("fleet")
+        .arg("plan")
+        .arg("propose")
+        .arg("--from-adrs")
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .arg("--out")
+        .arg(out.as_os_str());
+    cmd.assert()
+        .code(1)
+        .stdout(contains("adr-010"))
+        .stdout(contains("adr-011"))
+        .stdout(contains("src/tui/app.rs"));
+}
+
+/// Отбор по статусу: `--status accepted` берёт принятые решения (одно узлов);
+/// без `--from-adrs` прежний режим MANIFEST не тронут.
+#[test]
+fn fleet_plan_propose_from_adrs_status_filter() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let repo = tmp.path().join("repo");
+    std::fs::create_dir_all(&repo).expect("repo");
+    write_adr_fixture(
+        &repo,
+        "ADR-020-p.md",
+        &adr_fixture_doc("ADR-020", "Предложенное", "proposed", ""),
+    );
+    write_adr_fixture(
+        &repo,
+        "ADR-021-a.md",
+        &adr_fixture_doc("ADR-021", "Принятое", "accepted", ""),
+    );
+    let out = tmp.path().join("plans");
+
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("fleet")
+        .arg("plan")
+        .arg("propose")
+        .arg("--from-adrs")
+        .arg("--status")
+        .arg("accepted")
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .arg("--out")
+        .arg(out.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("ADR-021"))
+        .stdout(contains("ADR-020").not());
 }

@@ -1,0 +1,8 @@
+{
+  "name": "synthetic-batch",
+  "domain": "synthetic",
+  "source": "net/data.py synthetic_stream (seed-pinned)",
+  "license": "generated",
+  "hash": "3298145700f4d199970a250d0e6964eb817cce742e6c905d6a2ebaa6738df45c",
+  "note": "Реального шарда на ~/gb10-shared не смонтировано; захэширован реально использованный синтетический батч."
+}

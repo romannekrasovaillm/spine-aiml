@@ -124,6 +124,7 @@ pub async fn resume_plan(
     run_id: &str,
     force_rerun: bool,
     agents: &[AgentProfile],
+    judge: Option<&Path>,
 ) -> Result<PlanRunOutcome> {
     let fleet_dir = state_dir.join("fleet");
     let snapshot = fleet_dir.join(format!("{run_id}.plan.toml"));
@@ -144,15 +145,21 @@ pub async fn resume_plan(
             run_id: run_id.to_string(),
             force_rerun,
         },
+        judge,
     )
     .await
 }
 
 /// Исполняет план: компилирует паттерн в граф и прогоняет волнами.
 ///
+/// `judge` — явный baseline-судья гейтов (ADR-046); `None` — берётся
+/// `[fleet] judge_binary`, иначе бинарь, запустивший флот. Baseline
+/// фиксируется ДО запуска узлов.
+///
 /// # Errors
 /// План не компилируется; нет настроенных харнессов; каталог состояния не
-/// создаётся. Отказы отдельных узлов — НЕ ошибка вызова (события журнала).
+/// создаётся; baseline-судья не найден. Отказы отдельных узлов — НЕ ошибка
+/// вызова (события журнала).
 pub async fn run_plan(
     cfg: &Config,
     state_dir: &Path,
@@ -160,6 +167,7 @@ pub async fn run_plan(
     plan: FleetPlan,
     agents: &[AgentProfile],
     resume: ResumeMode,
+    judge: Option<&Path>,
 ) -> Result<PlanRunOutcome> {
     let compiled = compile(plan)?;
     if agents.is_empty() {
@@ -212,15 +220,34 @@ pub async fn run_plan(
     let policy = crate::policy::Policy::parse(&compiled.plan.policy.autonomy)
         .or_else(|_| crate::policy::Policy::parse(&cfg.policy.autonomy))?;
 
+    // Baseline-судья гейтов (ADR-046) фиксируется ДО запуска узлов: флаг →
+    // конфиг → бинарь, запустивший флот. Отсутствие кандидата — не ошибка
+    // прогона: падает не флот, а гейт, зовущий судью внутри ворктри узла.
+    let judge_owned =
+        crate::fleet_gate::resolve_judge_baseline(judge, cfg.fleet.judge_binary.as_deref());
+    if let Some(path) = &judge_owned {
+        if !path.is_file() {
+            return Err(HarnessError::Fleet(format!(
+                "baseline-судья не найден: {} (--judge или [fleet] judge_binary)",
+                path.display()
+            )));
+        }
+    }
+
     let log = FleetLog::new(fleet_dir.join(format!("{run_id}.jsonl")));
     let snapshot = snapshot_plan(&compiled.plan, &fleet_dir, &run_id)?;
     let sha = crate::managed::Sha256::of_text(&snapshot);
+    // Аудит уровня прогона: кто судил гейты (ADR-046, п. 1) — путь и sha256
+    // baseline-судьи в самом событии старта, без сборки отчётов узлов.
+    let (judge_path, judge_sha256) = judge_audit(judge_owned.as_deref());
     log.append(&FleetEvent::PlanStarted {
         run_id: run_id.clone(),
         plan_id: compiled.plan.id.clone(),
         pattern: compiled.plan.pattern.as_str().to_string(),
         plan_path: compiled.plan.source.to_string_lossy().into_owned(),
         plan_sha256: sha.as_hex().to_string(),
+        judge_path,
+        judge_sha256,
         n_nodes: compiled.nodes().len(),
         n_waves: compiled.levels.len(),
         at: now(),
@@ -296,6 +323,7 @@ pub async fn run_plan(
                         gate: "judge".to_string(),
                         verdict: "ok".to_string(),
                         detail: format!("победитель группы: {winner}"),
+                        branch: None,
                         at: now(),
                     })?;
                     states.insert(node.id.clone(), NodeState::Completed);
@@ -314,6 +342,7 @@ pub async fn run_plan(
                         gate: "judge".to_string(),
                         verdict: "fail".to_string(),
                         detail: "ни один узел группы не прошёл гейты".to_string(),
+                        branch: None,
                         at: now(),
                     })?;
                 }
@@ -361,6 +390,7 @@ pub async fn run_plan(
             let fleet_dir_task = fleet_dir.clone();
             let ctrl_path_task = ctrl_path.clone();
             let repo_task = repo.to_path_buf();
+            let judge_task = judge_owned.clone();
             let controls_task = controls.clone();
             let handle = tokio::spawn(async move {
                 if sem.available_permits() == 0 {
@@ -396,6 +426,7 @@ pub async fn run_plan(
                     dep_worktrees,
                     harness: hcfg,
                     ctrl_path: ctrl_path_task,
+                    judge: judge_task.as_deref(),
                 };
                 let (state, outcome, worktree) = run_node(&ctx).await;
                 controls_task
@@ -516,6 +547,8 @@ struct NodeRun<'a> {
     dep_worktrees: Vec<(String, PathBuf)>,
     harness: CodingHarnessConfig,
     ctrl_path: PathBuf,
+    /// Baseline-судья гейтов узла (ADR-046), зафиксированный до прогона.
+    judge: Option<&'a Path>,
 }
 
 impl NodeRun<'_> {
@@ -646,6 +679,9 @@ async fn run_node_once(ctx: &NodeRun<'_>) -> Result<NodeAttempt> {
                     gate: format!("dependency:{dep_id}"),
                     verdict: "ok".to_string(),
                     detail: format!("ветка {branch} влита в дерево узла"),
+                    // Структурный носитель связи «вердикт ↔ ветка» (ADR-046,
+                    // п. 2): гейт приёмки читает поле, а не текст `detail`.
+                    branch: Some(branch.clone()),
                     at: now(),
                 });
             }
@@ -744,6 +780,7 @@ async fn run_node_once(ctx: &NodeRun<'_>) -> Result<NodeAttempt> {
         stdout: &run.stdout,
         contract: &run.contract,
         policy: ctx.policy,
+        judge: ctx.judge,
     };
     let reports = run_gates(ctx.compiled.gates_of(&node_id), &gate_ctx).await?;
     let mut failure: Option<String> = None;
@@ -754,6 +791,7 @@ async fn run_node_once(ctx: &NodeRun<'_>) -> Result<NodeAttempt> {
             gate: report.gate.clone(),
             verdict: report.result.clone(),
             detail: report.detail.clone(),
+            branch: None,
             at: now(),
         });
         if report.failed() && failure.is_none() {
@@ -820,6 +858,30 @@ fn branch_of(worktree: &Path) -> String {
         .file_name()
         .map_or_else(|| "node".to_string(), |n| n.to_string_lossy().into_owned());
     format!("arch/{name}")
+}
+
+/// Структурные поля аудита baseline-судьи для события старта прогона:
+/// `(путь, sha256 файла)`.
+///
+/// `(None, None)` — судья не задан. Если файл не читается (гонка с удалением
+/// после проверки `is_file`), отдаётся `(Some(путь), None)`: назвать судью
+/// честнее, чем соврать о его отсутствии.
+fn judge_audit(judge: Option<&Path>) -> (Option<String>, Option<String>) {
+    let Some(path) = judge else {
+        return (None, None);
+    };
+    let name = path.to_string_lossy().into_owned();
+    match std::fs::read(path) {
+        Ok(bytes) => (
+            Some(name),
+            Some(
+                crate::managed::Sha256::of_bytes(&bytes)
+                    .as_hex()
+                    .to_string(),
+            ),
+        ),
+        Err(_) => (Some(name), None),
+    }
 }
 
 /// Вливает ветку зависимости в дерево узла (fast-forward по построению:
@@ -1109,6 +1171,14 @@ pub fn completed_nodes(log_path: &Path) -> Result<std::collections::BTreeMap<Str
 /// прогнать / продолжить).
 pub struct FleetPlanTool;
 
+/// Путь baseline-судьи из аргумента `judge` (относительный — от cwd агента).
+fn judge_arg(args: &serde_json::Value, ctx: &crate::tool::ToolContext) -> Option<PathBuf> {
+    args.get("judge")
+        .and_then(serde_json::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(|s| ctx.resolve(s))
+}
+
 #[async_trait::async_trait]
 impl crate::tool::Tool for FleetPlanTool {
     fn spec(&self) -> crate::llm::ToolSpec {
@@ -1135,6 +1205,7 @@ impl crate::tool::Tool for FleetPlanTool {
                     "pattern": {"type": "string", "description": "Для propose: форсировать паттерн"},
                     "run_id": {"type": "string", "description": "Для resume: run-id прогона плана (fpl-…)"},
                     "force_rerun": {"type": "boolean", "description": "Для resume: разрешить повтор без worktree-изоляции"},
+                    "judge": {"type": "string", "description": "Для run|resume: путь к baseline-судье гейтов (ADR-046); без него — [fleet] judge_binary, иначе бинарь, запустивший флот"},
                     "mermaid": {"type": "boolean", "description": "Для show: диаграмма Mermaid"}
                 },
                 "required": ["op"]
@@ -1216,8 +1287,16 @@ impl crate::tool::Tool for FleetPlanTool {
                     return Ok(ToolOutput::err("fleet_plan: для run нужен plan_path"));
                 };
                 let plan = crate::fleet_plan::parse_plan(&ctx.resolve(path))?;
-                let outcome =
-                    run_plan(&cfg, &state_dir, &repo, plan, &agents, ResumeMode::Fresh).await?;
+                let outcome = run_plan(
+                    &cfg,
+                    &state_dir,
+                    &repo,
+                    plan,
+                    &agents,
+                    ResumeMode::Fresh,
+                    judge_arg(&args, ctx).as_deref(),
+                )
+                .await?;
                 Ok(ToolOutput::ok(render_plan_outcome(&outcome)))
             }
             "resume" => {
@@ -1228,7 +1307,16 @@ impl crate::tool::Tool for FleetPlanTool {
                     .get("force_rerun")
                     .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false);
-                let outcome = resume_plan(&cfg, &state_dir, &repo, run_id, force, &agents).await?;
+                let outcome = resume_plan(
+                    &cfg,
+                    &state_dir,
+                    &repo,
+                    run_id,
+                    force,
+                    &agents,
+                    judge_arg(&args, ctx).as_deref(),
+                )
+                .await?;
                 Ok(ToolOutput::ok(render_plan_outcome(&outcome)))
             }
             other => Ok(ToolOutput::err(format!(
@@ -1304,6 +1392,82 @@ mod tests {
     }
 
     #[test]
+    fn judge_audit_reports_path_and_sha256() {
+        // Аудит baseline-судьи: событие старта прогона несёт путь и sha256
+        // файла (ADR-046, п. 1) — «кто судил» без сборки отчётов узлов.
+        let tmp = tempfile::tempdir().expect("tmp");
+        let judge = tmp.path().join("arch-ml");
+        std::fs::write(&judge, b"baseline-judge\n").expect("судья записан");
+        let (path, sha) = judge_audit(Some(&judge));
+        let expected_path = judge.to_string_lossy().into_owned();
+        assert_eq!(path.as_deref(), Some(expected_path.as_str()));
+        let expected_sha = crate::managed::Sha256::of_bytes(b"baseline-judge\n")
+            .as_hex()
+            .to_string();
+        assert_eq!(sha.as_deref(), Some(expected_sha.as_str()));
+        // Судья не задан — честная пустота, а не выдуманный путь.
+        assert_eq!(judge_audit(None), (None, None));
+    }
+
+    #[test]
+    fn plan_started_event_carries_judge_audit() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let judge = tmp.path().join("arch-ml");
+        std::fs::write(&judge, b"judge\n").expect("судья записан");
+        let (judge_path, judge_sha256) = judge_audit(Some(&judge));
+        let json = serde_json::to_value(&FleetEvent::PlanStarted {
+            run_id: "fpl-1".into(),
+            plan_id: "p".into(),
+            pattern: "fanout".into(),
+            plan_path: "/tmp/p.plan.toml".into(),
+            plan_sha256: "abc".into(),
+            judge_path,
+            judge_sha256,
+            n_nodes: 1,
+            n_waves: 1,
+            at: "2026-09-13T00:00:00".into(),
+        })
+        .expect("json");
+        let expected_path = judge.to_string_lossy().into_owned();
+        assert_eq!(json["judge_path"].as_str(), Some(expected_path.as_str()));
+        let expected_sha = crate::managed::Sha256::of_bytes(b"judge\n")
+            .as_hex()
+            .to_string();
+        assert_eq!(json["judge_sha256"].as_str(), Some(expected_sha.as_str()));
+
+        // Без судьи поля присутствуют и пусты (null) — аудит видит «не задан».
+        let empty = serde_json::to_value(&FleetEvent::PlanStarted {
+            run_id: "fpl-2".into(),
+            plan_id: "p".into(),
+            pattern: "fanout".into(),
+            plan_path: "/tmp/p.plan.toml".into(),
+            plan_sha256: "abc".into(),
+            judge_path: None,
+            judge_sha256: None,
+            n_nodes: 1,
+            n_waves: 1,
+            at: "2026-09-13T00:00:00".into(),
+        })
+        .expect("json");
+        assert!(empty["judge_path"].is_null(), "{empty}");
+        assert!(empty["judge_sha256"].is_null(), "{empty}");
+
+        // Журнал старого формата (без полей судьи) читается толерантно:
+        // отсутствие полей не делает событие битым.
+        let legacy = tmp.path().join("fpl-3.jsonl");
+        std::fs::write(
+            &legacy,
+            "{\"type\":\"plan_started\",\"run_id\":\"fpl-3\",\"plan_id\":\"p\",\
+             \"pattern\":\"fanout\",\"plan_path\":\"/tmp/p\",\"plan_sha256\":\"a\",\
+             \"n_nodes\":1,\"n_waves\":1,\"at\":\"2026-09-13T00:00:00\"}\n",
+        )
+        .expect("старый журнал");
+        let read = FleetLog::read_tolerant(&legacy).expect("чтение");
+        assert!(read.skipped.is_empty(), "{:?}", read.skipped);
+        assert_eq!(read.events.len(), 1, "старое событие разобрано");
+    }
+
+    #[test]
     fn node_timeout_prefers_plan_then_budget() {
         let plan = parse_plan_str(
             "id = \"x\"\npattern = \"fanout\"\n[policy.budget]\nmax_node_secs = 120\n\n[[nodes]]\nid = \"a\"\nspec = \"s\"\ntimeout_secs = 900\n",
@@ -1329,6 +1493,7 @@ mod tests {
             dep_worktrees: Vec::new(),
             harness: CodingHarnessConfig::default(),
             ctrl_path: PathBuf::from("/tmp/ctl.jsonl"),
+            judge: None,
         };
         assert_eq!(node_timeout(&ctx), 120);
     }

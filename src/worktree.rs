@@ -13,7 +13,10 @@
 //!   дальше агент работает штатными инструментами с `workdir`;
 //! - accept/drop — решения человека (CLI `arch-ml worktree …`, слэш
 //!   `/worktree`): accept отказывает при незакоммиченных изменениях
-//!   (иначе они молча сгорели бы при remove);
+//!   (иначе они молча сгорели бы при remove) и при незакрытом вердикте
+//!   ревьювера `NOT-READY` по этой ветке (журналы флота, ADR-046, п. 2);
+//!   обход блокировки — только именной аппрувер `--approver "<имя>"`
+//!   (см. [`crate::accept_gate`]);
 //! - `arch fleet merge <run-id>` — гейт владельца для прогонов флота
 //!   (`[fleet] merge_gate`): без `--owner-approve` печатается сводка прогона
 //!   и мерж отклоняется; с подтверждением — accept-семантика (merge + уборка);
@@ -27,7 +30,7 @@ use serde_json::{Value, json};
 use crate::error::{HarnessError, Result};
 
 /// Префикс веток worktree-фабрики.
-const BRANCH_PREFIX: &str = "arch/";
+pub(crate) const BRANCH_PREFIX: &str = "arch/";
 
 /// Проверка «грязности» worktree: служебный каталог `.arch-handoff/` по
 /// контракту handoff-пакета в git не коммитится никогда (а при
@@ -252,9 +255,23 @@ pub async fn diff(repo: &Path, name: &str) -> Result<String> {
 /// Отказывает при незакоммиченных изменениях в worktree (merge взял бы
 /// только коммиты, остальное сгорело бы при remove).
 ///
+/// Перед merge — гейт приёмки (ADR-046, п. 2): вердикты ревьюверов из
+/// журналов флота `state_dir/fleet/*.jsonl`, относящиеся к ветке `arch/<name>`.
+/// Незакрытый `NOT-READY` — отказ с текстом находок; обход только именным
+/// аппрувером (`approver`), и тогда решение уходит в append-only журнал
+/// приёмки `state_dir/accept/decisions.jsonl`. Вердиктов по ветке нет — merge
+/// с пометкой «не проверено» (отсутствие проверки ≠ успех). Автоматического
+/// merge нет: без аппрувера и без `READY` интеграция не выполняется.
+///
 /// # Errors
-/// Незакоммиченные изменения, конфликт merge, worktree не найден.
-pub async fn accept(cfg: &crate::config::Config, repo: &Path, name: &str) -> Result<String> {
+/// Незакоммиченные изменения, блокирующий вердикт `NOT-READY` без аппрувера,
+/// конфликт merge, worktree не найден, сбой записи решения приёмки.
+pub async fn accept(
+    cfg: &crate::config::Config,
+    repo: &Path,
+    name: &str,
+    approver: Option<&str>,
+) -> Result<String> {
     validate_name(name)?;
     let branch = format!("{BRANCH_PREFIX}{name}");
     let path = worktrees_root(cfg, repo).join(name);
@@ -263,6 +280,15 @@ pub async fn accept(cfg: &crate::config::Config, repo: &Path, name: &str) -> Res
         if !dirty.trim().is_empty() {
             return Err(HarnessError::Tool(format!(
                 "worktree '{name}' содержит незакоммиченные изменения — закоммитьте или drop: {dirty}"
+            )));
+        }
+    }
+    // Гейт приёмки: вердикт ревьювера блокирует интеграцию механически.
+    let scan = crate::accept_gate::scan_branch(&cfg.paths.state_dir, name)?;
+    if let (Some(found), None) = (&scan.last, approver) {
+        if found.verdict == crate::fleet_gate::ReviewVerdict::NotReady {
+            return Err(HarnessError::Tool(crate::accept_gate::refusal_message(
+                name, found,
             )));
         }
     }
@@ -283,6 +309,20 @@ pub async fn accept(cfg: &crate::config::Config, repo: &Path, name: &str) -> Res
     }
     args.extend(["merge", "--no-ff", "-m", &message, &branch]);
     git(repo, &args).await?;
+    // Доменное событие post_accept — после УСПЕШНОГО merge и ДО уборки:
+    // remove_handoff_copy снесёт .arch-handoff вместе с HYPOTHESES.json, а
+    // хуку нужен именно этот файл (фиксирует факт использования карточек).
+    // Ненулевой код/отсутствие плагина исход accept не меняют — как и
+    // нефатальная уборка; include_hooks=false канал выключает.
+    if cfg.plugins.include_hooks {
+        let handoff_arg = path.join(".arch-handoff").to_string_lossy().into_owned();
+        let _ = crate::hypothesis::run_event(
+            &cfg.plugins.dirs,
+            "post_accept",
+            &[handoff_arg.as_str(), name],
+            repo,
+        );
+    }
     if path.exists() {
         remove_handoff_copy(&path)?;
         git(repo, &["worktree", "remove", &path.to_string_lossy()]).await?;
@@ -298,7 +338,24 @@ pub async fn accept(cfg: &crate::config::Config, repo: &Path, name: &str) -> Res
              фабрики; уберите его (`git worktree remove`) и удалите ветку вручную"
         ))
     })?;
-    Ok(format!("worktree '{name}' принят (merge) и убран"))
+    let mut note = crate::accept_gate::decision_note(name, &scan, approver);
+    // След решения именного аппрувера — в append-only журнал приёмки. Пишем
+    // ПОСЛЕ merge: запись означает состоявшуюся приёмку, а не намерение
+    // (сбой записи честно сообщает, что merge уже выполнен).
+    if let Some(approver) = approver {
+        let decision = crate::accept_gate::accept_decision(name, &scan, approver);
+        let journal = crate::accept_gate::record_decision(&cfg.paths.state_dir, &decision)
+            .map_err(|e| {
+                HarnessError::Tool(format!(
+                    "worktree '{name}': merge ВЫПОЛНЕН и worktree убран, но решение приёмки \
+                     НЕ записано: {e} — повторите запись вручную в \
+                     {}/accept/decisions.jsonl",
+                    cfg.paths.state_dir.display()
+                ))
+            })?;
+        let _ = write!(note, "\nрешение приёмки: {}", journal.display());
+    }
+    Ok(format!("worktree '{name}' принят (merge) и убран\n{note}"))
 }
 
 /// Drop: удаление worktree и ветки БЕЗ merge (откат изоляции).
@@ -448,31 +505,53 @@ pub async fn merge_preview(cfg: &crate::config::Config, repo: &Path, name: &str)
 /// подтверждает владелец платформенно, а не договорённостью).
 ///
 /// При `merge_gate != "none"` (дефолт `owner`; неизвестные значения
-/// трактуются как `owner` — безопасная интерпретация) без `owner_approve`
-/// мерж ОТКЛОНЯЕТСЯ: возвращается сводка [`merge_preview`] для решения
-/// человеком. С подтверждением владельца (или при `merge_gate = "none"`)
-/// выполняется [`accept`]: merge `--no-ff` ветки и уборка worktree.
+/// трактуются как `owner` — безопасная интерпретация) без подтверждения
+/// человека мерж ОТКЛОНЯЕТСЯ: возвращается сводка [`merge_preview`] для решения
+/// человеком. Подтверждение — `owner_approve` (флаг владельца) либо именной
+/// `approver`; последний закрывает и гейт владельца, и вердикт ревьювера
+/// (ADR-046, п. 2), а решение уходит в append-only журнал приёмки — той же
+/// записью [`crate::accept_gate::record_decision`], что у `worktree accept`.
+/// `owner_approve` без аппрувера именным обходом НЕ является: `NOT-READY`
+/// блокирует и его. Далее выполняется [`accept`]: merge `--no-ff` ветки и
+/// уборка worktree.
 ///
 /// # Errors
-/// Невалидный run-id, незакоммиченные изменения в worktree, конфликт merge
-/// (см. [`accept`]).
+/// Пустое имя аппрувера, невалидный run-id, незакоммиченные изменения в
+/// worktree, блокирующий вердикт ревьювера без именного аппрувера, конфликт
+/// merge (см. [`accept`]).
 pub async fn gated_merge(
     cfg: &crate::config::Config,
     repo: &Path,
     name: &str,
     owner_approve: bool,
+    approver: Option<&str>,
 ) -> Result<MergeGateOutcome> {
-    if cfg.fleet.merge_gate != "none" && !owner_approve {
+    if let Some(approver) = approver {
+        if approver.trim().is_empty() {
+            return Err(HarnessError::Tool(
+                "--approver: имя аппрувера пустое — обход вердикта называет человека".to_string(),
+            ));
+        }
+    }
+    // Именной аппрувер — решение человека, сильнее булева флага владельца:
+    // он закрывает оба гейта (владельца и вердикт ревьювера) и оставляет след
+    // в append-only журнале приёмки. Без аппрувера `--owner-approve` проходит
+    // гейт владельца, но НЕ именной обход: `NOT-READY` блокирует и этот путь
+    // (ADR-046, п. 2) — отказ приходит из `accept` с текстом находок.
+    if cfg.fleet.merge_gate != "none" && !owner_approve && approver.is_none() {
         let preview = merge_preview(cfg, repo, name).await?;
         return Ok(MergeGateOutcome::Refused(format!(
             "МЕРЖ ОТКЛОНЁН гейтом владельца ([fleet] merge_gate = {:?}): агент не аппрувит \
              свой код и не имеет пути в main.\n{preview}Решение владельца: \
              `arch fleet merge {name} --owner-approve` — влить; \
-             `arch worktree drop {name}` — отклонить.",
+             `arch fleet merge {name} --approver \"<имя>\"` — именной аппрувер \
+             (след в журнале приёмки); `arch worktree drop {name}` — отклонить.",
             cfg.fleet.merge_gate
         )));
     }
-    Ok(MergeGateOutcome::Merged(accept(cfg, repo, name).await?))
+    Ok(MergeGateOutcome::Merged(
+        accept(cfg, repo, name, approver).await?,
+    ))
 }
 
 /// Текстовое представление списка (для CLI и слэша).
@@ -565,7 +644,8 @@ impl crate::tool::Tool for WorktreeNewTool {
                 "worktree создан: {} (ветка arch/{name}). Все правки делай ТОЛЬКО там \
                  (передавай workdir=\"{}\" в bash/write_file/edit_file); основное дерево \
                  не меняй. По завершении сообщи пользователю: review — `arch-ml worktree diff {name}`, \
-                 accept — `arch-ml worktree accept {name}`.",
+                 accept — `arch-ml worktree accept {name}` (вердикт ревьювера NOT-READY блокирует \
+                 приёмку; обход — `--approver \"<имя>\"`).",
                 path.display(),
                 path.display()
             ))),
@@ -612,7 +692,205 @@ mod tests {
     fn test_cfg(dir: &Path) -> Arc<Config> {
         let mut cfg = Config::default();
         cfg.paths.reports_dir = dir.join("reports");
+        // state_dir — внутри tempdir: гейт приёмки не должен читать журналы
+        // реального дома пользователя (детерминизм и отсутствие побочек).
+        cfg.paths.state_dir = dir.join("state");
         Arc::new(cfg)
+    }
+
+    /// Строка события `node_gated` журнала флота; `branch` — структурное поле
+    /// связи «вердикт ↔ ветка» (ADR-046, п. 2); `None` — журнал старого формата.
+    fn gated_line(
+        run_id: &str,
+        node_id: &str,
+        gate: &str,
+        verdict: &str,
+        detail: &str,
+        branch: Option<&str>,
+    ) -> String {
+        let mut value = json!({
+            "type": "node_gated",
+            "run_id": run_id,
+            "node_id": node_id,
+            "gate": gate,
+            "verdict": verdict,
+            "detail": detail,
+            "at": "2026-09-13T00:00:00Z",
+        });
+        if let Some(branch) = branch {
+            value["branch"] = json!(branch);
+        }
+        value.to_string()
+    }
+
+    /// Фикстура прогона-ревью: ветка `arch/<name>` влита в дерево узла
+    /// `review-<name>`, далее вердикт ревьювера (`ok` — READY, `fail` — NOT-READY)
+    /// и лог узла с находками. Ветку называет структурное поле `branch`.
+    fn write_review_journal(cfg: &Config, run_id: &str, name: &str, verdict: &str) {
+        let dir = cfg.paths.state_dir.join("fleet");
+        std::fs::create_dir_all(&dir).expect("каталог журналов");
+        let branch = format!("arch/{name}");
+        let node = format!("review-{name}");
+        let lines = [
+            gated_line(
+                run_id,
+                &node,
+                "dependency:impl",
+                "ok",
+                &format!("ветка {branch} влита в дерево узла"),
+                Some(&branch),
+            ),
+            gated_line(
+                run_id,
+                &node,
+                "review",
+                verdict,
+                "вердикт not-ready: находки блокируют интеграцию",
+                None,
+            ),
+        ];
+        std::fs::write(
+            dir.join(format!("{run_id}.jsonl")),
+            format!("{}\n", lines.join("\n")),
+        )
+        .expect("журнал записан");
+        std::fs::write(
+            dir.join(format!("{run_id}-{node}.log")),
+            "разбор\n```json\n{\"verdict\":\"NOT-READY\",\"findings\":[\"src/pay.rs:42 — нет проверки подписи\"]}\n```\n",
+        )
+        .expect("лог узла записан");
+    }
+
+    /// Создаёт worktree `arch/<name>` с одним коммитом (артефакт для merge).
+    async fn worktree_with_commit(cfg: &Config, repo: &Path, name: &str) -> PathBuf {
+        let path = create(cfg, repo, name, None).await.expect("create");
+        std::fs::write(path.join("feature.md"), "фича\n").expect("write");
+        git_in(&path, &["add", "."]).await;
+        git_in(&path, &["commit", "-m", "feature"]).await;
+        path
+    }
+
+    /// Пишет исполняемый скрипт-заглушку доменного хука.
+    fn write_exec(path: &Path, body: &str) {
+        use std::os::unix::fs::PermissionsExt as _;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).expect("mkdir");
+        }
+        std::fs::write(path, body).expect("write script");
+        let mut perms = std::fs::metadata(path).expect("meta").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).expect("chmod");
+    }
+
+    /// Плагин с доменным хуком события `event` (скрипт `body`).
+    fn plugin_with_hook(root: &Path, name: &str, event: &str, body: &str) {
+        let dir = root.join(name);
+        std::fs::create_dir_all(&dir).expect("mkdir plugin");
+        let manifest = format!(r#"{{"name":"{name}","hooks":{{"{event}":"hooks/h.sh {event}"}}}}"#);
+        std::fs::write(dir.join("plugin.json"), manifest).expect("manifest");
+        write_exec(&dir.join("hooks/h.sh"), body);
+    }
+
+    /// Конфиг с плагинами во временном каталоге (без чтения ~/plugins).
+    fn hook_cfg(tmp: &Path, plugins: PathBuf) -> Config {
+        let mut cfg = Config::default();
+        cfg.paths.reports_dir = tmp.join("reports");
+        cfg.paths.state_dir = tmp.join("state");
+        cfg.plugins.dirs = vec![plugins];
+        cfg
+    }
+
+    /// Кладёт в worktree служебный `.arch-handoff/HYPOTHESES.json` (копию
+    /// пакета): по контракту он не коммитится, гейт «грязности» его игнорирует.
+    fn seed_handoff(path: &Path) {
+        let dir = path.join(".arch-handoff");
+        std::fs::create_dir_all(&dir).expect("handoff dir");
+        std::fs::write(dir.join("HYPOTHESES.json"), "{\"hits\":[]}\n").expect("write");
+    }
+
+    /// Тест (г): post_accept доходит ДО уборки .arch-handoff — хук успевает
+    /// увидеть HYPOTHESES.json worktree.
+    #[tokio::test]
+    async fn accept_runs_post_accept_before_handoff_cleanup() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let marker = tmp.path().join("post-accept.marker");
+        // $1=event $2=handoff $3=name: маркер пишется во внешний файл, иначе
+        // уборка worktree снесла бы доказательство.
+        plugin_with_hook(
+            &tmp.path().join("plugins"),
+            "hypothesis-router",
+            "post_accept",
+            &format!(
+                "#!/bin/sh\ntest -f \"$2/HYPOTHESES.json\" || exit 9\necho \"$3\" > '{}'\n\
+                 echo ok\nexit 0\n",
+                marker.display()
+            ),
+        );
+        let cfg = hook_cfg(tmp.path(), tmp.path().join("plugins"));
+        let path = worktree_with_commit(&cfg, &repo, "hook-wt").await;
+        seed_handoff(&path);
+
+        let msg = accept(&cfg, &repo, "hook-wt", None)
+            .await
+            .expect("accept с хуком");
+        assert!(msg.contains("принят"), "{msg}");
+        let seen = std::fs::read_to_string(&marker)
+            .expect("хук увидел HYPOTHESES.json до уборки .arch-handoff");
+        assert_eq!(seen.trim(), "hook-wt", "имя прогона доехало");
+        assert!(!path.exists(), "worktree убран после accept");
+    }
+
+    /// include_hooks=false глушит post_accept (проверка маркером).
+    #[tokio::test]
+    async fn accept_include_hooks_false_skips_post_accept() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let marker = tmp.path().join("post-accept.marker");
+        plugin_with_hook(
+            &tmp.path().join("plugins"),
+            "hypothesis-router",
+            "post_accept",
+            &format!("#!/bin/sh\necho ran > '{}'\nexit 0\n", marker.display()),
+        );
+        let mut cfg = hook_cfg(tmp.path(), tmp.path().join("plugins"));
+        cfg.plugins.include_hooks = false;
+        let path = worktree_with_commit(&cfg, &repo, "quiet-wt").await;
+        seed_handoff(&path);
+
+        accept(&cfg, &repo, "quiet-wt", None)
+            .await
+            .expect("accept без хука");
+        assert!(!marker.exists(), "include_hooks=false — хук не запускался");
+        assert!(repo.join("feature.md").is_file(), "merge выполнен");
+    }
+
+    /// Тест (д): падающий post_accept (exit 3) не превращает accept в Err.
+    #[tokio::test]
+    async fn accept_failing_post_accept_hook_is_not_fatal() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        plugin_with_hook(
+            &tmp.path().join("plugins"),
+            "hypothesis-router",
+            "post_accept",
+            "#!/bin/sh\necho 'HYPOTHESES.json устарел (exit 3)'\nexit 3\n",
+        );
+        let cfg = hook_cfg(tmp.path(), tmp.path().join("plugins"));
+        let path = worktree_with_commit(&cfg, &repo, "fail-wt").await;
+        seed_handoff(&path);
+
+        let msg = accept(&cfg, &repo, "fail-wt", None)
+            .await
+            .expect("exit 3 хука не ломает accept");
+        assert!(repo.join("feature.md").is_file(), "merge выполнен: {msg}");
+        assert!(list(&repo).await.expect("list").is_empty(), "уборка прошла");
     }
 
     #[test]
@@ -666,7 +944,7 @@ mod tests {
         assert_eq!(infos[0].ahead, 1);
         let d = diff(&repo, "pilot-x").await.expect("diff");
         assert!(d.contains("feature.md"), "diff видит файл: {d}");
-        let msg = accept(&cfg, &repo, "pilot-x").await.expect("accept");
+        let msg = accept(&cfg, &repo, "pilot-x", None).await.expect("accept");
         assert!(msg.contains("принят"), "{msg}");
         assert!(repo.join("feature.md").is_file(), "merge перенёс файл");
         assert!(
@@ -748,7 +1026,7 @@ mod tests {
         std::fs::write(ext.join("feature.md"), "фича\n").expect("write");
         git_in(&ext, &["add", "."]).await;
         git_in(&ext, &["commit", "-m", "feature"]).await;
-        let err = accept(&cfg, &repo, "external")
+        let err = accept(&cfg, &repo, "external", None)
             .await
             .expect_err("ветка занята — ошибка cleanup");
         assert!(err.to_string().contains("merge ВЫПОЛНЕН"), "{err}");
@@ -785,7 +1063,7 @@ mod tests {
         std::fs::write(path.join(".arch-handoff/TASK.md"), "задача\n").expect("write");
 
         // Без подтверждения владельца — отказ со сводкой, ветка не влита.
-        let outcome = gated_merge(&cfg, &repo, "run-x", false)
+        let outcome = gated_merge(&cfg, &repo, "run-x", false, None)
             .await
             .expect("gated_merge");
         let MergeGateOutcome::Refused(summary) = outcome else {
@@ -804,7 +1082,7 @@ mod tests {
         git_in(&repo, &["rev-parse", "--verify", "arch/run-x"]).await;
 
         // С подтверждением — merge в основную ветку и уборка.
-        let outcome = gated_merge(&cfg, &repo, "run-x", true)
+        let outcome = gated_merge(&cfg, &repo, "run-x", true, None)
             .await
             .expect("gated_merge approve");
         let MergeGateOutcome::Merged(msg) = outcome else {
@@ -829,15 +1107,224 @@ mod tests {
         std::fs::write(path.join("feature.md"), "фича\n").expect("write");
         git_in(&path, &["add", "."]).await;
         git_in(&path, &["commit", "-m", "feature"]).await;
-        let outcome = gated_merge(&cfg, &repo, "run-y", false)
+        let outcome = gated_merge(&cfg, &repo, "run-y", false, None)
             .await
             .expect("gated_merge");
         assert!(matches!(outcome, MergeGateOutcome::Merged(_)));
         assert!(repo.join("feature.md").is_file());
         // Несуществующий run-id — внятная ошибка git, а не паника.
-        let err = gated_merge(&cfg, &repo, "ghost", true)
+        let err = gated_merge(&cfg, &repo, "ghost", true, None)
             .await
             .expect_err("нет ветки");
         assert!(err.to_string().contains("ghost"), "{err}");
+        // Пустое имя аппрувера — отказ до всякого git: обход называет человека.
+        let err = gated_merge(&cfg, &repo, "run-y", false, Some("  "))
+            .await
+            .expect_err("пустой аппрувер");
+        assert!(err.to_string().contains("--approver"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn merge_gate_refuses_not_ready_without_approver() {
+        // `fleet merge --owner-approve` при NOT-READY и БЕЗ именного аппрувера:
+        // подтверждения владельца мало — обход блокирующего вердикта называет
+        // человека. Отказ приходит из accept с находками (ADR-046, п. 2).
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "impl-wt").await;
+        write_review_journal(&cfg, "fpl-200", "impl-wt", "fail");
+
+        let err = gated_merge(&cfg, &repo, "impl-wt", true, None)
+            .await
+            .expect_err("NOT-READY без аппрувера блокирует merge");
+        let text = err.to_string();
+        assert!(text.contains("NOT-READY"), "{text}");
+        assert!(text.contains("src/pay.rs:42"), "находки в отказе: {text}");
+        assert!(text.contains("--approver"), "подсказка обхода: {text}");
+        assert!(
+            !repo.join("feature.md").is_file(),
+            "основное дерево не тронуто"
+        );
+    }
+
+    #[tokio::test]
+    async fn merge_gate_approver_overrides_not_ready_and_records_decision() {
+        // Именной аппрувер для `fleet merge`: закрывает и гейт владельца, и
+        // вердикт NOT-READY, решение пишется в тот же append-only журнал
+        // приёмки, что у `worktree accept --approver`.
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "impl-wt").await;
+        write_review_journal(&cfg, "fpl-201", "impl-wt", "fail");
+
+        let outcome = gated_merge(&cfg, &repo, "impl-wt", false, Some("roman"))
+            .await
+            .expect("именной аппрувер обходит блокировку");
+        let MergeGateOutcome::Merged(msg) = outcome else {
+            panic!("ожидался merge именным аппрувером");
+        };
+        assert!(msg.contains("принят"), "{msg}");
+        assert!(msg.contains("roman"), "решение аппрувера названо: {msg}");
+        assert!(repo.join("feature.md").is_file(), "merge выполнен");
+        assert!(
+            list(&repo).await.expect("list").is_empty(),
+            "уборка сделана"
+        );
+
+        let decisions = cfg.paths.state_dir.join("accept/decisions.jsonl");
+        let text = std::fs::read_to_string(&decisions).expect("журнал приёмки");
+        let rows: Vec<crate::accept_gate::AcceptDecision> = text
+            .lines()
+            .map(|l| serde_json::from_str(l).expect("строка журнала приёмки"))
+            .collect();
+        assert_eq!(rows.len(), 1, "{text}");
+        assert_eq!(rows[0].approver, "roman");
+        assert_eq!(rows[0].branch, "arch/impl-wt");
+        assert_eq!(rows[0].verdict, "not-ready");
+        assert!(
+            rows[0].findings.iter().any(|f| f.contains("src/pay.rs:42")),
+            "находки записаны: {:?}",
+            rows[0].findings
+        );
+    }
+
+    #[tokio::test]
+    async fn accept_refuses_on_not_ready_verdict_with_findings() {
+        // Вердикт ревьювера NOT-READY по ветке arch/impl-wt блокирует merge:
+        // отказ называет находки и подсказывает именной аппрувер.
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "impl-wt").await;
+        write_review_journal(&cfg, "fpl-100", "impl-wt", "fail");
+
+        let err = accept(&cfg, &repo, "impl-wt", None)
+            .await
+            .expect_err("NOT-READY обязан блокировать merge");
+        let text = err.to_string();
+        assert!(text.contains("NOT-READY"), "{text}");
+        assert!(text.contains("src/pay.rs:42"), "находки в тексте: {text}");
+        assert!(text.contains("--approver"), "подсказка обхода: {text}");
+        assert!(
+            !repo.join("feature.md").is_file(),
+            "основное дерево не тронуто"
+        );
+        assert_eq!(
+            list(&repo).await.expect("list").len(),
+            1,
+            "worktree и ветка на месте"
+        );
+    }
+
+    #[tokio::test]
+    async fn accept_with_approver_overrides_not_ready_and_logs_decision() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "impl-wt").await;
+        write_review_journal(&cfg, "fpl-101", "impl-wt", "fail");
+
+        let msg = accept(&cfg, &repo, "impl-wt", Some("roman"))
+            .await
+            .expect("именной аппрувер обходит блокировку");
+        assert!(msg.contains("принят"), "{msg}");
+        assert!(repo.join("feature.md").is_file(), "merge выполнен");
+        assert!(
+            list(&repo).await.expect("list").is_empty(),
+            "уборка сделана"
+        );
+
+        // Решение — в append-only журнале приёмки.
+        let decisions = cfg.paths.state_dir.join("accept/decisions.jsonl");
+        let text = std::fs::read_to_string(&decisions).expect("журнал приёмки");
+        let rows: Vec<crate::accept_gate::AcceptDecision> = text
+            .lines()
+            .map(|l| serde_json::from_str(l).expect("строка журнала приёмки"))
+            .collect();
+        assert_eq!(rows.len(), 1, "{text}");
+        assert_eq!(rows[0].approver, "roman");
+        assert_eq!(rows[0].branch, "arch/impl-wt");
+        assert_eq!(rows[0].verdict, "not-ready");
+        assert!(
+            rows[0].findings.iter().any(|f| f.contains("src/pay.rs:42")),
+            "находки записаны: {:?}",
+            rows[0].findings
+        );
+        assert!(!rows[0].at.is_empty(), "время записано");
+    }
+
+    #[tokio::test]
+    async fn accept_merges_on_ready_verdict_without_approver() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "impl-wt").await;
+        write_review_journal(&cfg, "fpl-102", "impl-wt", "ok");
+
+        let msg = accept(&cfg, &repo, "impl-wt", None)
+            .await
+            .expect("READY — merge без вопросов");
+        assert!(msg.contains("READY"), "{msg}");
+        assert!(repo.join("feature.md").is_file(), "merge перенёс файл");
+        assert!(list(&repo).await.expect("list").is_empty());
+        assert!(
+            !cfg.paths.state_dir.join("accept/decisions.jsonl").exists(),
+            "без аппрувера журнал приёмки не пишется"
+        );
+    }
+
+    #[tokio::test]
+    async fn accept_marks_unverified_when_no_review_verdicts() {
+        // Отсутствие проверки ≠ успех: merge проходит, но с явной пометкой.
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        worktree_with_commit(&cfg, &repo, "lone-wt").await;
+
+        // Журналов нет вовсе.
+        let msg = accept(&cfg, &repo, "lone-wt", None)
+            .await
+            .expect("без вердиктов merge разрешён");
+        assert!(msg.contains("не найдено"), "{msg}");
+        assert!(msg.contains("не проверено"), "{msg}");
+        assert!(repo.join("feature.md").is_file(), "merge выполнен");
+        assert!(list(&repo).await.expect("list").is_empty());
+    }
+
+    #[tokio::test]
+    async fn accept_keeps_dirty_worktree_guard() {
+        // Регресс прежнего поведения: незакоммиченные изменения — отказ.
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo(&repo).await;
+        let cfg = test_cfg(tmp.path());
+        let path = create(&cfg, &repo, "dirty-wt", None).await.expect("create");
+        std::fs::write(path.join("wip.md"), "wip\n").expect("write");
+
+        let err = accept(&cfg, &repo, "dirty-wt", None)
+            .await
+            .expect_err("грязное дерево — отказ");
+        assert!(err.to_string().contains("незакоммиченные"), "{err}");
+        assert!(!repo.join("wip.md").is_file(), "main не тронут");
+        // Даже именной аппрувер не отменяет защиту от потери работы.
+        let err = accept(&cfg, &repo, "dirty-wt", Some("roman"))
+            .await
+            .expect_err("грязное дерево — отказ и с аппрувером");
+        assert!(err.to_string().contains("незакоммиченные"), "{err}");
     }
 }

@@ -5,16 +5,19 @@
 > форка `b928684`, 2026-09-11. Чистая локальная копия — история git не
 > наследуется (см. `NOTICE.md`). Домен: харнесс AI/ML-исследователя
 > (проектирование нейросетей, LLM-графтинг, CPT/SFT/RLHF/RL/RLVR, дистилляция,
-> steering, агентные приложения). **Адаптация в процессе:** текст ниже пока
-> описывает Banking Edition (унаследован); доменная зона `aiml/` — заглушка,
-> `banking/` оставлена как эталон толстого домена.
+> steering, агентные приложения). **Адаптация в процессе:** основной текст
+> ниже пока описывает Banking Edition (унаследован); доменная зона `aiml/`
+> наполняется — пресет ML-исследователя (`aiml/presets/ml-researcher/`,
+> инварианты ML-01…ML-14), 8 доменных плагинов, fitness-библиотека
+> (`aiml/library/fitness/`), роутинг гипотез по фактам проекта (ADR-047,
+> `docs/hypotheses.md`); `banking/` оставлена как эталон толстого домена.
 
 <p align="center">
   <b>🇷🇺 <a href="#русский">Русский</a></b> | <b>🇬🇧 <a href="#english">English</a></b>
 </p>
 
 <p align="center">
-  <a href="https://github.com/romannekrasovaillm/spine/actions/workflows/ci.yml"><img src="https://github.com/romannekrasovaillm/spine/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml"><img src="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -197,11 +200,15 @@ BMAD, Spec Kit, OpenSpec и др.):
 
 - `subagent_run/list/result` — фоновые исполнители со свежим контекстом и
   whitelist инструментов (спеки `agents/*.md` в плагинах); индикатор в
-  статус-баре (`· ⣿ субагенты: N`).
+  статус-баре (`· ⣿ субагенты: N`), живой реестр задач и превью отчётов —
+  вкладка `◉ Субагенты` (`F7`).
 - `ralph_run` — ralph-цикл: до 6 раундов к неизменной цели свежими агентами,
   состояние — файлы + handoff (status/summary/evidence/next_steps/blockers).
 - `worktree_new` + `arch-ml worktree new|list|diff|accept|drop` — изоляция
-  агентной работы в git worktree; review/accept — человеком.
+  агентной работы в git worktree; review/accept — человеком. Вердикт
+  ревьювера `NOT-READY` по ветке блокирует accept (журналы флота, ADR-046);
+  обход — только `--approver "<имя>"` с записью решения в журнал приёмки
+  (`docs/fleet.md`).
 
 #### Слоистая модель 5.2 + дельта-протокол
 
@@ -587,15 +594,20 @@ arch-ml [--config <path>] <command>   # без команды — TUI
 | `delta new/list/validate/archive/guard` | Дельта-спецификации (OpenSpec); `guard` — гейт прямых правок спайна мимо дельты (exit 1) |
 | `openspec scan/coverage/init/gate` | Адаптер OpenSpec (`docs/openspec.md`): требования SHALL/MUST → покрытие через `covers:` правил CONSTRAINTS (`--strict` → exit 1 на «без решения»), скелет CONSTRAINTS.from-openspec.yaml + SPINE.draft.md, archive-гейт change (exit 1) |
 | `fleet audit [paths…] [--repo] [--include] [--fail-on-dupes]` | SSOT-аудит флота worktree: дубли и дрейф копий спайна (дрейф → exit 1) |
-| `fleet plan propose\|validate\|show <plan>` | План флота (ADR-042): паттерн оркестрации → граф узлов; propose — черновик по handoff-пакету, validate — механический гейт плана (`--json`, exit 1) |
-| `fleet run --repo <path> --plan <file>` | Прогон плана волнами с пулом процессов и гейтами узла (legacy: `--items-file` — плоский веер) |
+| `fleet plan propose\|validate\|show <plan>` | План флота (ADR-042): паттерн оркестрации → граф узлов; propose — черновик по handoff-пакету или из набора ADR (`--from-adrs [--adr-dir] [--status proposed\|accepted\|all]`, ADR-045), validate — механический гейт плана, включая независимость исполнителей (`--json`, exit 1) |
+| `fleet run --repo <path> --plan <file> [--judge <путь>]` | Прогон плана волнами с пулом процессов и гейтами узла (legacy: `--items-file` — плоский веер); `--judge` фиксирует baseline-судью гейтов — судья внутри ворктри узла исполняется им, а без baseline такой гейт падает (ADR-046) |
 | `fleet resume <run-id> [--force-rerun]` | Продолжение прогона плана из журнала событий: завершённые узлы пропускаются |
 | `skills list/search/show` / `plugins list/show` | Библиотека скиллов и плагинов |
 | `policy [--check "<cmd>"]` | Политика автономии R0–R5 |
 | `doctor` | Диагностика окружения |
+| `weights list\|verify [--manifest F] [--json]` | Реестр артефактов ML (`artifacts.yaml`): список / сверка с ФС — копия вместо симлинка при `kind=weights\|dataset` → Fail (C-032/C-033), `sha256` через `sha256sum` |
+| `data-card check [--cards F\|D] [--dataset P] [--strict]` | Карточки датасетов: обязательные поля (пробел ≠ провал) и противоречия (`sha256`/`records` без датасета) |
+| `trajectory metrics --input F [--format …] [--k N] [--json]` | Eval траекторий: `success_rate`, `ci95` (Уилсон по задачам), `pass@k` (Chen et al. 2021) |
 | `export <word\|excel> <session> <out>` | Экспорт журнала сессии |
 | `cron list/run/tick` | Планировщик md-задач |
-| `worktree new/list/diff/accept/drop` | Worktree-фабрика |
+| `worktree new/list/diff/accept [--approver]\|drop` | Worktree-фабрика; accept блокируется вердиктом ревьювера `NOT-READY` (ADR-046) |
+| `fleet merge <run-id> [--owner-approve] [--approver]` | Гейт мерджа прогона: без подтверждения — сводка и отказ; `--approver` — именной обход `NOT-READY` с записью в журнал приёмки (ADR-046) |
+| `evolve propose/commit/list/reject` | Самоулучшение харнесса (H2.2): предложение → именной аппрувер → гейты baseline-судьёй → применение; managed-блоки для доменного слоя, `mode: file` для кода ядра `src/**` (ADR-046) |
 
 ### Документация
 
@@ -604,6 +616,7 @@ arch-ml [--config <path>] <command>   # без команды — TUI
 - `docs/slash_commands.md` — слэш-команды TUI; `docs/tools.md` — инструменты (карта «база vs архитектурные» + полные параметры).
 - `docs/models.md` — подключение LLM (DeepSeek/Kimi/GLM, свои endpoint'ы).
 - `docs/plugins_and_skills.md` — плагины и библиотека скиллов.
+- `docs/hypotheses.md` — карточки гипотез и роутинг по фактам проекта (ADR-047).
 - `docs/failure_memory.md` — память сбоев инструментов («ошибся дважды → урок»).
 - `docs/rubrics_and_benchmarks.md`, `docs/control.md`, `docs/governance.md`,
   `docs/harness_integrations.md`, `docs/handoff_walkthrough.md` (передача
@@ -709,7 +722,8 @@ BMAD, Spec Kit, OpenSpec, and more):
 
 - `subagent_run/list/result` — fresh-context background executors with
   least-privilege tool whitelists (specs in plugin `agents/*.md`); live
-  status-bar indicator (`· ⣿ subagents: N`).
+  status-bar indicator (`· ⣿ subagents: N`), with the `◉ Subagents` right-panel
+  tab (`F7`) showing the live registry and report previews.
 - `ralph_run` — multi-round cycles toward an immutable objective, each round a
   fresh agent; state travels via workspace files + bounded handoff JSON.
 - `worktree_new` + `arch-ml worktree …` — isolated git worktrees for risky or
@@ -1056,7 +1070,9 @@ Fully commented sample: `config.example.toml`.
   `docs/rubrics_and_benchmarks.md`, `docs/harness_integrations.md`,
   `docs/handoff_walkthrough.md` (handing context to a coding harness,
   frame by frame), `docs/governance.md`, `docs/mcp.md`, `docs/cron_and_md_pipes.md`,
-  `docs/web_kb.md`, `docs/agents_md.md`, `docs/failure_memory.md`, `docs/SOURCE_BRIEF.md` (idea sources).
+  `docs/web_kb.md`, `docs/agents_md.md`, `docs/failure_memory.md`,
+  `docs/hypotheses.md` (hypothesis cards, project-fact routing, ADR-047),
+  `docs/SOURCE_BRIEF.md` (idea sources).
   The detailed docs are mostly in Russian — the code and CLI speak English.
 
 Configuration: `config.example.toml`, `cron.example.toml` — fully commented.

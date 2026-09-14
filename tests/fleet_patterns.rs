@@ -324,6 +324,87 @@ fn review_pair_not_ready_blocks_integration() {
 }
 
 #[test]
+fn review_pair_not_ready_blocks_worktree_accept() {
+    // Сквозной контур ADR-046, п. 2 на РЕАЛЬНОМ журнале флота (не фикстура):
+    // узел review-impl судит ветку impl, и его NOT-READY блокирует приёмку
+    // этой ветки. Обход — только именным аппрувером с записью в журнал приёмки.
+    let (home, repo, config) = home_with_fleet(true);
+    let plan = write_plan(
+        home.path(),
+        "run-review-accept.plan.toml",
+        "id = \"run-review-accept\"\npattern = \"review_pair\"\n\n[policy]\nmax_parallel = 2\n\
+         require_worktree = true\nmerge_gate = \"owner\"\n\n[defaults]\nroute = \"fast\"\ngates = [\"contract\"]\n\n\
+         [[nodes]]\nid = \"impl\"\nspec = \"реализовать модуль\"\n",
+    );
+    let assert = fleet_cmd(home.path(), &config)
+        .arg("run")
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .arg("--plan")
+        .arg(&plan)
+        .assert()
+        .failure()
+        .code(1);
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout).into_owned();
+    let run_id = run_id_of(&stdout);
+
+    // Ветку, которую судил ревьювер, называет СТРУКТУРНОЕ поле `branch`
+    // события вливания зависимости (ADR-046, п. 2) — не текст `detail`:
+    // связь берётся из поля события, а не из формулировки.
+    let journal = std::fs::read_to_string(
+        home.path()
+            .join("state/fleet")
+            .join(format!("{run_id}.jsonl")),
+    )
+    .expect("журнал");
+    let branch = journal
+        .lines()
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .filter(|e| e["type"] == "node_gated" && e["node_id"] == "review-impl")
+        .find_map(|e| e["branch"].as_str().map(str::to_string))
+        .expect("event вливания зависимости несёт структурное поле branch");
+    assert!(branch.starts_with("arch/"), "поле branch — ветка: {branch}");
+    let name = branch.trim_start_matches("arch/").to_string();
+
+    let mut accept = arch_cmd(home.path());
+    accept
+        .arg("--config")
+        .arg(&config)
+        .arg("worktree")
+        .arg("accept")
+        .arg(&name)
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .assert()
+        .failure()
+        .stderr(contains("NOT-READY"))
+        .stderr(contains("severity"))
+        .stderr(contains("--approver"));
+
+    // Именной аппрувер: merge выполняется, решение — в журнале приёмки.
+    arch_cmd(home.path())
+        .arg("--config")
+        .arg(&config)
+        .arg("worktree")
+        .arg("accept")
+        .arg(&name)
+        .arg("--repo")
+        .arg(repo.as_os_str())
+        .arg("--approver")
+        .arg("roman")
+        .assert()
+        .success()
+        .stdout(contains("принят"));
+    let decisions = std::fs::read_to_string(home.path().join("state/accept/decisions.jsonl"))
+        .expect("журнал приёмки");
+    let record: serde_json::Value =
+        serde_json::from_str(decisions.lines().next().expect("запись")).expect("JSON решения");
+    assert_eq!(record["approver"], "roman");
+    assert_eq!(record["verdict"], "not-ready");
+    assert_eq!(record["branch"], branch);
+}
+
+#[test]
 fn tournament_judge_is_deterministic() {
     let (home, repo, config) = home_with_fleet(false);
     let plan = write_plan(

@@ -20,6 +20,21 @@ use serde::{Deserialize, Serialize};
 /// Overhead VRAM сверх весов, ГБ (активации + KV-cache + фрагментация).
 pub const VRAM_OVERHEAD_GB: f64 = 5.0;
 
+/// Порядок колонок `--query-gpu` для **дискретных** GPU.
+///
+/// КОНТРАКТ: порядок колонок здесь ОБЯЗАН совпадать с порядком чтения полей в
+/// [`parse_nvidia_smi`] (name → total → used → temp → util). Парсер позиционный:
+/// вставка/перестановка колонки в запросе без правки парсера молча сдвинет поля,
+/// поэтому обе стороны покрыты тестом `tests::parse_order_matches_query_columns`.
+pub const GPU_QUERY: &str = "name,memory.total,memory.used,temperature.gpu,utilization.gpu";
+
+/// Порядок колонок `--query-gpu` для **unified** GPU (GB10/DGX Spark).
+///
+/// `memory.*` на unified-ветке возвращает `[N/A]`, поэтому она идёт ОТДЕЛЬНЫМ
+/// запросом мимо [`parse_nvidia_smi`] (общий парсер отбросил бы такую строку как
+/// «нет памяти»). Порядок: name → utilization.gpu → temperature.gpu.
+pub const UNIFIED_QUERY: &str = "name,utilization.gpu,temperature.gpu";
+
 /// Спецификация известного GPU-устройства.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DeviceSpec {
@@ -139,17 +154,23 @@ pub struct DetectedGpu {
     pub total_mb: u64,
     /// Занято памяти, МБ.
     pub used_mb: u64,
+    /// Температура ядра, °C (`None` — `nvidia-smi` вернул `[N/A]`).
+    pub temp_c: Option<u32>,
+    /// Утилизация GPU, % (`None` — `nvidia-smi` вернул `[N/A]`).
+    pub util_pct: Option<u32>,
 }
 
 /// Память удалённой unified-системы (GB10/DGX Spark): `nvidia-smi memory.*`
 /// возвращает `[N/A]` (память общая с CPU), поэтому состояние читается из
-/// `/proc/meminfo` + утилизация GPU из `nvidia-smi`.
+/// `/proc/meminfo` + утилизация/температура GPU из `nvidia-smi`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnifiedMemory {
     /// Имя GPU (напр. `NVIDIA GB10`).
     pub name: String,
     /// GPU-Util, % (из `nvidia-smi`).
     pub gpu_util_pct: Option<u32>,
+    /// Температура ядра, °C (`None` — `[N/A]`/не поддержано).
+    pub temp_c: Option<u32>,
     /// Всего unified-памяти, МБ (`MemTotal`).
     pub total_mb: u64,
     /// Доступно unified-памяти, МБ (`MemAvailable`).
@@ -226,8 +247,19 @@ pub fn recommend(
     out
 }
 
+/// Разобрать необязательное числовое поле `nvidia-smi`: `[N/A]`,
+/// `[Not Supported]`, прочий мусор и пустая строка → `None` (graceful).
+fn parse_opt_u32(s: &str) -> Option<u32> {
+    s.trim().parse::<u32>().ok()
+}
+
 /// Разобрать CSV-вывод `nvidia-smi` (`--format=csv,noheader,nounits`) в GPU.
-/// Строки с нечитаемой/нулевой памятью пропускаются (graceful).
+///
+/// ПАРСЕР ПОЗИЦИОННЫЙ: порядок чтения обязан совпадать с [`GPU_QUERY`]
+/// (name → total → used → temp → util). Строки с нечитаемой/нулевой памятью
+/// (`memory.total` = `[N/A]`/0) пропускаются (graceful) — именно поэтому
+/// unified-ветка (GB10) идёт отдельным запросом [`UNIFIED_QUERY`], иначе здесь
+/// получился бы пустой вектор.
 #[must_use]
 pub fn parse_nvidia_smi(csv: &str) -> Vec<DetectedGpu> {
     csv.lines()
@@ -244,10 +276,14 @@ pub fn parse_nvidia_smi(csv: &str) -> Vec<DetectedGpu> {
                 .next()
                 .and_then(|s| s.trim().parse::<u64>().ok())
                 .unwrap_or(0);
+            let temp_c = parts.next().and_then(parse_opt_u32);
+            let util_pct = parts.next().and_then(parse_opt_u32);
             (total > 0).then_some(DetectedGpu {
                 name,
                 total_mb: total,
                 used_mb: used,
+                temp_c,
+                util_pct,
             })
         })
         .collect()
@@ -258,11 +294,9 @@ pub fn parse_nvidia_smi(csv: &str) -> Vec<DetectedGpu> {
 /// # Errors
 /// Возвращает ошибку, если `nvidia-smi` недоступен или завершился с ошибкой.
 pub fn detect() -> Result<Vec<DetectedGpu>> {
+    let query = format!("--query-gpu={GPU_QUERY}");
     let out = std::process::Command::new("nvidia-smi")
-        .args([
-            "--query-gpu=name,memory.total,memory.used",
-            "--format=csv,noheader,nounits",
-        ])
+        .args([query.as_str(), "--format=csv,noheader,nounits"])
         .output()
         .context("запуск nvidia-smi")?;
     if !out.status.success() {
@@ -304,7 +338,7 @@ pub fn ssh_out(alias: &str, cmd: &str) -> Result<String> {
 pub fn detect_remote(alias: &str) -> Result<Vec<DetectedGpu>> {
     let out = ssh_out(
         alias,
-        "nvidia-smi --query-gpu=name,memory.total,memory.used --format=csv,noheader,nounits",
+        &format!("nvidia-smi --query-gpu={GPU_QUERY} --format=csv,noheader,nounits"),
     )?;
     Ok(parse_nvidia_smi(&out))
 }
@@ -318,17 +352,20 @@ pub fn detect_remote(alias: &str) -> Result<Vec<DetectedGpu>> {
 pub fn detect_remote_unified(alias: &str) -> Result<UnifiedMemory> {
     let smi = ssh_out(
         alias,
-        "nvidia-smi --query-gpu=name,utilization.gpu --format=csv,noheader,nounits",
+        &format!("nvidia-smi --query-gpu={UNIFIED_QUERY} --format=csv,noheader,nounits"),
     )?;
     let first = smi.lines().next().unwrap_or("");
     let mut cols = first.split(',');
+    // Порядок чтения обязан совпадать с UNIFIED_QUERY: name → util → temp.
     let name = cols.next().unwrap_or("NVIDIA GB10").trim().to_string();
-    let util = cols.next().and_then(|s| s.trim().parse::<u32>().ok());
+    let util = cols.next().and_then(parse_opt_u32);
+    let temp = cols.next().and_then(parse_opt_u32);
     let mem = ssh_out(alias, "grep -E 'MemTotal|MemAvailable' /proc/meminfo")?;
     let (total_kb, avail_kb) = parse_meminfo(&mem);
     Ok(UnifiedMemory {
         name,
         gpu_util_pct: util,
+        temp_c: temp,
         total_mb: total_kb / 1024,
         avail_mb: avail_kb / 1024,
     })
@@ -382,7 +419,8 @@ pub fn live_free_gb(g: &LocalGpu) -> Option<f64> {
     }
 }
 
-/// Текстовый отчёт детекции: сколько GPU увидел `nvidia-smi` и их память.
+/// Текстовый отчёт детекции: сколько GPU увидел `nvidia-smi`, их память,
+/// температура и утилизация. Плейн-текст без ANSI (это lib) — читается в логе.
 #[must_use]
 pub fn render_detected(gpus: &[DetectedGpu]) -> String {
     if gpus.is_empty() {
@@ -392,16 +430,23 @@ pub fn render_detected(gpus: &[DetectedGpu]) -> String {
     for (i, g) in gpus.iter().enumerate() {
         let known = match_detected(&g.name);
         let tag = known.map_or("—", |d| d.key);
+        let temp = g
+            .temp_c
+            .map_or_else(|| "темп —".to_string(), |t| format!("темп {t}°C"));
+        let util = g
+            .util_pct
+            .map_or_else(|| "util —".to_string(), |u| format!("util {u}%"));
         let _ = writeln!(
             out,
-            "  {}. {}  {} МБ ({} занято)  [{}]",
+            "  {}. {}  {} МБ ({} занято)  {temp}  {util}  [{}]",
             i, g.name, g.total_mb, g.used_mb, tag
         );
     }
     out
 }
 
-/// Текстовый отчёт unified-памяти (GB10): всего/доступно + GPU-Util.
+/// Текстовый отчёт unified-памяти (GB10): всего/доступно + GPU-Util и
+/// температура (если `nvidia-smi` их отдал). Плейн-текст без ANSI.
 #[must_use]
 pub fn render_unified(m: &UnifiedMemory) -> String {
     let total_gb = m.total_mb as f64 / 1024.0;
@@ -409,8 +454,11 @@ pub fn render_unified(m: &UnifiedMemory) -> String {
     let util = m
         .gpu_util_pct
         .map_or_else(|| "—".to_string(), |u| format!("{u}%"));
+    let temp = m
+        .temp_c
+        .map_or_else(String::new, |t| format!(", темп {t}°C"));
     format!(
-        "  {}. {}  unified {total_gb:.0} ГБ всего, {avail_gb:.0} ГБ доступно  (GPU-Util {util})\n",
+        "  {}. {}  unified {total_gb:.0} ГБ всего, {avail_gb:.0} ГБ доступно  (GPU-Util {util}{temp})\n",
         0, m.name
     )
 }
@@ -479,13 +527,53 @@ mod tests {
 
     #[test]
     fn parse_nvidia_smi_parses_typical_lines() {
-        let csv = "NVIDIA GeForce RTX 4080 SUPER, 16376, 512\nNVIDIA GB10, 131072, 2048\n";
+        let csv = "NVIDIA GeForce RTX 4080 SUPER, 16376, 512, 42, 4\nNVIDIA RTX 4090, 24564, 2048, 55, 91\n";
         let gpus = parse_nvidia_smi(csv);
         assert_eq!(gpus.len(), 2);
         assert_eq!(gpus[0].total_mb, 16376);
-        assert_eq!(gpus[1].total_mb, 131072);
+        assert_eq!(gpus[0].temp_c, Some(42));
+        assert_eq!(gpus[0].util_pct, Some(4));
+        assert_eq!(gpus[1].total_mb, 24564);
+        assert_eq!(gpus[1].util_pct, Some(91));
         // Строки с мусором/нулём пропускаются.
-        assert!(parse_nvidia_smi("bad line, 0, 0\n\n").is_empty());
+        assert!(parse_nvidia_smi("bad line, 0, 0, 1, 2\n\n").is_empty());
+    }
+
+    #[test]
+    fn parse_order_matches_query_columns() {
+        // Закрепляем порядок колонок строкой запроса: перестановка колонки в
+        // GPU_QUERY без правки парсера (или наоборот) обязана уронить этот тест.
+        assert_eq!(
+            GPU_QUERY,
+            "name,memory.total,memory.used,temperature.gpu,utilization.gpu"
+        );
+        let csv = "NVIDIA GeForce RTX 4080 SUPER, 16376, 14037, 42, 4\n";
+        let g = &parse_nvidia_smi(csv)[0];
+        assert_eq!(g.name, "NVIDIA GeForce RTX 4080 SUPER");
+        assert_eq!(g.total_mb, 16376);
+        assert_eq!(g.used_mb, 14037);
+        assert_eq!(g.temp_c, Some(42));
+        assert_eq!(g.util_pct, Some(4));
+    }
+
+    #[test]
+    fn parse_nvidia_smi_na_fields_are_graceful() {
+        // Строка с [N/A] в темпе/утилизации — поля None, но GPU не теряется.
+        let csv = "NVIDIA GeForce RTX 4080 SUPER, 16376, 512, [N/A], [N/A]\n\
+                   NVIDIA GB10, [N/A], [N/A], [N/A], 96\n";
+        let gpus = parse_nvidia_smi(csv);
+        assert_eq!(gpus.len(), 1, "unified-строка (память [N/A]) отброшена");
+        assert_eq!(gpus[0].temp_c, None);
+        assert_eq!(gpus[0].util_pct, None);
+    }
+
+    #[test]
+    fn parse_opt_u32_handles_not_supported() {
+        assert_eq!(parse_opt_u32("42"), Some(42));
+        assert_eq!(parse_opt_u32(" 42 "), Some(42));
+        assert_eq!(parse_opt_u32("[N/A]"), None);
+        assert_eq!(parse_opt_u32("[Not Supported]"), None);
+        assert_eq!(parse_opt_u32(""), None);
     }
 
     #[test]
@@ -512,6 +600,7 @@ mod tests {
         let m = UnifiedMemory {
             name: "NVIDIA GB10".into(),
             gpu_util_pct: Some(96),
+            temp_c: Some(58),
             total_mb: 131_072,
             avail_mb: 21_504,
         };
@@ -519,6 +608,50 @@ mod tests {
         assert!(out.contains("128 ГБ всего"));
         assert!(out.contains("21 ГБ доступно"));
         assert!(out.contains("96%"));
+        assert!(out.contains("темп 58°C"));
+    }
+
+    #[test]
+    fn render_unified_without_temp_is_graceful() {
+        let m = UnifiedMemory {
+            name: "NVIDIA GB10".into(),
+            gpu_util_pct: None,
+            temp_c: None,
+            total_mb: 131_072,
+            avail_mb: 21_504,
+        };
+        let out = render_unified(&m);
+        assert!(out.contains("GPU-Util —"));
+        assert!(!out.contains("темп"), "нет температуры — нет и упоминания");
+    }
+
+    #[test]
+    fn render_detected_shows_temp_and_util() {
+        let gpus = vec![DetectedGpu {
+            name: "NVIDIA GeForce RTX 4080 SUPER".into(),
+            total_mb: 16_376,
+            used_mb: 512,
+            temp_c: Some(42),
+            util_pct: Some(4),
+        }];
+        let out = render_detected(&gpus);
+        assert!(out.contains("темп 42°C"));
+        assert!(out.contains("util 4%"));
+        assert!(out.contains("rtx4080super"), "тег устройства сохранён");
+    }
+
+    #[test]
+    fn render_detected_without_temp_is_graceful() {
+        let gpus = vec![DetectedGpu {
+            name: "NVIDIA GeForce RTX 4080 SUPER".into(),
+            total_mb: 16_376,
+            used_mb: 512,
+            temp_c: None,
+            util_pct: None,
+        }];
+        let out = render_detected(&gpus);
+        assert!(out.contains("темп —"));
+        assert!(out.contains("util —"));
     }
 
     #[test]
@@ -528,11 +661,15 @@ mod tests {
                 name: "a".into(),
                 total_mb: 16_376,
                 used_mb: 512,
+                temp_c: Some(42),
+                util_pct: Some(4),
             },
             DetectedGpu {
                 name: "b".into(),
                 total_mb: 16_376,
                 used_mb: 16_376,
+                temp_c: None,
+                util_pct: None,
             },
         ];
         // (16376 − 512) + 0 = 15864 МБ.

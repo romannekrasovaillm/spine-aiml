@@ -1,0 +1,50 @@
+{
+  "run_id": "a4-wire-corruption-l0-01",
+  "task_id": "corruption-l0-01",
+  "env_version": "environment-v1",
+  "gates_version": {
+    "arch_ml_build": "7e144f9837c6f6bfc256c61e33936da35a408bd72ff9e92f94bfc02f052e648a",
+    "constraints_sha256": "ce4ab4ede101e533ac38b64e7fd6bd6f112dffcd6813c3486d2e7f20b4cc4d36",
+    "hidden_constraints_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "workspace_sha256": "a855a1a28766a6c5a287e176ee8adfd065f58d352734c23748d6b57eba22941b",
+  "model": {
+    "snapshot_sha256": "fff2c29bb2aad9bc27a474d111526809bc5d649a92cea17afa13f2c90146a288",
+    "base": "net-l3-skeleton-small-untrained",
+    "routing_seed": 0
+  },
+  "decoding": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "seed": 1001,
+    "max_new_tokens": 8
+  },
+  "budget": {
+    "max_tokens": 131072,
+    "thinking_budget": 8192,
+    "attempts_allowed": 1,
+    "attempts_used": 1
+  },
+  "usage": {
+    "tokens_in": 252,
+    "tokens_out": 8,
+    "cost_usd": 0.0,
+    "host": "net-executor"
+  },
+  "timing": {
+    "started": "2026-09-13T00:00:00+00:00",
+    "finished": "2026-09-13T00:00:01+00:00",
+    "resume_count": 0
+  },
+  "verdict": {
+    "pass": false,
+    "reward": {
+      "pass_component": 0.0,
+      "soft": 0.4285714285714286,
+      "new_violations": 6,
+      "effort_penalty": 0.0,
+      "total": 0.1785714285714286
+    },
+    "issues_warn": []
+  }
+}

@@ -324,11 +324,28 @@ fn diff_regex(pattern: &str) -> Result<Regex> {
 /// - `irreversible_migration` — в диффе файла миграций (каталог `migrations/`
 ///   или `*.sql`) есть `DROP TABLE`/`TRUNCATE`/`DROP COLUMN`;
 /// - `new_datastore` — в конфигах добавлены строки подключения
-///   `postgres://`/`mysql://`/`kafka`/`mongodb`/`redis://`.
+///   `postgres://`/`mysql://`/`kafka`/`mongodb`/`redis://`;
+/// - `hypothesis_hit` — появление в диффе файла по маске `kind: files` из
+///   таблицы роутинга гипотез `$HYPOTHESES_DIR/routing.json` (продуктовая
+///   фича «карточки гипотез + роутинг по фактам проекта»). Переменная не
+///   задана, файла нет или JSON битый — сенсор молча выключен. Триггер НЕ
+///   форсирует Critical: даёт ровно +1 к счёту значимости.
 ///
 /// # Errors
 /// Не git-репозиторий, git недоступен, некорректный `GIT_REF`.
 pub fn detect_diff_triggers(repo: &Path, git_ref: Option<&str>) -> Result<DiffTriggers> {
+    detect_diff_triggers_with_routing(repo, git_ref, hypothesis_routing_path_from_env().as_deref())
+}
+
+/// Ядро [`detect_diff_triggers`] с явным путём к таблице роутинга гипотез
+/// (`None` — сенсор выключен). Выделено для тестов: путь передаётся
+/// напрямую, без мутации переменной окружения (`std::env::set_var`
+/// недоступен в edition 2024).
+fn detect_diff_triggers_with_routing(
+    repo: &Path,
+    git_ref: Option<&str>,
+    routing: Option<&Path>,
+) -> Result<DiffTriggers> {
     let range: Vec<String> = match git_ref {
         None => vec!["HEAD".to_string()],
         Some(r) => vec![format!("{r}...HEAD")],
@@ -476,7 +493,105 @@ pub fn detect_diff_triggers(repo: &Path, git_ref: Option<&str>) -> Result<DiffTr
             }
         }
     }
+
+    // hypothesis_hit: появление/изменение файла по маске `kind: files` из
+    // таблицы роутинга гипотез (карточки HYPOTHESIS.md → routing.json).
+    // Уникальный триггер: сколько бы строк ни совпало, `fire` даёт +1 к
+    // счёту. Не форсирует Critical (нет в FORCING_CRITICAL_TRIGGERS).
+    if let Some(routing) = routing {
+        for trigger in hypothesis_file_triggers(routing) {
+            let hit = files
+                .iter()
+                .find(|(code, path)| *code != 'D' && file_matches_glob(path, &trigger));
+            if let Some((_, path)) = hit {
+                found.fire(
+                    HYPOTHESIS_HIT_TRIGGER,
+                    &format!("гипотеза: {path} по маске '{trigger}'"),
+                );
+                break; // уникальный триггер — ровно +1 к счёту
+            }
+        }
+    }
+
     Ok(found)
+}
+
+// --- Сенсор гипотез: роутинг по фактам проекта (карточки гипотез) ---
+
+/// Имя триггера значимости, зажигаемого сенсором гипотез при совпадении
+/// файла диффа с маской карточки. Намеренно НЕ входит в
+/// [`FORCING_CRITICAL_TRIGGERS`]: влияет на выбор Fast/Standard/Critical
+/// через +1 к счёту, но не переводит маршрут в Critical сам по себе.
+const HYPOTHESIS_HIT_TRIGGER: &str = "hypothesis_hit";
+
+/// Таблица роутинга гипотез (`$HYPOTHESES_DIR/routing.json`): хранится
+/// только то, что читает сенсор — строки триггеров. Лишние поля
+/// (`min_score`, `card`, `state`, `skills`) serde игнорирует.
+#[derive(Deserialize)]
+struct HypothesisRoutingTable {
+    /// Плоские триггеры всех карточек.
+    #[serde(default)]
+    rows: Vec<HypothesisRoutingRow>,
+}
+
+/// Одна строка таблицы роутинга.
+#[derive(Deserialize)]
+struct HypothesisRoutingRow {
+    /// Маска/литерал триггера (glob по basename и относительному пути).
+    trigger: String,
+    /// Вид факта: `files`/`keys`/`deps`/`words`. Сенсор значимости читает
+    /// только `files` (остальное — матчинг намерения/контента).
+    kind: String,
+}
+
+/// Глоб-маски триггеров `kind: files` из таблицы роутинга.
+///
+/// Сенсор fail-safe: файл не читается, JSON битый или нет строк `files` —
+/// пустой список (сенсор молча выключен, без ошибок и предупреждений).
+fn hypothesis_file_triggers(routing: &Path) -> Vec<String> {
+    let Ok(text) = std::fs::read_to_string(routing) else {
+        return Vec::new();
+    };
+    let Ok(table) = serde_json::from_str::<HypothesisRoutingTable>(&text) else {
+        return Vec::new();
+    };
+    table
+        .rows
+        .into_iter()
+        .filter(|r| r.kind == "files" && !r.trigger.is_empty())
+        .map(|r| r.trigger)
+        .collect()
+}
+
+/// Совпадение файла диффа с маской триггера карточки. Как в
+/// `card_match.py`, маска проверяется и по basename, и по относительному
+/// пути файла (glob-движок ядра — [`glob_matches`]).
+fn file_matches_glob(path: &str, pattern: &str) -> bool {
+    let base = path.rsplit('/').next().unwrap_or(path);
+    glob_matches(pattern, path) || glob_matches(pattern, base)
+}
+
+/// Путь к таблице роутинга гипотез по значению `HYPOTHESES_DIR`: `None`
+/// (переменная не задана) или пустое значение — `None`; ведущий `~/`
+/// разворачивается от `$HOME` (значение переменной окружения шелл не
+/// раскрывает). Значение передаётся вызывающим — env читает тонкая обёртка
+/// [`hypothesis_routing_path_from_env`], тесты зовут эту функцию напрямую.
+fn hypothesis_routing_path(dir: Option<&str>) -> Option<PathBuf> {
+    let dir = dir?.trim();
+    if dir.is_empty() {
+        return None;
+    }
+    let base = match dir.strip_prefix("~/") {
+        Some(rest) => std::env::var_os("HOME")
+            .map_or_else(|| PathBuf::from(dir), |home| PathBuf::from(home).join(rest)),
+        None => PathBuf::from(dir),
+    };
+    Some(base.join("routing.json"))
+}
+
+/// Обёртка с чтением env: вся логика — в [`hypothesis_routing_path`].
+fn hypothesis_routing_path_from_env() -> Option<PathBuf> {
+    hypothesis_routing_path(std::env::var("HYPOTHESES_DIR").ok().as_deref())
 }
 
 /// Источник срабатывания триггера значимости (anti-bypass отчёт, S-1).
@@ -1512,6 +1627,98 @@ pub fn load_fitness_rules(constraints: &Path) -> Result<Vec<FitnessRule>> {
         rules, constraints, ..
     } = parsed;
     Ok(rules.into_iter().chain(constraints).collect())
+}
+
+/// Что за файл правил найден дефолтным поиском ([`resolve_ruleset`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RulesetKind {
+    /// `<repo>/CONSTRAINTS.yaml` — рабочий ruleset репозитория/кейса.
+    Working,
+    /// `<repo>/.arch-handoff/CONSTRAINTS.yaml` — файл handoff-пакета
+    /// (заготовка генератора либо копия рабочего ruleset).
+    PacketStub,
+}
+
+impl RulesetKind {
+    /// Человекочитаемая метка источника для вывода.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Working => "рабочий ruleset",
+            Self::PacketStub => "пакетная заготовка",
+        }
+    }
+}
+
+/// Файл правил, найденный дефолтным поиском.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedRuleset {
+    /// Путь к `CONSTRAINTS.yaml`.
+    pub path: PathBuf,
+    /// Что это за файл (см. [`RulesetKind`]).
+    pub kind: RulesetKind,
+}
+
+impl ResolvedRuleset {
+    /// Предупреждение для вывода, если найден только пакетный файл:
+    /// проверяется заготовка, а не рабочий ruleset кейса. PASS по ней —
+    /// не полноценный контроль. `None` — найден рабочий ruleset.
+    #[must_use]
+    pub fn warning(&self, repo: &Path) -> Option<String> {
+        match self.kind {
+            RulesetKind::Working => None,
+            RulesetKind::PacketStub => Some(format!(
+                "ruleset: проверяется пакетная заготовка {}, а не рабочий ruleset — {} \
+                 не найден. PASS по заготовке не является полноценным контролем; \
+                 передайте --constraints или создайте рабочий CONSTRAINTS.yaml",
+                self.path.display(),
+                repo.join("CONSTRAINTS.yaml").display()
+            )),
+        }
+    }
+}
+
+/// Дефолтный поиск файла правил репозитория.
+///
+/// Приоритет: рабочий `<repo>/CONSTRAINTS.yaml`, затем — как fallback —
+/// пакетный `<repo>/.arch-handoff/CONSTRAINTS.yaml`. Обратный приоритет
+/// (пакетный первым) давал «зелёный по пустоте»: в каталоге кейса дефолтный
+/// `control check` проверял 1 правило заготовки вместо рабочего ruleset'а
+/// (C-037, ADR-011). Вызывающий обязан предупредить о fallback —
+/// [`ResolvedRuleset::warning`].
+///
+/// `None` — ни одного файла нет.
+#[must_use]
+pub fn resolve_ruleset(repo: &Path) -> Option<ResolvedRuleset> {
+    let working = repo.join("CONSTRAINTS.yaml");
+    if working.is_file() {
+        return Some(ResolvedRuleset {
+            path: working,
+            kind: RulesetKind::Working,
+        });
+    }
+    let packet = repo.join(".arch-handoff/CONSTRAINTS.yaml");
+    packet.is_file().then_some(ResolvedRuleset {
+        path: packet,
+        kind: RulesetKind::PacketStub,
+    })
+}
+
+/// Как [`resolve_ruleset`], но отсутствие обоих файлов — явная ошибка
+/// с перечислением ожидаемых путей (вместо невнятного io-сбоя).
+///
+/// # Errors
+/// Ни `<repo>/CONSTRAINTS.yaml`, ни `<repo>/.arch-handoff/CONSTRAINTS.yaml`
+/// не найдены.
+pub fn resolve_ruleset_required(repo: &Path) -> Result<ResolvedRuleset> {
+    resolve_ruleset(repo).ok_or_else(|| {
+        HarnessError::Control(format!(
+            "ruleset не найден: ни {} (рабочий), ни {} (пакетная заготовка)",
+            repo.join("CONSTRAINTS.yaml").display(),
+            repo.join(".arch-handoff/CONSTRAINTS.yaml").display()
+        ))
+    })
 }
 
 /// Переменная окружения с каталогом-реестром родительских
@@ -3946,10 +4153,39 @@ pub(crate) fn kebab_slug(title: &str) -> String {
     }
 }
 
-/// Шаблон ADR по AI-DLC с placeholder-комментариями.
+/// YAML-скаляр в двойных кавычках: экранируются `\` и `"` (ADR-045 §2 —
+/// frontmatter обязан оставаться разбираемым при любом заголовке).
+fn yaml_dquote(value: &str) -> String {
+    let mut out = String::with_capacity(value.len() + 2);
+    out.push('"');
+    for ch in value.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            _ => out.push(ch),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// Шаблон ADR по AI-DLC с placeholder-комментариями. Первый блок —
+/// YAML-frontmatter (ADR-045 §2): `depends_on`/`affects`/`spec_files` —
+/// рёбра и артефакты плана флота; пустые списки заполняет автор решения.
 fn adr_template(n: u64, title: &str, date: &str) -> String {
+    let title_yaml = yaml_dquote(title);
     format!(
-        "# ADR-{n:03}. {title}\n\
+        "---\n\
+        id: ADR-{n:03}\n\
+        title: {title_yaml}\n\
+        status: Proposed\n\
+        date: \"{date}\"\n\
+        depends_on: []\n\
+        affects: []\n\
+        spec_files: []\n\
+        ---\n\
+        \n\
+        # ADR-{n:03}. {title}\n\
         \n\
         - Date: {date}\n\
         - Status: Proposed\n\
@@ -4271,6 +4507,12 @@ mod tests {
     /// Доменная fitness-библиотека ML (`aiml/library/fitness/`) обязана парситься
     /// движком `control check`: id уникальны, severity каноничны. Это гейт
     /// «каталог правил не рассинхронизирован с движком».
+    ///
+    /// Дополнительно проверяется ожидаемый файл роутинга гипотез
+    /// `aiml/library/fitness/hypothesis-routing.yaml` (правила плагина
+    /// hypothesis-router в схеме движка). Файл делает смежный срез, поэтому
+    /// проверка условна: пока файла нет — тест зелёный, но как только он
+    /// появится, его правила обязаны парситься (иначе сломаются незаметно).
     #[test]
     fn ml_fitness_library_parses() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -4286,6 +4528,25 @@ mod tests {
         }
         let ids: std::collections::HashSet<_> = rules.iter().filter_map(|r| r.id.clone()).collect();
         assert_eq!(ids.len(), rules.len(), "id правил уникальны");
+
+        // Ожидаемый файл: aiml/library/fitness/hypothesis-routing.yaml.
+        let hyp = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("aiml/library/fitness/hypothesis-routing.yaml");
+        if hyp.exists() {
+            let hrules =
+                load_fitness_rules(&hyp).expect("fitness роутинга гипотез парсится движком");
+            assert!(!hrules.is_empty(), "файл роутинга гипотез без правил");
+            for r in &hrules {
+                assert!(
+                    matches!(r.severity.as_str(), "error" | "warn"),
+                    "severity {} не каноничен",
+                    r.severity
+                );
+            }
+            let hids: std::collections::HashSet<_> =
+                hrules.iter().filter_map(|r| r.id.clone()).collect();
+            assert_eq!(hids.len(), hrules.len(), "id правил роутинга уникальны");
+        }
     }
 
     #[test]
@@ -4297,6 +4558,60 @@ mod tests {
         assert_eq!(significance_score(&answers).route, Route::Standard);
         answers.insert("security_boundary_change".into(), true);
         assert_eq!(significance_score(&answers).route, Route::Critical);
+    }
+
+    /// Дефолтный поиск ruleset'а: рабочий `<repo>/CONSTRAINTS.yaml` имеет
+    /// приоритет над пакетной заготовкой (C-037, ADR-011 п. 5).
+    #[test]
+    fn resolve_ruleset_prefers_working_over_packet() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let working = write_file(repo, "CONSTRAINTS.yaml", "rules:\n  - name: w\n");
+        write_file(
+            repo,
+            ".arch-handoff/CONSTRAINTS.yaml",
+            "rules:\n  - name: p\n",
+        );
+
+        let resolved = resolve_ruleset(repo).expect("ruleset найден");
+        assert_eq!(resolved.path, working);
+        assert_eq!(resolved.kind, RulesetKind::Working);
+        assert!(
+            resolved.warning(repo).is_none(),
+            "рабочий файл — без warnings"
+        );
+    }
+
+    /// Только пакетный файл — fallback с явным предупреждением, что это
+    /// заготовка, а не рабочий ruleset (PASS по ней не полноценен).
+    #[test]
+    fn resolve_ruleset_falls_back_to_packet_with_warning() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let packet = write_file(
+            repo,
+            ".arch-handoff/CONSTRAINTS.yaml",
+            "rules:\n  - name: p\n",
+        );
+
+        let resolved = resolve_ruleset(repo).expect("ruleset найден");
+        assert_eq!(resolved.path, packet);
+        assert_eq!(resolved.kind, RulesetKind::PacketStub);
+        let warning = resolved.warning(repo).expect("предупреждение о заготовке");
+        assert!(warning.contains("заготовка"), "{warning}");
+        assert!(warning.contains("CONSTRAINTS.yaml"), "{warning}");
+    }
+
+    /// Ни рабочего, ни пакетного файла — явная ошибка с обоими путями.
+    #[test]
+    fn resolve_ruleset_missing_reports_both_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        assert!(resolve_ruleset(repo).is_none());
+        let err = resolve_ruleset_required(repo).expect_err("файлов нет — ошибка");
+        let text = err.to_string();
+        assert!(text.contains("CONSTRAINTS.yaml"), "{text}");
+        assert!(text.contains(".arch-handoff"), "{text}");
     }
 
     /// Пишет файл в каталог и возвращает его путь.
@@ -5059,6 +5374,54 @@ mod tests {
             "ADR-002-shina-sobytiy.md",
             "кириллица транслитерируется (ADR-002)"
         );
+    }
+
+    #[test]
+    fn adr_new_writes_parseable_frontmatter() {
+        // ADR-045 §2: ADR обязан нести YAML-frontmatter первым блоком —
+        // иначе `depends_on`/`affects` объявить негде и граф работ из ADR
+        // вырождается.
+        let dir = tempfile::tempdir().unwrap();
+        let adr_dir = dir.path().join("docs/adr");
+        let path = adr_new(&adr_dir, "План из решений").unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.starts_with("---\n"), "{content}");
+        let (yaml, body) = crate::model::split_frontmatter(&content).unwrap();
+        let fm: serde_yaml_ng::Value = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(fm["id"].as_str(), Some("ADR-001"), "{yaml}");
+        assert_eq!(fm["title"].as_str(), Some("План из решений"), "{yaml}");
+        assert_eq!(fm["status"].as_str(), Some("Proposed"), "{yaml}");
+        let date = fm["date"].as_str().expect("дата обязательна");
+        assert_eq!(date.len(), 10, "дата в формате YYYY-MM-DD: {date}");
+        for field in ["depends_on", "affects", "spec_files"] {
+            assert_eq!(
+                fm[field].as_sequence().map(Vec::len),
+                Some(0),
+                "поле {field} — пустой список: {yaml}"
+            );
+        }
+        // Существующее тело (заголовок, шапка, разделы) сохранено.
+        for needle in [
+            "# ADR-001. План из решений",
+            "- Date:",
+            "- Status: Proposed",
+            "## Context",
+            "## Decision",
+        ] {
+            assert!(body.contains(needle), "в теле нет '{needle}'");
+        }
+    }
+
+    #[test]
+    fn adr_new_frontmatter_escapes_title_quotes() {
+        // Кавычка в заголовке не должна ломать YAML-frontmatter.
+        let dir = tempfile::tempdir().unwrap();
+        let adr_dir = dir.path().join("docs/adr");
+        let path = adr_new(&adr_dir, "Решение \"быстрое\"").unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        let (yaml, _) = crate::model::split_frontmatter(&content).unwrap();
+        let fm: serde_yaml_ng::Value = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(fm["title"].as_str(), Some("Решение \"быстрое\""));
     }
 
     #[test]
@@ -5861,6 +6224,163 @@ mod tests {
         // Пороги параметризуются: тем же множеством при standard_max=1 — Critical.
         let strict = score_with_sources(&answers, &diff, 0, 1);
         assert_eq!(strict.significance.route, Route::Critical);
+    }
+
+    // --- Сенсор гипотез: роутинг по фактам проекта (карточки → routing.json) -----
+
+    /// Пишет таблицу роутинга гипотез в `hypotheses/routing.json` tempdir'а
+    /// и возвращает путь к файлу (как `$HYPOTHESES_DIR/routing.json`).
+    fn write_routing(dir: &Path, rows: &str) -> PathBuf {
+        write_file(
+            dir,
+            "hypotheses/routing.json",
+            &format!("{{\"min_score\": 2, \"rows\": [{rows}]}}"),
+        )
+    }
+
+    #[test]
+    fn hypothesis_routing_path_handles_env_value() {
+        // Сенсор выключен без HYPOTHESES_DIR (None) и на пустом значении.
+        assert_eq!(hypothesis_routing_path(None), None);
+        assert_eq!(hypothesis_routing_path(Some("")), None);
+        assert_eq!(hypothesis_routing_path(Some("   ")), None);
+        assert_eq!(
+            hypothesis_routing_path(Some("/home/user/hypotheses")),
+            Some(PathBuf::from("/home/user/hypotheses/routing.json"))
+        );
+        // Ведущий `~/` разворачивается от $HOME (шелл значение env не
+        // раскрывает), хвост пути сохраняется.
+        let tilde = hypothesis_routing_path(Some("~/hyp")).expect("путь из ~/");
+        assert!(tilde.ends_with("hyp/routing.json"), "{tilde:?}");
+        // Тонкая обёртка читает ту же переменную и повторяет разбор ровно.
+        match std::env::var("HYPOTHESES_DIR") {
+            Err(_) => assert_eq!(hypothesis_routing_path_from_env(), None),
+            Ok(v) => assert_eq!(
+                hypothesis_routing_path_from_env(),
+                hypothesis_routing_path(Some(&v))
+            ),
+        }
+    }
+
+    #[test]
+    fn hypothesis_sensor_off_when_routing_file_absent() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = git_repo(dir.path());
+        write_file(&repo, "rollouts_log.jsonl", "{}\n");
+        // Ядро без таблицы (HYPOTHESES_DIR не задан) — сенсор выключен.
+        let off = detect_diff_triggers_with_routing(&repo, None, None).unwrap();
+        assert!(
+            !off.triggers.contains(HYPOTHESIS_HIT_TRIGGER),
+            "{:?}",
+            off.triggers
+        );
+        // Путь передан, но файла нет — тоже молча выключен.
+        let missing = dir.path().join("nope/routing.json");
+        let gone = detect_diff_triggers_with_routing(&repo, None, Some(&missing)).unwrap();
+        assert!(
+            !gone.triggers.contains(HYPOTHESIS_HIT_TRIGGER),
+            "{:?}",
+            gone.triggers
+        );
+    }
+
+    #[test]
+    fn hypothesis_sensor_fires_on_files_trigger() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = git_repo(dir.path());
+        write_file(&repo, "exp/rollouts_log.jsonl", "{}\n");
+        // Родной формат строки routing.json (`card`/`state`/`skills` — как
+        // их пишет card_match.py --emit-routing); триггер — литерал basename.
+        let routing = write_routing(
+            dir.path(),
+            r#"{"trigger": "rollouts_log.jsonl", "kind": "files", "weight": 3,
+                "card": "laguna-gb10-ladder", "state": "latent",
+                "skills": ["laguna-ladder-run", "ood-stage-eval"]}"#,
+        );
+        let found = detect_diff_triggers_with_routing(&repo, None, Some(&routing)).unwrap();
+        assert!(
+            found.triggers.contains(HYPOTHESIS_HIT_TRIGGER),
+            "{:?}",
+            found.triggers
+        );
+        assert!(
+            found
+                .evidence
+                .iter()
+                .any(|e| e.contains(HYPOTHESIS_HIT_TRIGGER)),
+            "триггер виден в отчёте: {:?}",
+            found.evidence
+        );
+        // +1 к счёту; сам по себе маршрут не Critical (Fast при score 1).
+        let scored = score_with_sources(
+            &BTreeMap::new(),
+            &found,
+            DEFAULT_FAST_MAX,
+            DEFAULT_STANDARD_MAX,
+        );
+        assert_eq!(scored.significance.fired, [HYPOTHESIS_HIT_TRIGGER]);
+        assert_eq!(scored.significance.score, 1);
+        assert_eq!(
+            scored.significance.route,
+            Route::Fast,
+            "не форсирует Critical"
+        );
+        assert_eq!(scored.sources[HYPOTHESIS_HIT_TRIGGER], TriggerSource::Diff);
+    }
+
+    #[test]
+    fn hypothesis_sensor_ignores_non_file_kinds() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = git_repo(dir.path());
+        write_file(&repo, "rollouts_log.jsonl", "{}\n");
+        // Тот же файл совпал бы, будь строки kind: words/keys/deps — сенсор
+        // значимости читает только файловые факты.
+        let routing = write_routing(
+            dir.path(),
+            r#"{"trigger": "rollouts*", "kind": "words", "weight": 1, "card": "c1", "state": "latent", "skills": []},
+               {"trigger": "rollouts_log.jsonl", "kind": "keys", "weight": 3, "card": "c1", "state": "latent", "skills": []},
+               {"trigger": "rollouts_log.jsonl", "kind": "deps", "weight": 2, "card": "c1", "state": "latent", "skills": []}"#,
+        );
+        let found = detect_diff_triggers_with_routing(&repo, None, Some(&routing)).unwrap();
+        assert!(
+            !found.triggers.contains(HYPOTHESIS_HIT_TRIGGER),
+            "{:?}",
+            found.triggers
+        );
+    }
+
+    #[test]
+    fn hypothesis_sensor_counts_once_for_multiple_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = git_repo(dir.path());
+        write_file(&repo, "runs/rollouts_log.jsonl", "{}\n");
+        write_file(&repo, "archive/rollouts_log.jsonl", "{}\n");
+        // Две маски (basename-glob и glob по относительному пути) совпали —
+        // триггер уникален, счёт растёт ровно на 1.
+        let routing = write_routing(
+            dir.path(),
+            r#"{"trigger": "*.jsonl", "kind": "files", "weight": 3, "card": "a", "state": "latent", "skills": []},
+               {"trigger": "runs/*.jsonl", "kind": "files", "weight": 3, "card": "b", "state": "latent", "skills": []}"#,
+        );
+        let found = detect_diff_triggers_with_routing(&repo, None, Some(&routing)).unwrap();
+        assert_eq!(
+            found
+                .triggers
+                .iter()
+                .filter(|t| *t == HYPOTHESIS_HIT_TRIGGER)
+                .count(),
+            1,
+            "уникальный триггер: {:?}",
+            found.triggers
+        );
+        let scored = score_with_sources(
+            &BTreeMap::new(),
+            &found,
+            DEFAULT_FAST_MAX,
+            DEFAULT_STANDARD_MAX,
+        );
+        assert_eq!(scored.significance.score, 1, "ровно +1 при N совпадениях");
+        assert_eq!(scored.significance.route, Route::Fast);
     }
 
     // --- S-2: пороги значимости (ADR-034) ---------------------------------------

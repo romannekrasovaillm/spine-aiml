@@ -23,6 +23,7 @@
 //!   сразу (задача `hr-*` в общем реестре фоновых задач), агент остаётся
 //!   доступным пользователю, результат — через `subagent_result`.
 
+use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -148,92 +149,86 @@ fn default_constraints(repo: &Path) -> String {
         "generic"
     };
     let rules = match stack {
-        "Rust" => {
-            "\
-  - name: no-unwrap-in-src
-    type: must_not_contain
-    glob: \"src/**\"
-    pattern: 'unwrap\\('
-    severity: warn
-  - name: no-dbg-macro
-    type: must_not_contain
-    glob: \"src/**\"
-    pattern: 'dbg!'
-    severity: error
-  - name: readme-exists
-    type: file_exists
-    path: README.md
-    severity: warn
-  - name: cargo-check-passes
-    type: command_succeeds
-    command: 'cargo check'
-    timeout_secs: 120
-    severity: error
-"
-        }
-        "Python" => {
-            "\
-  - name: no-print-in-py
-    type: must_not_contain
-    glob: \"**/*.py\"
-    pattern: 'print\\('
-    severity: warn
-  - name: readme-exists
-    type: file_exists
-    path: README.md
-    severity: warn
-  - name: pytest-passes
-    type: command_succeeds
-    command: 'pytest -q'
-    timeout_secs: 180
-    severity: error
-"
-        }
-        "Go" => {
-            "\
-  - name: go-build-passes
-    type: command_succeeds
-    command: 'go build ./...'
-    timeout_secs: 180
-    severity: error
-  - name: go-vet-passes
-    type: command_succeeds
-    command: 'go vet ./...'
-    timeout_secs: 180
-    severity: warn
-  - name: readme-exists
-    type: file_exists
-    path: README.md
-    severity: warn
-"
-        }
-        "Node" => {
-            "\
-  - name: readme-exists
-    type: file_exists
-    path: README.md
-    severity: warn
-  - name: npm-test-passes
-    type: command_succeeds
-    command: 'npm test'
-    timeout_secs: 300
-    severity: warn
-"
-        }
-        _ => {
-            "\
-  - name: readme-exists
-    type: file_exists
-    path: README.md
-    severity: warn
-"
-        }
+        "Rust" => concat!(
+            "  - name: no-unwrap-in-src\n",
+            "    type: must_not_contain\n",
+            "    glob: \"src/**\"\n",
+            "    pattern: 'unwrap\\('\n",
+            "    severity: warn\n",
+            "  - name: no-dbg-macro\n",
+            "    type: must_not_contain\n",
+            "    glob: \"src/**\"\n",
+            "    pattern: 'dbg!'\n",
+            "    severity: error\n",
+            "  - name: readme-exists\n",
+            "    type: file_exists\n",
+            "    path: README.md\n",
+            "    severity: warn\n",
+            "  - name: cargo-check-passes\n",
+            "    type: command_succeeds\n",
+            "    command: 'cargo check'\n",
+            "    timeout_secs: 120\n",
+            "    severity: error\n",
+        ),
+        "Python" => concat!(
+            "  - name: no-print-in-py\n",
+            "    type: must_not_contain\n",
+            "    glob: \"**/*.py\"\n",
+            "    pattern: 'print\\('\n",
+            "    severity: warn\n",
+            "  - name: readme-exists\n",
+            "    type: file_exists\n",
+            "    path: README.md\n",
+            "    severity: warn\n",
+            "  - name: pytest-passes\n",
+            "    type: command_succeeds\n",
+            "    command: 'pytest -q'\n",
+            "    timeout_secs: 180\n",
+            "    severity: error\n",
+        ),
+        "Go" => concat!(
+            "  - name: go-build-passes\n",
+            "    type: command_succeeds\n",
+            "    command: 'go build ./...'\n",
+            "    timeout_secs: 180\n",
+            "    severity: error\n",
+            "  - name: go-vet-passes\n",
+            "    type: command_succeeds\n",
+            "    command: 'go vet ./...'\n",
+            "    timeout_secs: 180\n",
+            "    severity: warn\n",
+            "  - name: readme-exists\n",
+            "    type: file_exists\n",
+            "    path: README.md\n",
+            "    severity: warn\n",
+        ),
+        "Node" => concat!(
+            "  - name: readme-exists\n",
+            "    type: file_exists\n",
+            "    path: README.md\n",
+            "    severity: warn\n",
+            "  - name: npm-test-passes\n",
+            "    type: command_succeeds\n",
+            "    command: 'npm test'\n",
+            "    timeout_secs: 300\n",
+            "    severity: warn\n",
+        ),
+        _ => concat!(
+            "  - name: readme-exists\n",
+            "    type: file_exists\n",
+            "    path: README.md\n",
+            "    severity: warn\n",
+        ),
     };
     format!(
-        "# Fitness-правила для `arch-ml control check` (схема control::check).\n\
-         # Стек: {stack} (детектирован по маркерным файлам). Заготовка генератора\n\
-         # handoff (файл НЕ затирается при повторной генерации): перед передачей\n\
-         # перепишите правила под spine-инварианты (AD-n) эпика.\n\
+        "# ЗАГОТОВКА генератора handoff (схема control::check).\n\
+         # Рабочий ruleset кейса — CONSTRAINTS.yaml в корне репозитория: если он\n\
+         # есть, генератор кладёт в пакет именно его, а эту заготовку — только\n\
+         # когда рабочего файла нет. Перед передачей перепишите правила под\n\
+         # spine-инварианты (AD-n) эпика.\n\
+         # Стек: {stack} (детектирован по маркерным файлам).\n\
+         # Отступы элементов обязательны и выровнены (2 пробела у `- name:`,\n\
+         # 4 — у полей): сбитый отступ ломает YAML-парсер (ScannerError).\n\
          rules:\n{rules}"
     )
 }
@@ -276,6 +271,25 @@ pub struct HandoffPacket {
     pub recommended_timeout_secs: u64,
 }
 
+/// Ссылка на карточку гипотезы в пакете handoff: элемент `hits[]` файла
+/// `HYPOTHESES.json`, который пишет доменный хук события `pre_handoff`
+/// (плагин роутинга гипотез). Поля — проекция карточки, нужная кодовому
+/// харнессу: что поднять и с какими скиллами.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HypothesisRef {
+    /// Имя карточки.
+    pub card: String,
+    /// Состояние карточки (например, `active`).
+    #[serde(default)]
+    pub state: String,
+    /// Балл совпадения с фактами проекта.
+    #[serde(default)]
+    pub score: u32,
+    /// Скиллы, привязанные к карточке.
+    #[serde(default)]
+    pub skills: Vec<String>,
+}
+
 /// Метаданные пакета (`MANIFEST.json`).
 #[derive(Serialize)]
 struct Manifest<'a> {
@@ -300,14 +314,28 @@ struct Manifest<'a> {
     baseline_commit: Option<String>,
     /// План отката (текст раздела «План отката» TASK.md).
     rollback_plan: &'a str,
+    /// Скиллы, привязанные к поднятым гипотезам (объединение без повторов,
+    /// по возрастанию). Нет попаданий — поля нет в `MANIFEST.json`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    skills: Option<Vec<String>>,
+    /// Гипотезы, поднятые доменным хуком `pre_handoff`
+    /// (`HYPOTHESES.json` → `hits[]`). Нет попаданий — поля нет.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    hypotheses: Vec<HypothesisRef>,
 }
 
 /// Генерирует handoff-пакет в репозиторий.
 ///
 /// Создаёт `<repo>/.arch-handoff/` с TASK.md, ARCHITECTURE.md, MANIFEST.json,
 /// adr/ (копии ADR) и, при отсутствии, CONSTRAINTS.yaml, SPEC.md и RUBRIC.yaml.
-/// Перезаписываются только TASK.md, ARCHITECTURE.md и MANIFEST.json —
-/// пользовательские правки CONSTRAINTS.yaml/SPEC.md/RUBRIC.yaml сохраняются.
+/// Перезаписываются только TASK.md, ARCHITECTURE.md, MANIFEST.json и — при
+/// наличии рабочего ruleset'а — CONSTRAINTS.yaml пакета; пользовательские
+/// правки SPEC.md/RUBRIC.yaml сохраняются.
+///
+/// CONSTRAINTS.yaml пакета несёт рабочий ruleset кейса (ADR-011, п. 5): при
+/// наличии `<repo>/CONSTRAINTS.yaml` он копируется в пакет (корень — источник
+/// истины), иначе кладётся валидная заготовка под стек репозитория. Заготовка
+/// с невалидным YAML в пакет не попадает.
 ///
 /// Предгейт: гарантирует git-репозиторий и baseline-коммит-якорь отката
 /// ([`ensure_git_baseline`]); `rollback` — явный план отката в TASK.md
@@ -394,10 +422,16 @@ pub fn generate_handoff(
         )));
     }
 
-    // CONSTRAINTS.yaml — только при отсутствии (не затирать пользовательские правила).
-    // Дефолт — под стек репозитория (Cargo.toml/pyproject.toml/go.mod/package.json).
+    // CONSTRAINTS.yaml пакета — рабочий ruleset кейса (ADR-011, п. 5):
+    // при наличии `<repo>/CONSTRAINTS.yaml` он копируется в пакет (корень —
+    // источник истины; пакет обязан нести рабочие правила, а не заготовку).
+    // Без рабочего файла — валидная заготовка и только при отсутствии пакетной.
     let constraints_path = dir.join("CONSTRAINTS.yaml");
-    if !constraints_path.exists() {
+    let working_constraints = repo.join("CONSTRAINTS.yaml");
+    if working_constraints.is_file() {
+        std::fs::copy(&working_constraints, &constraints_path)
+            .map_err(|e| HarnessError::io(&working_constraints, e))?;
+    } else if !constraints_path.exists() {
         std::fs::write(&constraints_path, default_constraints(repo))
             .map_err(|e| HarnessError::io(&constraints_path, e))?;
     }
@@ -452,6 +486,23 @@ pub fn generate_handoff(
         }
     }
 
+    // Доменное событие pre_handoff — ПОСЛЕ TASK.md/ARCHITECTURE.md (хук их
+    // читает) и ДО MANIFEST.json: хук пишет только <handoff>/HYPOTHESES.json,
+    // а MANIFEST собирает ЯДРО из прочитанного. Ненулевой код/отсутствие
+    // плагина генерацию не ломают; include_hooks=false выключает канал, как и
+    // обычные хуки. Репо/каталог передаются харнессу кодом 0/2/3 в outcome.
+    if cfg.plugins.include_hooks {
+        let repo_arg = repo.to_string_lossy();
+        let handoff_arg = dir.to_string_lossy();
+        let _ = crate::hypothesis::run_event(
+            &cfg.plugins.dirs,
+            "pre_handoff",
+            &[repo_arg.as_ref(), handoff_arg.as_ref()],
+            repo,
+        );
+    }
+    let (hypotheses, skills) = read_hypotheses(&dir);
+
     // MANIFEST.json — всегда перезаписывается.
     let manifest = Manifest {
         created_at: Utc::now().to_rfc3339(),
@@ -464,6 +515,8 @@ pub fn generate_handoff(
         recommended_timeout_secs: timeout,
         baseline_commit: baseline.hash.clone(),
         rollback_plan: &rollback_text,
+        skills,
+        hypotheses,
     };
     let manifest_path = dir.join("MANIFEST.json");
     let manifest_text = serde_json::to_string_pretty(&manifest)?;
@@ -494,6 +547,37 @@ pub fn generate_handoff(
         git_dirty_tracked: baseline.dirty_tracked,
         recommended_timeout_secs: timeout,
     })
+}
+
+/// Читает `<handoff>/HYPOTHESES.json`, записанный доменным хуком `pre_handoff`:
+/// возвращает попадания и объединённый отсортированный список скиллов
+/// (`None`, если скиллов нет). Отсутствие или битый файл — пустой результат:
+/// плагин может быть не установлен, и это не ошибка генерации пакета.
+fn read_hypotheses(handoff: &Path) -> (Vec<HypothesisRef>, Option<Vec<String>>) {
+    #[derive(Deserialize)]
+    struct HypothesesFile {
+        #[serde(default)]
+        hits: Vec<HypothesisRef>,
+    }
+    let Ok(text) = std::fs::read_to_string(handoff.join("HYPOTHESES.json")) else {
+        return (Vec::new(), None);
+    };
+    let Ok(file) = serde_json::from_str::<HypothesesFile>(&text) else {
+        return (Vec::new(), None);
+    };
+    let mut skills: Vec<String> = file
+        .hits
+        .iter()
+        .flat_map(|hit| hit.skills.iter().cloned())
+        .collect();
+    skills.sort();
+    skills.dedup();
+    let skills = if skills.is_empty() {
+        None
+    } else {
+        Some(skills)
+    };
+    (file.hits, skills)
 }
 
 /// Рендерит TASK.md: задача + критерии приёмки из QAS (при наличии) +
@@ -1036,6 +1120,63 @@ pub(crate) async fn run_harness_with_tail(
     run_harness_inner(name, cfg, repo, task, None, None, Some(tail)).await
 }
 
+/// Переменная окружения cargo: путь к обёртке компилятора.
+pub(crate) const RUSTC_WRAPPER_ENV: &str = "RUSTC_WRAPPER";
+
+/// Обёртка rustc внутри дерева репозитория (общий кэш sccache).
+const RUSTC_WRAPPER_REL: &str = "scripts/rustc-wrapper.sh";
+
+/// Ищет `scripts/rustc-wrapper.sh` в `start` и его родителях.
+fn find_wrapper_from(start: &Path) -> Option<PathBuf> {
+    for dir in start.ancestors() {
+        let candidate = dir.join(RUSTC_WRAPPER_REL);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// Путь к обёртке rustc рядом с бинарём/репозиторием.
+///
+/// Считается от расположения САМОГО бинаря ([`std::env::current_exe`]), а не
+/// от текущего каталога: фабричные ворктри лежат ВНЕ дерева репозитория
+/// (`worktrees/<slug>-<hash>`), поэтому `.cargo/config.toml` основного дерева
+/// до них не доходит. У бинаря `…/target/<профиль>[/deps]` предком является
+/// корень репозитория, где и лежит обёртка. Бинарь, унесённый из дерева
+/// (например `cargo install` в `~/.cargo/bin`), обёртки не находит — тогда
+/// подстановки нет и сборка идёт как раньше, без общего кэша.
+///
+/// Путь не содержит ничего личного: он выводится из местоположения бинаря.
+pub(crate) fn rustc_wrapper_path() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    find_wrapper_from(exe.parent()?)
+}
+
+/// Подставляет `RUSTC_WRAPPER` в окружение дочернего процесса.
+///
+/// `inherited` — значение переменной у процесса-родителя: это приоритет
+/// пользователя, уже выставленную обёртку НЕ переопределяем (пустое значение
+/// считается невыставленным). Пользовательское значение при этом ПЕРЕНОСИМ в
+/// дочернее окружение — важно для адаптеров с `env_clear`, иначе изоляция
+/// окружения стёрла бы явно заданную обёртку. Отсутствие скрипта — тихий
+/// отказ (возврат `None`), запуск не ломается. Возвращает путь, если сделана
+/// автоподстановка (используется в тестах и диагностике).
+///
+/// Функция принимает унаследованное значение параметром, а не читает
+/// `std::env` сама: так её можно проверить без мутации глобального окружения
+/// (`set_var` — unsafe в edition 2024 и недетерминирован при параллельных
+/// тестах).
+pub(crate) fn apply_rustc_wrapper(cmd: &mut Command, inherited: Option<&OsStr>) -> Option<PathBuf> {
+    if let Some(user) = inherited.filter(|v| !v.is_empty()) {
+        cmd.env(RUSTC_WRAPPER_ENV, user);
+        return None;
+    }
+    let wrapper = rustc_wrapper_path()?;
+    cmd.env(RUSTC_WRAPPER_ENV, &wrapper);
+    Some(wrapper)
+}
+
 #[allow(clippy::too_many_lines)]
 async fn run_harness_inner(
     name: &str,
@@ -1075,10 +1216,10 @@ async fn run_harness_inner(
                         }
                         drop(b);
                         // Живой хвост для UI-прогресса (если подключён).
-                        if let Some(t) = &tail
-                            && let Ok(mut g) = t.lock()
-                        {
-                            g.push(&chunk[..n]);
+                        if let Some(t) = &tail {
+                            if let Ok(mut g) = t.lock() {
+                                g.push(&chunk[..n]);
+                            }
                         }
                         *act.lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner) = Instant::now();
@@ -1110,6 +1251,13 @@ async fn run_harness_inner(
         .kill_on_drop(true)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    // Общий кэш компиляции для исполнителей флота (sccache через обёртку):
+    // подставляется ПОСЛЕ `env`/`env_clear`, поэтому доходит и до изолированного
+    // окружения, и до ворктри вне репозитория. Явное значение адаптера
+    // (`cfg.env`/унаследованное) — приоритет пользователя.
+    if !cfg.env.contains_key(RUSTC_WRAPPER_ENV) {
+        let _ = apply_rustc_wrapper(&mut cmd, std::env::var_os(RUSTC_WRAPPER_ENV).as_deref());
+    }
     if stdin_data.is_some() {
         cmd.stdin(Stdio::piped());
     } else {
@@ -2264,6 +2412,170 @@ mod tests {
         std::fs::write(path, text).expect("write");
     }
 
+    /// Пишет исполняемый скрипт (создавая родителей) — заглушка доменного хука.
+    fn write_exec(path: &Path, body: &str) {
+        use std::os::unix::fs::PermissionsExt as _;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).expect("mkdir");
+        }
+        std::fs::write(path, body).expect("write script");
+        let mut perms = std::fs::metadata(path).expect("meta").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).expect("chmod");
+    }
+
+    /// Раскладывает плагин с доменным хуком события `event` и скриптом `body`.
+    fn plugin_with_hook(root: &Path, name: &str, event: &str, body: &str) -> PathBuf {
+        let dir = root.join(name);
+        std::fs::create_dir_all(&dir).expect("mkdir plugin");
+        let manifest = format!(r#"{{"name":"{name}","hooks":{{"{event}":"hooks/h.sh {event}"}}}}"#);
+        std::fs::write(dir.join("plugin.json"), manifest).expect("manifest");
+        write_exec(&dir.join("hooks/h.sh"), body);
+        dir
+    }
+
+    /// Заглушка pre_handoff: пишет `hits` в `$3/HYPOTHESES.json` и маркер.
+    const PRE_HANDOFF_STUB: &str = "#!/bin/sh\n\
+        # $1=event $2=repo $3=handoff\n\
+        : > \"$3/pre_handoff_hook.marker\"\n\
+        printf '%s\\n' '{\"hits\":[{\"card\":\"laguna-3b\",\"state\":\"active\",\"score\":6,\
+        \"skills\":[\"gb10-gpu\",\"laguna-gb10\"]}]}' > \"$3/HYPOTHESES.json\"\n\
+        echo \"pre-handoff: 1 карточка\"\n\
+        exit 0\n";
+
+    /// Тест (а): хук pre_handoff питает MANIFEST.json гипотезами и скиллами.
+    #[test]
+    fn pre_handoff_hook_feeds_manifest_with_hypotheses() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        let plugins = tmp.path().join("plugins");
+        plugin_with_hook(
+            &plugins,
+            "hypothesis-router",
+            "pre_handoff",
+            PRE_HANDOFF_STUB,
+        );
+        let mut cfg = cfg_in(tmp.path());
+        cfg.plugins.dirs = vec![plugins];
+
+        generate_handoff(
+            &repo,
+            "обучить 3B на Spark",
+            &[],
+            &cfg,
+            None,
+            Route::Standard,
+        )
+        .expect("handoff с хуком");
+        let manifest: Value = serde_json::from_str(
+            &std::fs::read_to_string(repo.join(".arch-handoff/MANIFEST.json")).expect("MANIFEST"),
+        )
+        .expect("manifest json");
+        // Скиллы — объединение без повторов, по возрастанию.
+        assert_eq!(manifest["skills"], json!(["gb10-gpu", "laguna-gb10"]));
+        assert_eq!(manifest["hypotheses"][0]["card"], "laguna-3b");
+        assert_eq!(manifest["hypotheses"][0]["state"], "active");
+        assert_eq!(manifest["hypotheses"][0]["score"], 6);
+        assert_eq!(
+            manifest["hypotheses"][0]["skills"],
+            json!(["gb10-gpu", "laguna-gb10"])
+        );
+    }
+
+    /// Тест (б): без плагина ключей нет, генерация не падает.
+    #[test]
+    fn no_plugin_leaves_manifest_without_hypothesis_keys() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        let mut cfg = cfg_in(tmp.path());
+        cfg.plugins.dirs = vec![tmp.path().join("no-plugins")];
+
+        generate_handoff(
+            &repo,
+            "задача без плагина",
+            &[],
+            &cfg,
+            None,
+            Route::Standard,
+        )
+        .expect("handoff без плагина");
+        let manifest: Value = serde_json::from_str(
+            &std::fs::read_to_string(repo.join(".arch-handoff/MANIFEST.json")).expect("MANIFEST"),
+        )
+        .expect("manifest json");
+        let obj = manifest.as_object().expect("object");
+        assert!(!obj.contains_key("skills"), "skills: {manifest}");
+        assert!(!obj.contains_key("hypotheses"), "hypotheses: {manifest}");
+    }
+
+    /// Тест (в): include_hooks=false глушит доменный хук (проверка маркером).
+    #[test]
+    fn include_hooks_false_disables_pre_handoff_hook() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        let plugins = tmp.path().join("plugins");
+        plugin_with_hook(
+            &plugins,
+            "hypothesis-router",
+            "pre_handoff",
+            PRE_HANDOFF_STUB,
+        );
+        let mut cfg = cfg_in(tmp.path());
+        cfg.plugins.dirs = vec![plugins];
+        let dir = repo.join(".arch-handoff");
+
+        // Контроль: при включённых хуках маркер появляется.
+        generate_handoff(&repo, "первый", &[], &cfg, None, Route::Standard).expect("handoff 1");
+        assert!(dir.join("pre_handoff_hook.marker").is_file(), "хук запущен");
+        assert!(dir.join("HYPOTHESES.json").is_file());
+
+        // Выключаем канал: хук не запускается, ключей в манифесте нет.
+        std::fs::remove_file(dir.join("pre_handoff_hook.marker")).expect("rm marker");
+        std::fs::remove_file(dir.join("HYPOTHESES.json")).expect("rm hypotheses");
+        cfg.plugins.include_hooks = false;
+        generate_handoff(&repo, "второй", &[], &cfg, None, Route::Standard).expect("handoff 2");
+        assert!(
+            !dir.join("pre_handoff_hook.marker").exists(),
+            "include_hooks=false — хук не запускался"
+        );
+        let manifest: Value =
+            serde_json::from_str(&std::fs::read_to_string(dir.join("MANIFEST.json")).expect("m"))
+                .expect("json");
+        let obj = manifest.as_object().expect("object");
+        assert!(!obj.contains_key("skills"), "skills: {manifest}");
+        assert!(!obj.contains_key("hypotheses"), "hypotheses: {manifest}");
+    }
+
+    /// Тест (д): падающий хук (exit 3) не превращает генерацию в Err.
+    #[test]
+    fn failing_pre_handoff_hook_does_not_fail_generation() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        let plugins = tmp.path().join("plugins");
+        plugin_with_hook(
+            &plugins,
+            "hypothesis-router",
+            "pre_handoff",
+            "#!/bin/sh\necho 'routing.json устарел (exit 3)'\nexit 3\n",
+        );
+        let mut cfg = cfg_in(tmp.path());
+        cfg.plugins.dirs = vec![plugins];
+
+        generate_handoff(&repo, "задача", &[], &cfg, None, Route::Standard)
+            .expect("exit 3 хука не блокирует генерацию");
+        let manifest: Value = serde_json::from_str(
+            &std::fs::read_to_string(repo.join(".arch-handoff/MANIFEST.json")).expect("MANIFEST"),
+        )
+        .expect("manifest json");
+        let obj = manifest.as_object().expect("object");
+        assert!(!obj.contains_key("skills"), "skills: {manifest}");
+        assert!(!obj.contains_key("hypotheses"), "hypotheses: {manifest}");
+    }
+
     const SPINE: &str = "# Spine\n\n\
         ## AD-1: Единый стек\n\n\
         **Binds:** все сервисы — Rust 1.85.\n\n\
@@ -2848,6 +3160,106 @@ mod tests {
         assert!(default_constraints(&repo).contains("cargo check"));
     }
 
+    /// Заготовка каждого стека — валидный YAML, разбираемый тем же парсером,
+    /// что и `control check` (регрессия `ScannerError`: `- name:` терял отступ
+    /// из-за `\`-продолжения строки и парсер падал на строке 7).
+    #[test]
+    fn default_constraints_is_valid_yaml_for_every_stack() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        // Стеки: Rust → Python → Go → Node → generic (маркерные файлы по одному).
+        let markers = [
+            ("Cargo.toml", "[package]\nname = \"demo\"\n"),
+            ("requirements.txt", "pytest\n"),
+            ("go.mod", "module demo\n"),
+            ("package.json", "{}\n"),
+            ("", ""),
+        ];
+        for (marker, body) in markers {
+            for m in ["Cargo.toml", "requirements.txt", "go.mod", "package.json"] {
+                let _ = std::fs::remove_file(repo.join(m));
+            }
+            if !marker.is_empty() {
+                write_file(&repo.join(marker), body);
+            }
+            let text = default_constraints(&repo);
+            assert!(
+                text.contains("ЗАГОТОВКА генератора handoff"),
+                "шапка-комментарий обязательна:\n{text}"
+            );
+            let path = repo.join("stub.yaml");
+            write_file(&path, &text);
+            let rules = crate::control::load_fitness_rules(&path)
+                .unwrap_or_else(|e| panic!("заготовка ({marker:?}) не разбирается: {e}\n{text}"));
+            assert!(!rules.is_empty(), "заготовка без правил:\n{text}");
+            for r in &rules {
+                assert!(
+                    matches!(r.severity.as_str(), "error" | "warn"),
+                    "severity {} не каноничен",
+                    r.severity
+                );
+            }
+        }
+    }
+
+    /// Пакет несёт рабочий ruleset кейса (ADR-011, п. 5): при наличии
+    /// `<repo>/CONSTRAINTS.yaml` он копируется в `.arch-handoff/`, а не
+    /// заменяется заготовкой; повторная генерация обновляет копию.
+    #[test]
+    fn handoff_copies_working_ruleset_into_packet() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        write_file(&repo.join("Cargo.toml"), "[package]\nname = \"demo\"\n");
+        let working = "constraints:\n  - id: C-01\n    name: рабочее-правило\n    type: file_exists\n    path: README.md\n    severity: warn\n";
+        write_file(&repo.join("CONSTRAINTS.yaml"), working);
+        let cfg = cfg_in(tmp.path());
+
+        let packet =
+            generate_handoff(&repo, "задача", &[], &cfg, None, Route::Standard).expect("handoff");
+        let packet_constraints = packet.dir.join("CONSTRAINTS.yaml");
+        let copied = std::fs::read_to_string(&packet_constraints).expect("packet CONSTRAINTS.yaml");
+        assert_eq!(
+            copied, working,
+            "в пакет скопирован рабочий ruleset, не заготовка"
+        );
+        assert!(
+            !copied.contains("ЗАГОТОВКА"),
+            "заготовка не должна попадать в пакет при рабочем ruleset"
+        );
+        assert!(packet.files.contains(&packet_constraints));
+
+        // Рабочий ruleset изменился — повторная генерация обновляет копию.
+        let updated = "constraints:\n  - id: C-01\n    name: рабочее-правило\n    type: file_exists\n    path: README.md\n    severity: warn\n  - id: C-02\n    name: второе\n    type: file_exists\n    path: Cargo.toml\n    severity: warn\n";
+        write_file(&repo.join("CONSTRAINTS.yaml"), updated);
+        let packet2 = generate_handoff(&repo, "задача-2", &[], &cfg, None, Route::Standard)
+            .expect("handoff-2");
+        assert_eq!(
+            std::fs::read_to_string(packet2.dir.join("CONSTRAINTS.yaml")).expect("after"),
+            updated
+        );
+    }
+
+    /// Без рабочего ruleset'а пакет получает валидную заготовку (не пустую
+    /// и не битую): дефолтный `control check` по пакету разбирает её.
+    #[test]
+    fn handoff_writes_valid_stub_without_working_ruleset() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir repo");
+        write_file(&repo.join("Cargo.toml"), "[package]\nname = \"demo\"\n");
+        let cfg = cfg_in(tmp.path());
+
+        let packet =
+            generate_handoff(&repo, "задача", &[], &cfg, None, Route::Standard).expect("handoff");
+        let stub = packet.dir.join("CONSTRAINTS.yaml");
+        let text = std::fs::read_to_string(&stub).expect("stub");
+        assert!(text.contains("ЗАГОТОВКА"), "{text}");
+        let rules = crate::control::load_fitness_rules(&stub).expect("заготовка — валидный YAML");
+        assert!(rules.iter().any(|r| r.name == "readme-exists"), "{rules:?}");
+    }
+
     #[test]
     fn epic_context_deepens_below_rubric_window() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -3276,6 +3688,106 @@ mod tests {
             "изоляция: {}",
             run.stdout
         );
+    }
+
+    #[test]
+    fn wrapper_is_found_by_walking_ancestors() {
+        // Путь обёртки выводится из расположения бинаря, а не из cwd: обход
+        // предков находит `scripts/rustc-wrapper.sh` из `target/<профиль>[/deps]`.
+        let root = tempfile::tempdir().expect("tmp");
+        let nested = root.path().join("target/debug/deps");
+        std::fs::create_dir_all(&nested).expect("mkdir");
+        assert_eq!(find_wrapper_from(&nested), None, "скрипта ещё нет");
+        let script = root.path().join(RUSTC_WRAPPER_REL);
+        std::fs::create_dir_all(script.parent().expect("parent")).expect("mkdir");
+        std::fs::write(&script, b"#!/bin/sh\nexec \"$@\"\n").expect("write");
+        assert_eq!(find_wrapper_from(&nested), Some(script.clone()));
+        assert_eq!(find_wrapper_from(root.path()), Some(script));
+    }
+
+    #[tokio::test]
+    async fn auto_rustc_wrapper_reaches_child_process() {
+        // Реальный прогон: переменная обязана дойти до дочернего процесса.
+        let mut cmd = Command::new("sh");
+        cmd.env_remove(RUSTC_WRAPPER_ENV)
+            .arg("-c")
+            .arg("printf %s \"${RUSTC_WRAPPER-unset}\"");
+        let applied = apply_rustc_wrapper(&mut cmd, None);
+        let out = cmd.output().await.expect("run");
+        let seen = String::from_utf8_lossy(&out.stdout).to_string();
+        match applied {
+            Some(path) => assert_eq!(seen, path.display().to_string(), "переменная не дошла"),
+            // Чистый checkout (скрипт untracked) — запуск не ломается.
+            None => assert_eq!(seen, "unset"),
+        }
+    }
+
+    #[tokio::test]
+    async fn custom_rustc_wrapper_wins_and_survives_env_clear() {
+        // Приоритет пользователя: своё значение НЕ переопределяем и переносим
+        // его в дочернее окружение даже при изоляции (`env_allow`).
+        let mut cmd = Command::new("sh");
+        cmd.env_remove(RUSTC_WRAPPER_ENV)
+            .arg("-c")
+            .arg("printf %s \"${RUSTC_WRAPPER-unset}\"");
+        let applied = apply_rustc_wrapper(&mut cmd, Some(OsStr::new("/opt/custom/wrapper")));
+        assert!(applied.is_none(), "автоподстановки быть не должно");
+        let out = cmd.output().await.expect("run");
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout),
+            "/opt/custom/wrapper",
+            "пользовательское значение потеряно"
+        );
+    }
+
+    #[tokio::test]
+    async fn empty_rustc_wrapper_counts_as_unset() {
+        let mut cmd = Command::new("sh");
+        cmd.env_remove(RUSTC_WRAPPER_ENV)
+            .arg("-c")
+            .arg("printf %s \"${RUSTC_WRAPPER-unset}\"");
+        let applied = apply_rustc_wrapper(&mut cmd, Some(OsStr::new("")));
+        assert_eq!(
+            applied,
+            rustc_wrapper_path(),
+            "пустое значение = не выставлено"
+        );
+        let out = cmd.output().await.expect("run");
+        let seen = String::from_utf8_lossy(&out.stdout).to_string();
+        if let Some(path) = rustc_wrapper_path() {
+            assert_eq!(seen, path.display().to_string());
+        }
+    }
+
+    #[tokio::test]
+    async fn harness_run_passes_wrapper_even_under_env_isolation() {
+        // Сквозная проверка точки подстановки в `run_harness_inner`: при
+        // непустом `env_allow` (процесс со `env_clear`) обёртка всё равно
+        // доходит до исполнителя — `.cargo/config.toml` для этого не нужен.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir");
+        let cfg = CodingHarnessConfig {
+            binary: "/bin/sh".into(),
+            args: vec!["-c".into(), "printf %s \"${RUSTC_WRAPPER-unset}\"".into()],
+            prompt_mode: PromptMode::Stdin,
+            timeout_secs: 30,
+            idle_timeout_secs: 0,
+            auto_commit: false,
+            env_allow: vec!["PATH".into()],
+            env: std::collections::BTreeMap::new(),
+        };
+        let run = run_harness("cache-probe", &cfg, &repo, "задача")
+            .await
+            .expect("run");
+        match rustc_wrapper_path() {
+            Some(path) => assert_eq!(
+                run.stdout.trim(),
+                path.display().to_string(),
+                "обёртка не дошла до исполнителя"
+            ),
+            None => assert_eq!(run.stdout.trim(), "unset"),
+        }
     }
 
     #[tokio::test]

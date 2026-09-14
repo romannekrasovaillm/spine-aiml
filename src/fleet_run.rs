@@ -116,12 +116,23 @@ pub enum FleetEvent {
         at: String,
     },
     /// План флота принят к исполнению (паттерн, число узлов и волн, хэш плана).
+    ///
+    /// `judge_path`/`judge_sha256` — baseline-судья гейтов, зафиксированный на
+    /// старте прогона (ADR-046, п. 1): аудит уровня прогона отвечает на вопрос
+    /// «кто судил», не собирая отчёты узлов. Оба поля `None`, если судья не
+    /// задан; `judge_sha256` — `None` и тогда, когда файл судьи не прочитан.
     PlanStarted {
         run_id: String,
         plan_id: String,
         pattern: String,
         plan_path: String,
         plan_sha256: String,
+        /// Путь baseline-судьи (сериализуется как `null`, если судьи нет).
+        #[serde(default)]
+        judge_path: Option<String>,
+        /// `sha256` файла baseline-судьи (сериализуется как `null`, если нет).
+        #[serde(default)]
+        judge_sha256: Option<String>,
         n_nodes: usize,
         n_waves: usize,
         at: String,
@@ -161,12 +172,21 @@ pub enum FleetEvent {
         at: String,
     },
     /// Вердикт одного гейта узла.
+    ///
+    /// `branch` — структурный признак связи «вердикт ↔ ветка» (ADR-046, п. 2):
+    /// ветка `arch/…`, влитая в дерево узла событием вливания зависимости.
+    /// Гейт приёмки читает ТОЛЬКО это поле, а не текст `detail` (два источника
+    /// истины разошлись бы при правке формулировки). `None` — событие ветку не
+    /// вливает; журналы старого формата поля не несут и трактуются как
+    /// «вердиктов по ветке не найдено» (честное «не проверено»).
     NodeGated {
         run_id: String,
         node_id: String,
         gate: String,
         verdict: String,
         detail: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        branch: Option<String>,
         at: String,
     },
     /// Прогон продолжен из журнала.

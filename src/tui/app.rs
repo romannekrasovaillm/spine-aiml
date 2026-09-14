@@ -176,11 +176,27 @@ pub(crate) enum RightTab {
     Knowledge,
     /// Последний dashboard флота (`fleet_run` / `fleet status`).
     Fleet,
+    /// Фоновые задачи субагентов текущей сессии (`subagent_run`).
+    Subagents,
 }
 
 impl RightTab {
     /// Все вкладки по порядку.
-    pub(crate) const ALL: [Self; 4] = [Self::Mermaid, Self::Rubric, Self::Knowledge, Self::Fleet];
+    ///
+    /// Порядок выбран по смыслу: первые три — «артефакты разговора» (что
+    /// агент вернул: диаграмма, рубрика, знания), последние две — «ход
+    /// исполнения» (кто и что сейчас работает). Флот и Субагенты стоят
+    /// рядом: оба про запущенные задачи, но Флот читает журнал прогонов с
+    /// диска (batch, переживает сессию), а Субагенты — живой реестр памяти
+    /// текущей сессии. Новая вкладка добавлена в конец, а не в середину,
+    /// чтобы не сдвинуть уже выученные F1–F6 и нумерацию читателей `ALL`.
+    pub(crate) const ALL: [Self; 5] = [
+        Self::Mermaid,
+        Self::Rubric,
+        Self::Knowledge,
+        Self::Fleet,
+        Self::Subagents,
+    ];
 
     /// Следующая вкладка (цикл по Tab).
     fn next(self) -> Self {
@@ -188,17 +204,19 @@ impl RightTab {
             Self::Mermaid => Self::Rubric,
             Self::Rubric => Self::Knowledge,
             Self::Knowledge => Self::Fleet,
-            Self::Fleet => Self::Mermaid,
+            Self::Fleet => Self::Subagents,
+            Self::Subagents => Self::Mermaid,
         }
     }
 
     /// Предыдущая вкладка (цикл по Shift+Tab — обратный ход к `next`).
     fn prev(self) -> Self {
         match self {
-            Self::Mermaid => Self::Fleet,
+            Self::Mermaid => Self::Subagents,
             Self::Rubric => Self::Mermaid,
             Self::Knowledge => Self::Rubric,
             Self::Fleet => Self::Knowledge,
+            Self::Subagents => Self::Fleet,
         }
     }
 
@@ -209,6 +227,7 @@ impl RightTab {
             Self::Rubric => "Рубрика",
             Self::Knowledge => "Знания",
             Self::Fleet => "Флот",
+            Self::Subagents => "Субагенты",
         }
     }
 }
@@ -224,6 +243,8 @@ pub(crate) struct Panels {
     pub(crate) knowledge: String,
     /// Вкладка «Флот»: последний dashboard прогона.
     pub(crate) fleet: String,
+    /// Вкладка «Субагенты»: фоновые задачи текущей сессии.
+    pub(crate) subagents: String,
 }
 
 impl Panels {
@@ -234,6 +255,7 @@ impl Panels {
             RightTab::Rubric => &self.rubric,
             RightTab::Knowledge => &self.knowledge,
             RightTab::Fleet => &self.fleet,
+            RightTab::Subagents => &self.subagents,
         }
     }
 
@@ -253,6 +275,10 @@ impl Panels {
             RightTab::Fleet => {
                 "Пока пусто. Здесь появится последний dashboard флота \
                  (инструмент fleet_run или /fleet)."
+            }
+            RightTab::Subagents => {
+                "Пока пусто. Здесь появится список субагентов текущей сессии \
+                 (инструмент subagent_run или /agents)."
             }
         }
     }
@@ -616,6 +642,31 @@ pub(crate) struct App {
     pub(crate) viewport: usize,
     /// Активная вкладка правой панели.
     pub(crate) right_tab: RightTab,
+    /// Сдвиг прокрутки правой панели (строки сверху; 0 — начало).
+    ///
+    /// Панель уже, чем диалог, и содержимое вкладки (список из 6+ задач, лог
+    /// флота) легко превышает её высоту. Без прокрутки хвост молча срезался и
+    /// был недостижим. Сбрасывается в 0 при каждой смене вкладки — иначе
+    /// прокрутка «залипает» на старом смещении и новая вкладка открывается
+    /// не сначала.
+    pub(crate) right_scroll: usize,
+    /// Высота вьюпорта правой панели (заполняется при рендере) — шаг
+    /// страничной прокрутки `PgUp`/`PgDn`.
+    pub(crate) right_viewport: usize,
+    /// Верхняя граница [`Self::right_scroll`], которую знает только рендер
+    /// (длина содержимого минус вьюпорт). Записывается при рендере, чтобы
+    /// `G` (прыжок к концу) ставил последнюю достижимую позицию, а не
+    /// произвольное «очень большое» число, которое потом всё равно клампится.
+    pub(crate) right_max: usize,
+    /// Высота тела ask-модалки в строках (заполняется при рендере).
+    ///
+    /// Раньше шаг `PgUp`/`PgDn` был константой 10, не связанной
+    /// с реальным окном: на высоком терминале страница была меньше экрана, на
+    /// низком — больше, и «страница» перескакивала через весь список. Модалка
+    /// не знала своей высоты (её считает рендер по размеру терминала), поэтому
+    /// рендер записывает сюда число видимых строк, а [`Self::handle_ask_key`]
+    /// берёт шаг от него. 0 — модалка ещё не рисовалась; шаг не ниже 1.
+    pub(crate) ask_viewport: usize,
     /// Содержимое вкладок правой панели.
     pub(crate) panels: Panels,
     /// Постоянная заметка статус-бара (например, режим MCP) — в отличие от
@@ -626,6 +677,15 @@ pub(crate) struct App {
     /// Один слот спрятанного черновика: Esc в непустом вводе не выходит из
     /// приложения и не теряет набранное — текст ждёт здесь (H3/H5).
     draft: Option<String>,
+    /// Строка теплицы гипотез от последней постановки цели: первая строка
+    /// доменного хука `intent` (плагин hypothesis-router) — гипотезы,
+    /// пересекающиеся с намерением и фактами проекта (`docs/hypotheses.md`).
+    ///
+    /// Считается ровно один раз — при постановке/замене цели в исполнителе
+    /// слэш-команды, — а здесь только хранится: рендер обязан оставаться
+    /// чистым и не запускать процессы на каждый кадр. `None` — плагина нет,
+    /// хук промолчал или цель снята/сменилась подкомандой без намерения.
+    intent_hint: Option<String>,
     /// Идёт фоновый ход (модель/команда) — ввод складывается в очередь.
     thinking: bool,
     /// Момент начала текущего хода (таймер «модель думает · N:SS» в строке
@@ -651,6 +711,8 @@ pub(crate) struct App {
     spinner: usize,
     /// Счётчик тиков для live-обновления вкладки «Флот» (троттлинг).
     fleet_ticks: usize,
+    /// Счётчик тиков для live-обновления вкладки «Субагенты» (троттлинг).
+    subagent_ticks: usize,
     /// Команда, ожидающая результата (для привязки вывода к вкладкам).
     pending_slash: Option<String>,
     /// Флаг выхода из event loop.
@@ -783,10 +845,15 @@ impl App {
             stick: true,
             viewport: 1,
             right_tab: RightTab::Mermaid,
+            right_scroll: 0,
+            right_viewport: 1,
+            right_max: 0,
+            ask_viewport: 0,
             panels: Panels::default(),
             status_extra,
             toast: None,
             draft: None,
+            intent_hint: None,
             thinking: false,
             thinking_since: None,
             stream_started: None,
@@ -797,6 +864,7 @@ impl App {
             queue: VecDeque::new(),
             spinner: 0,
             fleet_ticks: 0,
+            subagent_ticks: 0,
             pending_slash: None,
             should_quit: false,
             model_name: "—".into(),
@@ -873,6 +941,7 @@ impl App {
         self.thinking
             || self.subagents_running() > 0
             || self.right_tab == RightTab::Fleet
+            || self.right_tab == RightTab::Subagents
             || self.toast.is_some()
     }
 
@@ -884,19 +953,17 @@ impl App {
             .map_or(0, super::super::subagent::SubagentRegistry::running)
     }
 
-    /// Имена работающих фоновых субагентов (для статус-бара — видимость запуска).
-    pub(crate) fn running_subagent_names(&self) -> Vec<String> {
+    /// Всего записей в реестре фоновых задач (бегущие + завершённые + упавшие).
+    ///
+    /// Нужно счётчикам вкладки и статус-бара: панель с одними завершёнными
+    /// задачами — это содержимое, и она не должна выглядеть пустой только
+    /// потому, что прямо сейчас ничего не бежит (tui-design-principles #5:
+    /// состояние обязано быть видимым; «счётчик» у списка).
+    pub(crate) fn subagents_total(&self) -> usize {
         self.tool_ctx
             .subagents
             .as_ref()
-            .map(|r| {
-                r.list()
-                    .into_iter()
-                    .filter(|t| t.status == crate::subagent::TaskStatus::Running)
-                    .map(|t| t.agent.clone())
-                    .collect()
-            })
-            .unwrap_or_default()
+            .map_or(0, |r| r.list().len())
     }
 
     /// Сбрасывает статистику стрима хода (старт нового хода / завершение).
@@ -953,11 +1020,18 @@ impl App {
             })
     }
 
-    /// Есть ли что показать в строке состояния над вводом (ход, очередь или
-    /// активный поиск): если нет — строка не занимает место и раскладка не
-    /// дёргается.
+    /// Есть ли что показать в строке состояния над вводом (ход, очередь,
+    /// активный поиск или строка теплицы гипотез): если нет — строка не
+    /// занимает место и раскладка не дёргается.
+    ///
+    /// Строка теплицы не считается при открытой ask-модалке: модалка — верхний
+    /// слой и перекрывает строку, а её текст («… — поднять?») читался бы как
+    /// живой вопрос, которого на экране нет (инвариант [`Self::ask`]).
     pub(crate) fn has_input_state(&self) -> bool {
-        self.thinking || !self.queue.is_empty() || self.search.is_some()
+        self.thinking
+            || !self.queue.is_empty()
+            || self.search.is_some()
+            || (self.intent_hint.is_some() && self.ask.is_none())
     }
 
     /// Текущий кадр спиннера ожидания.
@@ -1006,6 +1080,13 @@ impl App {
         self.draft.as_deref()
     }
 
+    /// Строка теплицы гипотез от последней постановки цели — для строки
+    /// состояния над вводом. Значение посчитано при постановке цели, не в
+    /// рендере (см. поле [`Self::intent_hint`]).
+    pub(crate) fn intent_hint(&self) -> Option<&str> {
+        self.intent_hint.as_deref()
+    }
+
     /// Показать тост: новый вытесняет старый (истории тостов не держим).
     fn set_toast(&mut self, toast: Toast) {
         let born = self.spinner;
@@ -1030,6 +1111,43 @@ impl App {
         } else {
             self.fleet_ticks = 0;
         }
+        // Live-обновление вкладки «Субагенты»: раз в ~0.5 c (4 тика × 120 мс).
+        // Интервал короче флотовского намеренно: реестр задач живёт в памяти
+        // (Arc<Mutex<…>>), чтение — лок и клон вектора без диска, и список
+        // должен отзываться на старт/финиш задачи почти сразу, чтобы вкладка
+        // ощущалась живой, а не «через две секунды».
+        if self.right_tab == RightTab::Subagents {
+            self.subagent_ticks += 1;
+            if self.subagent_ticks >= 4 {
+                self.subagent_ticks = 0;
+                self.refresh_subagents();
+            }
+        } else {
+            self.subagent_ticks = 0;
+        }
+    }
+
+    /// Перечитывает реестр фоновых задач сессии во вкладку «Субагенты».
+    /// Реестр в памяти, поэтому состояния два: задачи есть — рендер
+    /// [`crate::subagent::render_tasks`], задач нет — честная заглушка с
+    /// подсказкой запуска (пустая строка запрещена: пустеющая вкладка не
+    /// объясняет, как её наполнить).
+    fn refresh_subagents(&mut self) {
+        self.panels.subagents = match &self.tool_ctx.subagents {
+            Some(registry) => {
+                let tasks = registry.list();
+                if tasks.is_empty() {
+                    "Фоновых задач нет.\n\
+                     запуск: инструмент subagent_run или /agents"
+                        .to_string()
+                } else {
+                    crate::subagent::render_tasks(&tasks)
+                }
+            }
+            None => "Реестр фоновых задач недоступен в этой сессии.\n\
+                     запуск: инструмент subagent_run или /agents"
+                .to_string(),
+        };
     }
 
     /// Перечитывает последний журнал флота во вкладку «Флот»: панель всегда
@@ -1299,29 +1417,82 @@ impl App {
             return;
         }
         match key.code {
-            // Прокрутка и вкладки доступны и во время хода модели.
+            // Прокрутка АКТИВНОЙ правой панели. Первичны конвенционные клавиши
+            // (tui-keyboard-interaction: `PgUp`/`PgDn` — страница, `g`/`G` —
+            // начало/конец); `Ctrl+U`/`Ctrl+D` — синонимы полстраницы, а
+            // `Alt+PgUp`/`Alt+PgDn` ловятся теми же ветками `PageUp`/`PageDown`
+            // (Alt+… доставляется ненадёжно — только как дубль). Панельные
+            // ветки обязаны стоять ДО общих веток ниже, иначе клавиша уедет
+            // в диалог или в текст.
+            //
+            // Когда панель скрыта (F5), те же PgUp/PgDn/Ctrl+U/Ctrl+D
+            // прокручивают диалог: фокус не «теряется» при исчезновении
+            // панели (tui-design-principles, Focus).
+            KeyCode::PageUp if self.right_visible => self.right_scroll_up(self.right_page()),
+            KeyCode::PageDown if self.right_visible => self.right_scroll_down(self.right_page()),
+            KeyCode::Char('u')
+                if self.right_visible && key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                self.right_scroll_up(self.right_half_page());
+            }
+            KeyCode::Char('d')
+                if self.right_visible && key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                self.right_scroll_down(self.right_half_page());
+            }
+            // `g`/`G` — начало/конец списка панели. Гард пустого ввода тот же,
+            // что у `q` и `?`: в режиме набора буква — это текст, а не команда
+            // (tui-design-principles, Input modes). Цена — сообщение, которое
+            // начинается с 'g' при пустом поле, отдаст первую букву навигации;
+            // тот же компромисс уже принят для `q`/`?`. Строчная/заглавная
+            // различаются по `SHIFT` (в части терминалов `G` приходит без
+            // модификатора).
+            KeyCode::Char('g')
+                if self.right_visible && key.modifiers.is_empty() && self.input.text.is_empty() =>
+            {
+                self.right_scroll_to_start();
+            }
+            KeyCode::Char('G')
+                if self.right_visible
+                    && matches!(key.modifiers, KeyModifiers::SHIFT | KeyModifiers::NONE)
+                    && self.input.text.is_empty() =>
+            {
+                self.right_scroll_to_end();
+            }
+            // Прокрутка диалога: панель скрыта или клавиша не имеет панельной
+            // роли. `Ctrl+U`/`Ctrl+D` — те же синонимы полстраницы.
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.scroll_by(self.page());
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.scroll_back(self.page());
+            }
             KeyCode::PageUp => self.scroll_by(self.page()),
             KeyCode::PageDown => self.scroll_back(self.page()),
             // Прыжок на вкладку подразумевает желание её видеть: панель
-            // показываем, даже если была скрыта F5 (иначе F1–F3/F6 при
+            // показываем, даже если была скрыта F5 (иначе F1–F3/F6–F7 при
             // скрытой панели — «мёртвые» клавиши без видимого эффекта).
             KeyCode::F(1) => {
                 self.right_visible = true;
-                self.right_tab = RightTab::Mermaid;
+                self.set_right_tab(RightTab::Mermaid);
             }
             KeyCode::F(2) => {
                 self.right_visible = true;
-                self.right_tab = RightTab::Rubric;
+                self.set_right_tab(RightTab::Rubric);
             }
             KeyCode::F(3) => {
                 self.right_visible = true;
-                self.right_tab = RightTab::Knowledge;
+                self.set_right_tab(RightTab::Knowledge);
             }
             KeyCode::F(6) => {
                 self.right_visible = true;
-                self.right_tab = RightTab::Fleet;
                 // Дашборд — сразу, без ожидания ~2 с тикового опроса.
-                self.refresh_fleet();
+                self.set_right_tab(RightTab::Fleet);
+            }
+            KeyCode::F(7) => {
+                self.right_visible = true;
+                // Список — сразу, без ожидания ~0.5 с тикового опроса.
+                self.set_right_tab(RightTab::Subagents);
             }
             KeyCode::F(4) => self.toggle_viewer(),
             // F5: скрыть/показать правую панель целиком (узкие терминалы).
@@ -1344,14 +1515,24 @@ impl App {
             }
             KeyCode::Enter if self.thinking => self.enqueue_typed(false),
             KeyCode::Enter => self.submit(),
+            // Shift+Tab — предыдущая вкладка. Без kitty-протокола
+            // (`KeyboardEnhancementFlags`, main.rs их не включает) crossterm
+            // отдаёт Shift+Tab как `BackTab`, а не `Tab`+SHIFT, поэтому ветка
+            // на Tab+SHIFT ниже — только совместимость; рабочая — эта.
+            KeyCode::BackTab => {
+                let tab = self.right_tab.prev();
+                self.set_right_tab(tab);
+            }
             // Tab сначала дополняет слэш-команду, дальше — следующая вкладка;
             // Shift+Tab — предыдущая (обе дороги к вкладкам, F1–F3/F6 — третья).
             KeyCode::Tab if key.modifiers.contains(KeyModifiers::SHIFT) => {
-                self.right_tab = self.right_tab.prev();
+                let tab = self.right_tab.prev();
+                self.set_right_tab(tab);
             }
             KeyCode::Tab => {
                 if !self.input.complete_tab() {
-                    self.right_tab = self.right_tab.next();
+                    let tab = self.right_tab.next();
+                    self.set_right_tab(tab);
                 }
             }
             // `?` при ПУСТОМ вводе — справка по клавишам (клавиши команд
@@ -1553,7 +1734,28 @@ impl App {
     }
 
     /// Клавиши модалки выбора: навигация, подтверждение, отказ.
+    ///
+    /// Цифровой быстрый выбор — только `1..=9` и ОСОЗНАННО без клавиш для
+    /// 10+: многоразрядный номер («10») конкурировал бы и с текстовым вводом
+    /// (мышление уже блокирует печать — но пришлось бы вводить режим набора
+    /// номера), и с одиночной цифрой, выбирающей мгновенно (непонятно, ждать
+    /// ли вторую цифру). Хвост длинного списка (пикер `/resume` отдаёт до 12
+    /// пунктов) достижим `↓`/`PgDn`/`End`, обратно — `↑`/`PgUp`/`Home`.
+    ///
+    /// Цифра вне списка (напр. «7» при трёх пунктах) — не «мёртвая» клавиша:
+    /// ответ не отправляется и модалка не закрывается, но пользователь
+    /// получает видимый отклик в статус-баре (тост). `0` — не номер пункта
+    /// (нумерация с единицы), это обычный no-op, как любая буква: печать в
+    /// модалке заблокирована.
     fn handle_ask_key(&mut self, key: KeyEvent) {
+        // Шаг «страницы» — от реальной высоты окна, которую рендер записал в
+        // `ask_viewport`: вариант занимает минимум две строки (метка +
+        // описание), поэтому половина видимого тела ≈ один экран вариантов.
+        // Константа здесь врала: на 40-строчном терминале страница в 10
+        // пунктов была меньше экрана и листала «по чуть-чуть», а на низком —
+        // перескакивала весь список. Ниже 1 шаг не опускаем: `PgDn` обязан
+        // сдвинуть курсор даже в терминале в три строки, иначе клавиша молчит.
+        let page = (self.ask_viewport / 2).max(1);
         let Some(ask) = self.ask.as_mut() else {
             return;
         };
@@ -1565,6 +1767,12 @@ impl App {
             KeyCode::Down | KeyCode::Char('j') => {
                 ask.selected = (ask.selected + 1).min(count.saturating_sub(1));
             }
+            KeyCode::PageUp => {
+                ask.selected = ask.selected.saturating_sub(page);
+            }
+            KeyCode::PageDown => {
+                ask.selected = (ask.selected + page).min(count.saturating_sub(1));
+            }
             KeyCode::Home => ask.selected = 0,
             KeyCode::End => ask.selected = count.saturating_sub(1),
             KeyCode::Enter => {
@@ -1573,14 +1781,28 @@ impl App {
             }
             KeyCode::Char(c) if ('1'..='9').contains(&c) => {
                 let idx = (c.to_digit(10).unwrap_or(1) - 1) as usize;
-                let label = if idx < count {
-                    Some(ask.options[idx].label.clone())
+                if idx < count {
+                    let label = ask.options[idx].label.clone();
+                    self.answer_ask(Some(label));
                 } else {
-                    None
-                };
-                if label.is_some() {
-                    self.answer_ask(label);
+                    // Пункта нет: ответ не уходит, модалка и курсор не меняются,
+                    // но клавиша не молчит — сообщаем, сколько пунктов доступно.
+                    // Уровень `err` (✗/красный), а не `ok` (✓/зелёный): текст —
+                    // отрицание, а знак обязан дублировать смысл (правило
+                    // «цвет не в одиночку»). Ошибка ждёт следующего действия —
+                    // пользователь, занятый модалкой, не пропустит отклик.
+                    self.set_toast(Toast::err(format!(
+                        "пункта {} нет — доступно {count}",
+                        idx + 1
+                    )));
                 }
+            }
+            // «0» — не номер пункта (нумерация с 1). Раньше клавиша молчала,
+            // хотя соседние «1»..«9» вне диапазона честно отвечают тостом:
+            // одинаковые по смыслу нажатия вели себя по-разному. Отвечаем тем
+            // же текстом и уровнем, что и для отсутствующего пункта.
+            KeyCode::Char('0') => {
+                self.set_toast(Toast::err(format!("пункта 0 нет — доступно {count}")));
             }
             // Отказ — пустой ответ: инструмент превратит его в «реши сам».
             KeyCode::Esc => self.answer_ask(None),
@@ -1643,15 +1865,15 @@ impl App {
             }
             // Вкладки переключаются и в просмотрщике (скролл — новой вкладки).
             KeyCode::F(1) => {
-                self.right_tab = RightTab::Mermaid;
+                self.set_right_tab(RightTab::Mermaid);
                 v = ViewerState::default();
             }
             KeyCode::F(2) => {
-                self.right_tab = RightTab::Rubric;
+                self.set_right_tab(RightTab::Rubric);
                 v = ViewerState::default();
             }
             KeyCode::F(3) => {
-                self.right_tab = RightTab::Knowledge;
+                self.set_right_tab(RightTab::Knowledge);
                 v = ViewerState::default();
             }
             _ => {}
@@ -1687,10 +1909,33 @@ impl App {
         self.help_scroll = v;
     }
 
-    /// Контекст клавиш для подсказок и справки: во время хода набор другой.
+    /// Контекст клавиш для строки подсказок: его печатает статус-бар.
+    ///
+    /// Модалка выбора — верхний слой независимо от того, занят чат или нет:
+    /// при открытой модалке статус-бар обязан обещать клавиши МОДАЛКИ
+    /// (`Enter` — выбрать пункт, `Esc` — отклонить), а не чата. Иначе на
+    /// занятом чате подсказка врала бы: «Enter — в очередь» и «Esc — прервать»
+    /// обещали бы то, чего `handle_ask_key` не делает (модалка перехватывает
+    /// клавиши раньше чата — см. `handle_key`).
     pub(crate) fn hint_ctx(&self) -> super::keymap::Ctx {
-        if self.help {
+        if self.ask.is_some() && matches!(self.screen, Screen::Chat) {
+            super::keymap::Ctx::Ask
+        } else if self.help {
             super::keymap::Ctx::Help
+        } else {
+            self.chat_ctx()
+        }
+    }
+
+    /// Контекст, который документирует оверлей справки `?`.
+    ///
+    /// Справка рассказывает про нижний относительно неё слой: при открытой
+    /// ask-модалке — про клавиши модалки (она блокирующая и перехватывает
+    /// ввод), иначе про сам чат. Подменять это на [`Self::chat_ctx`] нельзя:
+    /// оверлей обещал бы клавиши экрана, который фокус не получает.
+    pub(crate) fn help_ctx(&self) -> super::keymap::Ctx {
+        if self.ask.is_some() && matches!(self.screen, Screen::Chat) {
+            super::keymap::Ctx::Ask
         } else {
             self.chat_ctx()
         }
@@ -1937,6 +2182,14 @@ impl App {
                 let command = self.pending_slash.take().unwrap_or_default();
                 match result {
                     Ok(slash::SlashOutcome::Handled(text)) => {
+                        // `/goal status|pause|cancel|next` не несёт нового
+                        // намерения: строка теплицы от прошлой постановки
+                        // снимается, иначе она висела бы как обещание про
+                        // уже снятую цель. `replace` идёт веткой GoalStarted и
+                        // ставит свежую строку.
+                        if command.trim_start().starts_with("/goal") {
+                            self.intent_hint = None;
+                        }
                         self.route_slash_output(&command, &text);
                         self.push_block(ChatBlock::System { command, text });
                     }
@@ -1949,6 +2202,9 @@ impl App {
                         self.blocks.clear();
                         self.tool_live.clear();
                         self.panels = Panels::default();
+                        // Строка теплицы про прежнее намерение: в новой сессии
+                        // она уже не про эту задачу.
+                        self.intent_hint = None;
                         self.scroll = 0;
                         self.stick = true;
                         self.push_block(ChatBlock::Logo);
@@ -1959,7 +2215,11 @@ impl App {
                                 .into(),
                         });
                     }
-                    Ok(slash::SlashOutcome::GoalStarted(text)) => {
+                    Ok(slash::SlashOutcome::GoalStarted { text, intent_hint }) => {
+                        // Строка теплицы приходит из исполнителя команды (там
+                        // доменной хук вызван ровно один раз), а не считается
+                        // в рендере: рендер не должен запускать процессы.
+                        self.intent_hint = intent_hint;
                         self.push_block(ChatBlock::System { command, text });
                         // Первый терн goal-петли: цель уходит в контекст
                         // синтетическим user-сообщением (continuation), дальше
@@ -2246,6 +2506,89 @@ impl App {
         self.stick = true;
     }
 
+    /// Переключает активную вкладку правой панели.
+    ///
+    /// Единая точка переключения (F1–F3/F6/F7, Tab/Shift+Tab, просмотрщик):
+    ///  * сброс прокрутки на 0 при смене вкладки — иначе новая вкладка
+    ///    открывалась бы со старым смещением («залипание»: список задач
+    ///    показывался бы с середины, будто первые строки пропали);
+    ///  * «живые» вкладки (Флот, Субагенты) обновляются немедленно. Раньше
+    ///    это делали только F6/F7, а Tab/Shift+Tab ждали тикового опроса и до
+    ///    ~0.5 с показывали заглушку, хотя реестр читается мгновенно.
+    ///
+    /// Повторное нажатие той же F-клавиши по-прежнему обновляет содержимое.
+    fn set_right_tab(&mut self, tab: RightTab) {
+        if self.right_tab != tab {
+            self.right_tab = tab;
+            self.right_scroll = 0;
+        }
+        match tab {
+            RightTab::Fleet => self.refresh_fleet(),
+            RightTab::Subagents => self.refresh_subagents(),
+            _ => {}
+        }
+    }
+
+    /// Шаг страничной прокрутки правой панели — её фактическая высота
+    /// (ставит рендер; [`.max(1)`] — до первого кадра вьюпорт неизвестен).
+    fn right_page(&self) -> usize {
+        self.right_viewport.max(1)
+    }
+
+    /// Полстраницы правой панели для синонимов `Ctrl+U`/`Ctrl+D`
+    /// (не меньше строки — на вьюпорте в 1 строку полстраницы не существует).
+    fn right_half_page(&self) -> usize {
+        (self.right_page() / 2).max(1)
+    }
+
+    /// Сдвиг прокрутки правой панели (рендер клампит его по содержимому).
+    pub(crate) fn right_scroll(&self) -> usize {
+        self.right_scroll
+    }
+
+    /// Записывает клампнутый рендером сдвиг прокрутки правой панели —
+    /// тот же приём, что у [`Self::set_help_scroll`]: колесо/страницы не
+    /// уезжают за пределы содержимого и не накапливают «мёртвый» запас.
+    pub(crate) fn set_right_scroll(&mut self, v: usize) {
+        self.right_scroll = v;
+    }
+
+    /// Высота вьюпорта правой панели в строках (ставит рендер).
+    pub(crate) fn set_right_viewport(&mut self, v: usize) {
+        self.right_viewport = v.max(1);
+    }
+
+    /// Записывает верхнюю границу прокрутки (ставит рендер).
+    pub(crate) fn set_right_max_scroll(&mut self, v: usize) {
+        self.right_max = v;
+    }
+
+    /// Прокрутка правой панели к НАЧАЛУ на `n` строк.
+    ///
+    /// `right_scroll` — смещение от начала содержимого (его отдаёт
+    /// `Paragraph::scroll`), поэтому «вверх» — это уменьшение, а не
+    /// увеличение сдвига. Раньше здесь стоял `saturating_add`, и клавиша
+    /// `PgUp`/`Ctrl+U`, подписанная «вверх», уезжала в конец.
+    pub(crate) fn right_scroll_up(&mut self, n: usize) {
+        self.right_scroll = self.right_scroll.saturating_sub(n);
+    }
+
+    /// Прокрутка правой панели к КОНЦУ на `n` строк (за нижнюю границу не
+    /// пускает кламп рендера — содержимое может быть короче страницы).
+    pub(crate) fn right_scroll_down(&mut self, n: usize) {
+        self.right_scroll = self.right_scroll.saturating_add(n);
+    }
+
+    /// Прыжок к началу содержимого (`g`).
+    pub(crate) fn right_scroll_to_start(&mut self) {
+        self.right_scroll = 0;
+    }
+
+    /// Прыжок к концу содержимого (`G`) — по границе, записанной рендером.
+    pub(crate) fn right_scroll_to_end(&mut self) {
+        self.right_scroll = self.right_max;
+    }
+
     /// Клавиши активного поиска (Ctrl+F): запрос редактируется посимвольно,
     /// навигация — Enter (к следующему) / Alt+Enter (к предыдущему), Esc —
     /// закрыть строку (подсветка и позиция прокрутки сохраняются).
@@ -2462,6 +2805,12 @@ pub(crate) mod testing {
         app.thinking = thinking;
         app.thinking_since = thinking.then(std::time::Instant::now);
         app.reset_stream_stats();
+    }
+
+    /// Кладёт строку теплицы гипотез (поле приватное: в бою его ставит только
+    /// ветка `SlashOutcome::GoalStarted`; тесты рендера берут готовое состояние).
+    pub(crate) fn set_intent_hint(app: &mut App, hint: Option<&str>) {
+        app.intent_hint = hint.map(str::to_string);
     }
 }
 
@@ -2897,6 +3246,79 @@ mod tests {
         assert_eq!(app.scroll, 0);
         assert!(app.stick, "прилипание к дну восстановлено");
         assert_eq!(app.history_tokens(), 0, "индикатор контекста сброшен");
+    }
+
+    #[test]
+    fn intent_hint_takes_status_row_but_not_under_modal() {
+        let mut app = test_app();
+        assert!(!app.has_input_state(), "пустая строка не занимает ряд");
+        testing::set_intent_hint(&mut app, Some("гипотезы: stub — поднять?"));
+        assert_eq!(app.intent_hint(), Some("гипотезы: stub — поднять?"));
+        assert!(app.has_input_state(), "строка теплицы занимает ряд");
+
+        // Ask-модалка — верхний слой: строка под ней не обещает действий
+        // («… — поднять?» читалось бы как живой вопрос).
+        app.open_model_picker();
+        assert!(app.ask.is_some(), "модалка открыта");
+        assert!(
+            !app.has_input_state(),
+            "под модалкой ряд теплицы не выделяется"
+        );
+
+        // Ход забирает ряд у теплицы, после хода строка возвращается.
+        app.ask = None;
+        testing::set_thinking(&mut app, true);
+        assert!(app.has_input_state(), "ход держит ряд сам");
+        testing::set_thinking(&mut app, false);
+        assert!(
+            app.has_input_state(),
+            "после хода строка теплицы снова видна"
+        );
+
+        testing::set_intent_hint(&mut app, None);
+        assert!(!app.has_input_state(), "снятая подсказка ряд не держит");
+    }
+
+    #[test]
+    fn goal_started_carries_hint_and_new_session_clears_it() {
+        let mut app = test_app();
+        let session = app.session.take().expect("сессия есть");
+        app.pending_slash = Some("/goal обучить 3B || loss падает || true".into());
+        app.handle_message(AppMessage::SlashFinished {
+            session,
+            result: Ok(SlashOutcome::GoalStarted {
+                text: "цель принята".into(),
+                intent_hint: Some("гипотезы: stub — поднять?".into()),
+            }),
+        });
+        assert_eq!(
+            app.intent_hint(),
+            Some("гипотезы: stub — поднять?"),
+            "строка хука доехала из слэш-исполнителя в UI"
+        );
+        assert!(!app.thinking, "цель без kickoff-сообщения не запускает ход");
+
+        let session = app.session.take().expect("сессия есть");
+        app.handle_message(AppMessage::SlashFinished {
+            session,
+            result: Ok(SlashOutcome::NewSession),
+        });
+        assert_eq!(app.intent_hint(), None, "новая сессия снимает подсказку");
+    }
+
+    #[test]
+    fn goal_subcommand_clears_stale_hint() {
+        let mut app = test_app();
+        testing::set_intent_hint(&mut app, Some("старая строка теплицы"));
+        let session = app.session.take().expect("сессия есть");
+        app.pending_slash = Some("/goal status".into());
+        app.handle_message(AppMessage::SlashFinished {
+            session,
+            result: Ok(SlashOutcome::Handled("цель не поставлена".into())),
+        });
+        // `/goal status|pause|cancel|next` нового намерения не несёт — старая
+        // строка висела бы как обещание про уже снятую цель.
+        assert_eq!(app.intent_hint(), None);
     }
 
     #[tokio::test]
@@ -3465,6 +3887,26 @@ mod tests {
         reply_rx
     }
 
+    /// Модалка `propose_options` с `n` вариантами (без рекомендации).
+    /// Нужна для проверки границы `1..=9` и навигации по хвосту длинного
+    /// списка (у пикера `/resume` бывает до 12 пунктов).
+    fn open_test_ask_n(app: &mut App, n: usize) -> tokio::sync::oneshot::Receiver<String> {
+        let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+        let options = (0..n)
+            .map(|i| crate::tool::AskOption {
+                label: format!("opt-{i}"),
+                description: String::new(),
+            })
+            .collect();
+        app.handle_message(AppMessage::AskUser(AskRequest {
+            question: "Выбор:".into(),
+            options,
+            recommended: None,
+            reply: reply_tx,
+        }));
+        reply_rx
+    }
+
     #[test]
     fn ask_modal_opens_navigates_and_enter_confirms() {
         let mut app = test_app();
@@ -3541,6 +3983,110 @@ mod tests {
             "обычный ввод заблокирован модалкой"
         );
         assert!(app.ask.is_some(), "нецифровая клавиша модалку не закрывает");
+    }
+
+    #[test]
+    fn ask_modal_digit_out_of_range_does_not_answer_but_gives_feedback() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let mut rx = open_test_ask_n(&mut app, 3);
+        app.handle_key(KeyEvent::new(KeyCode::Char('7'), KeyModifiers::NONE));
+        assert!(app.ask.is_some(), "модалка не закрывается");
+        assert_eq!(
+            app.ask.as_ref().map(|a| a.selected),
+            Some(0),
+            "курсор остаётся консистентным"
+        );
+        assert!(rx.try_recv().is_err(), "ответ инструменту не отправлен");
+        let toast = app
+            .toast()
+            .expect("клавиша не молчит — отклик в статус-баре");
+        assert!(toast.text.contains('7'), "текст отклика: {}", toast.text);
+        assert!(toast.text.contains('3'), "текст отклика: {}", toast.text);
+    }
+
+    #[test]
+    fn ask_modal_zero_selects_nothing() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let mut rx = open_test_ask_n(&mut app, 3);
+        app.handle_key(KeyEvent::new(KeyCode::Char('0'), KeyModifiers::NONE));
+        assert!(
+            app.ask.is_some(),
+            "0 — не номер пункта, модалку не закрывает"
+        );
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(0));
+        assert!(rx.try_recv().is_err(), "0 не отправляет ответ");
+        assert!(
+            app.input.text().is_empty(),
+            "0 не печатается в строку ввода"
+        );
+    }
+
+    #[test]
+    fn ask_modal_zero_gives_feedback_like_other_dead_digits() {
+        // «0» — не номер пункта (нумерация с 1), но раньше клавиша молчала,
+        // хотя соседние «1»..«9» вне диапазона честно отвечают тостом.
+        // Одинаковые по смыслу нажатия не имеют права вести себя по-разному.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let mut rx = open_test_ask_n(&mut app, 3);
+        app.handle_key(KeyEvent::new(KeyCode::Char('0'), KeyModifiers::NONE));
+        assert!(app.ask.is_some(), "0 не закрывает модалку");
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(0));
+        assert!(rx.try_recv().is_err(), "0 не отправляет ответ");
+        let toast = app.toast().expect("0 обязан дать отклик, как и «7»");
+        assert!(toast.text.contains('0'), "текст отклика: {}", toast.text);
+        assert!(toast.text.contains('3'), "текст отклика: {}", toast.text);
+    }
+
+    #[test]
+    fn ask_modal_ninth_digit_selects_punkt_nine_of_twelve() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let mut rx = open_test_ask_n(&mut app, 12);
+        app.handle_key(KeyEvent::new(KeyCode::Char('9'), KeyModifiers::NONE));
+        assert!(app.ask.is_none(), "цифра выбирает мгновенно");
+        assert_eq!(rx.try_recv().expect("ответ"), "opt-8", "девятый пункт");
+    }
+
+    #[test]
+    fn ask_modal_page_keys_and_arrows_reach_tail_beyond_nine() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let _rx = open_test_ask_n(&mut app, 12);
+        // Десятый пункт (индекс 9) — за пределами цифровых клавиш (их нет для
+        // 10+ осознанно): достижим только навигацией. Девять «вниз» с начала.
+        for _ in 0..9 {
+            app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        }
+        assert_eq!(
+            app.ask.as_ref().map(|a| a.selected),
+            Some(9),
+            "десятый пункт доступен стрелками"
+        );
+        // Шаг страницы — половина высоты тела модалки, которую записывает
+        // рендер (`draw_ask` → `ask_viewport`); здесь кадра нет, поэтому задаём
+        // окно явно. Константа 10 из хендлера убрана: она не знала терминала.
+        app.ask_viewport = 20;
+        let page = 20 / 2;
+        // PgDn — страница вниз: 9 + 10 зажимается последним пунктом (11).
+        app.handle_key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE));
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(11));
+        // PgUp — страница вверх: 11 − 10 = 1.
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(11 - page));
+        app.handle_key(KeyEvent::new(KeyCode::Home, KeyModifiers::NONE));
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(0));
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        assert_eq!(
+            app.ask.as_ref().map(|a| a.selected),
+            Some(0),
+            "PgUp не уходит за верх списка"
+        );
+        app.handle_key(KeyEvent::new(KeyCode::End, KeyModifiers::NONE));
+        assert_eq!(app.ask.as_ref().map(|a| a.selected), Some(11));
+        assert!(app.ask.is_some(), "навигация не закрывает модалку");
     }
 
     #[test]
@@ -3885,11 +4431,270 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT));
         assert_eq!(
             app.right_tab(),
-            RightTab::Fleet,
-            "Shift+Tab — назад по циклу"
+            RightTab::Subagents,
+            "Shift+Tab — назад по циклу (Mermaid → последняя вкладка)"
         );
         app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert_eq!(app.right_tab(), RightTab::Mermaid, "Tab — вперёд");
+    }
+
+    /// Дефект №3: рабочая ветка Shift+Tab была `KeyCode::Tab + SHIFT`, но
+    /// crossterm без kitty-протокола отдаёт Shift+Tab как `BackTab` (своё
+    /// значение `KeyCode`, модификаторов нет). Клавиша была мёртвой. Теперь
+    /// `BackTab` — основной путь назад, а старая ветка остаётся совместимостью
+    /// для терминалов с расширенными модификаторами.
+    #[test]
+    fn backtab_switches_to_previous_tab() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        assert_eq!(app.right_tab(), RightTab::Mermaid, "старт — первая вкладка");
+        app.handle_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::NONE));
+        assert_eq!(
+            app.right_tab(),
+            RightTab::Subagents,
+            "BackTab — назад по циклу (Mermaid → последняя вкладка)"
+        );
+        // Обратно вперёд — тем же Tab.
+        app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        assert_eq!(app.right_tab(), RightTab::Mermaid);
+    }
+
+    /// `BackTab`, как и `Tab`, замыкает цикл из пяти вкладок и возвращает к
+    /// исходной: ни одна вкладка не «застревает» на обратном ходу.
+    #[test]
+    fn backtab_cycles_through_all_five_tabs() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let start = app.right_tab();
+        let mut seen = vec![start];
+        for _ in 0..RightTab::ALL.len() {
+            app.handle_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::NONE));
+            seen.push(app.right_tab());
+        }
+        assert_eq!(seen.len(), 6, "пять шагов плюс возврат");
+        assert_eq!(
+            seen[5], start,
+            "пятый BackTab возвращает к исходной вкладке"
+        );
+        // Ни одна вкладка не пропущена и не задета дважды: пять шагов назад
+        // дают ровно пять разных вкладок (попарная проверка — `RightTab` без Ord).
+        for i in 0..5 {
+            for j in (i + 1)..5 {
+                assert_ne!(seen[i], seen[j], "вкладка повторена: {seen:?}");
+            }
+        }
+    }
+
+    /// Дефект №2/#6: клавиши правой панели обязаны прокручивать в сторону,
+    /// которую называют подписи. `right_scroll` — смещение ОТ НАЧАЛА (его
+    /// отдаёт `Paragraph::scroll`), поэтому «вверх» — уменьшение. Раньше
+    /// стоял `saturating_add` и PgUp/Ctrl+U уезжали в конец.
+    #[test]
+    fn right_panel_keys_scroll_in_labelled_direction() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_visible = true;
+        app.set_right_viewport(10);
+        app.set_right_max_scroll(100);
+        assert_eq!(app.right_scroll(), 0, "старт — начало содержимого");
+
+        app.handle_key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 10, "PgDn — страница К КОНЦУ");
+        app.handle_key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 20);
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 10, "PgUp — страница К НАЧАЛУ");
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 0, "PgUp не уходит в минус");
+
+        // Синонимы полстраницы (вьюпорт 10 → шаг 5): то же направление.
+        app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL));
+        assert_eq!(app.right_scroll(), 5, "Ctrl+D — полстраницы к концу");
+        app.handle_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
+        assert_eq!(app.right_scroll(), 0, "Ctrl+U — полстраницы к началу");
+
+        // g/G — конвенция: к началу/концу содержимого. Границу конца знает
+        // рендер (right_max); здесь она выставлена явно, кадра нет.
+        app.handle_key(KeyEvent::new(KeyCode::Char('G'), KeyModifiers::SHIFT));
+        assert_eq!(app.right_scroll(), 100, "G — к концу содержимого");
+        app.handle_key(KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 0, "g — к началу содержимого");
+    }
+
+    /// Гард `g`/`G`: пока в поле есть текст, буква — это буква, а не команда
+    /// (tui-design-principles, Input modes). Осознанный компромисс: сообщение,
+    /// начинающееся с `g` при ПУСТОМ поле, отдаст первую букву навигации —
+    /// тот же контракт, что у `q`/`?`.
+    #[test]
+    fn g_is_navigation_only_on_empty_input() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_visible = true;
+        app.set_right_viewport(10);
+        app.set_right_max_scroll(50);
+        app.handle_key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE));
+        let before = app.right_scroll();
+        assert!(before > 0);
+
+        // Непустой ввод: `g` печатается, прокрутка не трогается.
+        app.handle_key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE));
+        assert_eq!(app.input.text(), "ag", "в режиме набора `g` — текст");
+        assert_eq!(app.right_scroll(), before, "и прокрутки не касается");
+
+        // Поле снова пусто — `g` снова навигация.
+        app.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE));
+        assert_eq!(app.right_scroll(), 0, "на пустом вводе `g` — к началу");
+    }
+
+    /// Focus-правило: панель скрыта (F5) — те же PgUp/PgDn не «умирают», а
+    /// прокручивают диалог. Клавиша не должна терять фокус при исчезновении
+    /// панели (tui-design-principles, Focus).
+    #[test]
+    fn page_keys_fall_back_to_dialog_when_panel_hidden() {
+        let mut app = app_with_dialog();
+        app.screen = Screen::Chat;
+        app.right_visible = false;
+        app.set_right_viewport(6);
+        app.scroll = 0;
+        let dialog_before = app.scroll;
+        // У диалога `scroll` — смещение от ДНА, поэтому «вверх» (старые
+        // строки) — это `PageUp` → `scroll_by`. Прокрутка не «умирает» вместе
+        // с панелью: клавиша переадресуется диалогу.
+        app.handle_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE));
+        assert!(
+            app.scroll > dialog_before,
+            "PageUp прокручивает диалог, когда панель скрыта"
+        );
+        assert_eq!(app.right_scroll(), 0, "правая панель не тронута");
+    }
+
+    /// Tab обходит все пять вкладок и возвращается к исходной — цикл замкнут.
+    #[test]
+    fn tab_cycles_through_all_five_tabs() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let start = app.right_tab();
+        let mut seen = vec![start];
+        for _ in 0..RightTab::ALL.len() {
+            app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+            seen.push(app.right_tab());
+        }
+        assert_eq!(seen.len(), 6, "пять шагов плюс возврат");
+        assert_eq!(
+            &seen[..5],
+            &RightTab::ALL,
+            "Tab идёт строго по RightTab::ALL"
+        );
+        assert_eq!(seen[5], start, "пятый шаг возвращает к исходной вкладке");
+        // Обратный ход симметричен.
+        for _ in 0..RightTab::ALL.len() {
+            app.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT));
+        }
+        assert_eq!(app.right_tab(), start, "Shift+Tab возвращает туда же");
+    }
+
+    #[test]
+    fn right_tab_all_matches_icon_count() {
+        assert_eq!(RightTab::ALL.len(), 5, "пять вкладок — Mermaid…Субагенты");
+        for g in [
+            crate::tui::theme::Glyphs { unicode: true },
+            crate::tui::theme::Glyphs { unicode: false },
+        ] {
+            assert_eq!(
+                RightTab::ALL.len(),
+                g.tab_icons().len(),
+                "иконок столько же, сколько вкладок"
+            );
+        }
+    }
+
+    #[test]
+    fn panels_cover_the_subagents_tab() {
+        let mut p = Panels::default();
+        assert!(
+            p.content(RightTab::Subagents).is_empty(),
+            "пустая вкладка — пустая строка (до refresh)"
+        );
+        p.subagents = "hr-1 [claude-code] done".into();
+        assert_eq!(p.content(RightTab::Subagents), "hr-1 [claude-code] done");
+        let ph = Panels::placeholder(RightTab::Subagents);
+        assert!(
+            ph.contains("subagent_run"),
+            "заглушка зовёт инструмент: {ph}"
+        );
+        assert!(ph.contains("/agents"), "заглушка зовёт команду: {ph}");
+    }
+
+    #[test]
+    fn f7_unhides_panel_and_loads_subagents_registry() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_visible = false;
+        app.tool_ctx.subagents = Some(finished_registry());
+        app.handle_key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE));
+        assert!(app.right_visible, "F7 показывает скрытую панель");
+        assert!(
+            matches!(app.right_tab(), RightTab::Subagents),
+            "F7 — вкладка Субагенты"
+        );
+        assert!(
+            app.panels.subagents.contains("hr-1"),
+            "список заполняется сразу, без ожидания тика: {}",
+            app.panels.subagents
+        );
+        assert!(
+            app.panels.subagents.contains("done"),
+            "статус задачи виден: {}",
+            app.panels.subagents
+        );
+    }
+
+    #[test]
+    fn subagents_panel_reports_empty_registry_with_hint() {
+        // Реестр есть, но задач нет — не пустая строка, а подсказка запуска.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.tool_ctx.subagents = Some(crate::subagent::SubagentRegistry::new());
+        app.handle_key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE));
+        let text = app.panels.subagents.clone();
+        assert!(!text.trim().is_empty(), "пустая вкладка запрещена");
+        assert!(
+            text.contains("subagent_run") && text.contains("/agents"),
+            "подсказка запуска: {text}"
+        );
+        // Реестра нет вовсе — тоже осмысленный текст, не паника и не пусто.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.tool_ctx.subagents = None;
+        app.handle_key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE));
+        assert!(
+            !app.panels.subagents.trim().is_empty(),
+            "нет реестра — тоже подсказка, а не пусто"
+        );
+    }
+
+    #[test]
+    fn subagents_tab_refreshes_on_tick() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.right_tab = RightTab::Subagents;
+        app.tool_ctx.subagents = Some(crate::subagent::SubagentRegistry::new());
+        app.panels.subagents.clear();
+        for _ in 0..4 {
+            app.tick();
+        }
+        assert!(
+            !app.panels.subagents.trim().is_empty(),
+            "на 4-м тике вкладка перечитала реестр"
+        );
+        assert!(
+            app.needs_tick(),
+            "активная вкладка субагентов требует тиков"
+        );
     }
 
     #[test]
@@ -3899,6 +4704,117 @@ mod tests {
         assert_eq!(app.hint_ctx(), super::super::keymap::Ctx::ChatIdle);
         testing::set_thinking(&mut app, true);
         assert_eq!(app.hint_ctx(), super::super::keymap::Ctx::ChatBusy);
+    }
+
+    /// Свидетель состояния ask-модалки: открыта ли, где курсор, что сказано
+    /// тостом. Сравнением «до/после» тест реестра видит любой отклик, включая
+    /// закрытие модалки и ошибочный тост вместо движения курсора.
+    fn ask_witness(app: &App) -> (bool, usize, Option<String>) {
+        (
+            app.ask.is_some(),
+            app.ask.as_ref().map_or(usize::MAX, |a| a.selected),
+            app.toast().map(|t| t.text.clone()),
+        )
+    }
+
+    /// При открытой ask-модалке и строка состояния, и оверлей справки обязаны
+    /// показывать клавиши МОДАЛКИ — независимо от того, занят чат или нет.
+    ///
+    /// Раньше `hint_ctx`/`help_ctx` шли через состояние чата: на занятом чате
+    /// статус-бар обещал «Enter — в очередь» и «Esc — прервать», хотя те же
+    /// клавиши `handle_ask_key` отправлял на выбор пункта и отказ. Справка
+    /// `?` рассказывала про экран, который фокус не получает.
+    #[test]
+    fn ask_modal_is_the_top_layer_for_hint_and_help_contexts() {
+        use crate::tui::keymap::Ctx;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        assert_eq!(app.hint_ctx(), Ctx::ChatIdle, "пустой чат — клавиши чата");
+        assert_eq!(app.help_ctx(), Ctx::ChatIdle);
+
+        let _rx = open_test_ask_n(&mut app, 2);
+        assert_eq!(app.hint_ctx(), Ctx::Ask, "модалка перехватывает клавиши");
+        assert_eq!(app.help_ctx(), Ctx::Ask, "справка описывает верхний слой");
+
+        // Чат занят — модалка всё равно верхний слой (её клавиши уходят ей).
+        testing::set_thinking(&mut app, true);
+        assert_eq!(app.hint_ctx(), Ctx::Ask);
+        assert_eq!(app.help_ctx(), Ctx::Ask);
+
+        app.ask = None;
+        assert_eq!(app.hint_ctx(), Ctx::ChatBusy, "без модалки — снова чат");
+        assert_eq!(app.help_ctx(), Ctx::ChatBusy);
+    }
+
+    /// Реестр `Ctx::Ask` — обещание клавиш модалки, `handle_ask_key` — их
+    /// реализация. Тест гоняет по свежему приложению КАЖДЫЙ код реестра и
+    /// требует, чтобы нажатие что-то сделало, а клавиша вне реестра (и вне
+    /// единственного задокументированного исключения) — не трогала модалку.
+    ///
+    /// Ловит обе поломки разом: «подсказка обещает клавишу без обработчика» и
+    /// «обработчик умеет клавишу, о которой нигде не сказано».
+    #[test]
+    fn ask_registry_agrees_with_handle_ask_key() {
+        use crate::tui::keymap::{self, Ctx};
+
+        let event = |code: &str| -> KeyEvent {
+            let key = match code {
+                "up" => KeyCode::Up,
+                "down" => KeyCode::Down,
+                "pageup" => KeyCode::PageUp,
+                "pagedown" => KeyCode::PageDown,
+                "home" => KeyCode::Home,
+                "end" => KeyCode::End,
+                "enter" => KeyCode::Enter,
+                "esc" => KeyCode::Esc,
+                one if one.chars().count() == 1 => KeyCode::Char(one.chars().next().unwrap()),
+                other => panic!("тест не знает клавиши реестра {other:?}"),
+            };
+            KeyEvent::new(key, KeyModifiers::NONE)
+        };
+
+        let mut advertised = keymap::codes(Ctx::Ask);
+        // Единственная обрабатываемая, но не обещанная клавиша: «0» — не номер
+        // пункта (нумерация с 1), отвечает тостом об ошибке. Обещать в
+        // подсказке нечего: действия за ней нет, только отрицание.
+        advertised.push("0");
+
+        for code in &advertised {
+            let mut app = test_app();
+            app.screen = Screen::Chat;
+            let _rx = open_test_ask_n(&mut app, 12);
+            app.ask.as_mut().expect("модалка открыта").selected = 6;
+            let before = ask_witness(&app);
+            app.handle_key(event(code));
+            assert_ne!(
+                before,
+                ask_witness(&app),
+                "клавиша {code:?} объявлена в реестре (или в исключении), но \
+                 `handle_ask_key` на неё не реагирует"
+            );
+        }
+
+        // Обратная сторона: клавиша, которой нет ни в реестре, ни в исключении,
+        // обязана молчать. Иначе модалка «в тихую» умеет недокументированное.
+        for key in [
+            KeyCode::Char('x'),
+            KeyCode::Tab,
+            KeyCode::Backspace,
+            KeyCode::Left,
+            KeyCode::Right,
+        ] {
+            let mut app = test_app();
+            app.screen = Screen::Chat;
+            let _rx = open_test_ask_n(&mut app, 12);
+            app.ask.as_mut().expect("модалка открыта").selected = 6;
+            let before = ask_witness(&app);
+            app.handle_key(KeyEvent::new(key, KeyModifiers::NONE));
+            assert_eq!(
+                before,
+                ask_witness(&app),
+                "клавиша {key:?} меняет модалку, но её нет в реестре"
+            );
+        }
     }
 
     #[test]

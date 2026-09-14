@@ -780,6 +780,590 @@ pub fn slugify(raw: &str) -> String {
     }
 }
 
+/// Каталог решений (ADR) по умолчанию для режима `--from-adrs` (ADR-045).
+pub const ADR_DIR: &str = "docs/adr";
+
+/// Отбор решений по статусу (флаг `--status` режима `--from-adrs`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdrStatusFilter {
+    /// Ещё не принятые решения — дефолт: реализованное планировать не нужно.
+    Proposed,
+    /// Принятые решения.
+    Accepted,
+    /// Все решения — аудит и ретроспектива.
+    All,
+}
+
+impl AdrStatusFilter {
+    /// Разбирает значение флага (`proposed` | `accepted` | `all`; регистр не значим).
+    ///
+    /// # Errors
+    /// Значение не распознано — с перечнем допустимых.
+    pub fn parse(raw: &str) -> Result<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "proposed" => Ok(Self::Proposed),
+            "accepted" => Ok(Self::Accepted),
+            "all" => Ok(Self::All),
+            other => Err(HarnessError::Fleet(format!(
+                "неизвестный отбор по статусу ADR '{other}' (proposed|accepted|all)"
+            ))),
+        }
+    }
+
+    /// Имя отбора (для отчёта и диагностики).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Proposed => "proposed",
+            Self::Accepted => "accepted",
+            Self::All => "all",
+        }
+    }
+
+    /// Подходит ли решение с таким статусом под отбор.
+    ///
+    /// Сравнивается первое слово статуса: `Accepted (частично superseded …)` —
+    /// это `accepted`. Пустой статус не попадает ни в `proposed`, ни в
+    /// `accepted`, но попадает в `all`.
+    #[must_use]
+    fn matches(self, status: &str) -> bool {
+        match self {
+            Self::All => true,
+            Self::Proposed => status_word(status) == "proposed",
+            Self::Accepted => status_word(status) == "accepted",
+        }
+    }
+}
+
+/// Первое слово статуса в нижнем регистре (`""` — статус пуст).
+fn status_word(status: &str) -> String {
+    status
+        .trim()
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase()
+}
+
+/// YAML-frontmatter решения (ADR-045 §2). Лишние поля не мешают разбору.
+#[derive(Debug, Default, Deserialize)]
+struct AdrFrontmatter {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    status: String,
+    #[serde(default, deserialize_with = "de_string_list")]
+    depends_on: Vec<String>,
+    #[serde(default, deserialize_with = "de_string_list")]
+    affects: Vec<String>,
+    #[serde(default, deserialize_with = "de_string_list")]
+    spec_files: Vec<String>,
+    #[serde(default)]
+    route: Option<String>,
+    #[serde(default)]
+    domain: Option<String>,
+}
+
+/// Список строк из frontmatter: принимает и скаляр (`affects: src/x.rs`),
+/// и последовательность; `null`/отсутствие — пустой список.
+fn de_string_list<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = Option::<serde_yaml_ng::Value>::deserialize(deserializer)?;
+    match raw {
+        None | Some(serde_yaml_ng::Value::Null) => Ok(Vec::new()),
+        Some(serde_yaml_ng::Value::String(s)) => Ok(vec![s]),
+        Some(serde_yaml_ng::Value::Sequence(items)) => items
+            .into_iter()
+            .map(|item| match item {
+                serde_yaml_ng::Value::String(s) => Ok(s),
+                other => Err(serde::de::Error::custom(format!(
+                    "ожидался список строк, элемент: {other:?}"
+                ))),
+            })
+            .collect(),
+        Some(other) => Err(serde::de::Error::custom(format!(
+            "ожидался список строк, получено: {other:?}"
+        ))),
+    }
+}
+
+/// Разобранное решение (ADR) — источник узла плана.
+#[derive(Debug, Clone)]
+struct AdrMeta {
+    /// Нормализованный id (`adr-045`): `ADR-005` и `adr-005` — один id.
+    id: String,
+    /// Заголовок решения.
+    title: String,
+    /// Статус как объявлено (`""` — не объявлен).
+    status: String,
+    /// Объявленные зависимости (нормализованные id).
+    depends_on: Vec<String>,
+    /// Затрагиваемые сущности/пути — они же `outputs` узла.
+    affects: Vec<String>,
+    /// Объявленные источники (дополняют путь самого ADR).
+    spec_files: Vec<String>,
+    /// Маршрут значимости из frontmatter.
+    route: Option<Route>,
+    /// Домен аффинити из frontmatter.
+    domain: Option<String>,
+    /// Путь файла решения.
+    file: String,
+    /// Предупреждения разбора (нет frontmatter, нет статуса, битый route).
+    warnings: Vec<String>,
+}
+
+/// Каталог разобранных решений.
+struct AdrCatalog {
+    /// Решения в порядке имён файлов (детерминизм).
+    adrs: Vec<AdrMeta>,
+    /// Сколько `.md`-файлов просмотрено (включая пропущенные не-ADR).
+    files_scanned: usize,
+}
+
+/// Итог предложения плана из набора решений (ADR-045).
+#[derive(Debug, Clone)]
+pub struct AdrPlanProposal {
+    /// Черновик плана: один узел на отобранный ADR.
+    pub plan: FleetPlan,
+    /// Обоснование для человека: что отобрано и откуда рёбра.
+    pub rationale: String,
+    /// Предупреждения разбора и отбора (не фатальны, но не молчаливы).
+    pub warnings: Vec<String>,
+}
+
+/// Читает решения каталога `dir` (`*.md`, порядок по имени файла).
+///
+/// Файлы, не распознанные как ADR (нет frontmatter с `id` и нет заголовка
+/// `# ADR-NNN.`), пропускаются; файл, названный `ADR-*`, но не разобранный, —
+/// ошибка (молчаливая потеря решения запрещена).
+///
+/// # Errors
+/// Каталог не читается; frontmatter битый; файл `ADR-*` не распознан.
+fn load_adrs(dir: &Path) -> Result<AdrCatalog> {
+    let entries = std::fs::read_dir(dir).map_err(|e| HarnessError::io(dir, e))?;
+    let mut files: Vec<PathBuf> = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| HarnessError::io(dir, e))?;
+        let path = entry.path();
+        if path.is_file() && is_markdown(&path) {
+            files.push(path);
+        }
+    }
+    files.sort();
+    let scanned = files.len();
+    let mut adrs = Vec::new();
+    for path in files {
+        let file = path.to_string_lossy().into_owned();
+        let text = std::fs::read_to_string(&path).map_err(|e| HarnessError::io(&path, e))?;
+        match parse_adr(&file, &text)? {
+            Some(meta) => adrs.push(meta),
+            None if looks_like_adr(&path) => {
+                return Err(HarnessError::Fleet(format!(
+                    "{file}: файл назван ADR, но решение не распознано — нужен frontmatter \
+                     с `id` или заголовок `# ADR-NNN. <title>`"
+                )));
+            }
+            None => {}
+        }
+    }
+    Ok(AdrCatalog {
+        adrs,
+        files_scanned: scanned,
+    })
+}
+
+/// Файл с расширением `.md` (регистр не значим).
+fn is_markdown(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("md"))
+}
+
+/// Имя файла начинается с `ADR-` — такой файл обязан быть решением.
+fn looks_like_adr(path: &Path) -> bool {
+    path.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+        n.get(..4)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("ADR-"))
+    })
+}
+
+/// Разбирает одно решение: frontmatter, иначе фолбэк по заголовку и шапке.
+///
+/// `Ok(None)` — файл не является ADR (нет ни frontmatter-`id`, ни заголовка
+/// с номером). Файл без frontmatter получает предупреждение «зависимости не
+/// видны» — деградация не должна быть тихой (ADR-045 §2).
+///
+/// # Errors
+/// Frontmatter открыт, но не закрыт или не парсится как YAML.
+fn parse_adr(file: &str, text: &str) -> Result<Option<AdrMeta>> {
+    let mut warnings = Vec::new();
+    let fm = frontmatter(text).map_err(|e| HarnessError::Fleet(format!("{file}: {e}")))?;
+    let fm = if let Some(fm) = fm {
+        fm
+    } else {
+        warnings.push(format!(
+            "{file}: ADR без frontmatter: зависимости не видны (id/title/status \
+             прочитаны из заголовка и строки `- Status:`)"
+        ));
+        AdrFrontmatter::default()
+    };
+    let heading = heading_adr(text);
+    let raw_id = if fm.id.trim().is_empty() {
+        heading.as_ref().map(|(id, _)| id.clone())
+    } else {
+        Some(fm.id.clone())
+    };
+    let Some(raw_id) = raw_id else {
+        return Ok(None);
+    };
+    let title = if fm.title.trim().is_empty() {
+        heading.map_or_else(String::new, |(_, title)| title)
+    } else {
+        fm.title.trim().to_string()
+    };
+    let status = if fm.status.trim().is_empty() {
+        header_field(text, "Status").unwrap_or_default()
+    } else {
+        fm.status.trim().to_string()
+    };
+    if status.is_empty() {
+        warnings.push(format!(
+            "{file}: ADR без статуса: не попадёт в отбор proposed/accepted"
+        ));
+    }
+    let route = match fm.route.as_deref().map(str::trim).filter(|r| !r.is_empty()) {
+        Some(raw) => match raw.parse::<Route>() {
+            Ok(route) => Some(route),
+            Err(e) => {
+                warnings.push(format!(
+                    "{file}: route '{raw}' не распознан ({e}) — взят дефолт маршрута"
+                ));
+                None
+            }
+        },
+        None => None,
+    };
+    let domain = fm
+        .domain
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(str::to_string);
+    Ok(Some(AdrMeta {
+        id: normalize_adr_id(&raw_id),
+        title,
+        status,
+        depends_on: clean_paths(&fm.depends_on)
+            .into_iter()
+            .map(|d| normalize_adr_id(&d))
+            .collect(),
+        affects: clean_paths(&fm.affects),
+        spec_files: clean_paths(&fm.spec_files),
+        route,
+        domain,
+        file: file.to_string(),
+        warnings,
+    }))
+}
+
+/// YAML-frontmatter решения: `Ok(None)` — шапки нет (фолбэк по заголовку).
+///
+/// # Errors
+/// Шапка открыта, но не закрыта или не парсится: это битый ADR, а не его
+/// отсутствие.
+fn frontmatter(text: &str) -> Result<Option<AdrFrontmatter>> {
+    let trimmed = text.strip_prefix('\u{feff}').unwrap_or(text);
+    let opened =
+        trimmed.starts_with("---\n") || trimmed.starts_with("---\r\n") || trimmed.trim() == "---";
+    if !opened {
+        return Ok(None);
+    }
+    let (yaml, _body) = crate::model::split_frontmatter(text)?;
+    let fm = serde_yaml_ng::from_str::<AdrFrontmatter>(yaml)?;
+    Ok(Some(fm))
+}
+
+/// Заголовок решения `# ADR-NNN. <title>` (или `:`) → номер и заголовок.
+fn heading_adr(text: &str) -> Option<(String, String)> {
+    text.lines().find_map(parse_adr_heading)
+}
+
+/// Разбор одной строки заголовка ADR.
+fn parse_adr_heading(line: &str) -> Option<(String, String)> {
+    let rest = line.trim_start().strip_prefix('#')?;
+    let rest = rest.trim_start_matches('#').trim_start();
+    let rest = rest
+        .get(..4)
+        .filter(|prefix| prefix.eq_ignore_ascii_case("ADR-"))
+        .map(|_| &rest[4..])?;
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    if digits.is_empty() {
+        return None;
+    }
+    let tail = rest[digits.len()..].trim_start();
+    let title = tail
+        .strip_prefix('.')
+        .or_else(|| tail.strip_prefix(':'))?
+        .trim()
+        .to_string();
+    Some((digits, title))
+}
+
+/// Поле шапки решения вида `- Status: Proposed` до первого `## `.
+fn header_field(text: &str, name: &str) -> Option<String> {
+    text.lines()
+        .take_while(|line| !line.trim_start().starts_with("## "))
+        .find_map(|line| {
+            let rest = line.trim().strip_prefix('-')?.trim_start();
+            let (key, value) = rest.split_once(':')?;
+            key.trim()
+                .eq_ignore_ascii_case(name)
+                .then(|| value.trim().to_string())
+        })
+}
+
+/// Нормализованный id решения: `ADR-005` и `adr-005` — один id (`adr-005`).
+fn normalize_adr_id(raw: &str) -> String {
+    let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
+    match digits.parse::<u64>() {
+        Ok(n) if !digits.is_empty() => format!("adr-{n:03}"),
+        _ => slugify(raw),
+    }
+}
+
+/// Отображаемый id решения (`adr-045` → `ADR-045`).
+fn adr_label(id: &str) -> String {
+    match id.strip_prefix("adr-") {
+        Some(n) if !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()) => format!("ADR-{n}"),
+        _ => id.to_string(),
+    }
+}
+
+/// Непустые элементы списка (после trim), без дублей, порядок объявления.
+fn clean_paths(raw: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for item in raw {
+        let item = item.trim();
+        if !item.is_empty() && !out.iter().any(|existing| existing == item) {
+            out.push(item.to_string());
+        }
+    }
+    out
+}
+
+/// Слаг каталога ADR для id плана: две последние компоненты пути
+/// (`docs/adr` → `docs-adr`) — абсолютный путь в id не утекает.
+fn adr_dir_slug(dir: &Path) -> String {
+    let mut names: Vec<String> = Vec::new();
+    for comp in dir.components().rev() {
+        if let std::path::Component::Normal(name) = comp {
+            names.push(name.to_string_lossy().into_owned());
+            if names.len() == 2 {
+                break;
+            }
+        }
+    }
+    names.reverse();
+    slugify(&names.join("-"))
+}
+
+/// Формулировка задания узла: реализовать решение + путь файла-источника.
+///
+/// `outside` — строки трассируемости снятых зависимостей (по одной на ADR вне
+/// отбора). План — артефакт, который читают позже и исполнитель в узле, поэтому
+/// факт зависимости обязан жить в `spec`, а не только в stderr генерации.
+fn adr_spec(adr: &AdrMeta, outside: &[String]) -> String {
+    let mut spec = format!(
+        "реализовать решение {}: {}\nФайл решения: {}",
+        adr_label(&adr.id),
+        adr.title,
+        adr.file
+    );
+    for line in outside {
+        spec.push('\n');
+        spec.push_str(line);
+    }
+    spec
+}
+
+/// Статус зависимости из frontmatter каталога (`""` и id вне каталога —
+/// «статус не объявлен»).
+fn dependency_status<'a>(catalog: &'a AdrCatalog, dep: &str) -> &'a str {
+    match catalog.adrs.iter().find(|adr| adr.id == dep) {
+        Some(adr) if !adr.status.trim().is_empty() => adr.status.trim(),
+        _ => "статус не объявлен",
+    }
+}
+
+/// Источники узла: путь самого ADR + объявленные в frontmatter.
+fn adr_spec_files(adr: &AdrMeta) -> Vec<String> {
+    let mut out = vec![adr.file.clone()];
+    for extra in &adr.spec_files {
+        if !out.iter().any(|existing| existing == extra) {
+            out.push(extra.clone());
+        }
+    }
+    out
+}
+
+/// Предлагает план работ из набора решений (ADR-045).
+///
+/// Один узел на один отобранный ADR: `id` — `adr-NNN`, `spec` — задание
+/// «реализовать решение» со ссылкой на файл, `outputs` — объявленные
+/// `affects` (пути записи), `spec_files` — путь ADR плюс объявленные
+/// источники, `depends_on` — из frontmatter (нормализованные id).
+/// Ссылка на ADR вне отбора — не ошибка (решение могло быть уже принято),
+/// но в рёбра плана не входит: узла-цели в нём нет, а ребро в несуществующий
+/// узел не компилируется. Снятая зависимость не исчезает бесследно: она
+/// остаётся предупреждением и строкой трассируемости в `spec` узла
+/// («Зависимости вне плана: ADR-NNN (status: …, вне отбора --status …)»).
+///
+/// # Errors
+/// Каталог решений пуст/нечитаем; ни один ADR не подошёл под отбор (пустой
+/// план не возвращается — ошибка называет число просмотренных файлов).
+pub fn propose_from_adrs(
+    dir: &Path,
+    filter: AdrStatusFilter,
+    pattern: Option<PatternKind>,
+) -> Result<AdrPlanProposal> {
+    let catalog = load_adrs(dir)?;
+    let selected: Vec<&AdrMeta> = catalog
+        .adrs
+        .iter()
+        .filter(|adr| filter.matches(&adr.status))
+        .collect();
+    if selected.is_empty() {
+        return Err(HarnessError::Fleet(format!(
+            "ни один ADR в каталоге '{}' не подошёл под отбор по статусу '{}': \
+             просмотрено .md-файлов {}, разобрано решений {} — проверьте шапки \
+             решений или возьмите другой --status",
+            dir.display(),
+            filter.as_str(),
+            catalog.files_scanned,
+            catalog.adrs.len()
+        )));
+    }
+    let selected_ids: HashSet<&str> = selected.iter().map(|adr| adr.id.as_str()).collect();
+    let known_ids: HashSet<&str> = catalog.adrs.iter().map(|adr| adr.id.as_str()).collect();
+
+    let mut warnings = Vec::new();
+    let mut nodes = Vec::with_capacity(selected.len());
+    for adr in &selected {
+        warnings.extend(adr.warnings.iter().cloned());
+        // Ребро остаётся только на решение, попавшее в план: узла-цели для
+        // зависимости вне отбора в плане нет, а «ребро в несуществующий узел» —
+        // фатальная ошибка компиляции. Внеплановую зависимость считаем уже
+        // удовлетворённой (решение принято раньше) и называем предупреждением.
+        // Плюс строка трассируемости в `spec`: план читают позже и исполнитель
+        // в узле, факт зависимости обязан жить в артефакте.
+        let mut depends_on: Vec<String> = Vec::new();
+        let mut outside_ids: Vec<&str> = Vec::new();
+        let mut outside: Vec<String> = Vec::new();
+        for dep in &adr.depends_on {
+            if selected_ids.contains(dep.as_str()) {
+                if !depends_on.iter().any(|kept| kept == dep) {
+                    depends_on.push(dep.clone());
+                }
+                continue;
+            }
+            let detail = if known_ids.contains(dep.as_str()) {
+                "решение могло быть уже принято; ребро в план не включено"
+            } else {
+                "среди разобранных ADR такого id нет; ребро в план не включено"
+            };
+            warnings.push(format!(
+                "узел '{}': зависимость '{dep}' вне плана ({detail})",
+                adr.id
+            ));
+            if outside_ids.contains(&dep.as_str()) {
+                continue;
+            }
+            outside_ids.push(dep.as_str());
+            outside.push(format!(
+                "Зависимости вне плана: {} (status: {}, вне отбора --status {})",
+                adr_label(dep),
+                dependency_status(&catalog, dep),
+                filter.as_str()
+            ));
+        }
+        let mut node = PlanNode::worker(adr.id.clone(), adr_spec(adr, &outside));
+        node.spec_files = adr_spec_files(adr);
+        node.outputs.clone_from(&adr.affects);
+        node.depends_on = depends_on;
+        if let Some(route) = adr.route {
+            node.route = route;
+        }
+        if let Some(domain) = &adr.domain {
+            node.domain = Some(domain.clone());
+        }
+        nodes.push(node);
+    }
+
+    let pattern = pattern.unwrap_or(PatternKind::Dag);
+    let slug = adr_dir_slug(dir);
+    let id = format!("{slug}-from-adrs");
+    let plan = FleetPlan {
+        id: id.clone(),
+        package: slug,
+        pattern,
+        repo: None,
+        order: Vec::new(),
+        skeleton: None,
+        policy: PlanPolicy {
+            require_worktree: true,
+            merge_gate: "owner".to_string(),
+            ..PlanPolicy::default()
+        },
+        defaults: NodeDefaults {
+            route: Some(Route::Standard),
+            timeout_from_manifest: false,
+            gates: vec![
+                GateSpec::Contract {
+                    allow: vec!["complete".to_string()],
+                },
+                GateSpec::Fitness { constraints: None },
+            ],
+            on_fail: Some(FailPolicy::Block),
+        },
+        nodes,
+        edges: Vec::new(),
+        source: PathBuf::new(),
+        format: Some(PlanFormat::Toml),
+    };
+
+    let decisions = selected
+        .iter()
+        .map(|adr| adr_label(&adr.id))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let rationale = format!(
+        "Предложение плана '{id}':\n\
+         - источник: {} решений из '{}' (отбор по статусу: {}, просмотрено .md-файлов: {})\n\
+         - решения: {decisions}\n\
+         - рёбра: поле depends_on frontmatter (id нормализованы: ADR-005 → adr-005)\n\
+         - outputs узла — объявленные affects (пути записи); spec_files — путь ADR \
+           плюс объявленные источники\n\
+         - паттерн: {}; политика: require_worktree = true, merge_gate = owner\n\
+         - гейт независимости: у пары без пути общий outputs — ошибка, общий spec_files — \
+           предупреждение\n\
+         Дальше: `arch-ml fleet plan validate <файл>` (exit 1 при ошибке) → `arch-ml fleet run`.\n",
+        selected.len(),
+        dir.display(),
+        filter.as_str(),
+        catalog.files_scanned,
+        pattern.as_str(),
+    );
+    Ok(AdrPlanProposal {
+        plan,
+        rationale,
+        warnings,
+    })
+}
+
 /// Механические проверки плана без побочных эффектов.
 ///
 /// Возвращает список диагностик: `Error` — запускать нельзя, `Warn` —
@@ -804,10 +1388,111 @@ pub fn validate_plan(plan: &FleetPlan) -> Vec<PlanIssue> {
         Ok(compiled) => {
             issues.extend(compiled.warnings.iter().map(PlanIssue::warn));
             issues.extend(preflight_capacity(&compiled));
+            issues.extend(independence_issues(&compiled));
         }
         Err(e) => issues.push(PlanIssue::error(e.to_string())),
     }
     issues
+}
+
+/// Механический гейт независимости исполнителей (ADR-045 §3).
+///
+/// Для каждой пары узлов БЕЗ пути в графе зависимостей (достижимость
+/// в неориентированном смысле: прямой или транзитивный `depends_on` в любую
+/// сторону):
+/// - общий путь записи (`outputs`) → **ошибка** плана: два независимых
+///   исполнителя разойдутся на этом пути;
+/// - общий путь чтения (`spec_files`) → предупреждение: совместное чтение
+///   одного источника к расхождению не ведёт (усиливать до ошибки нельзя —
+///   ложные отказы обесценивают гейт).
+///
+/// Пустые элементы списков путей игнорируются: пустая строка не «пересекается»
+/// сама с собой. Правило действует на любой план, включая рукописный: план
+/// правят руками после генерации, гейт обязан оставаться инвариантом.
+fn independence_issues(compiled: &CompiledPlan) -> Vec<PlanIssue> {
+    let nodes = compiled.nodes();
+    let index: HashMap<&str, usize> = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, node)| (node.id.as_str(), i))
+        .collect();
+    // Граф — неориентированный: «нет пути» не зависит от направления ребра.
+    let mut adjacency: Vec<Vec<usize>> = vec![Vec::new(); nodes.len()];
+    for (to, froms) in &compiled.incoming {
+        let Some(&to_idx) = index.get(to.as_str()) else {
+            continue;
+        };
+        for from in froms {
+            let Some(&from_idx) = index.get(from.as_str()) else {
+                continue;
+            };
+            adjacency[to_idx].push(from_idx);
+            adjacency[from_idx].push(to_idx);
+        }
+    }
+    // Компоненты связности: одна компонента = путь между узлами существует.
+    let mut component = vec![usize::MAX; nodes.len()];
+    for start in 0..nodes.len() {
+        if component[start] != usize::MAX {
+            continue;
+        }
+        component[start] = start;
+        let mut stack = vec![start];
+        while let Some(current) = stack.pop() {
+            for &next in &adjacency[current] {
+                if component[next] == usize::MAX {
+                    component[next] = start;
+                    stack.push(next);
+                }
+            }
+        }
+    }
+
+    let mut issues = Vec::new();
+    for i in 0..nodes.len() {
+        for j in (i + 1)..nodes.len() {
+            if component[i] == component[j] {
+                continue;
+            }
+            let (left, right) = (&nodes[i], &nodes[j]);
+            let shared_outputs = shared_paths(&left.outputs, &right.outputs);
+            if !shared_outputs.is_empty() {
+                issues.push(PlanIssue::error(format!(
+                    "независимые узлы '{}' и '{}' затрагивают один путь: {} — \
+                     добавьте depends_on либо разведите пути",
+                    left.id,
+                    right.id,
+                    shared_outputs.join(", ")
+                )));
+                continue;
+            }
+            let shared_sources = shared_paths(&left.spec_files, &right.spec_files);
+            if !shared_sources.is_empty() {
+                issues.push(PlanIssue::warn(format!(
+                    "независимые узлы '{}' и '{}' читают один источник: {} — \
+                     совместное чтение к расхождению не ведёт",
+                    left.id,
+                    right.id,
+                    shared_sources.join(", ")
+                )));
+            }
+        }
+    }
+    issues
+}
+
+/// Непустые (после trim) общие элементы двух списков: по алфавиту, без дублей.
+fn shared_paths(left: &[String], right: &[String]) -> Vec<String> {
+    let mut shared: Vec<String> = left
+        .iter()
+        .map(|item| item.trim())
+        .filter(|item| !item.is_empty())
+        .filter(|item| right.iter().any(|other| other.trim() == *item))
+        .map(str::to_string)
+        .collect();
+    shared.sort();
+    shared.dedup();
+    shared
 }
 
 /// Предупреждение о заведомо опасном потолке параллелизма (память, лимиты).
@@ -922,7 +1607,11 @@ pub fn compile(mut plan: FleetPlan) -> Result<CompiledPlan> {
             ));
         }
     }
-    if plan.pattern == PatternKind::Dag && explicit.is_empty() {
+    // Рёбра живут и в `[[edges]]`, и в `nodes[].depends_on` (в режиме
+    // `--from-adrs` — только там). Граф пуст лишь когда пусты оба источника;
+    // предупреждать о «веере» при непустом `depends_on` — ложь.
+    let has_node_deps = by_id.values().any(|n| !n.depends_on.is_empty());
+    if plan.pattern == PatternKind::Dag && explicit.is_empty() && !has_node_deps {
         warnings.push(
             "паттерн dag без [[edges]]: граф пуст, узлы пойдут одной волной — \
              для веера есть pattern = \"fanout\""
@@ -1415,6 +2104,31 @@ mod tests {
         parse_plan_str(text, PlanFormat::Toml).expect("parse")
     }
 
+    /// Пишет файл решения в каталог фикстуры (tempfile, не репозиторий).
+    fn write_adr(dir: &Path, name: &str, body: &str) {
+        std::fs::write(dir.join(name), body).expect("запись ADR");
+    }
+
+    /// Каталог решений `<tempdir>/docs/adr`: путь повторяет канон, поэтому
+    /// id плана (`docs-adr-from-adrs`) не зависит от имени tempdir.
+    fn adr_dir() -> (tempfile::TempDir, PathBuf) {
+        let root = tempfile::tempdir().expect("tempdir");
+        let dir = root.path().join("docs/adr");
+        std::fs::create_dir_all(&dir).expect("каталог ADR");
+        (root, dir)
+    }
+
+    /// Документ ADR с frontmatter: `extra` — дополнительные YAML-строки
+    /// (`affects`, `depends_on`, `spec_files`, …).
+    fn adr_doc(id: &str, title: &str, status: &str, extra: &str) -> String {
+        format!("---\nid: {id}\ntitle: {title}\nstatus: {status}\n{extra}---\n\n# {id}. {title}\n")
+    }
+
+    /// Ids узлов плана в порядке плана.
+    fn node_ids(plan: &FleetPlan) -> Vec<&str> {
+        plan.nodes.iter().map(|n| n.id.as_str()).collect()
+    }
+
     #[test]
     fn toml_plan_parses_with_gate_shorthand() {
         let text = r#"
@@ -1740,6 +2454,36 @@ depends_on = ["a"]
     }
 
     #[test]
+    fn dag_with_node_depends_on_has_no_empty_graph_warning() {
+        // Рёбра могут жить в `nodes[].depends_on` (режим `--from-adrs`):
+        // граф непуст, предупреждение о «веере» — ложь.
+        let text = "id = \"x\"\npattern = \"dag\"\n\n\
+                    [[nodes]]\nid = \"a\"\nspec = \"s\"\n\n\
+                    [[nodes]]\nid = \"b\"\nspec = \"s\"\ndepends_on = [\"a\"]\n";
+        let compiled = compile(parse(text)).expect("compile");
+        assert!(
+            !compiled.warnings.iter().any(|w| w.contains("граф пуст")),
+            "{:?}",
+            compiled.warnings
+        );
+    }
+
+    #[test]
+    fn dag_without_any_edges_still_warns_about_empty_graph() {
+        // Регресс: узел без depends_on и пустые edges — предупреждение
+        // о веере остаётся (существующее поведение не ослаблено).
+        let text = "id = \"x\"\npattern = \"dag\"\n\n\
+                    [[nodes]]\nid = \"a\"\nspec = \"s\"\n\n\
+                    [[nodes]]\nid = \"b\"\nspec = \"s\"\n";
+        let compiled = compile(parse(text)).expect("compile");
+        assert!(
+            compiled.warnings.iter().any(|w| w.contains("граф пуст")),
+            "{:?}",
+            compiled.warnings
+        );
+    }
+
+    #[test]
     fn render_outputs_waves_and_mermaid() {
         let text = "id = \"x\"\npattern = \"pipeline\"\norder = [\"a\", \"b\"]\n\n[[nodes]]\nid = \"a\"\nspec = \"s\"\n\n[[nodes]]\nid = \"b\"\nspec = \"s\"\n";
         let compiled = compile(parse(text)).expect("compile");
@@ -1749,5 +2493,514 @@ depends_on = ["a"]
         let mermaid = render_mermaid(&compiled);
         assert!(mermaid.starts_with("graph TD"), "{mermaid}");
         assert!(mermaid.contains("a --> b"), "{mermaid}");
+    }
+
+    /// Отбор `proposed` (дефолт режима `--from-adrs`).
+    fn from_adrs(dir: &Path) -> AdrPlanProposal {
+        propose_from_adrs(dir, AdrStatusFilter::Proposed, None).expect("план из ADR")
+    }
+
+    #[test]
+    fn adr_plan_edges_follow_depends_on() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-001-first.md",
+            "# ADR-001. Первое решение\n\n- Date: 2026-09-01\n- Status: Proposed\n",
+        );
+        write_adr(
+            &dir,
+            "ADR-002-second.md",
+            &adr_doc(
+                "ADR-002",
+                "Второе решение",
+                "proposed",
+                "depends_on: [ADR-001]\naffects:\n  - src/b.rs\nspec_files:\n  - docs/spec.md\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        assert_eq!(proposal.plan.pattern, PatternKind::Dag);
+        assert_eq!(proposal.plan.id, "docs-adr-from-adrs");
+        assert!(proposal.plan.policy.require_worktree);
+        assert_eq!(proposal.plan.policy.merge_gate, "owner");
+        assert_eq!(node_ids(&proposal.plan), vec!["adr-001", "adr-002"]);
+        let second = proposal
+            .plan
+            .nodes
+            .iter()
+            .find(|n| n.id == "adr-002")
+            .expect("узел adr-002");
+        assert_eq!(second.depends_on, vec!["adr-001"]);
+        assert_eq!(second.outputs, vec!["src/b.rs"]);
+        assert!(second.spec.contains("Второе решение"), "{}", second.spec);
+        assert!(second.spec_files.iter().any(|f| f == "docs/spec.md"));
+
+        let compiled = compile(proposal.plan.clone()).expect("dag компилируется");
+        assert_eq!(compiled.levels.len(), 2);
+        let first_wave: Vec<&str> = compiled.levels[0]
+            .iter()
+            .map(|i| compiled.nodes()[*i].id.as_str())
+            .collect();
+        assert_eq!(first_wave, vec!["adr-001"]);
+        assert!(
+            validate_plan(&proposal.plan)
+                .iter()
+                .all(|i| i.severity != PlanSeverity::Error)
+        );
+    }
+
+    #[test]
+    fn adr_new_frontmatter_yields_edge_and_no_empty_graph_warning() {
+        // Сквозной путь ADR-045: ADR, созданный `control::adr_new`, несёт
+        // frontmatter; проставленный `depends_on` даёт ребро плана, а
+        // предупреждения о пустом графе и о «ADR без frontmatter» нет.
+        let (_root, dir) = adr_dir();
+        crate::control::adr_new(&dir, "Первое решение").expect("adr_new");
+        let second = crate::control::adr_new(&dir, "Второе решение").expect("adr_new");
+        let text = std::fs::read_to_string(&second).expect("чтение ADR");
+        let patched = text.replacen("depends_on: []", "depends_on: [ADR-001]", 1);
+        assert_ne!(patched, text, "поле depends_on обязано быть в шаблоне");
+        std::fs::write(&second, patched).expect("правка frontmatter");
+
+        let proposal = from_adrs(&dir);
+        assert_eq!(node_ids(&proposal.plan), vec!["adr-001", "adr-002"]);
+        let second_node = proposal
+            .plan
+            .nodes
+            .iter()
+            .find(|n| n.id == "adr-002")
+            .expect("узел adr-002");
+        assert_eq!(second_node.depends_on, vec!["adr-001"]);
+        assert!(
+            !proposal
+                .warnings
+                .iter()
+                .any(|w| w.contains("без frontmatter")),
+            "{:?}",
+            proposal.warnings
+        );
+        let issues = validate_plan(&proposal.plan);
+        assert!(
+            !issues.iter().any(|i| i.message.contains("граф пуст")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn adr_new_plan_without_depends_on_warns_about_empty_graph() {
+        // Регресс: ADR-файлы без `depends_on` дают вырожденный граф —
+        // предупреждение о веере обязано остаться.
+        let (_root, dir) = adr_dir();
+        crate::control::adr_new(&dir, "Первое решение").expect("adr_new");
+        crate::control::adr_new(&dir, "Второе решение").expect("adr_new");
+        let proposal = from_adrs(&dir);
+        assert_eq!(proposal.plan.nodes.len(), 2);
+        assert!(
+            validate_plan(&proposal.plan)
+                .iter()
+                .any(|i| i.message.contains("граф пуст")),
+            "{:?}",
+            validate_plan(&proposal.plan)
+        );
+    }
+
+    #[test]
+    fn independent_nodes_with_shared_output_are_error() {
+        let (_root, dir) = adr_dir();
+        for (name, id) in [("ADR-010-a.md", "ADR-010"), ("ADR-011-b.md", "ADR-011")] {
+            write_adr(
+                &dir,
+                name,
+                &adr_doc(
+                    id,
+                    "Правка TUI-слоя",
+                    "proposed",
+                    "affects:\n  - src/tui/app.rs\n",
+                ),
+            );
+        }
+        let proposal = from_adrs(&dir);
+        assert_eq!(proposal.plan.nodes.len(), 2);
+        let issues = validate_plan(&proposal.plan);
+        let error = issues
+            .iter()
+            .find(|i| i.severity == PlanSeverity::Error)
+            .expect("гейт обязан отказать");
+        assert!(error.message.contains("adr-010"), "{}", error.message);
+        assert!(error.message.contains("adr-011"), "{}", error.message);
+        assert!(
+            error.message.contains("src/tui/app.rs"),
+            "{}",
+            error.message
+        );
+        assert!(error.message.contains("depends_on"), "{}", error.message);
+    }
+
+    #[test]
+    fn direct_dependency_silences_output_gate() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-012-a.md",
+            &adr_doc("ADR-012", "Первое", "proposed", "affects:\n  - src/x.rs\n"),
+        );
+        write_adr(
+            &dir,
+            "ADR-013-b.md",
+            &adr_doc(
+                "ADR-013",
+                "Второе",
+                "proposed",
+                "depends_on: [ADR-012]\naffects:\n  - src/x.rs\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        assert!(
+            validate_plan(&proposal.plan)
+                .iter()
+                .all(|i| i.severity != PlanSeverity::Error),
+            "{:?}",
+            validate_plan(&proposal.plan)
+        );
+    }
+
+    #[test]
+    fn transitive_dependency_silences_output_gate() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-020-a.md",
+            &adr_doc("ADR-020", "Первое", "proposed", "affects:\n  - src/x.rs\n"),
+        );
+        write_adr(
+            &dir,
+            "ADR-021-b.md",
+            &adr_doc("ADR-021", "Второе", "proposed", "depends_on: [ADR-020]\n"),
+        );
+        write_adr(
+            &dir,
+            "ADR-022-c.md",
+            &adr_doc(
+                "ADR-022",
+                "Третье",
+                "proposed",
+                "depends_on: [ADR-021]\naffects:\n  - src/x.rs\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        assert_eq!(proposal.plan.nodes.len(), 3);
+        assert!(
+            validate_plan(&proposal.plan)
+                .iter()
+                .all(|i| i.severity != PlanSeverity::Error),
+            "{:?}",
+            validate_plan(&proposal.plan)
+        );
+    }
+
+    #[test]
+    fn shared_source_files_are_warn_not_error() {
+        let (_root, dir) = adr_dir();
+        for (name, id) in [("ADR-030-a.md", "ADR-030"), ("ADR-031-b.md", "ADR-031")] {
+            write_adr(
+                &dir,
+                name,
+                &adr_doc(
+                    id,
+                    "Решение по общей спеке",
+                    "proposed",
+                    "spec_files:\n  - docs/spine.md\n",
+                ),
+            );
+        }
+        let proposal = from_adrs(&dir);
+        let issues = validate_plan(&proposal.plan);
+        assert!(
+            issues.iter().all(|i| i.severity != PlanSeverity::Error),
+            "{issues:?}"
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.severity == PlanSeverity::Warn && i.message.contains("docs/spine.md")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn adr_without_frontmatter_falls_back_to_heading_and_warns() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-007-legacy.md",
+            "# ADR-007. Решение без шапки\n\n\
+             - Date: 2026-01-01\n\
+             - Status: Proposed\n\n\
+             ## Context\n\nПроза без frontmatter.\n",
+        );
+        let proposal = from_adrs(&dir);
+        assert_eq!(node_ids(&proposal.plan), vec!["adr-007"]);
+        let node = &proposal.plan.nodes[0];
+        assert!(node.spec.contains("Решение без шапки"), "{}", node.spec);
+        assert!(
+            proposal
+                .warnings
+                .iter()
+                .any(|w| w.contains("без frontmatter")),
+            "{:?}",
+            proposal.warnings
+        );
+    }
+
+    #[test]
+    fn status_filter_selects_proposed_accepted_all() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-040-p.md",
+            &adr_doc("ADR-040", "Предложенное", "Proposed", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-041-a.md",
+            &adr_doc("ADR-041", "Принятое", "Accepted", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-042-s.md",
+            &adr_doc("ADR-042", "Отменённое", "Superseded", ""),
+        );
+        let proposed = propose_from_adrs(&dir, AdrStatusFilter::Proposed, None).expect("proposed");
+        assert_eq!(node_ids(&proposed.plan), vec!["adr-040"]);
+        let accepted = propose_from_adrs(&dir, AdrStatusFilter::Accepted, None).expect("accepted");
+        assert_eq!(node_ids(&accepted.plan), vec!["adr-041"]);
+        let all = propose_from_adrs(&dir, AdrStatusFilter::All, None).expect("all");
+        assert_eq!(node_ids(&all.plan), vec!["adr-040", "adr-041", "adr-042"]);
+        assert_eq!(
+            AdrStatusFilter::parse("ALL").expect("разбор"),
+            AdrStatusFilter::All
+        );
+        assert!(AdrStatusFilter::parse("done").is_err());
+    }
+
+    #[test]
+    fn empty_selection_is_error_with_scanned_count() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-050-a.md",
+            &adr_doc("ADR-050", "Принятое", "accepted", ""),
+        );
+        let err = propose_from_adrs(&dir, AdrStatusFilter::Proposed, None)
+            .expect_err("пустой план запрещён");
+        let message = err.to_string();
+        assert!(message.contains("просмотрено .md-файлов 1"), "{message}");
+        assert!(message.contains("proposed"), "{message}");
+    }
+
+    #[test]
+    fn dependency_outside_selection_warns_not_fails() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-060-a.md",
+            &adr_doc("ADR-060", "Принятое", "accepted", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-061-b.md",
+            &adr_doc(
+                "ADR-061",
+                "Предложенное",
+                "proposed",
+                "depends_on: [ADR-060]\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        assert_eq!(node_ids(&proposal.plan), vec!["adr-061"]);
+        assert!(
+            proposal
+                .warnings
+                .iter()
+                .any(|w| w.contains("вне плана") && w.contains("adr-060")),
+            "{:?}",
+            proposal.warnings
+        );
+        // Внеплановая зависимость — предупреждение, а не отказ: ребра в плане
+        // нет (узла-цели тоже), и план остаётся исполнимым.
+        assert!(proposal.plan.nodes[0].depends_on.is_empty());
+        assert!(
+            validate_plan(&proposal.plan)
+                .iter()
+                .all(|i| i.severity != PlanSeverity::Error),
+            "{:?}",
+            validate_plan(&proposal.plan)
+        );
+        // Дельта F8: снятая зависимость остаётся в артефакте — строкой
+        // трассируемости в `spec` узла, а не только в stderr генерации.
+        assert!(
+            proposal.plan.nodes[0].spec.contains(
+                "Зависимости вне плана: ADR-060 (status: accepted, вне отбора --status proposed)"
+            ),
+            "{}",
+            proposal.plan.nodes[0].spec
+        );
+    }
+
+    /// Нет снятых зависимостей — нет и строки трассируемости: спека не шумит.
+    #[test]
+    fn dependency_inside_plan_leaves_no_outside_trace() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-070-a.md",
+            &adr_doc("ADR-070", "Первое", "proposed", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-071-b.md",
+            &adr_doc("ADR-071", "Второе", "proposed", "depends_on: [ADR-070]\n"),
+        );
+        let proposal = from_adrs(&dir);
+        let second = proposal
+            .plan
+            .nodes
+            .iter()
+            .find(|n| n.id == "adr-071")
+            .expect("узел adr-071");
+        assert_eq!(second.depends_on, vec!["adr-070"]);
+        assert!(
+            !second.spec.contains("Зависимости вне плана"),
+            "{}",
+            second.spec
+        );
+    }
+
+    /// Зависимость вне каталога: строка трассируемости называет её как
+    /// «статус не объявлен» (frontmatter прочитать негде).
+    #[test]
+    fn dependency_outside_catalog_reports_undeclared_status() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-080-a.md",
+            &adr_doc("ADR-080", "Одинокое", "proposed", "depends_on: [ADR-999]\n"),
+        );
+        let proposal = from_adrs(&dir);
+        assert!(
+            proposal.plan.nodes[0].spec.contains(
+                "Зависимости вне плана: ADR-999 (status: статус не объявлен, \
+                 вне отбора --status proposed)"
+            ),
+            "{}",
+            proposal.plan.nodes[0].spec
+        );
+    }
+
+    /// Несколько снятых зависимостей — по строке на каждую, порядок объявления.
+    #[test]
+    fn each_outside_dependency_gets_its_own_trace_line() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-090-a.md",
+            &adr_doc("ADR-090", "Принятое", "accepted", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-091-b.md",
+            &adr_doc("ADR-091", "Принятое второе", "accepted", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-092-c.md",
+            &adr_doc(
+                "ADR-092",
+                "Зависимое",
+                "proposed",
+                "depends_on: [ADR-090, ADR-091]\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        let spec = &proposal.plan.nodes[0].spec;
+        assert!(
+            spec.contains("Зависимости вне плана: ADR-090 (status: accepted"),
+            "{spec}"
+        );
+        assert!(
+            spec.contains("Зависимости вне плана: ADR-091 (status: accepted"),
+            "{spec}"
+        );
+        assert_eq!(
+            spec.matches("Зависимости вне плана:").count(),
+            2,
+            "по строке на каждую снятую зависимость: {spec}"
+        );
+    }
+
+    #[test]
+    fn adr_ids_normalize_case_and_padding() {
+        let (_root, dir) = adr_dir();
+        write_adr(
+            &dir,
+            "ADR-005-five.md",
+            &adr_doc("adr-005", "Строчный id", "proposed", ""),
+        );
+        write_adr(
+            &dir,
+            "ADR-006-six.md",
+            &adr_doc(
+                "ADR-6",
+                "Без ведущих нулей",
+                "proposed",
+                "depends_on: [adr-005]\n",
+            ),
+        );
+        let proposal = from_adrs(&dir);
+        assert_eq!(node_ids(&proposal.plan), vec!["adr-005", "adr-006"]);
+        assert_eq!(proposal.plan.nodes[1].depends_on, vec!["adr-005"]);
+        assert!(
+            proposal.plan.nodes[1].spec.contains("ADR-006"),
+            "{}",
+            proposal.plan.nodes[1].spec
+        );
+    }
+
+    #[test]
+    fn empty_paths_do_not_intersect() {
+        let text = "id = \"x\"\npattern = \"dag\"\n\n\
+                    [[nodes]]\nid = \"a\"\nspec = \"s\"\noutputs = [\"\"]\nspec_files = [\"  \"]\n\n\
+                    [[nodes]]\nid = \"b\"\nspec = \"s\"\noutputs = [\"   \"]\nspec_files = [\"\"]\n";
+        let issues = validate_plan(&parse(text));
+        assert!(
+            issues.iter().all(|i| i.severity != PlanSeverity::Error),
+            "{issues:?}"
+        );
+        assert!(
+            !issues.iter().any(|i| i.message.contains("источник")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn independence_gate_applies_to_handwritten_plan() {
+        let text = "id = \"x\"\npattern = \"dag\"\n\n\
+                    [[nodes]]\nid = \"a\"\nspec = \"s\"\noutputs = [\"src/shared.rs\"]\n\n\
+                    [[nodes]]\nid = \"b\"\nspec = \"s\"\noutputs = [\"src/shared.rs\"]\n";
+        let issues = validate_plan(&parse(text));
+        let error = issues
+            .iter()
+            .find(|i| i.severity == PlanSeverity::Error)
+            .expect("ошибка независимости");
+        assert!(error.message.contains("src/shared.rs"), "{}", error.message);
+    }
+
+    #[test]
+    fn adr_like_file_without_decision_is_error_not_panic() {
+        let (_root, dir) = adr_dir();
+        write_adr(&dir, "ADR-Я.md", "# Заметка\n\nНе решение.\n");
+        let err = propose_from_adrs(&dir, AdrStatusFilter::Proposed, None)
+            .expect_err("файл назван ADR, но решением не является");
+        assert!(err.to_string().contains("не распознано"), "{err}");
     }
 }

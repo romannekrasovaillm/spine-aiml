@@ -89,8 +89,55 @@ unused_self = "allow"
 implicit_hasher = "allow"
 # Конфиг-структуры с флагами читаемее иерархии enum'ов.
 struct_excessive_bools = "allow"
+# Волна 2026-09-13 (первый прогон CI после форка AI/ML Edition): классы ниже
+# всплыли суммарно 84 срабатываниями на stable 1.98 — код форка до форка CI
+# не гонял. Допущены как осознанный долг до отдельной зачистки; hard-гейты
+# (MSRV 1.85, fmt, test, dogfood) остаются строгими.
+# Механические стили (зачистка одной волной, без смены поведения):
+useless_conversion = "allow"          # 25: идентичный .into() при возвратах ManagedError
+format_push_string = "allow"          # 13: format! в push_str при накоплении отчётов
+items_after_statements = "allow"      # 6: локальные fn/struct после выражений
+similar_names = "allow"               # 6: соседние binding'и — переименование отдельным решением
+single_match_else = "allow"           # 3: match с двумя рукавами читаемее if let
+doc_markdown = "allow"                # 12: обратные кавычки в doc-комментариях
+missing_errors_doc = "allow"          # 2: секции # Errors в публичных fn
+missing_panics_doc = "allow"          # 1: секция # Panics
+manual_let_else = "allow"             # 1
+manual_checked_ops = "allow"          # 1
+format_collect = "allow"              # 1
+field_reassign_with_default = "allow" # 1
+assigning_clones = "allow"            # 1
+unused_async = "allow"                # 1: async-единообразие семейства fn
+needless_borrow = "allow"             # 1
+redundant_closure_for_method_calls = "allow" # 1
+match_same_arms = "allow"             # 1: рукава разделены осознанно (читаемость)
+struct_field_names = "allow"          # 1: префикс полей — имена предметной области
+missing_fields_in_debug = "allow"     # 1: Debug у concept скрывает поля намеренно
+regex_creation_in_loops = "allow"     # 1: control.rs — реальный кандидат на hoist (perf), не линт-вкус
 
 [profile.release]
 lto = "thin"
 debug = "line-tables-only"
 strip = true
+
+# Профили dev/test: без явной настройки cargo собирает их с debug=2 (полный
+# DWARF), из-за чего target/ на ворктри раздувается до нескольких гигабайт
+# (основной вклад — target/debug/incremental и target/debug/deps; на этой машине
+# наблюдались target/ ворктри размером ~5-6 ГБ). line-tables-only сохраняет имена
+# файлов и номера строк — этого достаточно для стектрейсов и профайлера, — но
+# сокращает объём DWARF. Точный выигрыш зависит от графа зависимостей и версии
+# тулчейна. Точной цифры здесь нет намеренно: проверяемого артефакта замера не
+# существует (ранее стояло «257 → 201 МБ (−22 %)» — неподтверждённое число
+# удалено; контекст — раздел «Числа» в docs/build_cache.md).
+#
+# split-debuginfo = "unpacked" сознательно НЕ включён: на Linux он не уменьшает
+# суммарный объём target/ (DWARF переезжает в отдельные *.dwo — те же байты плюс
+# накладные расходы на множество мелких файлов), на macOS это и так значение по
+# умолчанию, а на Windows стабильный rustc его не поддерживает (жёсткая ошибка
+# сборки). См. rustc codegen-options: значения split-debuginfo ограничены
+# платформой, на прочих — только "off".
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"

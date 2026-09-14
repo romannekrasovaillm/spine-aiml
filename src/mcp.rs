@@ -15,7 +15,9 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
-use std::path::Path;
+use std::fmt::Write as _;
+use std::path::{Path, PathBuf};
+use std::process::ExitStatus;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
@@ -40,6 +42,14 @@ pub(crate) const PROTOCOL_VERSION_FALLBACK: &str = "2024-11-05";
 /// Лимит параллельных подключений/опросов серверов.
 const CONNECT_CONCURRENCY: usize = 4;
 
+/// Максимальный хвост stderr дочернего процесса, сохраняемый для
+/// диагностики (ограничение на память: сервер может флудить в stderr).
+const STDERR_TAIL_LIMIT: usize = 8 * 1024;
+
+/// Отсрочка, даваемая процессу на завершение и дописывание stderr после
+/// провала handshake (дальше столько же ждём сток stderr).
+const STDERR_GRACE: Duration = Duration::from_millis(200);
+
 /// Описание MCP-сервера из конфигурационного файла.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServerConfig {
@@ -53,9 +63,23 @@ pub struct McpServerConfig {
     /// Окружение.
     #[serde(default)]
     pub env: BTreeMap<String, String>,
+    /// Рабочий каталог запуска. `Some(dir)` — процесс получает `chdir(dir)`
+    /// до `exec`, поэтому и относительная КОМАНДА (`./bin/server`), и
+    /// относительные аргументы (`./servers/x/server.py`) резолвятся от
+    /// каталога объявившего манифеста, а не от cwd харнесса.
+    /// `None` — наследуется cwd процесса (совместимость, in-memory тесты).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<PathBuf>,
 }
 
 /// Загружает описания серверов из `mcp.json` (формат Claude Code).
+///
+/// Каждому серверу выставляется `cwd = path.parent()`: относительные команды
+/// и аргументы толкуются от каталога манифеста, который их объявил (тот же
+/// принцип, что и у плагинов). Это ОСОЗНАННОЕ ИЗМЕНЕНИЕ ПОВЕДЕНИЯ: раньше
+/// относительный путь резолвился от cwd процесса-харнесса и падал, если
+/// харнесс запущен из другого каталога (симптом — таймаут initialize вместо
+/// понятной ошибки, stderr дочернего процесса выбрасывался).
 ///
 /// # Errors
 /// Файл не существует (с подсказкой, как его создать), не читается
@@ -69,6 +93,12 @@ pub fn load_servers(path: &Path) -> Result<Vec<McpServerConfig>> {
         _ => HarnessError::io(path, e),
     })?;
     let file: ServersFile = serde_json::from_str(&text)?;
+    // Пустой parent (файл задан именем без каталога) — cwd не трогаем:
+    // current_dir("") уронил бы spawn.
+    let cwd = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(Path::to_path_buf);
     Ok(file
         .mcp_servers
         .into_iter()
@@ -77,6 +107,7 @@ pub fn load_servers(path: &Path) -> Result<Vec<McpServerConfig>> {
             command: entry.command,
             args: entry.args,
             env: entry.env,
+            cwd: cwd.clone(),
         })
         .collect())
 }
@@ -100,6 +131,45 @@ struct ServerEntry {
     /// Дополнительные переменные окружения.
     #[serde(default)]
     env: BTreeMap<String, String>,
+}
+
+/// ЧИСТЫЙ рендер инвентаря MCP-серверов: НЕ запускает процессы, НЕ async.
+///
+/// Печатает по каждому серверу имя, команду, аргументы, РАЗРЕШЁННЫЙ рабочий
+/// каталог (cwd, от которого толкуются относительные пути) и источник.
+/// `source_of` — колбэк источника: пользовательский файл (`mcp.json`),
+/// `плагин <имя>` и т. п.; конфиг намеренно не хранит источник, чтобы не
+/// тянуть в него слои. Даёт починить `mcp list` без инициализации серверов
+/// (сейчас `cmd_mcp` подключается ко всем и падает по таймауту).
+#[must_use]
+pub fn render_inventory(
+    servers: &[McpServerConfig],
+    source_of: &dyn Fn(&McpServerConfig) -> String,
+) -> String {
+    if servers.is_empty() {
+        return "MCP-серверы не объявлены\n".to_string();
+    }
+    let mut out = String::new();
+    let _ = writeln!(out, "MCP-серверы ({}):", servers.len());
+    for server in servers {
+        let args = if server.args.is_empty() {
+            String::new()
+        } else {
+            format!(" {}", server.args.join(" "))
+        };
+        let _ = writeln!(out, "  {}", server.name);
+        let _ = writeln!(out, "    команда:  {}{args}", server.command);
+        match &server.cwd {
+            Some(dir) => {
+                let _ = writeln!(out, "    cwd:      {}", dir.display());
+            }
+            None => {
+                let _ = writeln!(out, "    cwd:      — (наследуется от процесса)");
+            }
+        }
+        let _ = writeln!(out, "    источник: {}", source_of(server));
+    }
+    out
 }
 
 /// Внутренняя ошибка JSON-RPC вызова; наружу конвертируется в [`HarnessError::Mcp`].
@@ -342,22 +412,30 @@ impl McpServer {
 }
 
 /// Запускает процесс сервера и выполняет handshake.
+///
+/// Относительные команда/аргументы резолвятся от `config.cwd` (каталог
+/// объявившего манифеста). stderr не выбрасывается: он читается конкурентной
+/// задачей в ограниченный буфер и попадает в текст ошибки при провале
+/// handshake — иначе смерть дочернего процесса выглядит как «таймаут».
 async fn connect_server(config: &McpServerConfig, timeout: Duration) -> Result<McpServer> {
-    let mut child = tokio::process::Command::new(&config.command)
+    let mut command = tokio::process::Command::new(&config.command);
+    command
         .args(&config.args)
         .envs(&config.env)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
         // Подстраховка: процесс гибнет при drop Child внутри runtime.
-        .kill_on_drop(true)
-        .spawn()
-        .map_err(|e| {
-            HarnessError::Mcp(format!(
-                "{}: не удалось запустить '{}': {e}",
-                config.name, config.command
-            ))
-        })?;
+        .kill_on_drop(true);
+    if let Some(dir) = &config.cwd {
+        command.current_dir(dir);
+    }
+    let mut child = command.spawn().map_err(|e| {
+        HarnessError::Mcp(format!(
+            "{}: не удалось запустить '{}': {e}",
+            config.name, config.command
+        ))
+    })?;
     let stdout = child.stdout.take().ok_or_else(|| {
         HarnessError::Mcp(format!("{}: stdout процесса не захвачен", config.name))
     })?;
@@ -365,13 +443,112 @@ async fn connect_server(config: &McpServerConfig, timeout: Duration) -> Result<M
         .stdin
         .take()
         .ok_or_else(|| HarnessError::Mcp(format!("{}: stdin процесса не захвачен", config.name)))?;
+    // stderr читаем конкурентно и сразу: если его не вычитывать, сервер
+    // заблокируется на заполненной трубе. Задача живёт до EOF (гибели
+    // процесса) и держит буфер через Arc.
+    let stderr_tail: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    let stderr_task = child.stderr.take().map(|stderr| {
+        let tail = Arc::clone(&stderr_tail);
+        let name = config.name.clone();
+        tokio::spawn(drain_stderr(name, stderr, tail))
+    });
     let conn = McpConnection::new(config.name.clone(), stdout, stdin, timeout);
-    conn.handshake().await?;
+    if let Err(e) = conn.handshake().await {
+        return Err(handshake_failure(config, &mut child, stderr_task, &stderr_tail, e).await);
+    }
+    // Успех: задача-сток отцепляется (JoinHandle дропнут) и дочитывает stderr
+    // до EOF; буфер больше не нужен.
     Ok(McpServer {
         config: config.clone(),
         conn,
         child: Mutex::new(Some(child)),
     })
+}
+
+/// Конкурентный сток stderr дочернего процесса в ограниченный хвост-буфер.
+async fn drain_stderr<R>(server: String, stderr: R, tail: Arc<Mutex<String>>)
+where
+    R: AsyncRead + Unpin,
+{
+    let mut lines = BufReader::new(stderr).lines();
+    loop {
+        match lines.next_line().await {
+            Ok(Some(line)) => {
+                let mut buf = lock(&tail);
+                buf.push_str(&line);
+                buf.push('\n');
+                trim_tail(&mut buf, STDERR_TAIL_LIMIT);
+            }
+            Ok(None) => break,
+            Err(e) => {
+                tracing::debug!(server = %server, error = %e, "mcp: ошибка чтения stderr, сток завершён");
+                break;
+            }
+        }
+    }
+}
+
+/// Оставляет в строке последние `max` байт, не разрезая UTF-8-символ.
+fn trim_tail(buf: &mut String, max: usize) {
+    if buf.len() <= max {
+        return;
+    }
+    let mut cut = buf.len() - max;
+    while cut < buf.len() && !buf.is_char_boundary(cut) {
+        cut += 1;
+    }
+    buf.drain(..cut);
+}
+
+/// Формирует ошибку провала handshake с диагностикой: если дочерний процесс
+/// уже завершился — код выхода и хвост stderr (это и даёт «can't open file»
+/// вместо «таймаут»); если жив — прежняя ошибка плюс непустой хвост stderr.
+async fn handshake_failure(
+    config: &McpServerConfig,
+    child: &mut tokio::process::Child,
+    stderr_task: Option<JoinHandle<()>>,
+    stderr_tail: &Arc<Mutex<String>>,
+    err: HarnessError,
+) -> HarnessError {
+    let status = wait_exit(child, STDERR_GRACE).await;
+    // Процесс мог умереть: даём стоку дочитать трубу до EOF.
+    if let Some(task) = stderr_task {
+        let _ = tokio::time::timeout(STDERR_GRACE, task).await;
+    }
+    let tail = lock(stderr_tail);
+    let tail = tail.trim_end();
+    let tail_part = if tail.is_empty() {
+        String::new()
+    } else {
+        format!("; stderr: {tail}")
+    };
+    match status {
+        Some(status) => HarnessError::Mcp(format!(
+            "{}: процесс завершился ({status}) до handshake: {err}{tail_part}",
+            config.name
+        )),
+        None => {
+            if tail_part.is_empty() {
+                err
+            } else {
+                HarnessError::Mcp(format!("{err}{tail_part}"))
+            }
+        }
+    }
+}
+
+/// Ждёт завершения процесса: сначала неблокирующая проверка, затем `grace`.
+/// `Child::wait` cancel-safe, поэтому брошенный по таймауту future безопасен.
+async fn wait_exit(child: &mut tokio::process::Child, grace: Duration) -> Option<ExitStatus> {
+    match child.try_wait() {
+        Ok(Some(status)) => return Some(status),
+        Ok(None) => {}
+        Err(_) => return None,
+    }
+    match tokio::time::timeout(grace, child.wait()).await {
+        Ok(Ok(status)) => Some(status),
+        Ok(Err(_)) | Err(_) => None,
+    }
 }
 
 /// Шаг `connect` для одного сервера: подключение + лог, сбой → `None`.
@@ -735,6 +912,7 @@ mod tests {
                 command: "unused".into(),
                 args: Vec::new(),
                 env: BTreeMap::new(),
+                cwd: None,
             },
             conn,
             child: Mutex::new(None),
@@ -952,6 +1130,7 @@ mod tests {
             command: "arch-ml-nonexistent-binary-xyz".into(),
             args: Vec::new(),
             env: BTreeMap::new(),
+            cwd: None,
         }];
         let err = McpManager::connect(&servers, 1)
             .await
@@ -993,6 +1172,9 @@ mod tests {
         assert_eq!(servers[1].name, "plain");
         assert!(servers[1].args.is_empty());
         assert!(servers[1].env.is_empty());
+        // cwd каждого сервера — каталог объявившего манифеста, а не cwd процесса.
+        assert_eq!(servers[0].cwd.as_deref(), Some(dir.path()));
+        assert_eq!(servers[1].cwd.as_deref(), Some(dir.path()));
     }
 
     #[test]
@@ -1012,5 +1194,156 @@ mod tests {
         std::fs::write(&path, "{ это не json").expect("write");
         let err = load_servers(&path).expect_err("невалидный json");
         assert!(matches!(err, HarnessError::Json(_)), "{err}");
+    }
+
+    /// Исполняемый фейковый MCP-сервер: отвечает на initialize и tools/list.
+    #[cfg(unix)]
+    const FAKE_SERVER_SH: &str = r#"#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *'"method":"initialize"'*)
+      id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18","capabilities":{},"serverInfo":{"name":"fake","version":"0"}}}\n' "$id"
+      ;;
+    *'"method":"tools/list"'*)
+      id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"tools":[{"name":"echo","description":"d","inputSchema":{"type":"object"}}]}}\n' "$id"
+      ;;
+  esac
+done
+"#;
+
+    /// Пишет фейковый сервер `name` в `dir` и делает его исполняемым.
+    #[cfg(unix)]
+    fn write_fake_server(dir: &Path, name: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join(name);
+        std::fs::write(&path, FAKE_SERVER_SH).expect("write fake server");
+        let mut perms = std::fs::metadata(&path).expect("metadata").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&path, perms).expect("chmod");
+        path
+    }
+
+    /// ОТНОСИТЕЛЬНЫЙ АРГУМЕНТ (`./fake-server.sh`) резолвится от каталога
+    /// объявившего манифеста (cwd), а не от cwd харнесса.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn relative_arg_path_resolves_from_manifest_dir() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        write_fake_server(dir.path(), "fake-server.sh");
+        let cfg = McpServerConfig {
+            name: "rel-arg".into(),
+            command: "sh".into(),
+            args: vec!["./fake-server.sh".into()],
+            env: BTreeMap::new(),
+            cwd: Some(dir.path().to_path_buf()),
+        };
+        let server = connect_server(&cfg, Duration::from_secs(10))
+            .await
+            .expect("относительный аргумент резолвится от cwd");
+        let specs = list_tools(&server).await.expect("tools/list");
+        assert_eq!(specs[0].name, "rel-arg__echo");
+        server.kill();
+    }
+
+    /// ОТНОСИТЕЛЬНАЯ КОМАНДА (`./bin-server`) тоже резолвится от cwd.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn relative_command_resolves_from_cwd() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        write_fake_server(dir.path(), "bin-server");
+        let cfg = McpServerConfig {
+            name: "rel-cmd".into(),
+            command: "./bin-server".into(),
+            args: Vec::new(),
+            env: BTreeMap::new(),
+            cwd: Some(dir.path().to_path_buf()),
+        };
+        connect_server(&cfg, Duration::from_secs(10))
+            .await
+            .expect("относительная команда резолвится от cwd");
+    }
+
+    /// Диагностика: если процесс умирает до handshake (файла нет), ошибка
+    /// несёт код выхода и хвост stderr, а не глухое «таймаут вызова initialize».
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn foreign_cwd_reports_exit_status_and_stderr_tail() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let cfg = McpServerConfig {
+            name: "broken".into(),
+            command: "sh".into(),
+            args: vec!["./нет-такого-сервера.py".into()],
+            env: BTreeMap::new(),
+            cwd: Some(dir.path().to_path_buf()),
+        };
+        // `McpServer` не Debug, поэтому expect_err недоступен — разбираем вручную.
+        let err = match connect_server(&cfg, Duration::from_secs(10)).await {
+            Ok(server) => {
+                server.kill();
+                panic!("процесс должен умереть до handshake");
+            }
+            Err(e) => e,
+        };
+        let text = err.to_string();
+        assert!(text.contains("завершился"), "нет кода выхода: {text}");
+        assert!(text.contains("stderr"), "нет хвоста stderr: {text}");
+        assert!(
+            text.contains("нет-такого-сервера.py"),
+            "хвост stderr не содержит имя файла: {text}"
+        );
+    }
+
+    /// `render_inventory` — ЧИСТАЯ функция: не запускает процессов (даже
+    /// заведомо несуществующую команду), мгновенна и печатает все поля.
+    #[test]
+    fn render_inventory_is_pure_and_lists_resolved_fields() {
+        let servers = vec![
+            McpServerConfig {
+                name: "plug.fetch".into(),
+                command: "arch-ml-nonexistent-binary-xyz".into(),
+                args: vec!["-u".into(), "./servers/fetch/server.py".into()],
+                env: BTreeMap::new(),
+                cwd: Some(PathBuf::from("/opt/plugins/plug")),
+            },
+            McpServerConfig {
+                name: "user.kb".into(),
+                command: "kb-mcp".into(),
+                args: Vec::new(),
+                env: BTreeMap::new(),
+                cwd: None,
+            },
+        ];
+        let started = std::time::Instant::now();
+        let text = render_inventory(&servers, &|s| {
+            if s.name.starts_with("plug.") {
+                "плагин plug".to_string()
+            } else {
+                "пользовательский mcp.json".to_string()
+            }
+        });
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "рендер не должен запускать процессы"
+        );
+        assert!(text.contains("plug.fetch"), "{text}");
+        assert!(
+            text.contains("arch-ml-nonexistent-binary-xyz -u ./servers/fetch/server.py"),
+            "{text}"
+        );
+        assert!(text.contains("/opt/plugins/plug"), "{text}");
+        assert!(text.contains("наследуется"), "{text}");
+        assert!(text.contains("источник: плагин plug"), "{text}");
+        assert!(
+            text.contains("источник: пользовательский mcp.json"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn render_inventory_empty_is_message() {
+        let text = render_inventory(&[], &|_| "x".to_string());
+        assert!(text.contains("не объявлены"), "{text}");
     }
 }

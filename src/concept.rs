@@ -611,8 +611,10 @@ impl ConceptDb {
                 }
             }
         }
-        if !ambiguous && let Some(slug) = hit {
-            return found(slug.clone(), MatchKind::Fuzzy);
+        if !ambiguous {
+            if let Some(slug) = hit {
+                return found(slug.clone(), MatchKind::Fuzzy);
+            }
         }
         unknown(term)
     }

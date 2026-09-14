@@ -1,0 +1,186 @@
+# CONSTRAINTS.yaml — fitness functions кейса «laguna-compact»
+# Проверка: arch-ml control check <кейс> (или fitness_check).
+# Правила механические: дрейф архитектурных артефактов и классов дефектов
+# Лагуны ловится без LLM.
+# Связь со spine: verified_by в model/AD-*.md.
+# Классификация стражей: kind ∈ behavioural|structural|documentary,
+# evidence — путь/команда, по которой проверяется выполнение.
+#   content-правила (must_contain/must_not_contain/each_file_must_contain) — documentary;
+#   file_exists / dir_must_have_file — structural;
+#   command_succeeds, проверяющий систему или артефакты прогона, — behavioural.
+# Скрипты стражей создаются в walking skeleton (handoff), до него behavioural
+# правила дают красный гейт по причине «инструмент отсутствует» — ожидаемо.
+
+constraints:
+  # ── Мета-контур: дисциплина решений ───────────────────────────────────────
+  - id: C-001
+    name: "ADR: обязательные секции (Alternatives) — решение без альтернатив не решение"
+    type: each_file_must_contain
+    glob: "docs/adr/*.md"
+    pattern: "## Alternatives Considered"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "docs/adr/*.md → секция «## Alternatives Considered»"
+
+  - id: C-002
+    name: "ADR: отрицательные последствия описаны явно"
+    type: each_file_must_contain
+    glob: "docs/adr/*.md"
+    pattern: "### Negative"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "docs/adr/*.md → секция «### Negative»"
+
+  - id: C-003
+    name: "ADR: обратимость указана (reversible | costly | irreversible)"
+    type: each_file_must_contain
+    glob: "docs/adr/*.md"
+    pattern: "## Reversibility"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "docs/adr/*.md → секция «## Reversibility»"
+
+  - id: C-004
+    name: "Спайн: у инварианта есть проверяемое Rule"
+    type: each_file_must_contain
+    glob: "model/AD-*.md"
+    pattern: "\\*\\*Rule\\*\\*"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "model/AD-*.md → поле «**Rule**»"
+
+  - id: C-005
+    name: "Спайн: инвариант привязан к fitness-правилу (нет правила — нет стража)"
+    type: each_file_must_contain
+    glob: "model/AD-*.md"
+    pattern: "verified_by:\\s*\\[C-0"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "model/AD-*.md → frontmatter verified_by: [C-0NN]"
+
+  - id: C-006
+    name: "Spine: заполнены Binds и Prevents (заглушка вместо инварианта недопустима)"
+    type: must_contain
+    glob: "ARCHITECTURE-SPINE.md"
+    pattern: "\\*\\*Binds\\*\\*.*\\n.*\\*\\*Prevents\\*\\*"
+    severity: critical
+    scope: case
+    kind: documentary
+    evidence: "ARCHITECTURE-SPINE.md → пары «**Binds**»/«**Prevents**»"
+
+  - id: C-007
+    name: "Архитектурный пакет без заглушек (TODO/TBD/FIXME)"
+    type: must_not_contain
+    glob: "{ARCHITECTURE-SPINE.md,docs/adr/*.md,docs/specs/*.md,model/*.md}"
+    pattern: "\\bTODO\\b|\\bTBD\\b|\\bFIXME\\b"
+    severity: high
+    scope: case
+    kind: documentary
+    evidence: "спайн, ADR, спеки, model/ → отсутствие TODO/TBD/FIXME"
+
+  # ── AD-7: пересечение пулов ───────────────────────────────────────────────
+  - id: C-017
+    name: "AD-7: пул ревизии без задач, дословно совпадающих с SFT (0 совпадений; исходный замер — 39 пар / 8 задач, ADR-007)"
+    type: command_succeeds
+    command: "python3 tools/check_sft_rl_overlap.py --sft datasets/sft_train_v12.jsonl --rl runs/rev-pool/rl_pool_filtered.jsonl --max-matched 0"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_sft_rl_overlap.py → exit 0 (совпадений нет). Пул собран в S2 (коммит 27a8d40): 27 992 задачи из 28 000, исключено 8 (`explain_relation`, причины в runs/rev-pool/exclusions.json); пересечение 0. Регресс (любое совпадение) — красный"
+
+  # ── AD-3: токенизационное пространство ────────────────────────────────────
+  - id: C-008
+    name: "AD-3: токен-пространство цело (8 токенов → один id) и 6 токенов формата v12 имеют ненулевые вхождения в кэше; add_special_tokens на пути претокенизации"
+    type: command_succeeds
+    command: "python3 tools/check_special_tokens.py --occurrences chat-format"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_special_tokens.py --occurrences chat-format → exit 0; кэш определяется приоритетом LAGUNA_TOK_CACHE → cpt_corpus_v12r_8192_qwen25.npy → первый *.npy|*.npz с печатью причины (ADR-004)"
+
+  # ── AD-7: eval-набор без утечек ───────────────────────────────────────────
+  - id: C-009
+    name: "AD-7: eval-набор без утечек — slug-ответ не встречается в промпте, пересечение eval ↔ SFT/RL по нормализованному тексту пусто"
+    type: command_succeeds
+    command: "python3 tools/check_eval_leakage.py --eval datasets/eval_ood_clean.jsonl --train datasets/sft_train_v12.jsonl"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_eval_leakage.py → exit 0, отчёт по числу проверенных задач"
+
+  - id: C-010
+    name: "AD-7: состав CPT-микса зафиксирован карточкой с хешем корпуса"
+    type: file_exists
+    path: "data/corpus-card.json"
+    severity: critical
+    scope: case
+    kind: structural
+    evidence: "data/corpus-card.json → поля: source, license, chunks, tokens, sha256, mix_domain_ratio, seed"
+
+  # ── AD-4: гигиена данных и весов ──────────────────────────────────────────
+  - id: C-011
+    name: "AD-4: данные и веса — только симлинками на gb10-shared (обязательный набор: datasets/, data/tok/, laguna_pipeline_v8.py, cpt_corpus_v12r.txt; отдельный манифест подключений не нужен — SSOT не дублируется)"
+    type: command_succeeds
+    command: "bash tools/check_symlink_hygiene.sh ."
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_symlink_hygiene.sh → exit 0 + список симлинков"
+
+  # ── AD-2: манифест прогона ────────────────────────────────────────────────
+  - id: C-012
+    name: "AD-2: каждый каталог прогона несёт run_manifest.json с хешами данных, весов, пайплайна и сидом"
+    type: command_succeeds
+    command: "python3 tools/check_run_manifest.py --runs runs/"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_run_manifest.py → exit 0; на каждый runs/<id>/ найден run_manifest.json с dataset_sha256, base_model_id, pipeline_version, seed, stages[]"
+
+  # ── AD-6: изоляция судьи от награды ───────────────────────────────────────
+  - id: C-013
+    name: "AD-6: LLM-судья не вызывается в контуре награды (изоляция по коду)"
+    type: command_succeeds
+    command: "python3 tools/check_judge_isolation.py --pipeline laguna_pipeline_v8.py"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_judge_isolation.py → exit 0, «judge isolated: reward path clean»"
+
+  # ── AD-1: ось успеха и статистика сидов ───────────────────────────────────
+  - id: C-014
+    name: "AD-1: отчёт результата несёт ось, mean±std по сидам, k-из-k, n попыток и анти-метрики дегенерации"
+    type: each_file_must_contain
+    glob: "evidence/result-report-*.json"
+    pattern: "\"axis\"|\"judge_mean\"|\"std\"|\"k_of_k\"|\"n_attempts\"|\"entropy\"|\"clip_frac\""
+    severity: high
+    scope: case
+    kind: documentary
+    evidence: "evidence/result-report-*.json → поля axis, judge_mean, std, entropy, clip_frac"
+
+  # ── AD-8: лицензионный статус доменной части ─────────────────────────────
+  - id: C-016
+    name: "AD-8: карточка корпуса несёт лицензионный статус (internal_only) и границу публикации (ADR-011)"
+    type: each_file_must_contain
+    glob: "data/corpus-card.json"
+    pattern: "license_status|domain_license_unresolved"
+    severity: high
+    scope: case
+    kind: documentary
+    evidence: "data/corpus-card.json → license_status: internal_only (решение владельца 14.09.2026, ADR-005) + publication (ADR-011): корпус и производные — prohibited, документы кейса и карточка-метаданные — allowed"
+
+  # ── AD-5: ресурсный инвариант GB10 ────────────────────────────────────────
+  - id: C-015
+    name: "AD-5: запуск стадий на GB10 описан как последовательный и через safe_start/storm_gap"
+    type: must_contain
+    glob: "docs/specs/*.delta.md"
+    pattern: "safe_start\\.sh|storm_gap\\.sh|mem_hygiene\\.sh"
+    severity: high
+    scope: case
+    kind: documentary
+    evidence: "docs/specs/*.delta.md → упоминание обязательных обёрток запуска"

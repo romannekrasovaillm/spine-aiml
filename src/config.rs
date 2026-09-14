@@ -986,6 +986,15 @@ pub struct FleetConfig {
     /// Дефолтный потолок суммарных попыток прогона (`0` — без лимита).
     #[serde(default)]
     pub budget_max_attempts: usize,
+    /// Baseline-судья гейтов узлов (ADR-046): путь к бинарю `arch-ml`,
+    /// собранному ДО прогона, — команда гейта, зовущая судью внутри ворктри
+    /// узла, исполняется им, а не бинарём из оцениваемого дерева.
+    /// Приоритет: явный `--judge`, затем переменная окружения `ARCH_ML_JUDGE`,
+    /// затем это поле; иначе — бинарь, запустивший флот (если он вне ворктри).
+    /// `None` — судья внутри ворктри запрещён (гейт падает), внешний — как
+    /// раньше; правка ядра через `evolve` без судьи отклоняется.
+    #[serde(default)]
+    pub judge_binary: Option<PathBuf>,
 }
 
 /// Каталог планов флота по умолчанию (ADR-042).
@@ -1009,6 +1018,7 @@ impl Default for FleetConfig {
             stop_on_gate_fail: false,
             budget_max_node_secs: 0,
             budget_max_attempts: 0,
+            judge_binary: None,
         }
     }
 }
@@ -1289,7 +1299,14 @@ impl Default for Config {
                 PromptMode::Stdin,
             ),
         );
-        harnesses.insert("qwen-code".into(), harness("qwen", &[], PromptMode::Stdin));
+        // Qwen Code: без флагов запускается ИНТЕРАКТИВНЫЙ CLI — дефолтная
+        // подкоманда `qwen` («Launch Qwen Code [default]»), а справка прямо
+        // говорит «use -p/--prompt for non-interactive mode». Независимый
+        // проход дал args = [] + stdin → интерактив, а не headless.
+        harnesses.insert(
+            "qwen-code".into(),
+            harness("qwen", &["-p", "{prompt}"], PromptMode::Flag),
+        );
         // Флаги валидированы живыми прогонами флота (бенч 04_payment-idempotency,
         // 2026-08): неверные режимы/флаги давали код 2 на argparse.
         harnesses.insert(
@@ -1308,9 +1325,19 @@ impl Default for Config {
             "theseus".into(),
             harness("theseus", &["-p", "{prompt}"], PromptMode::Flag),
         );
+        // Codewhale: документированный неинтерактивный путь — подкоманда
+        // `exec` («Run a non-interactive prompt») с `--auto` («tool-backed
+        // agent mode with auto-approvals»); примеры в её же справке:
+        // `codewhale exec --auto "list crates/ with ls"`. Верхнеуровневый
+        // `-p` описания не имеет, а верхнеуровневый запуск — интерактивная
+        // сессия; живые конфиги уже переведены на `exec --auto`.
         harnesses.insert(
             "codewhale".into(),
-            harness("codewhale", &["-p", "{prompt}"], PromptMode::Flag),
+            harness(
+                "codewhale",
+                &["exec", "--auto", "{prompt}"],
+                PromptMode::Flag,
+            ),
         );
         // Kimi Code: headless — `kimi -p PROMPT`. Permission-флаг НЕ нужен и
         // недопустим: в `-p`-режиме regular-инструменты всегда исполняются под
@@ -1479,6 +1506,11 @@ mod tests {
     fn default_adapters_carry_validated_flags() {
         // Дефолты валидированы живыми прогонами флота (2026-08): неверный
         // флаг/режим давал argparse-код 2 (hermes: «unrecognized arguments: -p»).
+        // Уточнение 2026-09-13: argparse-код 2 ловит только грубую ошибку
+        // флага, но НЕ ловит «запустился интерактив вместо headless» — поэтому
+        // qwen-code и codewhale приведены к документированному
+        // неинтерактивному вызову своих CLI (см. комментарии у их дефолтов).
+        // Прогонное подтверждение — `scripts/adapters-headless-check.sh`.
         let cfg = Config::default();
         let h = &cfg.harnesses;
         let flags = |name: &str| (h[name].args.clone(), h[name].prompt_mode);
@@ -1486,6 +1518,13 @@ mod tests {
             flags("hermes"),
             (
                 vec!["-z".to_string(), "{prompt}".to_string()],
+                PromptMode::Flag
+            )
+        );
+        assert_eq!(
+            flags("qwen-code"),
+            (
+                vec!["-p".to_string(), "{prompt}".to_string()],
                 PromptMode::Flag
             )
         );
@@ -1499,7 +1538,11 @@ mod tests {
         assert_eq!(
             flags("codewhale"),
             (
-                vec!["-p".to_string(), "{prompt}".to_string()],
+                vec![
+                    "exec".to_string(),
+                    "--auto".to_string(),
+                    "{prompt}".to_string()
+                ],
                 PromptMode::Flag
             )
         );
@@ -1702,6 +1745,15 @@ mod tests {
                 .expect("deserialize");
         assert!(on.fleet.require_worktree);
         assert_eq!(on.fleet.merge_gate, "none");
+        // Baseline-судья (ADR-046): по умолчанию не задан; явный путь парсится.
+        assert!(cfg.fleet.judge_binary.is_none());
+        assert!(bare.fleet.judge_binary.is_none());
+        let with_judge: Config =
+            toml::from_str("[fleet]\njudge_binary = \"/opt/arch-ml\"\n").expect("deserialize");
+        assert_eq!(
+            with_judge.fleet.judge_binary.as_deref(),
+            Some(Path::new("/opt/arch-ml"))
+        );
         // Round-trip через сериализацию.
         let text = toml::to_string_pretty(&on).expect("serialize");
         let back: Config = toml::from_str(&text).expect("deserialize");

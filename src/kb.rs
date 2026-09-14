@@ -617,8 +617,10 @@ fn parse_file(path: &Path, mtime: Option<SystemTime>, len: u64) -> Option<Cached
         }
         let tokens = tokenize(line);
         doc_tokens += tokens.len();
-        if markdown && let Some(title) = heading_title(line) {
-            headings.push((idx, title));
+        if markdown {
+            if let Some(title) = heading_title(line) {
+                headings.push((idx, title));
+            }
         }
         lines.push(LineIndex {
             start: offset,
@@ -1463,10 +1465,10 @@ impl Tool for KbSearchTool {
                 let _ = write!(buf, " — нечёткое совпадение");
             }
             let _ = writeln!(buf);
-            if let Some(fm) = &hit.facets
-                && let Some(line) = facet_line(fm)
-            {
-                let _ = writeln!(buf, "   [{line}]");
+            if let Some(fm) = &hit.facets {
+                if let Some(line) = facet_line(fm) {
+                    let _ = writeln!(buf, "   [{line}]");
+                }
             }
             let _ = writeln!(buf, "{}", hit.snippet);
         }

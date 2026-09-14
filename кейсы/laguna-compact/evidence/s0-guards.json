@@ -1,0 +1,218 @@
+{
+  "stage": "S0",
+  "artifact": "walking skeleton стражей: 7 инструментов + карточка корпуса",
+  "date": "2026-09-14",
+  "case": "кейсы/laguna-compact",
+  "fitness": {
+    "before": {
+      "commit": "30e71ae",
+      "rules": 15,
+      "errors": 7,
+      "why": "инструментов стражей нет: все command_succeeds падают по отсутствию файла"
+    },
+    "after": {
+      "rules": 15,
+      "errors": 2,
+      "green": [
+        "C-001",
+        "C-002",
+        "C-003",
+        "C-004",
+        "C-005",
+        "C-006",
+        "C-007",
+        "C-009",
+        "C-010",
+        "C-011",
+        "C-012",
+        "C-013",
+        "C-015"
+      ],
+      "red": [
+        {
+          "rule": "C-008",
+          "kind": "rule/data mismatch",
+          "why": "буквальная политика all8 требует ненулевых вхождений всех 8 спецтокенов, а тега </reasoning> нет ни в одном из 34 кэшей контура: 0 вхождений в cpt_corpus_v10.1.txt и sft_train_v12.jsonl. Токен-пространство цело (все 8 → один id), 6 токенов формата v12 присутствуют. Решение архитектора: политика chat-format (--occurrences chat-format → exit 0) или дополнение корпуса."
+        },
+        {
+          "rule": "C-014",
+          "kind": "expected, ждёт S4",
+          "why": "нет evidence/result-report-*.json до стадии S4"
+        }
+      ]
+    }
+  },
+  "tools": [
+    {
+      "id": "check_special_tokens.py",
+      "rule": "C-008",
+      "exit": 1,
+      "verdict": "FAIL",
+      "dataset": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "occurrences_policy": "all8",
+      "token_table": [
+        {
+          "token": "<think>",
+          "id": 151665,
+          "occurrences": 31546,
+          "gated": true
+        },
+        {
+          "token": "</think>",
+          "id": 151666,
+          "occurrences": 17641,
+          "gated": true
+        },
+        {
+          "token": "<tool_call>",
+          "id": 151657,
+          "occurrences": 48821,
+          "gated": true
+        },
+        {
+          "token": "</tool_call>",
+          "id": 151658,
+          "occurrences": 25077,
+          "gated": true
+        },
+        {
+          "token": "<tool_response>",
+          "id": 151667,
+          "occurrences": 25209,
+          "gated": true
+        },
+        {
+          "token": "</tool_response>",
+          "id": 151668,
+          "occurrences": 14139,
+          "gated": true
+        },
+        {
+          "token": "<reasoning>",
+          "id": 151669,
+          "occurrences": 3,
+          "gated": true
+        },
+        {
+          "token": "</reasoning>",
+          "id": 151670,
+          "occurrences": 0,
+          "gated": true
+        }
+      ],
+      "pretokenize_scripts": [
+        "build_cpt_v12r_mix.py",
+        "build_cpt_v12r_pos.py",
+        "build_cpt_v12r_docs.py",
+        "pretokenize.py",
+        "pretokenize_v11.py",
+        "pretokenize_v9.py"
+      ],
+      "backup_scripts_skipped": []
+    },
+    {
+      "id": "check_eval_leakage.py",
+      "rule": "C-009",
+      "exit": 0,
+      "verdict": "LEAKAGE OK",
+      "gates": {
+        "slug_in_own_prompt": {
+          "tasks_checked": 192,
+          "violations": 0
+        },
+        "eval_train_text_overlap": {
+          "train_examples": 44949,
+          "train_texts": 39490,
+          "violations": 0
+        }
+      },
+      "near_duplicate": {
+        "n": 12,
+        "train_shingles": 125364,
+        "tasks": 0
+      },
+      "violations": []
+    },
+    {
+      "id": "check_symlink_hygiene.sh",
+      "rule": "C-011",
+      "exit": 0,
+      "verdict": "SYMLINK HYGIENE OK"
+    },
+    {
+      "id": "check_judge_isolation.py",
+      "rule": "C-013",
+      "exit": 0,
+      "verdict": "judge isolated: reward path clean",
+      "judge_call_sites": [
+        "run_eval():1721 glm_judge() [eval]"
+      ],
+      "reward_closure_size": 10
+    },
+    {
+      "id": "check_run_manifest.py",
+      "rule": "C-012",
+      "exit": 0,
+      "verdict": "no runs yet (вакуумная истина: прогонов ещё нет)"
+    },
+    {
+      "id": "write_run_manifest.py",
+      "rule": "C-012",
+      "exit": 0,
+      "verdict": "генерация/идемпотентность/отказ перезаписи проверены tests/"
+    },
+    {
+      "id": "check_gb10_serialization.sh",
+      "rule": "AD-5 (pending evidence)",
+      "exit": 0,
+      "verdict": "gb10 not reachable — check skipped",
+      "note": "ssh gb10 (192.0.2.50:22) недоступен из этой сети; сенсоры не отработали, инвариант остаётся [PENDING-EVIDENCE]"
+    }
+  ],
+  "leak_audit": {
+    "eval": "datasets/eval_ood_clean.jsonl (192 задачи)",
+    "train": "datasets/sft_train_v12.jsonl (44949 примеров)",
+    "gate_a_slug_in_prompt": 0,
+    "gate_b_text_overlap": 0,
+    "near_duplicate_12gram": 0,
+    "historical": "EXPERIMENT_PLAN.md §2 фиксировал 8 из 200 задач с expected_slug в промпте; в eval_ood_clean.jsonl (192 задачи) таких нет — набор уже подчищен, страж фиксирует это механически и поймает регресс",
+    "verdict": "clean"
+  },
+  "corpus_card": {
+    "path": "data/corpus-card.json",
+    "chunks": 9776,
+    "tokens": 80084992,
+    "seed": 42,
+    "mix_domain_ratio": 0.75,
+    "sha256_caches": {
+      "cpt_corpus_v12r_8192_qwen25.npy": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+      "cpt_corpus_v12r_8192_qwen3.npy": "13f2812c47027715ca0b1cf39c5ef6ce2521006f04b5b7de7248effcd682e029",
+      "cpt_corpus_v12r_8192_qwen35.npy": "301c8ae65c8f8770e090eb119fa8a8947cfa884e14d625d1b6b717e0a8b440ff",
+      "cpt_corpus_v10.1_8192_qwen25.npy": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+    },
+    "verified_against_files": true
+  },
+  "data_hygiene": {
+    "copies_over_50mb": 0,
+    "symlinks": 4,
+    "targets": [
+      "datasets/",
+      "data/tok/",
+      "laguna_pipeline_v8.py",
+      "cpt_corpus_v12r.txt"
+    ],
+    "git_big_blobs": 0
+  },
+  "tests": "tools/tests/run_tool_tests.sh — 40 проверок (зелёный/красный/NO-INPUT путь на каждый инструмент), PASS=40 FAIL=0",
+  "findings": [
+    "Спецтокен </reasoning> отсутствует во всех 42 кэшах контура (0 вхождений; проверены все файлы datasets/tok/*.npy|*.npz) — следствие корпуса, не токенизатора; буквальная политика C-008 красная.",
+    "eval_ood_clean.jsonl чист по обоим гейтам (0 утечек на 192 задачах) — исторические 8/200 относятся к прежнему набору.",
+    "Legacy-теги <reasoning>/</reasoning> встречаются в источниках лишь 2-3 раза и без закрывающего тега — т.е. как текст, а не как управляющая разметка.",
+    "GC-мусор контура: pretokenize.py.bak_nospecial_20260817 — резервная копия версии с дефектом 17.08; в гейт не входит, перечисляется в отчёте."
+  ],
+  "open_questions": [
+    "C-008: сузить гейт вхождений до 6 токенов формата v12 (--occurrences chat-format) или дополнить корпус парными <reasoning>? Замер: </reasoning> = 0 во всех 42 кэшах (и <reasoning> = 3 в v12r/qwen25), т.е. тег в данных не используется.",
+    "AD-4: какой минимальный набор симлинков обязателен в кейсе — достаточно ли datasets/, data/tok/, пайплайна и манифеста микса?",
+    "AD-5: стража сериализации нельзя закрыть без доступа к GB10 из текущей сети — нужен ли ручной прогон на стенде?"
+  ]
+}

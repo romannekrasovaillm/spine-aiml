@@ -3,7 +3,9 @@
 //! Вендорские харнессы решают «написать код». Здесь целевая функция другая —
 //! «не потратить GPU-деньги на ошибку, которую уже однажды совершили». Каждый
 //! гейт — сжатое, исполняемое правило из доменного war-chest (память
-//! `~/.claude/projects/-home-roman/memory/`), а не проза в контексте модели:
+//! `~/.claude/projects/<слаг-рабочего-каталога>/memory/`; слаг — путь рабочего
+//! каталога, в котором каждый символ вне `[A-Za-z0-9]` заменён на `-`), а не проза в
+//! контексте модели:
 //! харнесс принуждает, а не напоминает. Проверки чистые (не зовут сеть, не
 //! трогают клауд) — стоимость pre-flight $0.
 //!
@@ -411,25 +413,25 @@ fn gate_versions(spec: &ExperimentSpec) -> Option<Gate> {
     }
 
     let mut mismatches: Vec<String> = Vec::new();
-    if let Some(v) = &spec.verl_version
-        && v != VERIFIED_VERL
-    {
-        mismatches.push(format!("veRL {v} (проверена {VERIFIED_VERL})"));
+    if let Some(v) = &spec.verl_version {
+        if v != VERIFIED_VERL {
+            mismatches.push(format!("veRL {v} (проверена {VERIFIED_VERL})"));
+        }
     }
-    if let Some(v) = &spec.vllm_version
-        && v != VERIFIED_VLLM
-    {
-        mismatches.push(format!("vLLM {v} (проверен {VERIFIED_VLLM})"));
+    if let Some(v) = &spec.vllm_version {
+        if v != VERIFIED_VLLM {
+            mismatches.push(format!("vLLM {v} (проверен {VERIFIED_VLLM})"));
+        }
     }
-    if let Some(v) = &spec.torch_version
-        && !v.starts_with(VERIFIED_TORCH)
-    {
-        mismatches.push(format!("torch {v} (проверен {VERIFIED_TORCH}+cu126)"));
+    if let Some(v) = &spec.torch_version {
+        if !v.starts_with(VERIFIED_TORCH) {
+            mismatches.push(format!("torch {v} (проверен {VERIFIED_TORCH}+cu126)"));
+        }
     }
-    if let Some(v) = &spec.cuda_version
-        && v != VERIFIED_CUDA
-    {
-        mismatches.push(format!("CUDA {v} (проверена {VERIFIED_CUDA})"));
+    if let Some(v) = &spec.cuda_version {
+        if v != VERIFIED_CUDA {
+            mismatches.push(format!("CUDA {v} (проверена {VERIFIED_CUDA})"));
+        }
     }
 
     let (verdict, text) = if !mismatches.is_empty() {

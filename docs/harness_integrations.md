@@ -133,18 +133,27 @@ auto_commit = true                # до-коммитить незакоммич
   дедлока на pipe-буфере), argv = `binary args...`.
 
 Дефолтные адаптеры (`Config::default` / `config.example.toml`; флаги
-валидированы живыми прогонами флота — неверный флаг/режим даёт код 2 на
-argparse):
+сверены с объявленным контрактом самих CLI — цитаты ниже; код 2 на argparse
+ловит только грубую ошибку флага, но НЕ ловит «запустился интерактив вместо
+headless», поэтому неинтерактивность подтверждается ещё и прогоном:
+`scripts/adapters-headless-check.sh`):
 
-| Харнесс | binary | args | prompt_mode |
-|---|---|---|---|
-| claude-code | `claude` | `["-p", "--dangerously-skip-permissions"]` | stdin |
-| qwen-code | `qwen` | `[]` | stdin |
-| openclaw | `openclaw` | `["agent", "--agent", "main", "--message", "{prompt}"]` | flag |
-| hermes | `hermes` | `["-z", "{prompt}"]` | flag |
-| theseus | `theseus` | `["-p", "{prompt}"]` | flag |
-| codewhale | `codewhale` | `["-p", "{prompt}"]` | flag |
-| kimi-code | `kimi` | `["-p", "{prompt}"]` | flag |
+| Харнесс | binary | args | prompt_mode | Объявленный неинтерактивный вызов (цитата справки CLI) |
+|---|---|---|---|---|
+| claude-code | `claude` | `["-p", "--dangerously-skip-permissions"]` | stdin | «use -p/--print for non-interactive output» |
+| qwen-code | `qwen` | `["-p", "{prompt}"]` | flag | «Launch an interactive CLI, use -p/--prompt for non-interactive mode»; без флагов — интерактивная дефолтная подкоманда |
+| openclaw | `openclaw` | `["agent", "--agent", "main", "--message", "{prompt}"]` | flag | `agent` — «Run an agent turn via the Gateway (use --local for embedded)»; на этой машине Gateway запущен (порт 18789), поэтому `--local` не нужен — на контуре без Gateway его надо добавить |
+| hermes | `hermes` | `["-z", "{prompt}"]` | flag | «One-shot mode: send a single prompt and print ONLY the final response text to stdout» |
+| theseus | `theseus` | `["-p", "{prompt}"]` | flag | «`-p, --prompt TEXT` — headless-режим без TUI» |
+| codewhale | `codewhale` | `["exec", "--auto", "{prompt}"]` | flag | `exec` — «Run a non-interactive prompt», `--auto` — «Enable tool-backed agent mode with auto-approvals» |
+| kimi-code | `kimi` | `["-p", "{prompt}"]` | flag | «Run one prompt non-interactively and print the response» |
+
+Историческая заметка (2026-09-13): до этой сверки qwen-code и codewhale стояли
+на формах, которые headless не давали — qwen на `[]` + stdin (запускалась
+интерактивная дефолтная подкоманда), codewhale на верхнеуровневом `-p` без
+описания (при том, что живые конфиги уже использовали `exec --auto`). Дрейф
+«объявлено ≠ работает» копился в трёх местах сразу: встроенные дефолты,
+`config.example.toml` и эта таблица.
 
 Особенность kimi-code: permission-флаг не нужен и недопустим — в
 `-p`-режиме regular-инструменты исполняются под auto-политикой (без

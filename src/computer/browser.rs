@@ -591,7 +591,7 @@ mod tests {
         let argv = build_launch_argv(
             "google-chrome",
             9222,
-            Path::new("/home/u/.arch-ml/state/computer/chrome-profile"),
+            Path::new("/home/user/.arch-ml/state/computer/chrome-profile"),
             false,
             Some("https://example.com"),
         );

@@ -409,8 +409,11 @@ auto_commit = true
 
 [harnesses.qwen-code]
 binary = "qwen"
-args = []
-prompt_mode = "stdin"
+# qwen без -p запускает ИНТЕРАКТИВНЫЙ CLI: дефолтная подкоманда — `qwen`
+# («Launch Qwen Code [default]»), а справка прямо говорит «use -p/--prompt for
+# non-interactive mode». args = [] + stdin здесь НЕ headless.
+args = ["-p", "{prompt}"]
+prompt_mode = "flag"
 timeout_secs = 1800
 idle_timeout_secs = 600
 auto_commit = true
@@ -444,8 +447,12 @@ auto_commit = true
 
 [harnesses.codewhale]
 binary = "codewhale"
-# codewhale: -p PROMPT (flag-режим); задача в stdin не принимается.
-args = ["-p", "{prompt}"]
+# codewhale: неинтерактивный путь — подкоманда `exec` («Run a non-interactive
+# prompt») с `--auto` («tool-backed agent mode with auto-approvals»); пример
+# из её же справки: codewhale exec --auto "list crates/ with ls".
+# Верхнеуровневый `-p` описания не имеет, а верхнеуровневый запуск — сессия
+# интерактивная (проверка прогоном: scripts/adapters-headless-check.sh).
+args = ["exec", "--auto", "{prompt}"]
 prompt_mode = "flag"
 timeout_secs = 1800
 idle_timeout_secs = 600
@@ -506,6 +513,12 @@ max_parallel = 8           # потолок ОДНОВРЕМЕННЫХ проц�
 stop_on_gate_fail = false  # true — отказ гейта узла останавливает волны (canary)
 budget_max_node_secs = 0   # потолок времени одного узла, сек (0 — без лимита)
 budget_max_attempts = 0    # потолок суммарных попыток прогона (0 — без лимита)
+# Baseline-судья гейтов (ADR-046): путь к бинарю arch-ml, собранному ДО прогона.
+# Команда гейта вида "./target/debug/arch-ml control check ." исполняется им, а
+# не бинарём внутри ворктри узла (самооценка); при его отсутствии такая команда
+# падает. Приоритет — у флага `fleet run --judge`; если ни флага, ни поля нет,
+# берётся бинарь, запустивший флот.
+# judge_binary = "/opt/arch-ml/bin/arch-ml"
 
 # -----------------------------------------------------------------------------
 # Локальные GPU харнесса ([[gpus.local]]): своё железо, $0 аренды — первым в
@@ -518,7 +531,7 @@ budget_max_attempts = 0    # потолок суммарных попыток п
 [[gpus.local]]
 name = "gb10"            # DGX Spark, unified 128 ГБ, headless (отдельная машина)
 device = "gb10"
-ssh = "gb10-fast"        # Host-алиас в ~/.ssh/config (прямой 10GbE, 10.55.0.2)
+ssh = "gb10-fast"        # Host-алиас в ~/.ssh/config (прямой 10GbE, 192.0.2.2)
 
 [[gpus.local]]
 name = "rtx4080super"    # дискретная 16 ГБ (эта машина)
