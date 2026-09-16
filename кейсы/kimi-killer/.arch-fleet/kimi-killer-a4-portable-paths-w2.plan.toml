@@ -119,7 +119,7 @@ spec = """
    - `python3 tools/a4_manifest.py --verify` → код 1 с «покрытие частично: …» (НЕ «журнал не найден» и НЕ «абсолютный путь запрещён»);
    - run_ref резолвится от корня репозитория, файл существует и непуст;
    - независимость от cwd: запусти `--verify` из /tmp, указав абсолютные пути к скрипту и манифесту — вердикт тот же (частичное покрытие);
-   - `grep -rn "/home/" evidence/a4-skeleton-run-manifest.json evidence/a4-run-wire/run-journal.json` — совпадений быть не должно.
+   - `grep -rn "/home/.../" evidence/a4-skeleton-run-manifest.json evidence/a4-run-wire/run-journal.json` — совпадений быть не должно.
    - Полный `git clone` в другой каталог НЕ обязателен (репозиторий большой) — отметь отложенной проверкой в отчёте.
 4. `arch-ml control check . --constraints CONSTRAINTS.yaml` — красный РОВНО по C-038 (частичное покрытие), новых нарушений нет.
 
