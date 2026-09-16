@@ -2766,18 +2766,27 @@ fn run_rule(
             })?;
             let timeout_secs = rule.timeout_secs.unwrap_or(COMMAND_TIMEOUT_DEFAULT_SECS);
             match run_with_timeout(repo, cmd, Duration::from_secs(timeout_secs))? {
-                Some(status) if status.success() => {}
-                Some(status) => {
-                    let code = status
-                        .code()
+                outcome if outcome.status.is_some_and(|s| s.success()) => {}
+                outcome if outcome.status.is_some() => {
+                    let code = outcome
+                        .status
+                        .and_then(|s| s.code())
                         .map_or_else(|| "завершена сигналом".to_string(), |c| format!("код {c}"));
+                    let tail = report_tail(&outcome.tail);
+                    let detail = if tail.is_empty() {
+                        String::new()
+                    } else {
+                        format!("; хвост вывода:\n{tail}")
+                    };
                     issue(
                         repo.to_path_buf(),
                         0,
-                        format!("command_succeeds: команда '{cmd}' завершилась неуспешно ({code})"),
+                        format!(
+                            "command_succeeds: команда '{cmd}' завершилась неуспешно ({code}){detail}"
+                        ),
                     );
                 }
-                None => {
+                _ => {
                     issue(
                         repo.to_path_buf(),
                         0,
@@ -4005,25 +4014,35 @@ fn match_glob_segments(pat: &[&str], parts: &[&str]) -> bool {
 /// Запускает `bash -c <command>` в `repo` с ручным таймаутом:
 /// spawn + опрос `try_wait` каждые 50 мс + `kill` по истечении.
 /// `Ok(None)` — команда превысила таймаут и была убита.
-fn run_with_timeout(repo: &Path, command: &str, timeout: Duration) -> Result<Option<ExitStatus>> {
+fn run_with_timeout(repo: &Path, command: &str, timeout: Duration) -> Result<CommandOutcome> {
     let mut child = Command::new("bash")
         .arg("-c")
         .arg(command)
         .current_dir(repo)
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| HarnessError::Control(format!("не удалось запустить bash: {e}")))?;
+    // Читатели живут отдельно от ожидания (как в bash-инструменте агента):
+    // иначе полный pipe заблокирует дочерний процесс задолго до таймаута.
+    let out_task = child
+        .stdout
+        .take()
+        .map(|p| std::thread::spawn(move || drain_tail(p)));
+    let err_task = child
+        .stderr
+        .take()
+        .map(|p| std::thread::spawn(move || drain_tail(p)));
     let start = Instant::now();
-    loop {
+    let status = loop {
         match child.try_wait() {
-            Ok(Some(status)) => return Ok(Some(status)),
+            Ok(Some(status)) => break Some(status),
             Ok(None) => {
                 if start.elapsed() >= timeout {
                     let _ = child.kill();
                     let _ = child.wait(); // забрать зомби
-                    return Ok(None);
+                    break None;
                 }
                 std::thread::sleep(Duration::from_millis(50));
             }
@@ -4035,7 +4054,69 @@ fn run_with_timeout(repo: &Path, command: &str, timeout: Duration) -> Result<Opt
                 )));
             }
         }
+    };
+    let mut captured = Vec::new();
+    if let Some(t) = out_task {
+        if let Ok(mut bytes) = t.join() {
+            captured.append(&mut bytes);
+        }
     }
+    if let Some(t) = err_task {
+        if let Ok(mut bytes) = t.join() {
+            captured.append(&mut bytes);
+        }
+    }
+    Ok(CommandOutcome {
+        status,
+        tail: String::from_utf8_lossy(&captured).into_owned(),
+    })
+}
+
+/// Итог прогона `command_succeeds`-команды: статус и хвост вывода для отчёта.
+struct CommandOutcome {
+    /// `Some`, если команда завершилась сама (иначе — убита по таймауту).
+    status: Option<ExitStatus>,
+    /// Последние байты stdout+stderr (обрезаны до [`MAX_CAPTURE_BYTES`]).
+    tail: String,
+}
+
+/// Сколько байт вывода храним для отчёта об упавшей команде (хвост).
+const MAX_CAPTURE_BYTES: usize = 16 * 1024;
+/// Сколько последних строк хвоста включаем в отчёт об упавшей команде.
+const REPORT_TAIL_LINES: usize = 15;
+
+/// Читает pipe до конца, храня только хвост в [`MAX_CAPTURE_BYTES`]
+/// (вывод упавшей команды может быть мегабайтным — в отчёт нужен конец).
+fn drain_tail(mut pipe: impl std::io::Read) -> Vec<u8> {
+    let mut buf = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        match pipe.read(&mut chunk) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => {
+                buf.extend_from_slice(&chunk[..n]);
+                if buf.len() > MAX_CAPTURE_BYTES * 2 {
+                    let keep = buf.split_off(buf.len() - MAX_CAPTURE_BYTES);
+                    buf = keep;
+                }
+            }
+        }
+    }
+    if buf.len() > MAX_CAPTURE_BYTES {
+        buf.split_off(buf.len() - MAX_CAPTURE_BYTES)
+    } else {
+        buf
+    }
+}
+
+/// Хвост вывода упавшей команды для отчёта: последние [`REPORT_TAIL_LINES`]
+/// строк, пропущенные через редактор секретов (AD-3: вывод может содержать
+/// значения переменных окружения и токены).
+fn report_tail(raw: &str) -> String {
+    let redacted = crate::secrets::Redactor::new(crate::secrets::builtin_rules()).redact(raw);
+    let lines: Vec<&str> = redacted.lines().collect();
+    let skip = lines.len().saturating_sub(REPORT_TAIL_LINES);
+    lines[skip..].join("\n")
 }
 
 /// Создаёт новый ADR по шаблону AI-DLC (Status/Context/Decision/Alternatives/
@@ -7126,5 +7207,49 @@ mod address_trace_tests {
         let index = idx(&["AD-3"], &[], &["ML-SKILL-1"]);
         let v = address_trace_violations("rule:ML-SKILL-1", &index, &[], Some("^ADR-"));
         assert!(v.iter().any(|s| s.contains("пустой след")), "{v:?}");
+    }
+}
+
+#[cfg(test)]
+mod command_capture_tests {
+    use super::*;
+
+    #[test]
+    fn run_with_timeout_captures_output_tail_on_failure() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let outcome = run_with_timeout(
+            tmp.path(),
+            "echo marker-строка-вывода; echo ошибка-в-стдошибку >&2; exit 3",
+            Duration::from_secs(10),
+        )
+        .expect("прогон команды");
+        assert_eq!(outcome.status.and_then(|s| s.code()), Some(3));
+        assert!(outcome.tail.contains("marker-строка-вывода"));
+        assert!(outcome.tail.contains("ошибка-в-стдошибку"));
+    }
+
+    #[test]
+    fn report_tail_keeps_last_lines_and_redacts_secrets() {
+        use std::fmt::Write as _;
+        let mut raw = String::new();
+        for i in 1..=20 {
+            writeln!(raw, "строка {i}").expect("запись в String не падает");
+        }
+        raw.push_str("ключ DEEPSEEK_API_KEY=sk-0123456789abcdef0123456789 в тексте\n");
+        let tail = report_tail(&raw);
+        assert_eq!(tail.lines().count(), REPORT_TAIL_LINES);
+        assert!(tail.contains("строка 20"));
+        assert!(!tail.contains("строка 5"), "старые строки обрезаны: {tail}");
+        assert!(
+            !tail.contains("sk-0123456789abcdef0123456789"),
+            "секрет обязан быть замаскирован: {tail}"
+        );
+    }
+
+    #[test]
+    fn drain_tail_bounds_memory_to_capture_limit() {
+        let big = vec![b'x'; MAX_CAPTURE_BYTES * 3];
+        let tail = drain_tail(&big[..]);
+        assert_eq!(tail.len(), MAX_CAPTURE_BYTES);
     }
 }

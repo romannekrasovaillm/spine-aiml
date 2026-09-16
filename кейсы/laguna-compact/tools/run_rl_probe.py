@@ -267,7 +267,7 @@ def check_pool_integrity(host: str) -> dict:
 
 def check_disk(host: str, min_free_gb: float = 20.0) -> dict:
     """Диск стенда: RL-чекпоинты ~3 ГБ × 2 + hf_rollout ~1 ГБ на прогон."""
-    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user/ | tail -1")
+    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user | tail -1")
     avail = None
     if rc == 0:
         m = re.search(r"(\d+)", out)

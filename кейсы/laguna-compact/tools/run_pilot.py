@@ -450,7 +450,7 @@ def check_sft_samples(host: str, expect: int) -> dict:
 
 def check_disk(host: str, min_free_gb: float = 60.0) -> dict:
     """Диск стенда: `*_final` чекпойнты CPT/SFT/RL (~3 ГБ × 3) + hf_rollout/hf_eval."""
-    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user/ | tail -1")
+    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user | tail -1")
     avail = None
     if rc == 0:
         m = "".join(ch for ch in out if ch.isdigit())
