@@ -8,6 +8,10 @@
 # .pytest_cache, .arch-handoff (src/control.rs, collect_files).
 constraints:
   # --- AD-6: безопасный Rust -----------------------------------------------
+
+  # NB: правила закрытой зоны banking/ (и ADF) при публикации ядра сняты —
+  # эта зона в публичный снапшот не входит (см. README).
+
   - id: C-01
     name: no_unsafe_code
     type: must_not_contain
@@ -171,24 +175,6 @@ constraints:
     pattern: "arch-ml eval run"
     severity: high
 
-  # --- AD-BE1..BE4: продуктовые инварианты Spine Banking Edition ------------
-  # (ARCHITECTURE-SPINE-BE.md; ADR-010…014). Глоб-движок без брейсов {a,b} —
-  # поэтому каждое правило с узким glob; ADR/спайны вне scope: там запрет
-  # обсуждается легитимно.
-  - id: BE-01a
-    name: banking_zone_license_header_md
-    type: must_contain
-    glob: "banking/**/*.md"
-    pattern: "SPINE BANKING EDITION — BANKING ZONE \\(proprietary\\)"
-    severity: critical
-
-  - id: BE-01b
-    name: banking_zone_license_header_yaml
-    type: must_contain
-    glob: "banking/**/*.yaml"
-    pattern: "SPINE BANKING EDITION — BANKING ZONE \\(proprietary\\)"
-    severity: critical
-
   - id: BE-02a
     name: no_yandexgpt_in_code
     type: must_not_contain
@@ -201,20 +187,6 @@ constraints:
     type: must_not_contain
     glob: "*.toml"
     pattern: "(?i)yandexgpt"
-    severity: critical
-
-  - id: BE-02c
-    name: no_yandexgpt_in_presets
-    type: must_not_contain
-    glob: "banking/presets/**"
-    pattern: "(?i)yandexgpt"
-    severity: critical
-
-  - id: BE-03
-    name: no_external_llm_urls_in_banking_presets
-    type: must_not_contain
-    glob: "banking/presets/**"
-    pattern: "api\\.deepseek\\.com|api\\.z\\.ai|api\\.kimi\\.com|api\\.openai\\.com"
     severity: critical
 
   - id: BE-04a
@@ -231,70 +203,10 @@ constraints:
     pattern: "not for production|research project|не для промышленной|исследовательский проект"
     severity: critical
 
-  - id: BE-04c
-    name: no_research_framing_banking
-    type: must_not_contain
-    glob: "banking/**/*.md"
-    pattern: "not for production|research project|не для промышленной|исследовательский проект"
-    severity: critical
-
-  - id: BE-05
-    name: product_spine_present
-    type: file_exists
-    path: "ARCHITECTURE-SPINE-BE.md"
-    severity: critical
-
   - id: BE-06
     name: notice_present
     type: file_exists
     path: "NOTICE.md"
-    severity: critical
-
-  # --- AD-BE5: egress-дисциплина (ADR-016) ------------------------------------
-  - id: BE-07
-    name: bank_profile_no_external_egress
-    type: must_not_contain
-    glob: "banking/presets/bank-profile/*"
-    pattern: "duckduckgo\\.com|api\\.deepseek\\.com|api\\.z\\.ai|api\\.kimi\\.com|api\\.openai\\.com|api\\.moonshot\\.ai"
-    severity: critical
-
-  - id: BE-08
-    name: no_public_registries_in_presets
-    type: must_not_contain
-    glob: "banking/presets/**/*.json"
-    pattern: "\\bnpx\\b|\\buvx\\b|\\bpipx\\b"
-    severity: critical
-
-  - id: BE-09
-    name: bank_profile_present
-    type: file_exists
-    path: "banking/presets/bank-profile/config.toml"
-    severity: critical
-
-  - id: BE-10
-    name: reg_map_present
-    type: file_exists
-    path: "banking/compliance/reg-map.md"
-    severity: high
-
-  # --- ADR-017: надзорный контур 719-П ----------------------------------------
-  - id: BE-11
-    name: cbr_719p_map_present
-    type: file_exists
-    path: "banking/compliance/cbr-719p.md"
-    severity: critical
-
-  - id: BE-12
-    name: pay27_supervision_block_in_preset
-    type: must_contain
-    glob: "banking/presets/payments/SPINE-PAYMENTS.md"
-    pattern: "### PAY-27: Надзорный контур НПС"
-    severity: critical
-
-  - id: BE-13
-    name: cbr_683p_map_present
-    type: file_exists
-    path: "banking/compliance/cbr-683p.md"
     severity: critical
 
   - id: BE-14
@@ -303,50 +215,6 @@ constraints:
     glob: "src/**/*.rs"
     pattern: "(?i)sentry|posthog|amplitude|mixpanel|segment\\.io|telemetry_sdk|telemetry::init"
     severity: critical
-
-  - id: BE-15
-    name: evidence_bundle_present
-    type: file_exists
-    path: "banking/compliance/evidence/SHA256SUMS"
-    severity: high
-
-  # --- AD-BE6: библиотека правил (ADR-019) -------------------------------------
-  - id: BE-16a
-    name: rules_library_readme_present
-    type: file_exists
-    path: "banking/library/README.md"
-    severity: critical
-
-  - id: BE-16b
-    name: wave1_rules_present
-    type: file_exists
-    path: "banking/library/fitness/wave1-mechanizable.yaml"
-    severity: critical
-
-  - id: BE-17a
-    name: wave1_cards_have_expiry
-    type: must_contain
-    glob: "banking/library/fitness/wave1-mechanizable.yaml"
-    pattern: "Owner / Expiry"
-    severity: critical
-
-  - id: BE-17b
-    name: waves_cards_have_check
-    type: must_contain
-    glob: "banking/library/fitness/wave2-mandated.yaml"
-    pattern: "Check:"
-    severity: critical
-
-  - id: BE-18
-    name: sources_catalog_present
-    type: file_exists
-    path: "banking/library/sources.md"
-    severity: high
-
-
-
-
-
 
   # AD-BE7: бинарь продукта — arch-ml (ADR-026); коллизия с апстримным arch запрещена
   - id: BE-19
@@ -401,14 +269,6 @@ constraints:
     glob: "src/archify.rs"
     pattern: "#\\[test\\]|#\\[tokio::test\\]"
     severity: error
-    owner: "solution-архитектор BE"
-    expiry: "2027-09-03"
-
-  - id: BE-20f
-    name: archify_plugin_present
-    type: file_exists
-    path: "banking/plugins/ru-archify/skills/archify-diagrams/SKILL.md"
-    severity: high
     owner: "solution-архитектор BE"
     expiry: "2027-09-03"
 
@@ -563,17 +423,6 @@ constraints:
     severity: critical
     owner: "ml-architecture"
     expiry: "2027-09-13"
-
-  # Покрытие доменов ADF маппингом (замечание ревью №12): каждый domains_id
-  # снапшота обязан иметь строку в adf-mapping.md — регресс ломает сборку.
-  - id: BE-21
-    name: adf_domain_coverage
-    type: command_succeeds
-    command: "python3 scripts/adf-coverage.py"
-    timeout_secs: 60
-    severity: critical
-    owner: "solution-архитектор BE"
-    expiry: "2027-09-04"
 
   # ADR-031 / модель угроз T5: целостность вендоренного Archify пиннута
   # хэшами; подмена файла ломает гейт (раньше BE-20g проверяло лишь наличие).

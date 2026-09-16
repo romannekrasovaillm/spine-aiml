@@ -1073,8 +1073,14 @@ fn fleet_plan_propose_from_adrs_status_filter() {
 }
 
 /// git в каталоге теста (фикстура worktree-приёмки).
+/// Идентичность проставляем явно: на CI-раннерах глобального user.name нет,
+/// и `git commit` падает с «Author identity unknown».
 fn git_in_fixture(dir: &Path, args: &[&str]) {
     let out = std::process::Command::new("git")
+        .arg("-c")
+        .arg("user.email=arch-test@example.com")
+        .arg("-c")
+        .arg("user.name=arch-test")
         .arg("-C")
         .arg(dir)
         .args(args)

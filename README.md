@@ -5,7 +5,7 @@
 <p align="center">
   <b>Доменный метахарнесс AI/ML-исследователя поверх кодовых харнессов</b><br>
   <sub>spine-инварианты · ADR · fitness-гейты · рубрики с LLM-судьёй · handoff кодовым харнессам · флоты субагентов<br>
-  A domain meta-harness for AI/ML researchers — one Rust binary: TUI + CLI + library. Research project, not for production.</sub>
+  A domain meta-harness for AI/ML researchers — one Rust binary: TUI + CLI + library.</sub>
 </p>
 
 <p align="center">
