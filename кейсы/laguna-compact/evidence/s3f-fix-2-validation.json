@@ -1,0 +1,65 @@
+{
+  "probe": "S3f-fix-2 / проекция цепочек",
+  "question": "проверяются ли у цепочек промежуточные значения (содержание концептов-условий), а не концы, названные в промпте",
+  "verifier": "laguna_pipeline_v8.py::verify_task (заморожен, импортирован живым прогоном)",
+  "concepts_index": "/home/user/gb10-shared/datasets/concepts_search_index.jsonl",
+  "pool": {
+    "path": "runs/rev-pool-v2/rl_pool_filtered.jsonl",
+    "lines": 9162,
+    "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+  },
+  "chains": {
+    "chain_reasoning": 278,
+    "formula_chain": 192
+  },
+  "chains_in_source": {
+    "chain_reasoning": 300,
+    "formula_chain": 200
+  },
+  "method": {
+    "gold": "gold_answer(задача) — эталонный ответ конвертера",
+    "prompt_copy": "ответ = prompt задачи (то, что можно скопировать из промпта)",
+    "ends_only": "ответ = имена начала и конца (условие задачи)",
+    "with_hint": "ответ = имена начала, конца и промежуточного концепта (без содержания)"
+  },
+  "measured": {
+    "gold_accepted": {
+      "checked": 470,
+      "accepted": 470,
+      "rejected_examples": []
+    },
+    "prompt_copy_rewarded": {
+      "checked": 470,
+      "rewarded": 0,
+      "rewarded_examples": []
+    },
+    "ends_only_rejected": {
+      "checked": 470,
+      "rejected": 470,
+      "accepted_examples": []
+    },
+    "intermediate_not_checked": {
+      "checked": 278,
+      "rejected": 278,
+      "accepted_examples": []
+    }
+  },
+  "pool_wide": {
+    "checked": 9162,
+    "prompt_copy_rewarded": 0,
+    "rewarded_by_task_type": {}
+  },
+  "baseline_projection": {
+    "checked": 500,
+    "prompt_copy_rewarded": 500,
+    "projection": "концы цепочки (expected_slugs источника) — состояние S3f-fix, до этой дельты",
+    "scope": "все цепочки источника задач, включая снятые новой проекцией"
+  },
+  "verdict": "ПРИНЯТО: эталон принимается, копия промпта не награждается, концы не проходят",
+  "acceptance": {
+    "gold_accepted": true,
+    "prompt_copy_rewarded_zero": true,
+    "ends_only_rejected": true
+  },
+  "ok": true
+}

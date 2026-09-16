@@ -8,6 +8,9 @@
   (``expected_slugs``/``expected_slug``) не встречается буквально в тексте её
   промпта. Это ровно тот класс утечки, что нашли руками: модель копирует slug
   из промпта и «решает» задачу, не обращаясь к концептам.
+  Проверка вынесена в ``checked_in_prompt`` и **переиспользуется** лейк-фильтром
+  RL-пула (``build_rev_envs.py``, S3f-fix/ADR-021 п.3): правило одно на оба
+  контура, а не две похожие реализации.
 * **Гейт B — пересечение eval ↔ train.** Пересечение по нормализованному тексту
   (lower + схлопнутые пробелы) между промптами eval и текстами train пусто.
 * **INFO — шинглы.** Доля промптов eval, делящих с train хотя бы один
@@ -61,6 +64,20 @@ class NotVerified(Exception):
 def norm(text: str | None) -> str:
     """Нормализация для гейта B: lower + схлопнутые пробелы."""
     return _WS.sub(" ", (text or "").lower()).strip()
+
+
+def checked_in_prompt(needle: str | None, prompt: str | None) -> bool:
+    """Гейт A в общей форме: проверяемая строка встречается в промпте буквально.
+
+    Одно правило на **оба** контура: утечка eval-набора (C-009, AD-7) и лейк
+    RL-пула (S3f-fix, ADR-021 п.3) проверяются одинаково — без учёта регистра,
+    подстрокой. Не «похоже», а буквально: ровно так же замороженный верификатор
+    пайплайна ищет проверяемый slug в ответе (`s.lower() in resp_lower`),
+    поэтому буквальное вхождение в промпте означает, что ответ копируется.
+    """
+    if not needle:
+        return False
+    return str(needle).lower() in (prompt or "").lower()
 
 
 def read_jsonl(path: Path, limit: int | None = None) -> Iterator[tuple[int, dict]]:
@@ -181,10 +198,9 @@ def main(argv: list[str] | None = None) -> int:
         except NotVerified as e:
             print(f"NOT-VERIFIED: задача #{idx}: {e}", file=sys.stderr)
             return EXIT_NOT_VERIFIED
-        prompt_ci = prompt.lower()
         checked += 1
         for slug in eval_slugs(task):
-            if slug.lower() in prompt_ci:
+            if checked_in_prompt(slug, prompt):
                 slug_violations.append({"task_index": idx, "slug": slug,
                                         "task_type": task.get("task_type")})
     report["gate"]["slug_in_own_prompt"] = {"tasks_checked": checked,

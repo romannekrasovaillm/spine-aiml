@@ -20,19 +20,29 @@ lower + схлопнутые пробелы. Сравниваются польз
 совпадения: инструмент, который молча «перемерил» и разошёлся с известным
 числом, обесценивает и замер, и число.
 
+``--max-matched N`` — допуск (ADR-007 п.2, регресс-страж C-017). Без флага
+допуск равен нулю (правило «пул ревизии без совпадений»). ``--max-matched 39``
+фиксирует **известный замер** исходного пула как допустимый: правило тогда
+краснеет не на самом числе, а на его росте. После создания отфильтрованного пула
+порог равен нулю и задаётся явно: ``--max-matched 0``. Допуск и кросс-проверка
+различаются по смыслу: ``--expect-matched`` требует точного равенства (замер не
+должен «плыть»), ``--max-matched`` разрешает не превышать порог.
+
 Коды возврата::
 
-    0 — измерение состоялось: совпадений нет (и кросс-проверка, если задана,
-        сошлась)
-    1 — измерение состоялось, но есть сигнал: совпадения найдены ИЛИ результат
-        разошёлся с ``--expect-matched`` (не «тихая» правка данных: вердикт о
-        фильтрации не выносится)
+    0 — измерение состоялось: совпадений не больше допуска (по умолчанию — 0)
+        и кросс-проверка, если задана, сошлась
+    1 — измерение состоялось, но есть сигнал: совпадений больше допуска ИЛИ
+        результат разошёлся с ``--expect-matched`` (не «тихая» правка данных:
+        вердикт о фильтрации не выносится)
     2 — NOT-VERIFIED: вход отсутствует/нечитаем — не зелёный
 
 Запуск::
 
     python3 tools/check_sft_rl_overlap.py                       # симлинки кейса
     python3 tools/check_sft_rl_overlap.py --expect-matched 39   # кросс-проверка
+    python3 tools/check_sft_rl_overlap.py --rl runs/rev-pool/rl_pool_filtered.jsonl \
+        --max-matched 0                                          # гейт C-017
     python3 tools/check_sft_rl_overlap.py --sft A.jsonl --rl B.jsonl --json
     python3 tools/check_sft_rl_overlap.py --no-evidence          # без записи
 """
@@ -140,13 +150,27 @@ def scan_sft(path: Path, index: dict[str, list[dict]], limit: int | None,
         "sft_rl_pairs": pairs,
         "rl_matched_tasks": len(matched_rl),
         "rl_matched_tasks_from_sft_side": rl_side,
+        #: Номера строк RL-пула (1-based) — однозначный ключ задачи, по которому
+        #: строится отфильтрованный пул ревизии (ADR-007 п.1): файл пула без поля
+        #: ``id`` различает задачи только позицией.
+        "matched_rl_lines": sorted({rl["rl_line"] for u in sft_user_texts
+                                    if u in index for rl in index[u]}),
+        "matched_rl_ids": sorted(matched_rl),
         "matches": matches,
         "matches_truncated": pairs > len(matches),
     }
 
 
 def merge_evidence(path: Path, payload: dict) -> str:
-    """Дописывает поле в evidence-файл, не затирая остальные (S1 — общий отчёт)."""
+    """Дописывает поле в evidence-файл, не затирая остальные (S1 — общий отчёт).
+
+    Предыдущий замер **не теряется**: он уезжает в ``sft_rl_overlap_history``.
+    Файл ``evidence/s1-data-audit.json`` — общий аудит данных кейса, и одно и то
+    же правило (C-017) перемеряет его на разных пулах (исходный → пул ревизии);
+    без истории замер S1 «39 пар / 8 задач» затирался бы замером S2, и провенанс
+    отчёта становился бы ложным. Повторный прогон с тем же результатом историю
+    не растит (идемпотентность: гейт не должен пачкать git).
+    """
     data: dict = {}
     if path.is_file():
         try:
@@ -156,6 +180,14 @@ def merge_evidence(path: Path, payload: dict) -> str:
         except json.JSONDecodeError as e:
             print(f"NOT-VERIFIED: {path} не разбирается как JSON ({e})", file=sys.stderr)
             raise SystemExit(EXIT_NOT_VERIFIED) from e
+    previous = data.get("sft_rl_overlap")
+    if isinstance(previous, dict) and previous != payload:
+        history = data.get("sft_rl_overlap_history")
+        if not isinstance(history, list):
+            history = []
+        if previous not in history:
+            history.append(previous)
+        data["sft_rl_overlap_history"] = history
     data["sft_rl_overlap"] = payload
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
@@ -178,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--expect-matched", type=int, default=None,
                     help="кросс-проверка: ожидаемое число совпавших промптов SFT "
                          "(расхождение — сигнал, exit 1)")
+    ap.add_argument("--max-matched", type=int, default=None,
+                    help="допуск: разрешённое число совпавших промптов SFT "
+                         "(по умолчанию 0 — правило C-017; --max-matched 39 "
+                         "фиксирует известный замер исходного пула, ADR-007 п.2)")
     ap.add_argument("--evidence", default=DEFAULT_EVIDENCE,
                     help=f"evidence-файл для записи поля sft_rl_overlap (по умолчанию {DEFAULT_EVIDENCE})")
     ap.add_argument("--no-evidence", action="store_true", help="не писать evidence")
@@ -189,6 +225,10 @@ def main(argv: list[str] | None = None) -> int:
         if not p.is_file():
             print(f"NOT-VERIFIED: файл не найден: {p}", file=sys.stderr)
             return EXIT_NOT_VERIFIED
+    allowed = 0 if args.max_matched is None else args.max_matched
+    if allowed < 0:
+        print("NOT-VERIFIED: --max-matched не может быть отрицательным", file=sys.stderr)
+        return EXIT_NOT_VERIFIED
 
     try:
         index, n_rl = rl_prompts(rl_path, args.max_rl_lines)
@@ -209,6 +249,12 @@ def main(argv: list[str] | None = None) -> int:
         "rl_tasks": n_rl,
         "rl_unique_prompts": len(index),
         **res,
+        #: В evidence пишется **действующий допуск**, а не способ его задания:
+        #: `--max-matched 0` (гейт C-017) и отсутствие флага — один и тот же
+        #: вердикт и один и тот же payload. Иначе гейт и ручной прогон клали бы в
+        #: историю два почти одинаковых замера, и «перемерил» выглядело бы как
+        #: «изменилось».
+        "tolerance": {"allowed_sft_matched_prompts": allowed},
         "verdict": ("совпадения найдены — фильтрация данных решением архитектора "
                     "(AD-7: состав заморожен, инструмент данные не меняет)"
                     if res["sft_matched_prompts"] else "совпадений нет"),
@@ -232,7 +278,7 @@ def main(argv: list[str] | None = None) -> int:
         written = merge_evidence(Path(args.evidence), payload)
     payload["evidence_written"] = written
 
-    ok = res["sft_matched_prompts"] == 0 and discrepancy is None
+    ok = res["sft_matched_prompts"] <= allowed and discrepancy is None
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return EXIT_OK if ok else EXIT_OVERLAP
@@ -240,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
     print("== S1 / AD-7: пересечение пулов SFT и RL ==")
     print(f"sft: {sft_path}  примеров: {res['sft_examples']}")
     print(f"rl:  {rl_path}  задач: {n_rl} (уникальных промптов: {len(index)})")
+    print(f"допуск: совпавших промптов SFT ≤ {allowed} "
+          f"({'--max-matched' if args.max_matched is not None else 'по умолчанию'})")
     print()
     print(f"совпадений: {res['sft_matched_prompts']} из {res['sft_examples']} промптов SFT "
           f"(пар sft↔rl: {res['sft_rl_pairs']}; RL-задач затронуто: {res['rl_matched_tasks']})")
@@ -251,6 +299,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - sft {m['sft_id']} ↔ rl {m['rl_id']} "
                   f"[{m['rl_task_type']}] sha1 {m['normalized_sha1']}")
             print(f"      {m['prompt_preview']}")
+        if res["matched_rl_lines"]:
+            print()
+            print(f"строки RL-пула под исключение (ADR-007 п.1): "
+                  f"{', '.join(str(x) for x in res['matched_rl_lines'])}")
     if "cross_check" in payload:
         cc = payload["cross_check"]
         print()
@@ -262,13 +314,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"evidence: {written} → поле sft_rl_overlap")
     print()
     if ok:
-        print("SFT_RL_OVERLAP OK: совпадений не найдено")
+        if allowed == 0:
+            print("SFT_RL_OVERLAP OK: совпадений не найдено")
+        else:
+            print(f"SFT_RL_OVERLAP OK (в пределах допуска): {res['sft_matched_prompts']} ≤ "
+                  f"{allowed} — известный замер, не регресс; пул не чист")
         return EXIT_OK
     if discrepancy:
         print(f"SFT_RL_OVERLAP: РАСХОЖДЕНИЕ с известным замером ({discrepancy}) — "
               f"сигнал; данные не изменены (AD-7)")
     else:
-        print("SFT_RL_OVERLAP: совпадения найдены — сигнал архитектору; данные не изменены (AD-7)")
+        print(f"SFT_RL_OVERLAP: совпадений {res['sft_matched_prompts']} > допуска {allowed} — "
+              f"сигнал архитектору; данные не изменены (AD-7)")
     return EXIT_OVERLAP
 
 

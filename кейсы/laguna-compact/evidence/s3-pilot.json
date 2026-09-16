@@ -1,0 +1,529 @@
+{
+  "stage": "S3b",
+  "date": "2026-09-14T17:07:14",
+  "status": "launched",
+  "status_reason": "сессия pilot-compact-s42 жива (см. /home/user/experiments/pilot-compact-s42-20260914-1626/logs/chain.log); контейнеров пилота: 1",
+  "purpose": "пилот ревизии (ADR-013 фаза 1): один сид, полный цикл CPT → SFT → RL → eval на Qwen2.5-0.5B; обычный режим контура (ADR-014), замкнутый цикл синтеза SFT не применяется (ADR-013 п.2)",
+  "basis": [
+    "ADR-013 п.1 — состав и порядок стадий пилота; п.2 — замороженный sft_train_v12; п.3 — точка решения после пилота; п.5 — проба S3a завершена до старта",
+    "ADR-014 — детерминированный режим только для проб-доказательств",
+    "ADR-008/ADR-011 — пороги памяти по стадиям (CPT 35 / SFT 50 / RL 49 ГБ) и календарь",
+    "ADR-010 п.5 и SPEC §6 — стоп-условия (энтропия < 0.5 ×2, два NVRM, 0x51 → storm_gap)",
+    "AD-9 / ADR-012 — хозяин ресурса объявлен; активный @reboot-автозапуск блокирует старт"
+  ],
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "seed": 42,
+    "max_len": 8192,
+    "max_samples": 50000,
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "attn": "flex",
+    "mem_fraction": "0.6",
+    "mem_cap": "100g",
+    "rl_steps": 500,
+    "sft_epochs": 3,
+    "eval_items": 192,
+    "peak_lr_scale": 0.7,
+    "resync_every": 10,
+    "gen_eval": {
+      "cpt": 50,
+      "rl": 25
+    },
+    "stop_conditions": {
+      "entropy_floor": 0.5,
+      "entropy_low_streak": 2,
+      "nvrm_limit": 2,
+      "mem_floor_gb": 4.0,
+      "stall_minutes": 120
+    },
+    "launch": "/home/user/gb10-shared/nvrm-storm/safe_start.sh -d 60 -i 5 -- docker run (absorbер включён)",
+    "deterministic_mode": "off (обычный режим контура, ADR-014)"
+  },
+  "stand": {
+    "host": "gb10-fast",
+    "run_dir": "/home/user/experiments/pilot-compact-s42-20260914-1626",
+    "case_run_dir": "runs/pilot-compact-s42-20260914-1626"
+  },
+  "stages": [
+    {
+      "name": "cpt",
+      "pipeline_stage": "cpt",
+      "guard_stage": "cpt",
+      "artifact": "checkpoints/checkpoint_final.pt",
+      "steps": 9776,
+      "batch": 1,
+      "eval_ckpt": "-",
+      "exp_name": "pilot-compact-s42-cpt-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-cpt",
+      "guard_threshold_gb": 35
+    },
+    {
+      "name": "sft",
+      "pipeline_stage": "sft",
+      "guard_stage": "sft",
+      "artifact": "checkpoints/sft_checkpoint_final.pt",
+      "steps": 67423,
+      "batch": 2,
+      "eval_ckpt": "-",
+      "exp_name": "pilot-compact-s42-sft-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-sft",
+      "guard_threshold_gb": null
+    },
+    {
+      "name": "rl",
+      "pipeline_stage": "rl",
+      "guard_stage": "rl",
+      "artifact": "checkpoints/rl_checkpoint_final.pt",
+      "steps": 500,
+      "batch": 2,
+      "eval_ckpt": "-",
+      "exp_name": "pilot-compact-s42-rl-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-rl",
+      "guard_threshold_gb": null
+    },
+    {
+      "name": "eval_base",
+      "pipeline_stage": "eval",
+      "guard_stage": "sft",
+      "artifact": "logs/eval_results_base.json",
+      "steps": 1,
+      "batch": 1,
+      "eval_ckpt": "base",
+      "exp_name": "pilot-compact-s42-eval_base-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-eval_base",
+      "guard_threshold_gb": null
+    },
+    {
+      "name": "eval_sft",
+      "pipeline_stage": "eval",
+      "guard_stage": "sft",
+      "artifact": "logs/eval_results_sft.json",
+      "steps": 1,
+      "batch": 1,
+      "eval_ckpt": "sft",
+      "exp_name": "pilot-compact-s42-eval_sft-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-eval_sft",
+      "guard_threshold_gb": null
+    },
+    {
+      "name": "eval_rl",
+      "pipeline_stage": "eval",
+      "guard_stage": "sft",
+      "artifact": "logs/eval_results.json",
+      "steps": 1,
+      "batch": 1,
+      "eval_ckpt": "rl",
+      "exp_name": "pilot-compact-s42-eval_rl-20260914-1626",
+      "container": "laguna-pilot-20260914-1626-eval_rl",
+      "guard_threshold_gb": null
+    }
+  ],
+  "eta": {
+    "basis": "CPT 2.569 с/шаг и SFT 3.251 с/шаг — замер S2 (evidence/s2-smoke.json); RL 12.27–17.26 ч на 500 шагов — две границы ADR-011 (прямой замер и экстраполяция S3-pre); eval ≈2 ч — ADR-008",
+    "cpt_hours": 7.0,
+    "sft_hours": 60.9,
+    "rl_hours_range": [
+      12.27,
+      17.26
+    ],
+    "eval_hours": 2.0,
+    "total_hours_range": [
+      82.1,
+      87.1
+    ],
+    "total_days_range": [
+      3.42,
+      3.63
+    ],
+    "note": "оценка по измеренным временам шага, а не замер этого пилота; верхняя граница RL получена на политике, договаривающей ход до потолка"
+  },
+  "preconditions": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "host",
+        "ok": true,
+        "detail": "gb10-fast → spark-44c3"
+      },
+      {
+        "name": "owner",
+        "ok": true,
+        "exit": 0,
+        "report": {
+          "tool": "check_resource_owner.sh",
+          "host": "gb10-fast",
+          "mode": "ssh",
+          "stage": "cpt",
+          "unreachable_not_verified": false,
+          "owner_branch": "lock-supported",
+          "threshold_gb": 35,
+          "mem_available_gb": 81.4,
+          "mem_total_gb": 121.7,
+          "lock_present": true,
+          "watchdog_executable": false,
+          "cron_readable": true,
+          "flag_supported": true,
+          "restart_script": "/home/user/gb10-shared/restart_v12.sh",
+          "flag_support_error": "",
+          "cron_watchdog_lines": 0,
+          "cron_disabled_lines": 7,
+          "cron_autostart_lines": 1,
+          "cron_autostart_blocking": false,
+          "cron_autostart_defused": true,
+          "cron_autostart": "@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &",
+          "n_loads": 0,
+          "load_tags": "",
+          "owner_ok": true,
+          "memory_ok": true,
+          "loads_ok": true,
+          "warnings": [],
+          "verdict": "CAN-START",
+          "exit": 0
+        },
+        "stage": "cpt",
+        "exp_name": "pilot-compact-s42-cpt-20260914-1626",
+        "reasons": [],
+        "detail": "AD-9 OK: CAN-START",
+        "output_tail": [
+          "[ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+          "[ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+          "[ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 35)",
+          "[ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+          "",
+          "ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+          "AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+          "{\"tool\": \"check_resource_owner.sh\", \"host\": \"gb10-fast\", \"mode\": \"ssh\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}"
+        ]
+      },
+      {
+        "name": "memory",
+        "ok": true,
+        "detail": "доступно 81.42 ГБ из 121.7 ГБ (порог 35.0); free -g: 121 / 40 / 86",
+        "mem_available_gb": 81.42,
+        "threshold_gb": 35.0,
+        "free_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          40          86           1           3          81\nПодкачка:         31           0          31\n"
+      },
+      {
+        "name": "containers",
+        "ok": true,
+        "detail": "llm-platform-* живы: llm-platform-gateway, llm-platform-ollama, llm-platform-runtime, llm-platform-supervisor",
+        "platform": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 3 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 3 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 3 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 3 days"
+        },
+        "containers": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 3 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 3 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 3 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 3 days"
+        },
+        "smoke_running": []
+      },
+      {
+        "name": "serialization",
+        "ok": true,
+        "strict": true,
+        "exit": 0,
+        "detail": "AD-5 OK: одновременных нагрузок нет",
+        "output": [
+          "    3061661, /opt/llama/llama-server, 170 MiB",
+          "    3061798, /opt/llama/llama-server, 28119 MiB",
+          "ВНИМАНИЕ: на GPU больше одного процесса — сверь с сенсором процессов",
+          "",
+          "  · CUDA-процессов 2: параллельная нагрузка возможна, но не подтверждена",
+          "  · tmux недоступен/нет сервера сессий — сенсор tmux пропущен",
+          "",
+          "GB10 SERIALIZATION OK: одновременных нагрузок не обнаружено (сенсоров: 2)"
+        ]
+      },
+      {
+        "name": "image",
+        "ok": true,
+        "detail": "nvcr.io/nvidia/pytorch:26.07-py3-vllm: есть"
+      },
+      {
+        "name": "inputs",
+        "ok": true,
+        "detail": "преток-кэши, пайплайн, обёртки, пул ревизии и PPL-наборы на месте",
+        "missing": []
+      },
+      {
+        "name": "pool",
+        "ok": true,
+        "lines": "27992",
+        "sha256_case": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+        "sha256_stand": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+        "detail": "пул ревизии совпадает с кейсом: 27992 задач, sha256 06b95b2f3b62"
+      },
+      {
+        "name": "sft_samples",
+        "ok": true,
+        "samples": 44949,
+        "expected": 44949,
+        "detail": "SFT-примеров 44949 — совпадает с зафиксированным (44949)"
+      },
+      {
+        "name": "glm_key",
+        "ok": true,
+        "detail": "GLM_API_KEY найден в /home/user/gb10-shared/.glm_env — судья eval настоящий (не эвристика)"
+      },
+      {
+        "name": "disk",
+        "ok": true,
+        "avail_gb": 1297,
+        "required_gb": 60.0,
+        "detail": "свободно 1297 ГБ (нужно ≥ 60)"
+      }
+    ],
+    "owner_guard": {
+      "name": "owner",
+      "ok": true,
+      "exit": 0,
+      "report": {
+        "tool": "check_resource_owner.sh",
+        "host": "gb10-fast",
+        "mode": "ssh",
+        "stage": "cpt",
+        "unreachable_not_verified": false,
+        "owner_branch": "lock-supported",
+        "threshold_gb": 35,
+        "mem_available_gb": 81.4,
+        "mem_total_gb": 121.7,
+        "lock_present": true,
+        "watchdog_executable": false,
+        "cron_readable": true,
+        "flag_supported": true,
+        "restart_script": "/home/user/gb10-shared/restart_v12.sh",
+        "flag_support_error": "",
+        "cron_watchdog_lines": 0,
+        "cron_disabled_lines": 7,
+        "cron_autostart_lines": 1,
+        "cron_autostart_blocking": false,
+        "cron_autostart_defused": true,
+        "cron_autostart": "@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &",
+        "n_loads": 0,
+        "load_tags": "",
+        "owner_ok": true,
+        "memory_ok": true,
+        "loads_ok": true,
+        "warnings": [],
+        "verdict": "CAN-START",
+        "exit": 0
+      },
+      "stage": "cpt",
+      "exp_name": "pilot-compact-s42-cpt-20260914-1626",
+      "reasons": [],
+      "detail": "AD-9 OK: CAN-START",
+      "output_tail": [
+        "[ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+        "[ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+        "[ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 35)",
+        "[ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+        "",
+        "ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+        "AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+        "{\"tool\": \"check_resource_owner.sh\", \"host\": \"gb10-fast\", \"mode\": \"ssh\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}"
+      ]
+    },
+    "dmesg_before": {
+      "nvrm_xid": 0,
+      "oom": 0
+    }
+  },
+  "ship": {
+    "ok": true,
+    "sha256": {
+      "pilot_chain.sh": "b230f732bf622bfc24681da56147dbc8d3e90c629f7f2c59c9f4aebaa42f5be8",
+      "check_resource_owner.sh": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114",
+      "write_run_manifest.py": "ba3f889abe2887671de3a1048f5a1313a2cf4b9ae858394ae5ee9daaf9088c77",
+      "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+      "stages.tsv": "86b79fa50c89ea396bff8e9dbbaa8922d4a16f871fa50a4b31055817b6375aa1"
+    },
+    "case_sha256": {
+      "pilot_chain.sh": "b230f732bf622bfc24681da56147dbc8d3e90c629f7f2c59c9f4aebaa42f5be8",
+      "check_resource_owner.sh": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114",
+      "write_run_manifest.py": "ba3f889abe2887671de3a1048f5a1313a2cf4b9ae858394ae5ee9daaf9088c77",
+      "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938"
+    },
+    "case_matches_ship": true,
+    "note": "stages.tsv — состав цепочки, собранный раннером (единственный источник: tools/run_pilot.py)"
+  },
+  "chain_gate": {
+    "ok": true,
+    "exit": 0,
+    "blocked_stage": null,
+    "command": "bash /home/user/experiments/pilot-compact-s42-20260914-1626/pilot_chain.sh --run-dir /home/user/experiments/pilot-compact-s42-20260914-1626 --ctr-run-dir /workspace/experiments/pilot-compact-s42-20260914-1626 --stages-file /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv --exp-base pilot-compact-s42-20260914-1626 --ctr-prefix laguna-pilot-20260914-1626 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --guard /home/user/experiments/pilot-compact-s42-20260914-1626/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/experiments/pilot-compact-s42-20260914-1626/smoke_mem_sampler.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/experiments/pilot-compact-s42-20260914-1626/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 908a9065b54a --arch-base 78f9c40 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.7 --rl-steps 500 --eval-items 192 --mem-fraction 0.6 --mem-cap 100g --attn flex --cpt-gen-eval-every 50 --rl-gen-eval-every 25 --resync-every 10 --vllm-gpu-util 0.32 --kv-cache-bytes 8589934592 --vllm-eager 0 --entropy-floor 0.5 --entropy-low-streak 2 --nvrm-limit 2 --mem-floor-gb 4.0 --poll-seconds 5 --stall-minutes 120 --stage-retries 1 --sampler-seconds 43200 --check-only",
+    "output": "[2026-09-14T11:06:24-03:00] стенд (локальный): spark-44c3\n[2026-09-14T11:06:24-03:00] == цепочка пилота pilot-compact-s42-20260914-1626 ==\n[2026-09-14T11:06:24-03:00] каталог прогона: /home/user/experiments/pilot-compact-s42-20260914-1626 (контейнер: /workspace/experiments/pilot-compact-s42-20260914-1626)\n[2026-09-14T11:06:24-03:00] стадии: /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv; режим: только предусловия (--check-only)\n[2026-09-14T11:06:24-03:00] стоп-условия: entropy<0.5 ×2, NVRM≥2, память<4.0 ГБ, молчание>120м, 0x51 → storm_gap\n[2026-09-14T11:06:24-03:00] --- cpt: предусловие AD-9 (--stage cpt --exp-name pilot-compact-s42-cpt-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: cpt (порог свободной unified-памяти 35 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 35)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- cpt: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] --- sft: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-sft-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- sft: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] --- rl: предусловие AD-9 (--stage rl --exp-name pilot-compact-s42-rl-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: rl (порог свободной unified-памяти 49 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 49)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 49 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии RL соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"rl\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 49, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- rl: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] --- eval_base: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-eval_base-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- eval_base: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] --- eval_sft: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-eval_sft-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- eval_sft: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] --- eval_rl: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-eval_rl-20260914-1626)\n    | == AD-9: хозяин ресурса GB10 ==\n    | стенд: spark-44c3 (local)\n    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)\n    | \n    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры\n    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да\n    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)\n    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)\n    | \n    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1\n    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.\n    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}\n[2026-09-14T11:06:24-03:00] --- eval_rl: страж пропускает (стадия не запускается: --check-only)\n[2026-09-14T11:06:24-03:00] == проверка права стартовать пройдена по всем стадиям (обучение не запускалось) ==\n",
+    "output_tail": [
+      "    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)",
+      "    | ",
+      "    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+      "    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)",
+      "    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T11:06:24-03:00] --- eval_base: страж пропускает (стадия не запускается: --check-only)",
+      "[2026-09-14T11:06:24-03:00] --- eval_sft: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-eval_sft-20260914-1626)",
+      "    | == AD-9: хозяин ресурса GB10 ==",
+      "    | стенд: spark-44c3 (local)",
+      "    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)",
+      "    | ",
+      "    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+      "    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)",
+      "    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T11:06:24-03:00] --- eval_sft: страж пропускает (стадия не запускается: --check-only)",
+      "[2026-09-14T11:06:24-03:00] --- eval_rl: предусловие AD-9 (--stage sft --exp-name pilot-compact-s42-eval_rl-20260914-1626)",
+      "    | == AD-9: хозяин ресурса GB10 ==",
+      "    | стенд: spark-44c3 (local)",
+      "    | стадия: sft (порог свободной unified-памяти 50 ГБ, ADR-008/ADR-011)",
+      "    | ",
+      "    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+      "    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 50)",
+      "    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T11:06:24-03:00] --- eval_rl: страж пропускает (стадия не запускается: --check-only)",
+      "[2026-09-14T11:06:24-03:00] == проверка права стартовать пройдена по всем стадиям (обучение не запускалось) =="
+    ],
+    "detail": "цепочка пропускает все стадии (6)",
+    "stderr_tail": []
+  },
+  "launch": {
+    "ok": true,
+    "command": "bash /home/user/experiments/pilot-compact-s42-20260914-1626/pilot_chain.sh --run-dir /home/user/experiments/pilot-compact-s42-20260914-1626 --ctr-run-dir /workspace/experiments/pilot-compact-s42-20260914-1626 --stages-file /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv --exp-base pilot-compact-s42-20260914-1626 --ctr-prefix laguna-pilot-20260914-1626 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --guard /home/user/experiments/pilot-compact-s42-20260914-1626/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/experiments/pilot-compact-s42-20260914-1626/smoke_mem_sampler.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/experiments/pilot-compact-s42-20260914-1626/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 908a9065b54a --arch-base 78f9c40 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.7 --rl-steps 500 --eval-items 192 --mem-fraction 0.6 --mem-cap 100g --attn flex --cpt-gen-eval-every 50 --rl-gen-eval-every 25 --resync-every 10 --vllm-gpu-util 0.32 --kv-cache-bytes 8589934592 --vllm-eager 0 --entropy-floor 0.5 --entropy-low-streak 2 --nvrm-limit 2 --mem-floor-gb 4.0 --poll-seconds 5 --stall-minutes 120 --stage-retries 1 --sampler-seconds 43200",
+    "log": "/home/user/experiments/pilot-compact-s42-20260914-1626/logs/chain.log",
+    "tmux_command": "tmux kill-session -t pilot-compact-s42 2>/dev/null; tmux new-session -d -s pilot-compact-s42 \"bash /home/user/experiments/pilot-compact-s42-20260914-1626/pilot_chain.sh --run-dir /home/user/experiments/pilot-compact-s42-20260914-1626 --ctr-run-dir /workspace/experiments/pilot-compact-s42-20260914-1626 --stages-file /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv --exp-base pilot-compact-s42-20260914-1626 --ctr-prefix laguna-pilot-20260914-1626 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --guard /home/user/experiments/pilot-compact-s42-20260914-1626/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/experiments/pilot-compact-s42-20260914-1626/smoke_mem_sampler.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/experiments/pilot-compact-s42-20260914-1626/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 908a9065b54a --arch-base 78f9c40 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.7 --rl-steps 500 --eval-items 192 --mem-fraction 0.6 --mem-cap 100g --attn flex --cpt-gen-eval-every 50 --rl-gen-eval-every 25 --resync-every 10 --vllm-gpu-util 0.32 --kv-cache-bytes 8589934592 --vllm-eager 0 --entropy-floor 0.5 --entropy-low-streak 2 --nvrm-limit 2 --mem-floor-gb 4.0 --poll-seconds 5 --stall-minutes 120 --stage-retries 1 --sampler-seconds 43200 >> /home/user/experiments/pilot-compact-s42-20260914-1626/logs/chain.log 2>&1\"",
+    "session_alive": true,
+    "sessions": [
+      "pilot-compact-s42: 1 windows (created Mon Sep 14 11:06:25 2026)"
+    ],
+    "log_tail": [
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 79.0 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 79.0, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T10:50:48-03:00] СТАДИЯ cpt: старт (шагов=9776 batch=1 exp=pilot-compact-s42-cpt-20260914-1626)",
+      "[2026-09-14T10:50:54-03:00] СТАДИЯ cpt: контейнер завершился rc=2 за 6 с (лог: logs/cpt.log)",
+      "[2026-09-14T10:50:56-03:00] ОТКАЗ: стадия cpt не оставила артефакта (checkpoints/checkpoint_final.pt), rc=2 — цепочка остановлена и резюмируема",
+      "[2026-09-14T11:06:25-03:00] стенд (локальный): spark-44c3",
+      "[2026-09-14T11:06:25-03:00] == цепочка пилота pilot-compact-s42-20260914-1626 ==",
+      "[2026-09-14T11:06:25-03:00] каталог прогона: /home/user/experiments/pilot-compact-s42-20260914-1626 (контейнер: /workspace/experiments/pilot-compact-s42-20260914-1626)",
+      "[2026-09-14T11:06:25-03:00] стадии: /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv; режим: полный прогон",
+      "[2026-09-14T11:06:25-03:00] стоп-условия: entropy<0.5 ×2, NVRM≥2, память<4.0 ГБ, молчание>120м, 0x51 → storm_gap",
+      "[2026-09-14T11:06:25-03:00] предусловие AD-9: --stage cpt --exp-name pilot-compact-s42-cpt-20260914-1626",
+      "    | == AD-9: хозяин ресурса GB10 ==",
+      "    | стенд: spark-44c3 (local)",
+      "    | стадия: cpt (порог свободной unified-памяти 35 ГБ, ADR-008/ADR-011)",
+      "    | ",
+      "    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+      "    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 35)",
+      "    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T11:06:25-03:00] СТАДИЯ cpt: старт (шагов=9776 batch=1 exp=pilot-compact-s42-cpt-20260914-1626)"
+    ],
+    "containers": [
+      "laguna-pilot-20260914-1626-cpt e92f484f16dd Up 44 seconds"
+    ],
+    "verified_seconds": 45,
+    "detail": "сессия pilot-compact-s42 жива (см. /home/user/experiments/pilot-compact-s42-20260914-1626/logs/chain.log); контейнеров пилота: 1",
+    "run_dir": "/home/user/experiments/pilot-compact-s42-20260914-1626"
+  },
+  "postcheck": {
+    "containers": [
+      "laguna-pilot-20260914-1626-cpt",
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "pilot_containers": [
+      "laguna-pilot-20260914-1626-cpt"
+    ],
+    "platform_alive": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "platform_lost": [],
+    "mem_available_gb": 55.07,
+    "dmesg_after": {
+      "nvrm_xid": 0,
+      "oom": 0
+    }
+  },
+  "verification": {
+    "tmux_session": "pilot-compact-s42",
+    "session_alive": true,
+    "containers": [
+      "laguna-pilot-20260914-1626-cpt e92f484f16dd Up 44 seconds"
+    ],
+    "log_tail": [
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 79.0 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 79.0, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T10:50:48-03:00] СТАДИЯ cpt: старт (шагов=9776 batch=1 exp=pilot-compact-s42-cpt-20260914-1626)",
+      "[2026-09-14T10:50:54-03:00] СТАДИЯ cpt: контейнер завершился rc=2 за 6 с (лог: logs/cpt.log)",
+      "[2026-09-14T10:50:56-03:00] ОТКАЗ: стадия cpt не оставила артефакта (checkpoints/checkpoint_final.pt), rc=2 — цепочка остановлена и резюмируема",
+      "[2026-09-14T11:06:25-03:00] стенд (локальный): spark-44c3",
+      "[2026-09-14T11:06:25-03:00] == цепочка пилота pilot-compact-s42-20260914-1626 ==",
+      "[2026-09-14T11:06:25-03:00] каталог прогона: /home/user/experiments/pilot-compact-s42-20260914-1626 (контейнер: /workspace/experiments/pilot-compact-s42-20260914-1626)",
+      "[2026-09-14T11:06:25-03:00] стадии: /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv; режим: полный прогон",
+      "[2026-09-14T11:06:25-03:00] стоп-условия: entropy<0.5 ×2, NVRM≥2, память<4.0 ГБ, молчание>120м, 0x51 → storm_gap",
+      "[2026-09-14T11:06:25-03:00] предусловие AD-9: --stage cpt --exp-name pilot-compact-s42-cpt-20260914-1626",
+      "    | == AD-9: хозяин ресурса GB10 ==",
+      "    | стенд: spark-44c3 (local)",
+      "    | стадия: cpt (порог свободной unified-памяти 35 ГБ, ADR-008/ADR-011)",
+      "    | ",
+      "    | [ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+      "    | [ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "    | [ok  ] память    доступно 81.4 ГБ из 121.7 ГБ (порог 35)",
+      "    | [ok  ] нагрузки  тренировочных нагрузок: 0 (опознание: exp_name)",
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 81.4 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"cpt\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 35, \"mem_available_gb\": 81.4, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-14T11:06:25-03:00] СТАДИЯ cpt: старт (шагов=9776 batch=1 exp=pilot-compact-s42-cpt-20260914-1626)"
+    ],
+    "first_stage": "cpt",
+    "chain_command": "bash /home/user/experiments/pilot-compact-s42-20260914-1626/pilot_chain.sh --run-dir /home/user/experiments/pilot-compact-s42-20260914-1626 --ctr-run-dir /workspace/experiments/pilot-compact-s42-20260914-1626 --stages-file /home/user/experiments/pilot-compact-s42-20260914-1626/stages.tsv --exp-base pilot-compact-s42-20260914-1626 --ctr-prefix laguna-pilot-20260914-1626 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --guard /home/user/experiments/pilot-compact-s42-20260914-1626/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/experiments/pilot-compact-s42-20260914-1626/smoke_mem_sampler.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/experiments/pilot-compact-s42-20260914-1626/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 908a9065b54a --arch-base 78f9c40 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.7 --rl-steps 500 --eval-items 192 --mem-fraction 0.6 --mem-cap 100g --attn flex --cpt-gen-eval-every 50 --rl-gen-eval-every 25 --resync-every 10 --vllm-gpu-util 0.32 --kv-cache-bytes 8589934592 --vllm-eager 0 --entropy-floor 0.5 --entropy-low-streak 2 --nvrm-limit 2 --mem-floor-gb 4.0 --poll-seconds 5 --stall-minutes 120 --stage-retries 1 --sampler-seconds 43200"
+  },
+  "next_actions": [
+    "смотреть прогресс: ssh gb10-fast 'tail -f /home/user/experiments/pilot-compact-s42-20260914-1626/logs/chain.log'",
+    "статусы стадий: ssh gb10-fast 'ls /home/user/experiments/pilot-compact-s42-20260914-1626/var/status'",
+    "пересобрать evidence: python3 tools/run_pilot.py --analyze-only --ts 20260914-1626",
+    "план отката: python3 tools/run_pilot.py --stop-only --ts 20260914-1626 (чекпойнты не удаляются)",
+    "пауза после стоп-условия: python3 tools/run_pilot.py --clear-stop \"причина\" --ts 20260914-1626 — решение владельца"
+  ],
+  "not_verified": [
+    "точка решения ADR-013 п.3 (направление оси, отсутствие дегенерации, ppl_general, полнота доказательств) — считается после завершения пилота, а не при запуске",
+    "разброс по сидам и статистика AD-1: пилот — один сид; mean±std требует фазы 2",
+    "воспроизводимость прогона по хешам: прогон идёт в обычном режиме контура (ADR-014), поэтому бит-в-бит не воспроизводим — воспроизводимость кода доказана пробой S3a",
+    "замкнутый цикл синтеза SFT: вынесен за пределы пилота (ADR-013 п.2)",
+    "исполнитель не ждёт завершения пилота (≈3.5 суток): факт запуска подтверждён tmux-сессией и первыми строками лога, факт сходимости — нет"
+  ],
+  "instrument": {
+    "chain_sha256": "b230f732bf622bfc24681da56147dbc8d3e90c629f7f2c59c9f4aebaa42f5be8",
+    "guard_sha256": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114",
+    "manifest_tool_sha256": "ba3f889abe2887671de3a1048f5a1313a2cf4b9ae858394ae5ee9daaf9088c77",
+    "runner_sha256": "908a9065b54aed2c9e0266d66b5c50da7f593843246ff6a1565d3ff4cca760d7",
+    "case_matches_ship": true,
+    "note": "порогов памяти в раннере нет: их единственный источник — страж AD-9, он же печатает порог в вердикте; состав цепочки — один файл stages.tsv"
+  }
+}

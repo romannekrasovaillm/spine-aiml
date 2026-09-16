@@ -17,6 +17,17 @@
 ПРЕДУПРЕЖДЕНИЕ. ``--require-complete`` превращает это в нарушение для гейта
 приёмки.
 
+Не-прогоны. Правило говорит про **каталоги прогонов**, а в ``runs/`` живут и не
+прогоны: пул ревизии ``runs/rev-pool/`` (C-017 требует именно этот путь). Требовать
+у пула манифест AD-2 значит требовать фикцию. Каталог объявляет себя не-прогоном
+**файлом-маркером** ``NOT_A_RUN`` (первая строка — причина); каталог с маркером
+печатается как пропущенный. Молчаливого исключения по имени каталога нет: имя —
+не доказательство, а маркер — явное утверждение, которое видно в diff.
+
+Маркер рядом с манифестом — **нарушение**, а не пропуск: каталог не может быть
+одновременно прогоном и не-прогоном, и пропуск здесь означал бы, что маркер
+прячет прогон от AD-2.
+
 Коды возврата::
 
     0 — все каталоги прогонов несут конформный манифест (или прогонов нет)
@@ -39,6 +50,9 @@ from pathlib import Path
 EXIT_OK, EXIT_FAIL, EXIT_NOT_VERIFIED = 0, 1, 2
 
 MANIFEST_NAME = "run_manifest.json"
+
+#: Файл-маркер «каталог не является прогоном» (см. шапку). Первая строка — причина.
+NOT_A_RUN_MARKER = "NOT_A_RUN"
 
 #: Обязательные поля и их человеческое описание (AD-2).
 REQUIRED = {
@@ -79,6 +93,17 @@ def check_relative(key: str, value) -> list[str]:
         elif ".." in Path(v).parts:
             problems.append(f"{key}: путь с '..' — '{v}'")
     return problems
+
+
+def read_marker(path: Path) -> str:
+    """Причина «не прогон» — первая непустая строка маркера (для отчёта)."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                return line.strip()
+    except OSError as e:
+        return f"маркер не читается: {e}"
+    return "(причина не указана)"
 
 
 def check_manifest(obj: dict) -> tuple[list[str], list[str]]:
@@ -145,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
 
     runs = Path(args.runs)
     report: dict = {"check": "C-012", "runs_dir": str(runs), "runs": [],
-                    "violations": [], "warnings": []}
+                    "skipped": [], "violations": [], "warnings": []}
 
     if runs.exists() and not runs.is_dir():
         print(f"NOT-VERIFIED: --runs указывает не на каталог: {runs}", file=sys.stderr)
@@ -171,7 +196,22 @@ def main(argv: list[str] | None = None) -> int:
 
     for d in run_dirs:
         mf = d / MANIFEST_NAME
+        marker = d / NOT_A_RUN_MARKER
         entry = {"run": d.name, "manifest": str(mf)}
+        if marker.is_file():
+            entry["not_a_run"] = read_marker(marker)
+            if mf.is_file():
+                # Противоречие: каталог не может быть одновременно прогоном и не
+                # прогоном. Пропуск здесь означал бы, что маркер прячет прогон от
+                # AD-2, — поэтому это нарушение, а не предупреждение.
+                entry["problems"] = [
+                    f"в каталоге есть и {NOT_A_RUN_MARKER}, и {MANIFEST_NAME}: "
+                    f"каталог объявлен не-прогоном, но несёт манифест — "
+                    f"убери маркер или перенеси прогон (AD-2); маркер не должен "
+                    f"прятать прогон за маркером"]
+            report["skipped"].append(entry)
+            report["violations"].extend(f"{d.name}: {p}" for p in entry.get("problems", []))
+            continue
         if not mf.is_file():
             entry["problems"] = [f"нет {MANIFEST_NAME} — прогон без манифеста "
                                  f"не является доказательством (AD-2)"]
@@ -204,12 +244,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_OK if ok else EXIT_FAIL
 
     print("== C-012 / AD-2: манифесты прогонов ==")
-    print(f"каталог: {runs}  прогонов: {len(run_dirs)}")
+    print(f"каталог: {runs}  прогонов: {len(run_dirs) - len(report['skipped'])}")
     print()
     for e in report["runs"]:
         state = "OK" if not e.get("problems") else f"FAIL ({len(e['problems'])})"
         print(f"  {e['run']:<28} {state}"
               + ("" if e.get("pipeline_complete", True) else "  [частичный]"))
+        for p in e.get("problems", []):
+            print(f"      - {p}")
+    for e in report["skipped"]:
+        state = "пропущен (не прогон)" if not e.get("problems") else \
+            f"FAIL ({len(e['problems'])}) [маркер+манифест]"
+        print(f"  {e['run']:<28} {state}: {e['not_a_run']}")
         for p in e.get("problems", []):
             print(f"      - {p}")
     if report["warnings"]:

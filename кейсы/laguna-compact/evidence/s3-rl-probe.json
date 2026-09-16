@@ -1,0 +1,1524 @@
+{
+  "stage": "S3-pre",
+  "date": "2026-09-14T14:17:05",
+  "purpose": "RL-разведка (ADR-010, вариант D): измерить стоимость шага RL на готовом sft_checkpoint_final.pt, без новых стадий CPT/SFT. Сходимость — не критерий приёмки: цель — цена шага.",
+  "status_reason": "стадия дошла до конца запрошенных шагов",
+  "stand": {
+    "host": "gb10-fast",
+    "run_dir": "/home/user/experiments/rl-probe-compact-20260914-0956",
+    "case_run_dir": "runs/rl-probe-20260914-0956"
+  },
+  "preconditions": {
+    "required_free_gb": 40.0,
+    "checks": [
+      {
+        "name": "host",
+        "ok": true,
+        "detail": "gb10-fast → spark-44c3"
+      },
+      {
+        "name": "memory",
+        "ok": true,
+        "detail": "доступно 79.4 ГБ из 121.7 ГБ (порог 40.0); free -g: 121 / 42 / 82",
+        "mem_available_gb": 79.4,
+        "threshold_gb": 40.0,
+        "free_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          42          82           1           7          79\nПодкачка:         31           0          31\n"
+      },
+      {
+        "name": "containers",
+        "ok": true,
+        "detail": "llm-platform-* живы: llm-platform-gateway, llm-platform-ollama, llm-platform-runtime, llm-platform-supervisor",
+        "platform": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "containers": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "smoke_running": []
+      },
+      {
+        "name": "serialization",
+        "ok": true,
+        "strict": true,
+        "exit": 0,
+        "detail": "AD-5 OK: одновременных нагрузок нет",
+        "output": [
+          "    3061661, /opt/llama/llama-server, 170 MiB",
+          "    3061798, /opt/llama/llama-server, 28119 MiB",
+          "ВНИМАНИЕ: на GPU больше одного процесса — сверь с сенсором процессов",
+          "",
+          "  · CUDA-процессов 2: параллельная нагрузка возможна, но не подтверждена",
+          "  · tmux недоступен/нет сервера сессий — сенсор tmux пропущен",
+          "",
+          "GB10 SERIALIZATION OK: одновременных нагрузок не обнаружено (сенсоров: 2)"
+        ]
+      },
+      {
+        "name": "image",
+        "ok": true,
+        "detail": "nvcr.io/nvidia/pytorch:26.07-py3-vllm: есть"
+      },
+      {
+        "name": "inputs",
+        "ok": true,
+        "detail": "пул ревизии, SFT-чекпойнт, PPL-наборы и стабы на месте",
+        "missing": [],
+        "rl_data": "/home/user/gb10-shared/datasets/rl_tasks_revpool_v1.jsonl",
+        "sft_ckpt": "/home/user/experiments/laguna_qwen25-05b/checkpoints/sft_checkpoint_final.pt"
+      },
+      {
+        "name": "pool",
+        "ok": true,
+        "lines": "27992",
+        "sha256_case": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+        "sha256_stand": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+        "detail": "пул совпадает с кейсом: 27992 строк, sha256 06b95b2f3b62"
+      },
+      {
+        "name": "disk",
+        "ok": true,
+        "avail_gb": 1315,
+        "required_gb": 20.0,
+        "detail": "свободно 1315 ГБ (нужно ≥ 20)"
+      }
+    ],
+    "ok": true
+  },
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "seed": 42,
+    "steps_requested": 100,
+    "max_samples": 50000,
+    "max_len": 8192,
+    "batch_size": 2,
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "start_checkpoint": "/home/user/experiments/laguna_qwen25-05b/checkpoints/sft_checkpoint_final.pt",
+    "start_checkpoint_note": "исторический SFT-чекпойнт прогона laguna_qwen25-05b (30.07.2026), не чекпойнт ревизии — замер даёт порядок, а не точную цифру для S3",
+    "rl_data": "/workspace/shared/datasets/rl_tasks_revpool_v1.jsonl",
+    "rl_data_case_symlink": "runs/rev-pool/rl_pool_filtered.jsonl",
+    "launch": "/home/user/gb10-shared/nvrm-storm/safe_start.sh -d 60 -i 5 -- docker run (absorbер, cgroup-кап 100g)",
+    "env": {
+      "VLLM_GPU_UTIL": "0.32",
+      "VLLM_KV_CACHE_BYTES": "8589934592",
+      "VLLM_EAGER": "0",
+      "RESYNC_EVERY": 10,
+      "GEN_EVAL_EVERY": 25,
+      "LAGUNA_MEM_FRACTION": "0.6",
+      "note": "vLLM-параметры — как в run_v12_ladder.sh для qwen25-05b (util 0.32, KV 8 ГиБ, eager 0); RESYNC_EVERY задан явно =10, чтобы манифест пайплайна не печатал 25 (ADR-010); LAGUNA_ATTN/FLEX_COMPILE не передаются: для --stage rl они инертны (flex подключается только при stage cpt/all)"
+    },
+    "hyperparameters": {
+      "kl_coef": 0.01,
+      "kl_coef_source": "laguna_pipeline_v8.py: kl_coef = 0.01 (жёстко; ×1.5 при entropy<0.5 ×3 — ENTROPY-BOOST)",
+      "resync_every_runtime": 10,
+      "resync_every_manifest_default": 25,
+      "resync_every_source": "laguna_pipeline_v8.py: RESYNC_EVERY = env или 10; манифест пайплайна печатает свой дефолт 25 — расхождение ADR-010",
+      "tasks_per_step": 4,
+      "group_size": 2,
+      "pure_tasks_per_step": 4,
+      "pure_group_size": 16,
+      "max_turns": 15,
+      "lr": 1e-06,
+      "grad_clip_norm": 1.0,
+      "gen_max_new_tokens": 4096,
+      "gen_temperature": 1.0,
+      "gen_top_k": 20,
+      "gen_stop": "\"</tool_call>\", \"<|im_end|>\"",
+      "cispo_c_low": 1.0,
+      "cispo_c_high": 4.0,
+      "optimizer": "AdamW(lr=1e-6, weight_decay=0.01)",
+      "baseline": "spr",
+      "pipeline_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+      "note": "значения сняты регулярками с исполняемого файла пайплайна; не найденное — None, а не догадка"
+    }
+  },
+  "stage_result": {
+    "stage": "rl",
+    "exp_name": "rl-probe-compact-20260914-0956",
+    "exit": 0,
+    "ssh_exit": 0,
+    "wall_seconds": 12602.2,
+    "hook_sha256": "cf7f06da8471e91887afe08b6fccfc9dd0fc41b655ed17abd4f15e661bf602f3",
+    "sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "script_sha256": "63ec5514122102e2247dcf32c1f699730f63c64157d870cb99f1dc4f1a8eafbe",
+    "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/rl-probe-20260914-0956/logs/rl.log",
+    "ok": true,
+    "guard": {
+      "tripped": false,
+      "reasons": [],
+      "entropy_floor": 0.5,
+      "entropy_low_streak_required": 2,
+      "entropy_observations": [
+        {
+          "step": 0,
+          "entropy": 2.17
+        },
+        {
+          "step": 10,
+          "entropy": 2.084
+        },
+        {
+          "step": 20,
+          "entropy": 2.108
+        },
+        {
+          "step": 30,
+          "entropy": 2.348
+        },
+        {
+          "step": 40,
+          "entropy": 2.355
+        },
+        {
+          "step": 50,
+          "entropy": 2.221
+        },
+        {
+          "step": 60,
+          "entropy": 2.028
+        },
+        {
+          "step": 70,
+          "entropy": 2.009
+        },
+        {
+          "step": 80,
+          "entropy": 2.08
+        },
+        {
+          "step": 90,
+          "entropy": 2.301
+        }
+      ],
+      "nvrm_incidents_in_log": 0,
+      "nvrm_lines": [],
+      "nvrm_limit": 2,
+      "mem_floor_gb": 4.0,
+      "min_free_gb_seen": 39.92,
+      "max_wall_hours": 4.0,
+      "note": "наблюдения энтропии — из строк пайплайна (шаги, кратные 10): своей шкалы раннер не вводит; страж по памяти — предохранитель хоста, в ADR-010 его нет (платформенные контейнеры дороже незавершённой разведки)"
+    },
+    "fetched_rl_probe.jsonl": 43289,
+    "fetched_mem_rl.jsonl": 591181,
+    "fetched_rollouts_log.jsonl": 16707860,
+    "fetched_probes_rl.json": 8585,
+    "fetched_rl_metrics.json": 4552,
+    "fetched_general_eval_history.jsonl": 463,
+    "fetched_pipeline_run_manifest.json": 894,
+    "fetched_pass_rates.json": 711694
+  },
+  "measurements": {
+    "steps_completed": 100,
+    "steps_requested": 100,
+    "steps": {
+      "steps_started": 100,
+      "steps_closed": 99,
+      "steps_from_log_lines": 91,
+      "steps_requested": 100,
+      "source": "обвязка (RLDataset.sample): число стартов шагов"
+    },
+    "hook_lifecycle": {
+      "steps_started": 100,
+      "steps_closed": 99,
+      "samples_total": 400,
+      "tasks_per_step": 4,
+      "group_size": 2,
+      "engine_inits_total": 1,
+      "engine_inits_detail": [
+        {
+          "event": "engine_init",
+          "i": 1,
+          "seconds": 159.73,
+          "ts": 1789369114.682573,
+          "kind": "initial"
+        }
+      ],
+      "wall_seconds": 12590.04,
+      "error": null,
+      "partial_blocks": 1,
+      "note": "инициализаций движка всего 1 — первая до первого шага (это старт стадии, не ресник), пересозданий (engine_reinit_count) нет; ресники в прогоне — только hot-sync"
+    },
+    "step_seconds": {
+      "mean": 123.87,
+      "median": 123.61,
+      "min": 121.83,
+      "max": 130.43,
+      "stdev": 1.4,
+      "per_step": [
+        123.236,
+        122.546,
+        130.425,
+        122.121,
+        124.092,
+        122.42,
+        124.326,
+        122.781,
+        124.349,
+        122.256,
+        124.422,
+        122.412,
+        125.364,
+        121.899,
+        125.27,
+        124.194,
+        124.679,
+        123.61,
+        125.137,
+        122.864,
+        125.33,
+        124.263,
+        127.612,
+        122.846,
+        124.901,
+        123.106,
+        124.812,
+        122.445,
+        124.762,
+        123.026,
+        126.088,
+        122.332,
+        124.144,
+        122.931,
+        124.783,
+        122.315,
+        124.721,
+        122.476,
+        124.321,
+        121.961,
+        125.82,
+        121.826,
+        124.956,
+        122.241,
+        125.891,
+        123.68,
+        124.354,
+        122.509,
+        124.81,
+        122.55,
+        125.095,
+        122.56,
+        124.27,
+        122.578,
+        125.087,
+        122.874,
+        124.588,
+        122.448,
+        123.748,
+        123.292,
+        123.363,
+        123.439,
+        123.589,
+        123.496,
+        124.13,
+        122.499,
+        123.549,
+        123.203,
+        123.542,
+        122.626,
+        123.798,
+        122.429,
+        124.097,
+        124.05,
+        124.177,
+        123.175,
+        125.961,
+        123.105,
+        124.893,
+        123.042,
+        124.931,
+        122.963,
+        124.487,
+        122.566,
+        125.197,
+        122.41,
+        125.919,
+        123.413,
+        125.629,
+        122.615,
+        126.192,
+        122.749,
+        124.445,
+        122.735,
+        126.412,
+        123.179,
+        124.733,
+        122.495,
+        125.215
+      ]
+    },
+    "phase_split": {
+      "steps_closed": 99,
+      "dt_seconds_total": 12263.2,
+      "phases_seconds": {
+        "t_generate": 8753.0,
+        "t_gen_eval": 2.4,
+        "t_resync": 2.6,
+        "t_ckpt": 107.8,
+        "t_probe": 0,
+        "t_policy_fwd": 40.4,
+        "t_other_fwd": 18.1,
+        "t_train_residual": 3397.3
+      },
+      "shares_pct": {
+        "t_generate": 71.4,
+        "t_gen_eval": 0.0,
+        "t_resync": 0.0,
+        "t_ckpt": 0.9,
+        "t_probe": 0.0,
+        "t_policy_fwd": 0.3,
+        "t_other_fwd": 0.1,
+        "t_train_residual": 27.7
+      },
+      "definition": {
+        "t_generate": "время vLLM.generate — генерация роллаутов (все ходы)",
+        "t_train_residual": "dt минус измеренные внешние фазы: forward политики, backward, optimizer, advantage, постобработка, обвязка",
+        "t_gen_eval": "GEN-EVAL (анти-форгеттинг), каждые GEN_EVAL_EVERY шагов",
+        "t_resync": "подмена весов роллаута (hot-sync или пересоздание движка)",
+        "t_policy_fwd": "forward политики с grad (часть t_train_residual)",
+        "t_other_fwd": "forward без grad: снапшот ref_model и PPL-прогоны; PPL входит и в t_gen_eval — суммы не складывать"
+      },
+      "generation": {
+        "gen_tokens": 3166233,
+        "prompt_tokens": 661846,
+        "n_generate_calls": 396,
+        "tok_per_s": 361.7,
+        "prompt_tok_per_call": 1671.3,
+        "note": "tok/s — сгенерированные токены (outputs[].token_ids) / время vLLM.generate"
+      },
+      "step_seconds": {
+        "mean": 123.87,
+        "median": 123.61,
+        "min": 121.83,
+        "max": 130.43,
+        "stdev": 1.4,
+        "per_step": [
+          123.236,
+          122.546,
+          130.425,
+          122.121,
+          124.092,
+          122.42,
+          124.326,
+          122.781,
+          124.349,
+          122.256,
+          124.422,
+          122.412,
+          125.364,
+          121.899,
+          125.27,
+          124.194,
+          124.679,
+          123.61,
+          125.137,
+          122.864,
+          125.33,
+          124.263,
+          127.612,
+          122.846,
+          124.901,
+          123.106,
+          124.812,
+          122.445,
+          124.762,
+          123.026,
+          126.088,
+          122.332,
+          124.144,
+          122.931,
+          124.783,
+          122.315,
+          124.721,
+          122.476,
+          124.321,
+          121.961,
+          125.82,
+          121.826,
+          124.956,
+          122.241,
+          125.891,
+          123.68,
+          124.354,
+          122.509,
+          124.81,
+          122.55,
+          125.095,
+          122.56,
+          124.27,
+          122.578,
+          125.087,
+          122.874,
+          124.588,
+          122.448,
+          123.748,
+          123.292,
+          123.363,
+          123.439,
+          123.589,
+          123.496,
+          124.13,
+          122.499,
+          123.549,
+          123.203,
+          123.542,
+          122.626,
+          123.798,
+          122.429,
+          124.097,
+          124.05,
+          124.177,
+          123.175,
+          125.961,
+          123.105,
+          124.893,
+          123.042,
+          124.931,
+          122.963,
+          124.487,
+          122.566,
+          125.197,
+          122.41,
+          125.919,
+          123.413,
+          125.629,
+          122.615,
+          126.192,
+          122.749,
+          124.445,
+          122.735,
+          126.412,
+          123.179,
+          124.733,
+          122.495,
+          125.215
+        ]
+      },
+      "resync": {
+        "hotsync_count": 9,
+        "engine_reinit_count": 0,
+        "total": 9
+      }
+    },
+    "memory": {
+      "samples": 1787,
+      "mem_total_gb": 121.7,
+      "peak_used_gb": 81.77,
+      "min_available_gb": 39.92,
+      "used_first_gb": 38.99,
+      "used_last_gb": 53.54,
+      "container_peak_gb": 7.54,
+      "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+      "container_peak_note": "память контейнера по cgroup (7.54 ГБ) много меньше прироста по хосту (42.78 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту",
+      "torch_peak_allocated_gb": 18.69,
+      "torch_peak_reserved_gb": 23.05,
+      "source": "хост-сэмплер (MemAvailable) + torch.max_memory_allocated внутри контейнера; у GB10 память unified, и cgroup контейнера CUDA-аллокации не учитывает"
+    },
+    "resync": {
+      "hotsync_count": 9,
+      "engine_reinit_count": 0,
+      "total": 9
+    },
+    "resync_cross_check": {
+      "from_hook": 9,
+      "from_log_hotsync_lines": 9,
+      "from_log_resync_lines": 9,
+      "agree": true,
+      "note": "два независимых источника: обвязка (обёртка hot_sync_weights) и лог пайплайна (HOT-SYNC ... step N). Расхождение — сигнал: упавший hot-sync считан обвязкой и не напечатан пайплайном"
+    },
+    "entropy": {
+      "from_log": {
+        "points": [
+          {
+            "step": 0,
+            "entropy": 2.17
+          },
+          {
+            "step": 10,
+            "entropy": 2.084
+          },
+          {
+            "step": 20,
+            "entropy": 2.108
+          },
+          {
+            "step": 30,
+            "entropy": 2.348
+          },
+          {
+            "step": 40,
+            "entropy": 2.355
+          },
+          {
+            "step": 50,
+            "entropy": 2.221
+          },
+          {
+            "step": 60,
+            "entropy": 2.028
+          },
+          {
+            "step": 70,
+            "entropy": 2.009
+          },
+          {
+            "step": 80,
+            "entropy": 2.08
+          },
+          {
+            "step": 90,
+            "entropy": 2.301
+          }
+        ],
+        "source": "лог стадии, шаги кратные 10",
+        "cadence_steps": 10,
+        "points_count": 10,
+        "mean": 2.1704,
+        "min": 2.009,
+        "max": 2.355,
+        "first": 2.17,
+        "last": 2.301,
+        "corridor": [
+          1.0,
+          2.0
+        ],
+        "in_corridor": false,
+        "corridor_side": "above",
+        "above_corridor": 10,
+        "below_corridor": 0,
+        "definition": "энтропия политики RL: средняя энтропия распределения по ответным токенам роллаута, считает пайплайн (laguna_pipeline_v8.py:1412); коридор 1.0–2.0 — ADR-008 п.3",
+        "under_floor": 0
+      },
+      "from_rl_metrics": {
+        "points": [
+          {
+            "step": 0,
+            "entropy": 2.169921875
+          },
+          {
+            "step": 1,
+            "entropy": 2.2001953125
+          },
+          {
+            "step": 2,
+            "entropy": 2.2783203125
+          },
+          {
+            "step": 3,
+            "entropy": 2.0361328125
+          },
+          {
+            "step": 4,
+            "entropy": 2.1376953125
+          },
+          {
+            "step": 5,
+            "entropy": 2.74609375
+          },
+          {
+            "step": 6,
+            "entropy": 2.099609375
+          },
+          {
+            "step": 7,
+            "entropy": 1.95703125
+          },
+          {
+            "step": 8,
+            "entropy": 2.123046875
+          },
+          {
+            "step": 9,
+            "entropy": 2.0595703125
+          },
+          {
+            "step": 10,
+            "entropy": 2.083984375
+          },
+          {
+            "step": 11,
+            "entropy": 1.99365234375
+          },
+          {
+            "step": 12,
+            "entropy": 2.193359375
+          },
+          {
+            "step": 13,
+            "entropy": 2.134765625
+          },
+          {
+            "step": 14,
+            "entropy": 2.1220703125
+          },
+          {
+            "step": 15,
+            "entropy": 2.3505859375
+          },
+          {
+            "step": 16,
+            "entropy": 2.037109375
+          },
+          {
+            "step": 17,
+            "entropy": 2.271484375
+          },
+          {
+            "step": 18,
+            "entropy": 1.978515625
+          },
+          {
+            "step": 19,
+            "entropy": 2.1005859375
+          },
+          {
+            "step": 20,
+            "entropy": 2.1083984375
+          },
+          {
+            "step": 21,
+            "entropy": 2.2626953125
+          },
+          {
+            "step": 22,
+            "entropy": 2.0615234375
+          },
+          {
+            "step": 23,
+            "entropy": 2.23828125
+          },
+          {
+            "step": 24,
+            "entropy": 2.1064453125
+          },
+          {
+            "step": 25,
+            "entropy": 2.0078125
+          },
+          {
+            "step": 26,
+            "entropy": 1.9931640625
+          },
+          {
+            "step": 27,
+            "entropy": 2.0830078125
+          },
+          {
+            "step": 28,
+            "entropy": 1.89990234375
+          },
+          {
+            "step": 29,
+            "entropy": 2.0703125
+          },
+          {
+            "step": 30,
+            "entropy": 2.34765625
+          },
+          {
+            "step": 31,
+            "entropy": 2.091796875
+          },
+          {
+            "step": 32,
+            "entropy": 2.1416015625
+          },
+          {
+            "step": 33,
+            "entropy": 2.12890625
+          },
+          {
+            "step": 34,
+            "entropy": 2.1328125
+          },
+          {
+            "step": 35,
+            "entropy": 2.0458984375
+          },
+          {
+            "step": 36,
+            "entropy": 2.234375
+          },
+          {
+            "step": 37,
+            "entropy": 2.033203125
+          },
+          {
+            "step": 38,
+            "entropy": 2.1396484375
+          },
+          {
+            "step": 39,
+            "entropy": 2.041015625
+          },
+          {
+            "step": 40,
+            "entropy": 2.35546875
+          },
+          {
+            "step": 41,
+            "entropy": 2.0673828125
+          },
+          {
+            "step": 42,
+            "entropy": 2.08203125
+          },
+          {
+            "step": 43,
+            "entropy": 2.0
+          },
+          {
+            "step": 44,
+            "entropy": 2.39453125
+          },
+          {
+            "step": 45,
+            "entropy": 2.28125
+          },
+          {
+            "step": 46,
+            "entropy": 2.107421875
+          },
+          {
+            "step": 47,
+            "entropy": 2.0009765625
+          },
+          {
+            "step": 48,
+            "entropy": 2.146484375
+          },
+          {
+            "step": 49,
+            "entropy": 2.0419921875
+          },
+          {
+            "step": 50,
+            "entropy": 2.220703125
+          },
+          {
+            "step": 51,
+            "entropy": 2.2587890625
+          },
+          {
+            "step": 52,
+            "entropy": 2.2099609375
+          },
+          {
+            "step": 53,
+            "entropy": 1.90380859375
+          },
+          {
+            "step": 54,
+            "entropy": 2.25
+          },
+          {
+            "step": 55,
+            "entropy": 2.1962890625
+          },
+          {
+            "step": 56,
+            "entropy": 2.185546875
+          },
+          {
+            "step": 57,
+            "entropy": 2.244140625
+          },
+          {
+            "step": 58,
+            "entropy": 2.1328125
+          },
+          {
+            "step": 59,
+            "entropy": 2.4326171875
+          },
+          {
+            "step": 60,
+            "entropy": 2.0283203125
+          },
+          {
+            "step": 61,
+            "entropy": 2.669921875
+          },
+          {
+            "step": 62,
+            "entropy": 2.119140625
+          },
+          {
+            "step": 63,
+            "entropy": 2.1875
+          },
+          {
+            "step": 64,
+            "entropy": 2.1259765625
+          },
+          {
+            "step": 65,
+            "entropy": 2.1357421875
+          },
+          {
+            "step": 66,
+            "entropy": 2.0595703125
+          },
+          {
+            "step": 67,
+            "entropy": 2.1826171875
+          },
+          {
+            "step": 68,
+            "entropy": 2.220703125
+          },
+          {
+            "step": 69,
+            "entropy": 2.265625
+          },
+          {
+            "step": 70,
+            "entropy": 2.0087890625
+          },
+          {
+            "step": 71,
+            "entropy": 1.9140625
+          },
+          {
+            "step": 72,
+            "entropy": 2.1513671875
+          },
+          {
+            "step": 73,
+            "entropy": 2.2138671875
+          },
+          {
+            "step": 74,
+            "entropy": 2.1376953125
+          },
+          {
+            "step": 75,
+            "entropy": 2.119140625
+          },
+          {
+            "step": 76,
+            "entropy": 2.044921875
+          },
+          {
+            "step": 77,
+            "entropy": 2.1357421875
+          },
+          {
+            "step": 78,
+            "entropy": 2.162109375
+          },
+          {
+            "step": 79,
+            "entropy": 2.1103515625
+          },
+          {
+            "step": 80,
+            "entropy": 2.080078125
+          },
+          {
+            "step": 81,
+            "entropy": 2.1025390625
+          },
+          {
+            "step": 82,
+            "entropy": 2.0986328125
+          },
+          {
+            "step": 83,
+            "entropy": 2.1220703125
+          },
+          {
+            "step": 84,
+            "entropy": 2.125
+          },
+          {
+            "step": 85,
+            "entropy": 2.1142578125
+          },
+          {
+            "step": 86,
+            "entropy": 2.1953125
+          },
+          {
+            "step": 87,
+            "entropy": 1.88427734375
+          },
+          {
+            "step": 88,
+            "entropy": 2.078125
+          },
+          {
+            "step": 89,
+            "entropy": 2.1123046875
+          },
+          {
+            "step": 90,
+            "entropy": 2.30078125
+          },
+          {
+            "step": 91,
+            "entropy": 2.087890625
+          },
+          {
+            "step": 92,
+            "entropy": 2.080078125
+          },
+          {
+            "step": 93,
+            "entropy": 2.103515625
+          },
+          {
+            "step": 94,
+            "entropy": 3.08984375
+          },
+          {
+            "step": 95,
+            "entropy": 2.341796875
+          },
+          {
+            "step": 96,
+            "entropy": 2.1005859375
+          },
+          {
+            "step": 97,
+            "entropy": 2.1337890625
+          },
+          {
+            "step": 98,
+            "entropy": 2.15234375
+          },
+          {
+            "step": 99,
+            "entropy": 2.1171875
+          }
+        ],
+        "source": "rl_metrics.json (записывается в конце стадии)",
+        "cadence_steps": 1,
+        "points_count": 100,
+        "mean": 2.1517,
+        "min": 1.8843,
+        "max": 3.0898,
+        "first": 2.169921875,
+        "last": 2.1171875,
+        "corridor": [
+          1.0,
+          2.0
+        ],
+        "in_corridor": false,
+        "corridor_side": "above",
+        "above_corridor": 91,
+        "below_corridor": 0,
+        "definition": "энтропия политики RL: средняя энтропия распределения по ответным токенам роллаута, считает пайплайн (laguna_pipeline_v8.py:1412); коридор 1.0–2.0 — ADR-008 п.3",
+        "under_floor": 0
+      },
+      "guard_observations": [
+        {
+          "step": 0,
+          "entropy": 2.17
+        },
+        {
+          "step": 10,
+          "entropy": 2.084
+        },
+        {
+          "step": 20,
+          "entropy": 2.108
+        },
+        {
+          "step": 30,
+          "entropy": 2.348
+        },
+        {
+          "step": 40,
+          "entropy": 2.355
+        },
+        {
+          "step": 50,
+          "entropy": 2.221
+        },
+        {
+          "step": 60,
+          "entropy": 2.028
+        },
+        {
+          "step": 70,
+          "entropy": 2.009
+        },
+        {
+          "step": 80,
+          "entropy": 2.08
+        },
+        {
+          "step": 90,
+          "entropy": 2.301
+        }
+      ]
+    },
+    "background": {
+      "note": "фон, а не результат (ADR-010 п.3): цель разведки — цена шага",
+      "reward_mean": 0.3782,
+      "pass_rate": 0.3887,
+      "reward_mean_per_step_line": [
+        0.5,
+        0.35,
+        0.35,
+        0.25,
+        0.375,
+        0.375,
+        0.375,
+        0.35,
+        0.625,
+        0.75
+      ],
+      "pass_rate_per_step_line": [
+        0.5,
+        0.38,
+        0.38,
+        0.25,
+        0.38,
+        0.38,
+        0.38,
+        0.38,
+        0.62,
+        0.75
+      ],
+      "trajectories": 800,
+      "degraded": {
+        "hit_timeout": 0,
+        "empty_text": 0,
+        "no_tool_call": 84,
+        "zero_reward": 405,
+        "truncated_at_cap": 709,
+        "truncated_at_cap_rate": 0.8862,
+        "cap_tokens": 4096,
+        "combined_hit_timeout_or_empty": 0,
+        "definition": "деградировавшей считается траектория с hit_timeout (не завершилась за max_turns) или пустым текстом (<5 символов — тот же признак, что has_parse_error в пайплайне); truncated_at_cap — отдельный признак «упёрлась в потолок хода»"
+      },
+      "turns_mean": 1.0,
+      "assistant_tokens_mean": 4213.2
+    },
+    "startup_seconds": 186.19,
+    "gen_eval": [
+      {
+        "step": 25,
+        "ppl_general": 549.3,
+        "delta_general_pct": 0.0,
+        "ppl_domain": 12.8,
+        "delta_domain_pct": 0.0
+      },
+      {
+        "step": 50,
+        "ppl_general": 549.1,
+        "delta_general_pct": -0.0,
+        "ppl_domain": 12.8,
+        "delta_domain_pct": -0.0
+      },
+      {
+        "step": 75,
+        "ppl_general": 549.4,
+        "delta_general_pct": 0.0,
+        "ppl_domain": 12.8,
+        "delta_domain_pct": 0.0
+      }
+    ],
+    "entropy_boosts": [],
+    "groups_from_log": {
+      "tasks_per_step": 4,
+      "group_size": 2,
+      "baseline": "spr",
+      "pure": false,
+      "max_steps": 100
+    },
+    "cost_interpretation": {
+      "max_new_tokens_cap": 4096,
+      "truncated_at_cap": 709,
+      "truncated_at_cap_rate": 0.8862,
+      "generation_seconds_per_step": 8753.0,
+      "note": "цена шага измерена на поведении этого чекпойнта; доля траекторий, упёршихся в потолок хода, прямо влияет на неё — генерация даёт 71.4% времени шага",
+      "reading": "уперлись в max_new_tokens 4096: 709 из 800 (89%) — цена шага относится к политике, которая завершает ход на потолке, а не к «идеальному» поведению",
+      "generation_cap_pressure": {
+        "cap_tokens_per_call": 4096,
+        "exact_generated_tokens_closed_steps": 3166233,
+        "trajectories_closed_steps": 792,
+        "exact_tokens_per_trajectory": 3997.8,
+        "cap_utilisation_pct": 97.6,
+        "source": "gen_tokens обвязки: len(outputs[].token_ids) — точное число сгенерированных токенов, без prefill и без ответов инструмента",
+        "proxy_flag_truncated_at_cap_rate": 0.8862,
+        "proxy_over_exact_ratio": 1.0536,
+        "proxy_field_defect": "n_assistant_tokens = len(tokenizer.encode(responses[g])) включает prefill и текст <tool_response> (laguna_pipeline_v8.py:1261,1283-1284) — это не токены ассистента; величина завышена и может превышать потолок одного вызова (наблюдаемый максимум 4623 при cap 4096)",
+        "reading": "генерация идёт до потолка: 3997.8 точных токенов на траекторию против 4096 (97.6%). Косвенный признак даёт 89% упоров — это верхняя граница, он считает длину с лишним (×1.05 к точным токенам)"
+      },
+      "historical_comparison": {
+        "our_assistant_tokens_mean": 4213.2,
+        "historical_assistant_tokens_mean": 1651.7,
+        "tokens_ratio": 2.55,
+        "our_truncated_at_cap_rate": 0.8862,
+        "historical_truncated_at_cap_rate": 0.0862,
+        "our_turns_mean": 1.0,
+        "historical_turns_mean": 2.56,
+        "historical_pass_rate": 0.4738,
+        "historical_reward_mean": 0.4558,
+        "historical_pass_rate_caveat": "pass_rate исторического прогона считается по его пулу (rl_tasks_oxalpha) и его чекпойнту — это фон для сверки длины, а не ось сравнения",
+        "reading": "длина ответа политики и есть цена шага в этой конфигурации: у разведки 4213.2 токенов на траекторию против 1651.7 у исторического прогона (в 2.55 раза), и упоров в потолок хода 89% против 9%"
+      }
+    },
+    "step_seconds_bases": {
+      "hook_mean_closed_steps": 123.87,
+      "mean_including_partial": 124.04,
+      "wall_over_closed_steps": 127.17,
+      "wall_over_started_steps": 125.9,
+      "basis_used_for_extrapolation": "hook_mean_closed_steps",
+      "note": "основания не усредняются: hook_mean_closed_steps — длительность шага; wall_over_closed_steps — стена на шаг, включая одноразовый старт стадии и хвост после цикла",
+      "wall_vs_hook_delta_seconds": 3.3
+    },
+    "measurement_overhead": {
+      "t_probe_seconds_total": 14.975,
+      "t_probe_seconds_in_closed_steps": 0,
+      "t_probe_lands_in": "незакрытый последний блок (partial) — хвост стадии после цикла шагов",
+      "call_site": "laguna_pipeline_v8.py:1547 — run_probes(args, tokenizer, model, 'rl'): один вызов после цикла шагов, не на каждом шаге",
+      "runs_per_stage": 1,
+      "stage_wall_seconds": 12590.04,
+      "share_of_stage_wall_pct": 0.119,
+      "amortized_seconds_per_closed_step": 0.151,
+      "amortized_share_of_step_pct": 0.122,
+      "hook_instrumentation": {
+        "wrapped_calls_counted": 3953,
+        "calls_by_kind": {
+          "n_generate_calls": 400,
+          "n_policy_fwd": 800,
+          "n_other_fwd": 2744,
+          "n_hotsync": 9,
+          "n_engine_init": 0
+        },
+        "overhead_us_per_call_assumed": 10.0,
+        "estimated_seconds": 0.03953,
+        "estimated_share_of_stage_pct": 0.000314,
+        "note": "оценка сверху по числу перехваченных вызовов × 10 мкс; вызовы чекпоинта, GEN-EVAL и проб поштучно не считаются — их единицы, на оценку не влияют. Чтобы заменить оценку замером, нужен прогон без обвязки"
+      },
+      "reading": "цена измерения в этой стадии: t_probe 14.975 с — это 0.119% стены стадии и однократная величина (не на шаг); инструментация обвязки ≈ 0.03953 с за весь прогон. Деление t_probe на хвостовой блок («14.9 с на шаге, ~10–12 % шага») описывает не шаг, а хвост после цикла: у незакрытого блока нет следующего старта, по которому он стал бы шагом.",
+      "decision_on_cheapening": "не принимается здесь: цифра названа, решение — за владельцем",
+      "per_partial_block_reading": {
+        "partial_block_dt_seconds": 140.65,
+        "t_probe_share_of_partial_block_pct": 10.6,
+        "why_not_a_step": "partial-блок — это «шаг начался, стадия кончилась»: в нём финальный чекпоинт, дописывание метрик и пробы, а не тело шага"
+      }
+    },
+    "completeness_of_ADR010_p3": {
+      "step_seconds": {
+        "title": "время шага RL",
+        "value": 123.87,
+        "not_obtained_reason": null
+      },
+      "rollout_vs_train_share": {
+        "title": "доля времени на генерацию роллаутов против обучения",
+        "value": {
+          "t_generate": 71.4,
+          "t_gen_eval": 0.0,
+          "t_resync": 0.0,
+          "t_ckpt": 0.9,
+          "t_probe": 0.0,
+          "t_policy_fwd": 0.3,
+          "t_other_fwd": 0.1,
+          "t_train_residual": 27.7
+        },
+        "not_obtained_reason": null
+      },
+      "peak_unified_memory_gb": {
+        "title": "пик unified-памяти",
+        "value": 81.77,
+        "not_obtained_reason": null
+      },
+      "generation_tok_per_s": {
+        "title": "tok/s генерации",
+        "value": 361.7,
+        "not_obtained_reason": null
+      },
+      "resync_count": {
+        "title": "число ресников весов",
+        "value": 9,
+        "not_obtained_reason": null
+      },
+      "policy_entropy": {
+        "title": "энтропия политики",
+        "value": 2.1704,
+        "not_obtained_reason": null
+      },
+      "reward_and_pass_rate": {
+        "title": "pass_rate и reward_mean (фон)",
+        "value": [
+          0.3782,
+          0.3887
+        ],
+        "not_obtained_reason": null
+      },
+      "degraded_trajectories": {
+        "title": "число деградировавших траекторий",
+        "value": {
+          "hit_timeout": 0,
+          "empty_text": 0,
+          "no_tool_call": 84,
+          "zero_reward": 405,
+          "truncated_at_cap": 709,
+          "truncated_at_cap_rate": 0.8862,
+          "cap_tokens": 4096,
+          "combined_hit_timeout_or_empty": 0,
+          "definition": "деградировавшей считается траектория с hit_timeout (не завершилась за max_turns) или пустым текстом (<5 символов — тот же признак, что has_parse_error в пайплайне); truncated_at_cap — отдельный признак «упёрлась в потолок хода»"
+        },
+        "not_obtained_reason": null
+      },
+      "steps_completed": {
+        "title": "число шагов, фактически выполненных",
+        "value": 100,
+        "not_obtained_reason": null
+      },
+      "_summary": {
+        "items": 9,
+        "obtained": 9,
+        "not_obtained": []
+      }
+    }
+  },
+  "extrapolation": {
+    "basis": {
+      "step_seconds_mean": 123.87,
+      "steps_measured": 99,
+      "startup_seconds": 186.19
+    },
+    "rl_500_steps": {
+      "steps": 500,
+      "seconds": 62121.2,
+      "hours": 17.26,
+      "days": 0.72
+    },
+    "three_seeds": {
+      "steps": 1500,
+      "hours": 51.66,
+      "days": 2.15,
+      "per_seed_hours": 17.26
+    },
+    "assumptions": [
+      "время шага линейно по числу шагов: 100 измеренных шагов → 500 (на длинной дистанции возможны термотроттлинг и замедление — не учтены)",
+      "конфигурация стадии та же, что измерена (vLLM util/KV/eager, resync_every, размер групп), а пул — тот же по составу (27 992 задачи ревизии)",
+      "средняя длина ответов и доля успешных роллаутов остаются такими же: на 500 шагах политика меняется, и цена шага может уехать (на историческом прогоне RL шаги шли ~90–115 с при той же конфигурации)",
+      "стоимость трёх сидов = 3 × стоимость одного (без общего прог рева и кэшей)",
+      "одноразовые расходы учтены отдельно один раз (startup_seconds), а не на каждый сид",
+      "допущение линейности проверено независимо: исторический прогон той же конфигурации прошёл 480 шагов со средним 88.1 с/шаг, тренд первая/вторая половина -2.9% — время шага на дистанции не растёт"
+    ],
+    "caveats": [
+      "замер сделан на **историческом** sft_checkpoint_final.pt (30.07.2026), а не на чекпойнте ревизии: порядок величины — да, точная цифра для S3 — нет",
+      "eval-стадия в стоимость не входит (не запускалась)",
+      "энтропия и награда — фон; при вырожденной награде цена шага формально верна, но стоимость «полезного» RL остаётся открытой (ADR-010, Negative)",
+      "«упор в потолок хода»: 709 из 800 траекторий разведки (89%) упёрлись в max_new_tokens 4096 — цена шага измерена на политике, которая договаривает ход до потолка, и потому это **верхняя** граница; у исторического прогона тот же признак даёт 9% (800 траекторий) — отсюда и разница цен шага"
+    ],
+    "turn_ceiling_caveat": {
+      "cap_tokens": 4096,
+      "our_truncated_at_cap": 709,
+      "our_trajectories": 800,
+      "our_rate": 0.8862,
+      "historical_truncated_at_cap_rate": 0.0862,
+      "historical_trajectories": 800,
+      "reading": "признак считается по n_assistant_tokens — величине, которая включает prefill и ответы инструмента (см. measurements.cost_interpretation.generation_cap_pressure): это верхняя граница доли, а не точная доля. Точная проверка — по gen_tokens: генерация идёт почти до потолка вызова"
+    },
+    "cross_check_historical_500_steps": {
+      "available": true,
+      "path": "/home/user/experiments/v12_qwen25-05b_s42/logs/rl.log",
+      "source": "лог исторического прогона v12_qwen25-05b_s42 (та же модель, стенд, конфигурация стадии: util 0.32, KV 8 ГиБ, eager 0, RESYNC_EVERY=10)",
+      "steps_covered": 480,
+      "intervals": 48,
+      "step_seconds_mean": 88.1,
+      "step_seconds_min": 71.4,
+      "step_seconds_max": 115.6,
+      "step_seconds_stdev": 9.0,
+      "first_leg_with_warmup": {
+        "steps": 10,
+        "seconds_per_step": 118.1,
+        "note": "первый участок — с прогревом vLLM (захват CUDA-графов), поэтому он длиннее установившегося режима"
+      },
+      "trend_first_vs_second_half": {
+        "first_half_mean": 89.4,
+        "second_half_mean": 86.8,
+        "change_pct": -2.9
+      },
+      "groups_from_log": {
+        "tasks_per_step": 4,
+        "group_size": 2,
+        "t": 34022
+      },
+      "stage_wall_seconds_measured": 44162,
+      "stage_wall_hours_measured": 12.27,
+      "stage_wall_note": "время всей RL-стадии исторического прогона (старт, 500 шагов, финальный чекпоинт) по отметкам самого лога — прямой замер 500 шагов в той же конфигурации, а не экстраполяция",
+      "caveat": "исторический прогон шёл со **своего** SFT-чекпойнта и по пулу rl_tasks_oxalpha (28 000 задач), разведка — с исторического sft_checkpoint_final.pt и по пулу ревизии (27 992): это сверка порядка и устойчивости на дистанции, а не равенство конфигураций",
+      "trajectories": {
+        "available": true,
+        "path": "/home/user/experiments/v12_qwen25-05b_s42/rollouts_log.jsonl",
+        "sampled": 800,
+        "cap_tokens": 4096,
+        "assistant_tokens_mean": 1651.7,
+        "truncated_at_cap": 69,
+        "truncated_at_cap_rate": 0.0862,
+        "turns_mean": 2.56,
+        "tool_calls_mean": 2.48,
+        "hit_timeout": 26,
+        "pass_rate": 0.4738,
+        "reward_mean": 0.4558,
+        "note": "окно — первые шаги исторического прогона (тот же размер окна, что у разведки); признак «упор в потолок хода» считается по тому же cap, что и у нас"
+      }
+    },
+    "bounds": {
+      "upper": {
+        "name": "экстраполяция от шага разведки",
+        "step_seconds": 123.87,
+        "steps": 500,
+        "rl_500_steps_hours": 17.26,
+        "three_seeds_hours": 51.66,
+        "checkpoint": "исторический sft_checkpoint_final.pt (30.07.2026)",
+        "why_upper": "политика этого чекпойнта генерирует до потолка хода почти каждый ход — генерация даёт основную часть шага"
+      },
+      "lower": {
+        "name": "прямой замер 500 шагов той же конфигурации (лог)",
+        "step_seconds": 88.1,
+        "steps": 500,
+        "rl_500_steps_hours": 12.27,
+        "three_seeds_hours": 36.8,
+        "checkpoint": "чекпойнт исторического прогона v12 (v12_qwen25-05b_s42): тот же стенд и конфигурация стадии, другой чекпойнт",
+        "why_lower": "политика того прогона завершает ход раньше — «упор в потолок хода» там кратно реже (см. turn_ceiling_caveat)"
+      },
+      "no_averaging": "среднее между границами не считается: это два разных поведения политики, а не две оценки одной величины",
+      "three_seeds_hours_range": [
+        36.8,
+        51.66
+      ]
+    },
+    "range_summary": {
+      "rl_500_steps_hours": [
+        12.27,
+        17.26
+      ],
+      "reading": "оценка 500 шагов лежит между 12.27 ч (прямой замер той же конфигурации на другом чекпойнте) и 17.26 ч (экстраполяция от шага разведки, чей чекпойнт генерирует более длинные ответы); для решения о протоколе брать обе границы, а не среднее",
+      "three_seeds_hours_range": [
+        36.8,
+        51.66
+      ]
+    },
+    "rl_500_steps_measured_historically": {
+      "hours": 12.27,
+      "source": "/home/user/experiments/v12_qwen25-05b_s42/logs/rl.log",
+      "note": "прямой замер 500 шагов той же конфигурации на том же стенде (шаги и старт стадии включены) — вторая граница оценки"
+    },
+    "cross_check_verdict": {
+      "measured_step_seconds": 123.87,
+      "historical_step_seconds": 88.1,
+      "ratio": 1.406,
+      "consistent_order_of_magnitude": true,
+      "note": "отношение — не ошибка и не совпадение: чекпойнт старта и пул у разведки и исторического прогона разные, а длина ответов и есть цена шага в этой конфигурации (71% шага — генерация)"
+    }
+  },
+  "incidents": {
+    "in_stage_log": 0,
+    "lines": [],
+    "dmesg_nvrm_xid_delta": null,
+    "guard": {
+      "tripped": false,
+      "reasons": [],
+      "entropy_floor": 0.5,
+      "entropy_low_streak_required": 2,
+      "entropy_observations": [
+        {
+          "step": 0,
+          "entropy": 2.17
+        },
+        {
+          "step": 10,
+          "entropy": 2.084
+        },
+        {
+          "step": 20,
+          "entropy": 2.108
+        },
+        {
+          "step": 30,
+          "entropy": 2.348
+        },
+        {
+          "step": 40,
+          "entropy": 2.355
+        },
+        {
+          "step": 50,
+          "entropy": 2.221
+        },
+        {
+          "step": 60,
+          "entropy": 2.028
+        },
+        {
+          "step": 70,
+          "entropy": 2.009
+        },
+        {
+          "step": 80,
+          "entropy": 2.08
+        },
+        {
+          "step": 90,
+          "entropy": 2.301
+        }
+      ],
+      "nvrm_incidents_in_log": 0,
+      "nvrm_lines": [],
+      "nvrm_limit": 2,
+      "mem_floor_gb": 4.0,
+      "min_free_gb_seen": 39.92,
+      "max_wall_hours": 4.0,
+      "note": "наблюдения энтропии — из строк пайплайна (шаги, кратные 10): своей шкалы раннер не вводит; страж по памяти — предохранитель хоста, в ADR-010 его нет (платформенные контейнеры дороже незавершённой разведки)"
+    }
+  },
+  "postconditions": {
+    "containers_after": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "platform_alive": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "platform_lost": [],
+    "free_after_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          43          72           1          16          78\nПодкачка:         31           0          31\n",
+    "mem_free_gb": 78.1,
+    "probe_container_running": []
+  },
+  "run_manifest": "runs/rl-probe-20260914-0956/run_manifest.json",
+  "not_verified": [
+    "точная стоимость шага RL **ревизионного** прогона: замер сделан на историческом sft_checkpoint_final.pt (30.07.2026), а длина ответов и доля успешных роллаутов зависят от чекпойнта (ADR-010, Negative)",
+    "500 шагов и три сида не запускались: их стоимость — линейная экстраполяция от измеренного шага (допущения названы в extrapolation.assumptions)",
+    "eval-стадия (GLM-судья, slug_accuracy, judge_mean) не запускалась — вне задания разведки; судья в контур награды не входит (AD-6, C-013)",
+    "энтропия политики: наблюдения с шагом 10 (как её печатает пайплайн); per-step ряд есть только при нормальном завершении стадии (rl_metrics.json)",
+    "детерминизм RL-стадии (ADR-009) не проверялся: разведка — один сид и один прогон",
+    "устойчивость к NVRM-бурям на длинных прогонах: окно разведки — часы, но не сутки полного протокола"
+  ],
+  "evidence_limits": "замеры получены обвязкой tools/rl_probe_hook.py (без правки пайплайна) и сэмплером tools/smoke_mem_sampler.sh; sha256 пайплайна и обвязки — в config.hyperparameters и instrument",
+  "instrument": {
+    "case_runner_sha256": "639fdc78676ed3d64136eb7208ebf787b480dd20d69bda7c822fa9ac1ae80fb5",
+    "case_hook_sha256": "cf7f06da8471e91887afe08b6fccfc9dd0fc41b655ed17abd4f15e661bf602f3",
+    "case_sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "ship_hook_sha256": "cf7f06da8471e91887afe08b6fccfc9dd0fc41b655ed17abd4f15e661bf602f3",
+    "ship_sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "ship_script_sha256": "63ec5514122102e2247dcf32c1f699730f63c64157d870cb99f1dc4f1a8eafbe",
+    "sft_checkpoint": "/home/user/experiments/laguna_qwen25-05b/checkpoints/sft_checkpoint_final.pt",
+    "pipeline_sha256_case": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+    "note": "case_* — файлы кейса на момент сборки сводки; ship_* — то, что раннер отправил на стенд и сверил sha256sum; расхождение case_* и ship_* означало бы, что замер сделан не тем кодом, который в git"
+  },
+  "status": "done",
+  "rebuilt": {
+    "at": "2026-09-14T14:17:05",
+    "note": "сводка пересобрана из артефактов; предусловия, страж и состояние стенда после прогона взяты из прежнего evidence и повторным замером не подменялись"
+  }
+}

@@ -1,0 +1,372 @@
+{
+  "stage": "S3e-fix",
+  "title": "Наборы GEN-EVAL v2 по 200 документов — решение владельца 16.09.2026",
+  "date": "2026-09-16",
+  "decision": "наборы GEN-EVAL v2 — по 200 документов на набор (было 256 документов). Частота GEN_EVAL = 200 — отдельная дельта фазы 2; пайплайн в этой задаче не правился",
+  "generator": "tools/build_gen_eval_v2.py",
+  "commands": {
+    "build_200": "python3 tools/build_gen_eval_v2.py --docs 200",
+    "determinism_rerun_2": "python3 tools/build_gen_eval_v2.py --docs 200 --out-dir /tmp/s3efix/out2 --card /tmp/s3efix/card2.json",
+    "format_check": "python3 tools/build_gen_eval_v2.py --verify datasets/general_eval_v2.txt datasets/domain_eval_v2.txt",
+    "tool_tests": "bash tools/tests/run_tool_tests.sh",
+    "fitness_gate": "arch-ml control check . --json"
+  },
+  "flag_name_note": "План отката называет флаг --limit; у сборщика он называется --docs (tools/build_gen_eval_v2.py:723). Значение по умолчанию осталось 256: объём 200 воспроизводится только с явным --docs 200",
+  "before": {
+    "target_docs": 256,
+    "eval_cost": {
+      "v1_tokens": 6315,
+      "v2_tokens": 212500,
+      "ratio": 33.65
+    },
+    "general": {
+      "documents": 256,
+      "bytes": 261682,
+      "sha256": "3a2dc5b564d6edd34d411f9b2cbc1ca3a239f69d2625c9d5d0ad0bfb5577f630",
+      "chars_total": 143896,
+      "length": {
+        "min": 203,
+        "median": 479,
+        "max": 3055,
+        "mean": 562.1,
+        "chars_total": 143896
+      },
+      "tokens_per_call": 50794,
+      "ppl_eval": {
+        "documents_used": 256,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_max_len": 1
+      },
+      "candidates": 157269,
+      "pool_after_filter": 38093,
+      "excluded": {
+        "replay_token_prefix": 103497,
+        "exact_match_train": 0,
+        "too_short": 15609,
+        "doc_separator_inside": 0,
+        "near_duplicate_ngram": 70
+      },
+      "residual_overlap": {
+        "ngram": 12,
+        "documents": 256,
+        "documents_with_shared": 2,
+        "median_frac": 0.0,
+        "p90_frac": 0.0,
+        "max_frac": 0.0435,
+        "index_shingles": 5797761
+      }
+    },
+    "domain": {
+      "documents": 256,
+      "bytes": 824074,
+      "sha256": "84ae1db3e6589178f38af2e69f598fe0e7d7697272483c89e9a2ee03c07b3bf2",
+      "chars_total": 523953,
+      "length": {
+        "min": 274,
+        "median": 2047,
+        "max": 4217,
+        "mean": 2046.7,
+        "chars_total": 523953
+      },
+      "tokens_per_call": 161706,
+      "ppl_eval": {
+        "documents_used": 256,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_max_len": 11
+      },
+      "candidates": 216052,
+      "pool_after_filter": 140825,
+      "excluded": {
+        "card_identity_in_training": 59900,
+        "exact_match_train": 9496,
+        "not_section_unit": 441650,
+        "too_short": 5831,
+        "doc_separator_inside": 0
+      },
+      "residual_overlap": {
+        "ngram": 12,
+        "index_shingles": 24956610,
+        "documents": 256,
+        "documents_with_shared": 203,
+        "median_frac": 0.0361,
+        "p90_frac": 0.1261,
+        "max_frac": 0.3184
+      }
+    }
+  },
+  "after": {
+    "target_docs": 200,
+    "eval_cost": {
+      "v1_tokens": 6315,
+      "v2_tokens": 165471,
+      "ratio": 26.2
+    },
+    "general": {
+      "documents": 200,
+      "bytes": 206001,
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "chars_total": 113041,
+      "length": {
+        "min": 203,
+        "median": 467,
+        "max": 3055,
+        "mean": 565.2,
+        "chars_total": 113041
+      },
+      "tokens_per_call": 39947,
+      "ppl_eval": {
+        "documents_used": 200,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_max_len": 1
+      },
+      "candidates": 157269,
+      "pool_after_filter": 38093,
+      "excluded": {
+        "replay_token_prefix": 103497,
+        "exact_match_train": 0,
+        "too_short": 15609,
+        "doc_separator_inside": 0,
+        "near_duplicate_ngram": 70
+      },
+      "residual_overlap": {
+        "ngram": 12,
+        "documents": 200,
+        "documents_with_shared": 2,
+        "median_frac": 0.0,
+        "p90_frac": 0.0,
+        "max_frac": 0.0435,
+        "index_shingles": 5797761
+      }
+    },
+    "domain": {
+      "documents": 200,
+      "bytes": 642134,
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "chars_total": 408445,
+      "length": {
+        "min": 274,
+        "median": 2069,
+        "max": 4217,
+        "mean": 2042.2,
+        "chars_total": 408445
+      },
+      "tokens_per_call": 125524,
+      "ppl_eval": {
+        "documents_used": 200,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_max_len": 9
+      },
+      "candidates": 216052,
+      "pool_after_filter": 140825,
+      "excluded": {
+        "card_identity_in_training": 59900,
+        "exact_match_train": 9496,
+        "not_section_unit": 441650,
+        "too_short": 5831,
+        "doc_separator_inside": 0
+      },
+      "residual_overlap": {
+        "ngram": 12,
+        "index_shingles": 24956610,
+        "documents": 200,
+        "documents_with_shared": 156,
+        "median_frac": 0.0328,
+        "p90_frac": 0.1287,
+        "max_frac": 0.3184
+      }
+    }
+  },
+  "eval_cost_delta": {
+    "v2_tokens": {
+      "before": 212500,
+      "after": 165471,
+      "change_pct": -22.13
+    },
+    "ratio_vs_v1": {
+      "before": 33.65,
+      "after": 26.2
+    },
+    "note": "время вызова _general_eval_step падает пропорционально токенам: вызов стал дешевле на 22 % — при переходе на v2 частоту можно поднимать, а не только снижать"
+  },
+  "checks": {
+    "determinism": {
+      "runs": 2,
+      "general": {
+        "run1_sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+        "run2_sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+        "bytes_equal": true,
+        "source_indices_equal": true
+      },
+      "domain": {
+        "run1_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+        "run2_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+        "bytes_equal": true,
+        "source_indices_equal": true
+      },
+      "card_diff": {
+        "substantive_differences": 0,
+        "expected_differences": [
+          "5 × поле tokenizer = repr(tokenizers.Tokenizer) с адресом объекта в памяти — не воспроизводимо по построению (было и до S3e-fix)",
+          "4 × пути вывода (sets.*.path, sets.*.ppl_eval.file) — у второго прогона намеренно другой --out-dir"
+        ]
+      },
+      "verdict": "PASS: байты наборов и source_indices совпали; содержательных расхождений карточки нет"
+    },
+    "filter_independent_of_volume": {
+      "general": {
+        "candidates": [
+          157269,
+          157269
+        ],
+        "excluded": [
+          {
+            "replay_token_prefix": 103497,
+            "exact_match_train": 0,
+            "too_short": 15609,
+            "doc_separator_inside": 0,
+            "near_duplicate_ngram": 70
+          },
+          {
+            "replay_token_prefix": 103497,
+            "exact_match_train": 0,
+            "too_short": 15609,
+            "doc_separator_inside": 0,
+            "near_duplicate_ngram": 70
+          }
+        ],
+        "pool_after_filter": [
+          38093,
+          38093
+        ]
+      },
+      "domain": {
+        "candidates": [
+          216052,
+          216052
+        ],
+        "excluded": [
+          {
+            "card_identity_in_training": 59900,
+            "exact_match_train": 9496,
+            "not_section_unit": 441650,
+            "too_short": 5831,
+            "doc_separator_inside": 0
+          },
+          {
+            "card_identity_in_training": 59900,
+            "exact_match_train": 9496,
+            "not_section_unit": 441650,
+            "too_short": 5831,
+            "doc_separator_inside": 0
+          }
+        ],
+        "pool_after_filter": [
+          140825,
+          140825
+        ]
+      },
+      "verdict": "PASS: числа отсева и размеры пулов побитово те же, что при 256 документах — смена объёма не изменила фильтр пересечения (правила сборки не тронуты)"
+    },
+    "ppl_eval_format": {
+      "general": {
+        "documents_in_file": 200,
+        "documents_used_by_ppl_eval": 200,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_1024": 1,
+        "tokens_total": 39947
+      },
+      "domain": {
+        "documents_in_file": 200,
+        "documents_used_by_ppl_eval": 200,
+        "dropped_fewer_8_tokens": 0,
+        "truncated_to_1024": 9,
+        "tokens_total": 125524
+      },
+      "format": "документы через '\\n---\\n', 200 частей без пустых, хвостовой перевод строки, нет пустых строк вокруг разделителя — как у v1",
+      "verdict": "PASS: 200/200 документов каждого набора доживают до счёта"
+    },
+    "pilot_files_unchanged": {
+      "general_eval.txt": {
+        "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+        "bytes": 19948,
+        "unchanged": true
+      },
+      "domain_eval.txt": {
+        "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+        "bytes": 12811,
+        "unchanged": true
+      },
+      "how_checked": [
+        "sha256sum до сборки и после (значения равны)",
+        "карточка: pilot_files_before == pilot_files_after, pilot_files_changed пуст",
+        "pilot_files_before идентичен карточке сборки на 256 документов (до S3e-fix)"
+      ],
+      "verdict": "PASS: живые наборы пилота не изменены"
+    },
+    "stand_untouched": {
+      "cpu_only": true,
+      "gpu_used": false,
+      "ssh_or_stand_commands": 0,
+      "wall_seconds_run1": 169.8,
+      "peak_rss_mb": 1242,
+      "files_written_outside_case": [
+        "/home/user/gb10-shared/datasets/general_eval_v2.txt",
+        "/home/user/gb10-shared/datasets/domain_eval_v2.txt"
+      ],
+      "files_written_in_case": [
+        "data/gen-eval-v2-card.json",
+        "tools/README.md"
+      ],
+      "pipeline_untouched": {
+        "file": "/home/user/gb10-shared/laguna_pipeline_v8.py",
+        "mtime": "2026-09-10 21:03:15 +0300",
+        "modified_by_task": false
+      },
+      "verdict": "PASS: сборка — локальный CPU-процесс (ADR-018 п.6, пик 1.2 ГБ); стенд, идущий SFT пилота и пайплайн не задействованы"
+    },
+    "limits_section": {
+      "lines": [
+        10,
+        10
+      ],
+      "identical": true,
+      "verdict": "PASS: раздел limits сохранён дословно — числа, которые в нём назывались (обученный префикс реплея 20021248 токенов / 103497 документов), не изменились"
+    }
+  },
+  "gates": {
+    "run_tool_tests": {
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "result": "PASS=268 FAIL=0",
+      "exit": 0
+    },
+    "fitness": {
+      "command": "arch-ml control check . --json",
+      "rules": 18,
+      "violations": 1,
+      "red": [
+        "AD-1 (C-014): evidence/result-report-*.json отсутствует — ждёт S4"
+      ],
+      "exit": 1,
+      "verdict": "красное только C-014, как и требуется"
+    }
+  },
+  "rollback": {
+    "to_256": "python3 tools/build_gen_eval_v2.py --docs 256",
+    "sha256_256_docs": {
+      "general": "3a2dc5b564d6edd34d411f9b2cbc1ca3a239f69d2625c9d5d0ad0bfb5577f630",
+      "domain": "84ae1db3e6589178f38af2e69f598fe0e7d7697272483c89e9a2ee03c07b3bf2"
+    },
+    "note": "файлы перезаписываются детерминированно; прежние хеши воспроизводимы. Полный откат решения — удалить оба файла *_v2.txt и карточку (пилот их не читает: laguna_pipeline_v8.py:1587-1588 читает general_eval.txt / domain_eval.txt)"
+  },
+  "volume_tradeoff": {
+    "why": "раздел limits карточки сохранён дословно (числа, которые в нём назывались, не изменились), поэтому цена уменьшения объёма названа здесь",
+    "call_cost": {
+      "before_tokens": 212500,
+      "after_tokens": 165471,
+      "change_pct": -22.13,
+      "note": "время одного вызова _general_eval_step падает пропорционально токенам"
+    },
+    "instrument_noise": "стандартная ошибка средней PPL убывает как 1/√n: при 200 документах вместо 256 она выше примерно на 13 %. Это оценка по числу документов, а не замер разброса на v2 (PPL на v2 не измерялась — ADR-018 п.6)",
+    "status": "пороги ADR-015 (внимание 1.5×, эскалация 2×) выведены для v1 и не откалиброваны ни под 256, ни под 200 — уменьшение объёма их не ломает, но и не подтверждает; калибровка — по первым замерам после перехода (ADR-018 п.5)"
+  }
+}

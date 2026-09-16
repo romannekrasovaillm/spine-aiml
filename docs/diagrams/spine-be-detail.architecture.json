@@ -7,7 +7,7 @@
     "locale": "en",
     "visual_preset": "blueprint",
     "repository": {
-      "url": "https://github.com/romannekrasovaillm/spine-aiml.git",
+      "url": "https://github.com/romannekrasovaillm/spine-private.git",
       "revision": "e1a63d6738045704e6db6ffeb45aa6c534c692a1"
     }
   },

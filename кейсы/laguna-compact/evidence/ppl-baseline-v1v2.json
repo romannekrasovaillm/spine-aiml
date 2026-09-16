@@ -1,0 +1,1122 @@
+{
+  "schema": "ppl-baseline-v1v2/1",
+  "stage": "S3h",
+  "status": "complete",
+  "date": "2026-09-16T07:22:44",
+  "purpose": "Первые числа PPL наборов v1/v2 на базовой модели — опора для калибровки полос ADR-015 (1.5× / 2×) под v2 и проверка, что методика пайплайна воспроизводится вне стенда",
+  "stand": {
+    "host": "roman-B550-GAMING-X-V2",
+    "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+    "torch": "2.4.0+cu121",
+    "transformers": "4.44.2",
+    "note": "локальная машина, НЕ стенд GB10: числа переносятся как свойства наборов (PPL), а не как замеры производительности стенда"
+  },
+  "instrument": {
+    "source": "laguna_pipeline_v8.py:1556-1581 (_ppl_eval), методика повторена",
+    "split": "text.split('\\n---\\n')",
+    "filter": "len(doc.strip()) > 50",
+    "tokenize": "tokenizer.encode(doc, add_special_tokens=False)[:1024]",
+    "keep": "len(enc) > 8",
+    "batch": 4,
+    "padding": "right-pad до максимума в батче, attention_mask по длине",
+    "loss": "log_softmax(logits[:, :-1].float()) против input_ids[:, 1:], маска attn[:, 1:]",
+    "ppl": "exp(Σ nll / Σ токенов) по корпусу",
+    "tokenizer": "токенизатор + 8 спецтокенов и resize embeddings, как в main() пайплайна; контроль без них — блок tokenizer_control",
+    "doc_ppl": "exp(nll_док / токены_док); median/mean/min/max по документам из того же forward'а (разделение сумм по строкам батча)"
+  },
+  "env_shims": [
+    "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется",
+    "проверка версий transformers снята: Try: `pip install transformers -U` or `pip install -e '.[dev]'` if you're working with git main"
+  ],
+  "datasets": {
+    "v1_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-ppl-probe/кейсы/laguna-compact/datasets/general_eval.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "bytes": 19948,
+      "mtime": "2026-08-09T07:52:37",
+      "raw_parts": 24,
+      "docs_kept": 24,
+      "docs_dropped_short": 0
+    },
+    "v1_domain": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-ppl-probe/кейсы/laguna-compact/datasets/domain_eval.txt",
+      "resolved": "/home/user/gb10-shared/datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "bytes": 12811,
+      "mtime": "2026-08-09T07:52:51",
+      "raw_parts": 5,
+      "docs_kept": 5,
+      "docs_dropped_short": 0
+    },
+    "v2_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-ppl-probe/кейсы/laguna-compact/datasets/general_eval_v2.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval_v2.txt",
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "bytes": 206001,
+      "mtime": "2026-09-16T06:20:29",
+      "raw_parts": 200,
+      "docs_kept": 200,
+      "docs_dropped_short": 0
+    },
+    "v2_domain": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-ppl-probe/кейсы/laguna-compact/datasets/domain_eval_v2.txt",
+      "resolved": "/home/user/gb10-shared/datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "bytes": 642134,
+      "mtime": "2026-09-16T06:20:29",
+      "raw_parts": 200,
+      "docs_kept": 200,
+      "docs_dropped_short": 0
+    }
+  },
+  "ppl": {
+    "v1_general": {
+      "ppl": 11.931923888434497,
+      "docs": 24,
+      "docs_in_file": 24,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 3682,
+      "doc_ppl_median": 13.204861799053006,
+      "doc_ppl_mean": 14.653015440213359,
+      "doc_ppl_min": 6.900554594902268,
+      "doc_ppl_max": 31.62442295343474,
+      "doc_ppl_stdev": 6.900335410892706,
+      "doc_ppl_max_over_median": 2.3949075298692413,
+      "max_len": 1024,
+      "batch": 4,
+      "dtype": "bfloat16",
+      "model": "base",
+      "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "dataset": "/home/user/gb10-shared/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "dataset_bytes": 19948,
+      "dataset_mtime": "2026-08-09T07:52:37",
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 214,
+        "batched_ppl": 7.553988266345284,
+        "unbatched_ppl": 7.552729329182918,
+        "rel_delta": 0.00016668638680085663
+      },
+      "seconds": 1.046
+    },
+    "v1_domain": {
+      "ppl": 9.29019390347789,
+      "docs": 5,
+      "docs_in_file": 5,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 2604,
+      "doc_ppl_median": 11.170549255247057,
+      "doc_ppl_mean": 15.245309023811966,
+      "doc_ppl_min": 5.378871071350279,
+      "doc_ppl_max": 37.88386727910101,
+      "doc_ppl_stdev": 13.03537139922803,
+      "doc_ppl_max_over_median": 3.3914059562743626,
+      "max_len": 1024,
+      "batch": 4,
+      "dtype": "bfloat16",
+      "model": "base",
+      "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "dataset": "/home/user/gb10-shared/datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "dataset_bytes": 12811,
+      "dataset_mtime": "2026-08-09T07:52:51",
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 602,
+        "batched_ppl": 13.672147177838156,
+        "unbatched_ppl": 13.714301556047005,
+        "rel_delta": -0.0030737531938155576
+      },
+      "seconds": 0.308
+    },
+    "v2_general": {
+      "ppl": 10.76515409368884,
+      "docs": 200,
+      "docs_in_file": 200,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 39747,
+      "doc_ppl_median": 11.197542336059408,
+      "doc_ppl_mean": 12.344880394845273,
+      "doc_ppl_min": 3.906858589197501,
+      "doc_ppl_max": 32.755915930661786,
+      "doc_ppl_stdev": 5.103974663018595,
+      "doc_ppl_max_over_median": 2.925277257061848,
+      "max_len": 1024,
+      "batch": 4,
+      "dtype": "bfloat16",
+      "model": "base",
+      "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "dataset": "/home/user/gb10-shared/datasets/general_eval_v2.txt",
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "dataset_bytes": 206001,
+      "dataset_mtime": "2026-09-16T06:20:29",
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 331,
+        "batched_ppl": 11.113224564544629,
+        "unbatched_ppl": 11.072256318399658,
+        "rel_delta": 0.0037000810825604078
+      },
+      "seconds": 3.966
+    },
+    "v2_domain": {
+      "ppl": 11.134115855539092,
+      "docs": 200,
+      "docs_in_file": 200,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 125322,
+      "doc_ppl_median": 11.316233642678121,
+      "doc_ppl_mean": 12.027412669671321,
+      "doc_ppl_min": 7.139849368409046,
+      "doc_ppl_max": 33.15892904334411,
+      "doc_ppl_stdev": 3.689541739588406,
+      "doc_ppl_max_over_median": 2.9302089449875175,
+      "max_len": 1024,
+      "batch": 4,
+      "dtype": "bfloat16",
+      "model": "base",
+      "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "dataset": "/home/user/gb10-shared/datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "dataset_bytes": 642134,
+      "dataset_mtime": "2026-09-16T06:20:29",
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 499,
+        "batched_ppl": 14.27630545333197,
+        "unbatched_ppl": 14.250383508056826,
+        "rel_delta": 0.001819034923550524
+      },
+      "seconds": 8.217
+    }
+  },
+  "tokenizer_control": {
+    "what": "тот же замер без спецтокенов/расширения embeddings пайплайна — отделяет настройку токенизатора от состояния модели",
+    "sets": {
+      "v1_general": {
+        "ppl": 11.93192547076342,
+        "docs": 24,
+        "docs_in_file": 24,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 3682,
+        "doc_ppl_median": 13.204862900956886,
+        "doc_ppl_mean": 14.653016967960554,
+        "doc_ppl_min": 6.900556722056272,
+        "doc_ppl_max": 31.62442295343474,
+        "doc_ppl_stdev": 6.900336118627032,
+        "doc_ppl_max_over_median": 2.394907330021812,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "base",
+        "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+        "dataset": "/home/user/gb10-shared/datasets/general_eval.txt",
+        "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+        "dataset_bytes": 19948,
+        "dataset_mtime": "2026-08-09T07:52:37",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 214,
+          "batched_ppl": 7.553989348643143,
+          "unbatched_ppl": 7.552729329182918,
+          "rel_delta": 0.0001668296857080678
+        },
+        "seconds": 0.349
+      },
+      "v1_domain": {
+        "ppl": 9.290194774489354,
+        "docs": 5,
+        "docs_in_file": 5,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 2604,
+        "doc_ppl_median": 11.170549255247057,
+        "doc_ppl_mean": 15.245309782175166,
+        "doc_ppl_min": 5.378872086188817,
+        "doc_ppl_max": 37.88386727910101,
+        "doc_ppl_stdev": 13.035371123411691,
+        "doc_ppl_max_over_median": 3.3914059562743626,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "base",
+        "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+        "dataset": "/home/user/gb10-shared/datasets/domain_eval.txt",
+        "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+        "dataset_bytes": 12811,
+        "dataset_mtime": "2026-08-09T07:52:51",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 602,
+          "batched_ppl": 13.672149954815609,
+          "unbatched_ppl": 13.714304825791684,
+          "rel_delta": -0.003073788391869277
+        },
+        "seconds": 0.308
+      },
+      "v2_general": {
+        "ppl": 10.765156513396581,
+        "docs": 200,
+        "docs_in_file": 200,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 39747,
+        "doc_ppl_median": 11.197545908954954,
+        "doc_ppl_mean": 12.344883345279058,
+        "doc_ppl_min": 3.906859688071962,
+        "doc_ppl_max": 32.755915930661786,
+        "doc_ppl_stdev": 5.103976026468736,
+        "doc_ppl_max_over_median": 2.9252763236689274,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "base",
+        "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+        "dataset": "/home/user/gb10-shared/datasets/general_eval_v2.txt",
+        "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+        "dataset_bytes": 206001,
+        "dataset_mtime": "2026-09-16T06:20:29",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 331,
+          "batched_ppl": 11.113226619991478,
+          "unbatched_ppl": 11.072258958231592,
+          "rel_delta": 0.003700027421182114
+        },
+        "seconds": 3.972
+      },
+      "v2_domain": {
+        "ppl": 11.131582217877288,
+        "docs": 200,
+        "docs_in_file": 200,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 125324,
+        "doc_ppl_median": 11.316234696704779,
+        "doc_ppl_mean": 12.02578408108639,
+        "doc_ppl_min": 7.139851072345992,
+        "doc_ppl_max": 33.15892904334411,
+        "doc_ppl_stdev": 3.6908520516303205,
+        "doc_ppl_max_over_median": 2.930208672059426,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "base",
+        "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+        "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+        "dataset": "/home/user/gb10-shared/datasets/domain_eval_v2.txt",
+        "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+        "dataset_bytes": 642134,
+        "dataset_mtime": "2026-09-16T06:20:29",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 499,
+          "batched_ppl": 14.276312452181347,
+          "unbatched_ppl": 14.250390303170821,
+          "rel_delta": 0.0018190483529955152
+        },
+        "seconds": 8.067
+      }
+    },
+    "delta_vs_ppl": {
+      "v1_general": 1.326130587564478e-05,
+      "v1_domain": 9.37560047375996e-06,
+      "v2_general": 2.2477223460271034e-05,
+      "v2_domain": -0.02275562509567175
+    }
+  },
+  "ppl_instruct": {
+    "bfloat16": {
+      "v1_general": {
+        "ppl": 12.61195042879959,
+        "docs": 24,
+        "docs_in_file": 24,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 3682,
+        "doc_ppl_median": 14.405525921235547,
+        "doc_ppl_mean": 15.583211638928836,
+        "doc_ppl_min": 7.486000714744724,
+        "doc_ppl_max": 34.29176195979083,
+        "doc_ppl_stdev": 7.259821123954423,
+        "doc_ppl_max_over_median": 2.3804588702478737,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "instruct",
+        "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+        "dataset": "/home/user/gb10-shared/datasets/general_eval.txt",
+        "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+        "dataset_bytes": 19948,
+        "dataset_mtime": "2026-08-09T07:52:37",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 214,
+          "batched_ppl": 7.886073000532255,
+          "unbatched_ppl": 7.8741371656484915,
+          "rel_delta": 0.0015158276561188482
+        },
+        "seconds": 0.251
+      },
+      "v1_domain": {
+        "ppl": 9.091422391645345,
+        "docs": 5,
+        "docs_in_file": 5,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 2604,
+        "doc_ppl_median": 10.821672626353783,
+        "doc_ppl_mean": 14.338051008186898,
+        "doc_ppl_min": 5.3125926894558235,
+        "doc_ppl_max": 34.12784301499193,
+        "doc_ppl_stdev": 11.47423622198538,
+        "doc_ppl_max_over_median": 3.1536569431865034,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "instruct",
+        "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+        "dataset": "/home/user/gb10-shared/datasets/domain_eval.txt",
+        "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+        "dataset_bytes": 12811,
+        "dataset_mtime": "2026-08-09T07:52:51",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 602,
+          "batched_ppl": 13.444117035218243,
+          "unbatched_ppl": 13.467313171478132,
+          "rel_delta": -0.0017224026770993404
+        },
+        "seconds": 0.336
+      },
+      "v2_general": {
+        "ppl": 11.80426510884211,
+        "docs": 200,
+        "docs_in_file": 200,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 39747,
+        "doc_ppl_median": 12.485209554510856,
+        "doc_ppl_mean": 13.763666214645884,
+        "doc_ppl_min": 3.8730308935318907,
+        "doc_ppl_max": 38.51514225455791,
+        "doc_ppl_stdev": 5.920798851395073,
+        "doc_ppl_max_over_median": 3.084861498431361,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "instruct",
+        "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+        "dataset": "/home/user/gb10-shared/datasets/general_eval_v2.txt",
+        "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+        "dataset_bytes": 206001,
+        "dataset_mtime": "2026-09-16T06:20:29",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 331,
+          "batched_ppl": 12.249618928847223,
+          "unbatched_ppl": 12.28927089592364,
+          "rel_delta": -0.003226551632901914
+        },
+        "seconds": 3.565
+      },
+      "v2_domain": {
+        "ppl": 11.036232779836405,
+        "docs": 200,
+        "docs_in_file": 200,
+        "docs_dropped_short_tokens": 0,
+        "tokens": 125322,
+        "doc_ppl_median": 11.177023596921709,
+        "doc_ppl_mean": 11.940667568408411,
+        "doc_ppl_min": 6.8059129772176865,
+        "doc_ppl_max": 35.16953225369973,
+        "doc_ppl_stdev": 3.790747278524409,
+        "doc_ppl_max_over_median": 3.146591930197397,
+        "max_len": 1024,
+        "batch": 4,
+        "dtype": "bfloat16",
+        "model": "instruct",
+        "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+        "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+        "dataset": "/home/user/gb10-shared/datasets/domain_eval_v2.txt",
+        "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+        "dataset_bytes": 642134,
+        "dataset_mtime": "2026-09-16T06:20:29",
+        "mask_check": true,
+        "cross_check": {
+          "doc_index": 0,
+          "n_tokens": 499,
+          "batched_ppl": 13.778489518282495,
+          "unbatched_ppl": 13.789087594486853,
+          "rel_delta": -0.0007685842976728629
+        },
+        "seconds": 7.504
+      }
+    }
+  },
+  "dtype_sensitivity": {},
+  "results_all": {
+    "base": {
+      "bfloat16": {
+        "on": {
+          "v1_general": {
+            "ppl": 11.931923888434497,
+            "docs_counted": 24,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 3682,
+            "doc_ppl": {
+              "n": 24,
+              "median": 13.204861799053006,
+              "mean": 14.653015440213359,
+              "min": 6.900554594902268,
+              "max": 31.62442295343474,
+              "stdev": 6.900335410892706,
+              "max_over_median": 2.3949075298692413
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 214,
+              "batched_ppl": 7.553988266345284,
+              "unbatched_ppl": 7.552729329182918,
+              "rel_delta": 0.00016668638680085663
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 1.046
+          },
+          "v1_domain": {
+            "ppl": 9.29019390347789,
+            "docs_counted": 5,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 2604,
+            "doc_ppl": {
+              "n": 5,
+              "median": 11.170549255247057,
+              "mean": 15.245309023811966,
+              "min": 5.378871071350279,
+              "max": 37.88386727910101,
+              "stdev": 13.03537139922803,
+              "max_over_median": 3.3914059562743626
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 602,
+              "batched_ppl": 13.672147177838156,
+              "unbatched_ppl": 13.714301556047005,
+              "rel_delta": -0.0030737531938155576
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 0.308
+          },
+          "v2_general": {
+            "ppl": 10.76515409368884,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 39747,
+            "doc_ppl": {
+              "n": 200,
+              "median": 11.197542336059408,
+              "mean": 12.344880394845273,
+              "min": 3.906858589197501,
+              "max": 32.755915930661786,
+              "stdev": 5.103974663018595,
+              "max_over_median": 2.925277257061848
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 331,
+              "batched_ppl": 11.113224564544629,
+              "unbatched_ppl": 11.072256318399658,
+              "rel_delta": 0.0037000810825604078
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 3.966
+          },
+          "v2_domain": {
+            "ppl": 11.134115855539092,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 125322,
+            "doc_ppl": {
+              "n": 200,
+              "median": 11.316233642678121,
+              "mean": 12.027412669671321,
+              "min": 7.139849368409046,
+              "max": 33.15892904334411,
+              "stdev": 3.689541739588406,
+              "max_over_median": 2.9302089449875175
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 499,
+              "batched_ppl": 14.27630545333197,
+              "unbatched_ppl": 14.250383508056826,
+              "rel_delta": 0.001819034923550524
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 8.217
+          }
+        },
+        "off": {
+          "v1_general": {
+            "ppl": 11.93192547076342,
+            "docs_counted": 24,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 3682,
+            "doc_ppl": {
+              "n": 24,
+              "median": 13.204862900956886,
+              "mean": 14.653016967960554,
+              "min": 6.900556722056272,
+              "max": 31.62442295343474,
+              "stdev": 6.900336118627032,
+              "max_over_median": 2.394907330021812
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 214,
+              "batched_ppl": 7.553989348643143,
+              "unbatched_ppl": 7.552729329182918,
+              "rel_delta": 0.0001668296857080678
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "off",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 0.349
+          },
+          "v1_domain": {
+            "ppl": 9.290194774489354,
+            "docs_counted": 5,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 2604,
+            "doc_ppl": {
+              "n": 5,
+              "median": 11.170549255247057,
+              "mean": 15.245309782175166,
+              "min": 5.378872086188817,
+              "max": 37.88386727910101,
+              "stdev": 13.035371123411691,
+              "max_over_median": 3.3914059562743626
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 602,
+              "batched_ppl": 13.672149954815609,
+              "unbatched_ppl": 13.714304825791684,
+              "rel_delta": -0.003073788391869277
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "off",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 0.308
+          },
+          "v2_general": {
+            "ppl": 10.765156513396581,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 39747,
+            "doc_ppl": {
+              "n": 200,
+              "median": 11.197545908954954,
+              "mean": 12.344883345279058,
+              "min": 3.906859688071962,
+              "max": 32.755915930661786,
+              "stdev": 5.103976026468736,
+              "max_over_median": 2.9252763236689274
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 331,
+              "batched_ppl": 11.113226619991478,
+              "unbatched_ppl": 11.072258958231592,
+              "rel_delta": 0.003700027421182114
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "off",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 3.972
+          },
+          "v2_domain": {
+            "ppl": 11.131582217877288,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 125324,
+            "doc_ppl": {
+              "n": 200,
+              "median": 11.316234696704779,
+              "mean": 12.02578408108639,
+              "min": 7.139851072345992,
+              "max": 33.15892904334411,
+              "stdev": 3.6908520516303205,
+              "max_over_median": 2.930208672059426
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 499,
+              "batched_ppl": 14.276312452181347,
+              "unbatched_ppl": 14.250390303170821,
+              "rel_delta": 0.0018190483529955152
+            },
+            "model": "base",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "off",
+            "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+            "tokenizer_setup": "как есть (без спецтокенов пайплайна)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 8.067
+          }
+        }
+      }
+    },
+    "instruct": {
+      "bfloat16": {
+        "on": {
+          "v1_general": {
+            "ppl": 12.61195042879959,
+            "docs_counted": 24,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 3682,
+            "doc_ppl": {
+              "n": 24,
+              "median": 14.405525921235547,
+              "mean": 15.583211638928836,
+              "min": 7.486000714744724,
+              "max": 34.29176195979083,
+              "stdev": 7.259821123954423,
+              "max_over_median": 2.3804588702478737
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 214,
+              "batched_ppl": 7.886073000532255,
+              "unbatched_ppl": 7.8741371656484915,
+              "rel_delta": 0.0015158276561188482
+            },
+            "model": "instruct",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 0.251
+          },
+          "v1_domain": {
+            "ppl": 9.091422391645345,
+            "docs_counted": 5,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 2604,
+            "doc_ppl": {
+              "n": 5,
+              "median": 10.821672626353783,
+              "mean": 14.338051008186898,
+              "min": 5.3125926894558235,
+              "max": 34.12784301499193,
+              "stdev": 11.47423622198538,
+              "max_over_median": 3.1536569431865034
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 602,
+              "batched_ppl": 13.444117035218243,
+              "unbatched_ppl": 13.467313171478132,
+              "rel_delta": -0.0017224026770993404
+            },
+            "model": "instruct",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 0.336
+          },
+          "v2_general": {
+            "ppl": 11.80426510884211,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 39747,
+            "doc_ppl": {
+              "n": 200,
+              "median": 12.485209554510856,
+              "mean": 13.763666214645884,
+              "min": 3.8730308935318907,
+              "max": 38.51514225455791,
+              "stdev": 5.920798851395073,
+              "max_over_median": 3.084861498431361
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 331,
+              "batched_ppl": 12.249618928847223,
+              "unbatched_ppl": 12.28927089592364,
+              "rel_delta": -0.003226551632901914
+            },
+            "model": "instruct",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 3.565
+          },
+          "v2_domain": {
+            "ppl": 11.036232779836405,
+            "docs_counted": 200,
+            "docs_dropped_short_tokens": 0,
+            "tokens": 125322,
+            "doc_ppl": {
+              "n": 200,
+              "median": 11.177023596921709,
+              "mean": 11.940667568408411,
+              "min": 6.8059129772176865,
+              "max": 35.16953225369973,
+              "stdev": 3.790747278524409,
+              "max_over_median": 3.146591930197397
+            },
+            "mask_check": true,
+            "cross_check": {
+              "doc_index": 0,
+              "n_tokens": 499,
+              "batched_ppl": 13.778489518282495,
+              "unbatched_ppl": 13.789087594486853,
+              "rel_delta": -0.0007685842976728629
+            },
+            "model": "instruct",
+            "dtype": "bfloat16",
+            "tokenizer_variant": "on",
+            "weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+            "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+            "max_len": 1024,
+            "batch": 4,
+            "device": "cuda",
+            "seconds": 7.504
+          }
+        }
+      }
+    }
+  },
+  "seconds_total": 90.0,
+  "artifacts": [
+    {
+      "path": "tools/ppl_probe.py",
+      "what": "проба PPL (этот инструмент)"
+    },
+    {
+      "path": "evidence/ppl-baseline-v1v2.json",
+      "what": "числа пробы"
+    },
+    {
+      "path": "evidence/s2-smoke.json",
+      "what": "известная база 127.5/11.76 (v1, GB10)"
+    },
+    {
+      "path": "runs/smoke-20260914-0930/probe_cpt.jsonl",
+      "what": "траектория лосса CPT стенда — источник провенанса якоря"
+    },
+    {
+      "path": "runs/smoke-20260914-0930/logs/cpt.log",
+      "what": "CPT step 0 | lr=0.00e+00 — независимый якорь базовой модели"
+    },
+    {
+      "path": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "what": "пакованные чанки CPT (только чтение) — сверка на одном корпусе"
+    }
+  ],
+  "reproduction": {
+    "known": {
+      "source": "evidence/s2-smoke.json → forgetting_ppl[step=0]",
+      "model": "Qwen/Qwen2.5-0.5B",
+      "sets": "v1",
+      "ppl_general": 127.50231470270732,
+      "ppl_domain": 11.75640733743271,
+      "note": "замер обвязки S2 на GB10 (bf16); ADR-015 цитирует его как 127.5 / 11.76"
+    },
+    "tolerance_pct": 5.0,
+    "checks": {
+      "v1_general": {
+        "known": 127.50231470270732,
+        "measured": 11.931923888434497,
+        "delta_pct": -90.64179821656121,
+        "within_tolerance": false
+      },
+      "v1_domain": {
+        "known": 11.75640733743271,
+        "measured": 9.29019390347789,
+        "delta_pct": -20.977611298838987,
+        "within_tolerance": false
+      }
+    },
+    "anchor_provenance": {
+      "value": "127.5 / 11.76",
+      "file": "runs/smoke-20260914-0930/logs/sft.log",
+      "line": "06:30:29 [INFO] GEN-EVAL step 0: ppl_general=127.5 (+0.0% vs base), ppl_domain=11.8 (+0.0%)",
+      "preceding_line": "06:30:01 [INFO] Loaded CPT ckpt",
+      "why_it_is_not_base": "«step 0» — первый вызов GEN-EVAL в процессе стадии SFT, а перед ним загружен CPT-чекпойнт (laguna_pipeline_v8.py:806-809); в логе CPT первое измерение (шаг 10) уже 126.9. Число относится к состоянию после CPT, не к исходной модели — в ADR-015 оно записано как «PPL базовой модели»"
+    },
+    "base_anchor": {
+      "source": "runs/smoke-20260914-0930/logs/cpt.log",
+      "line": "06:27:01 [INFO] CPT step 0/50 | loss=2.0989 | lr=0.00e+00 | tok/s=1984",
+      "loss": 2.0989,
+      "implied_ppl": 8.157192064385592,
+      "corpus": "cpt_corpus_v12r (доменный CPT-корпус, тот же класс текста, что domain_eval)",
+      "why_valid": "lr=0.00e+00 на шаге 0 → веса нетронуты, это замер базовой модели"
+    },
+    "corpus_anchor": {
+      "what": "лосс базовой модели на тех же пакованных чанках, на которых стенд снял CPT step 0 (lr=0) — сверка на одном корпусе, а не «по порядку»",
+      "pack": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "pack_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+      "pack_shape": [
+        9776,
+        8192
+      ],
+      "n_chunks": 128,
+      "chunk_tokens": 8192,
+      "slice": 512,
+      "tokens_measured": 1048576,
+      "base_loss": {
+        "n": 128,
+        "mean": 1.896488592270914,
+        "stdev": 0.1677901446362981,
+        "min": 1.5422219243944382,
+        "max": 2.5094254495692683,
+        "first": 1.8097491482648638,
+        "last": 1.868998107798384
+      },
+      "base_ppl": 6.6624587111427,
+      "stand_step0_loss": 2.0989,
+      "stand_step0_within_base_range": true,
+      "stand_step0_z": 1.2063366902021146,
+      "chunks_above_base_regime_level": {
+        "level": 2.6,
+        "count": 0,
+        "n": 128,
+        "fraction": 0.0
+      },
+      "control": {
+        "n_tokens": 512,
+        "hf_loss": 2.7622900009155273,
+        "sliced_loss": 2.7622899243976273,
+        "abs_delta": 7.651790001617087e-08
+      },
+      "seconds": 47.559
+    },
+    "divergence": {
+      "what": "лосс CPT-стадии смоука по шагам — прогон, из которого взято 127.5; проверка, что состояние «после CPT» вообще здоровое",
+      "sources": [
+        "runs/smoke-20260914-0930/probe_cpt.jsonl"
+      ],
+      "source": "runs/smoke-20260914-0930/probe_cpt.jsonl",
+      "sha256": "0e5b2b0d7bef4f03c060968804d23472e5ec5583973d640e77e0c301b4913a25",
+      "parse": {
+        "skipped_without_loss": 2,
+        "unparsed": 0
+      },
+      "trajectory": {
+        "n": 50,
+        "mean": 3.4094749,
+        "stdev": 0.8886917086996825,
+        "min": 2.098926,
+        "max": 5.739226,
+        "first": 2.098926,
+        "last": 2.732533
+      },
+      "head": [
+        2.0989,
+        2.6303,
+        2.8013,
+        3.1496,
+        3.7066,
+        3.9645,
+        4.0827,
+        4.6603
+      ],
+      "stand_step0_loss": 2.0989,
+      "step0_matches_log": true,
+      "base_max_loss": 2.5094254495692683,
+      "steps_above_base_max": {
+        "level": 2.5094254495692683,
+        "count": 44,
+        "n": 50,
+        "fraction": 0.88
+      },
+      "steps_above_base_regime_level": {
+        "level": 2.6,
+        "count": 40,
+        "n": 50,
+        "fraction": 0.8
+      },
+      "status": "OK",
+      "verdict": "ПРОГОН РАЗОШЁЛСЯ",
+      "summary": "Лосс CPT на своём корпусе: шаг 0 = 2.0989 (lr=0, веса нетронуты), максимум 5.7392; базовая модель на тех же чанках не выходит за 2.5094. Шагов выше потолка базы: 44 из 50 (88 %). То есть чекпойнт, на котором снято 127.5, хуже базовой модели на собственном обучающем корпусе: 127.5 — не «доменный сдвиг», а след расходящегося CPT"
+    },
+    "base_anchor_check": {
+      "measured_v1_domain": 9.29019390347789,
+      "anchor_implied_ppl": 8.157192064385592,
+      "ratio_measured_over_anchor": 1.138896060084082,
+      "band": "[1/2.0, 2.0]",
+      "anchor_agrees_with_measurement": true,
+      "note": "корпуса разные (domain_eval против CPT-корпуса), поэтому сравнение по порядку величины; совпадение = наш замер и лосс стенда описывают одну и ту же базовую модель"
+    },
+    "same_corpus_check": {
+      "stand_step0_loss": 2.0989,
+      "base_loss_range": [
+        1.5422219243944382,
+        2.5094254495692683
+      ],
+      "base_loss_mean": 1.896488592270914,
+      "base_loss_stdev": 0.1677901446362981,
+      "n_chunks": 128,
+      "stand_step0_z": 1.2063366902021146,
+      "agrees": true,
+      "note": "сверка на ОДНОМ корпусе (пакованные чанки CPT): сильнее, чем сопоставление порядков с base_anchor_check, потому что корпус и счёт совпадают точно"
+    },
+    "verdict": "ЯКОРЬ НЕ БАЗОВАЯ МОДЕЛЬ",
+    "summary": "С известным числом разошлось на 90.6 % — но разошлась подпись, а не методика: наш замер домена 9.29 согласен по порядку с лоссом стенда на нетронутых весах (lr=0: 2.0989 → PPL 8.16). На одном корпусе (пакованные чанки CPT, 128 шт.) лосс стенда при lr=0 тоже попадает в разброс базы: 1.896±0.168, z=1.21. Лосс CPT на своём корпусе: шаг 0 = 2.0989 (lr=0, веса нетронуты), максимум 5.7392; базовая модель на тех же чанках не выходит за 2.5094. Шагов выше потолка базы: 44 из 50 (88 %). То есть чекпойнт, на котором снято 127.5, хуже базовой модели на собственном обучающем корпусе: 127.5 — не «доменный сдвиг», а след расходящегося CPT. Базовая линия ADR-015 требует пересмотра: пороги 1.5×/2× выведены от состояния после CPT"
+  },
+  "v1_vs_v2_shift": {
+    "general": {
+      "v1": 11.931923888434497,
+      "v2": 10.76515409368884,
+      "ratio_v2_over_v1": 0.9022144454108867,
+      "docs_v1": 24,
+      "docs_v2": 200,
+      "doc_median_v1": 13.204861799053006,
+      "doc_median_v2": 11.197542336059408
+    },
+    "domain": {
+      "v1": 9.29019390347789,
+      "v2": 11.134115855539092,
+      "ratio_v2_over_v1": 1.1984804592045069,
+      "docs_v1": 5,
+      "docs_v2": 200,
+      "doc_median_v1": 11.170549255247057,
+      "doc_median_v2": 11.316233642678121
+    },
+    "note": "Полосы ADR-015 (внимание 1.5× / эскалация 2×) выведены от базы v1; под v2 их надо пересчитать от базы v2 — иначе «+50 %» будет наполовину сдвигом набора. Сдвиг не единый: домен уходит вверх, общий язык вниз, поэтому одним множителем на оба набора порог не переносится"
+  },
+  "tokenizer_note": "Настройка токенизатора пайплайна ничего не меняет на наборах v1 (в их тексте спецтокенов нет) и почти ничего на v2, кроме domain: там встречаются <think> и </think> (по одному разу), поэтому токенизация зависит от настройки (v1_general: +0.0000 %, v1_domain: +0.0000 %, v2_general: +0.0000 %, v2_domain: -0.0228 %). Числа блока ppl сняты с настройкой пайплайна — она и есть эталон для сверки",
+  "assumptions": [
+    "Методика _ppl_eval воспроизведена по коду пайплайна, а не по описанию: разбор, обрезка, батч и формула взяты из laguna_pipeline_v8.py:1556-1581",
+    "dtype по умолчанию — bfloat16, как в пайплайне (BF16 = torch.bfloat16); чисел в float32 пайплайн не даёт",
+    "Базовая модель — веса из models-store/.../qwen2.5-0.5b-base (ADR-002), токенизатор — локальный HF-кэш Qwen2.5-0.5B: ревизия та же, что в пайплайне",
+    "Числа 4080 переносятся как свойства наборов; замером стенда GB10 они не являются",
+    "Сверка на одном корпусе опирается на то, что пакованные чанки стенда (cpt_corpus_v12r_8192_qwen25.npy, sha256 в corpus_anchor) — те же самые, что читал CPTDataset: файл лежит на сетевом диске и пробой не копируется, поэтому связь подтверждается хешем и формой (9776 × 8192), а не происхождением",
+    "Лосс CPT-шага 0 (2.0989) относится к базовой модели только потому, что wsd_schedule(0, ...) = 0: прогон на шаге 0 весов не менял"
+  ],
+  "not_verified": [
+    "Наборы v2 в момент пробы пересобираются: числа привязаны к sha256 в datasets — при новой сборке пробу надо повторить",
+    "Перенос чисел на GB10 не проверен замером (сверка возможна только на стенде)",
+    "Что 127.5 снято после CPT-чекпойнта — прочитано из логов S2 (sft.log: «Loaded CPT ckpt» перед строкой GEN-EVAL) и подтверждено лоссом стенда при lr=0; отдельного прогона «_ppl_eval на нетронутой базовой модели на стенде» в артефактах нет, и на локальной машине его не заменить",
+    "Расхождение CPT-стадии измерено по её же лоссу на её же корпусе; почему прогон разошёлся (LR, flex-маска, окружение) — проба не разбирает: на локальной машине нет ни flex-пути, ни стека стенда",
+    "Сверка на одном корпусе берёт первые 128 чанков из 9776 (не случайные): порядок чанков — свойство файла, а шаг 0 стенда читал перемешанный поток (DataLoader shuffle), поэтому совпадение проверяется по разбросу, а не по номеру чанка"
+  ],
+  "open_questions": [
+    "Пересматривать ли полосы ADR-015 (внимание 1.5× / эскалация 2×): они выведены от 127.5, а базовая модель даёт ~11.9/9.3 на v1. Если якорь сменится, полосы надо пересчитать, а вердикты чек-пойнтов пилота (ADR-015: «выполнены с запасом») перечитать",
+    "Полосы ADR-015 выведены не просто «от состояния после CPT», а от CPT, который разошёлся (44 шага из 50 выше потолка базовой модели на её же корпусе). Считать ли S2-смоук валидным доказательством сходимости контура (его критерий «loss убывает» смотрел на сводку окон и разворота не увидел), и не задет ли пилот той же причиной — это вопрос к владельцу, не к пробе",
+    "Не испорчен ли сам CPT окружением стенда: там включён LAGUNA_ATTN=flex (блочная маска из position_ids), а прогон на PyTorch 2.13 пошёл вверх по лоссу. GEN-EVAL этот путь не задевает (в патче нет position_ids → штатный SDPA), но обучение CPT идёт через него. Локально flex не воспроизводится: нужен стенд или отдельная проверка паритета flex против SDPA",
+    "Какую полосу считать под v2: сдвиг домена ×1.20 (9.29 → 11.13) и общего языка ×0.90 (11.93 → 10.77) — то есть под v2 «та же деградация» выглядит слабее по домену и сильнее по общему языку; одним множителем оба не покрываются",
+    "Нужен ли явный замер базовой модели в самом пайплайне (до первого шага стадии): сейчас первый GEN-EVAL идёт после шагов обучения, и «база» в истории — это состояние, а не модель (дефект уже признан в ADR-015 п.4, но починка не внесена)",
+    "Домен v1 — 5 документов с общим шаблоном (ADR-018): его PPL 9.29 держится на пяти точках (median 11.17 против корпусной 9.29). Переходить ли на v2 в качестве основного прибора, не имея v1-истории по 200 документам"
+  ]
+}

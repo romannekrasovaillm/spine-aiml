@@ -90,7 +90,14 @@ fn validate_name(name: &str) -> Result<()> {
 
 /// Запускает git в репозитории и возвращает stdout; ненулевой код — ошибка
 /// с stderr (читаемой модели/пользователю).
-async fn git(repo: &Path, args: &[&str]) -> Result<String> {
+pub(crate) async fn git(repo: &Path, args: &[&str]) -> Result<String> {
+    Ok(String::from_utf8_lossy(&git_bytes(repo, args).await?).into_owned())
+}
+
+/// Как [`git`], но stdout — сырые байты: содержимое blob'ов хешируется
+/// (`sha256` редакции правил, ADR-024, шаг 2), а lossy-декодирование
+/// исказило бы хеш нечитаемым байтам.
+pub(crate) async fn git_bytes(repo: &Path, args: &[&str]) -> Result<Vec<u8>> {
     let out = tokio::process::Command::new("git")
         .arg("-C")
         .arg(repo)
@@ -99,7 +106,7 @@ async fn git(repo: &Path, args: &[&str]) -> Result<String> {
         .await
         .map_err(|e| HarnessError::Tool(format!("git не запустился: {e}")))?;
     if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+        Ok(out.stdout)
     } else {
         let stderr = String::from_utf8_lossy(&out.stderr);
         Err(HarnessError::Tool(format!(
@@ -250,6 +257,51 @@ pub async fn diff(repo: &Path, name: &str) -> Result<String> {
     Ok(format!("== diff --stat ==\n{stat}\n== patch ==\n{patch}"))
 }
 
+/// Статус приёмки worktree (ADR-024).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AcceptStatus {
+    /// Merge выполнен, post-merge гейт чист.
+    Ok,
+    /// Merge выполнен, но post-merge гейт красный: решение владельца
+    /// (откат на `<pre-merge>` или починка поверх), мерж не откатывается.
+    ConstraintsFailed,
+}
+
+/// Код возврата CLI, когда мерж состоялся, но правила основной ветки красные
+/// (отличим от 1 — «приёмка отклонена, `<основная ветка>` не тронута»).
+pub const EXIT_CONSTRAINTS_FAILED: i32 = 4;
+
+/// Итог `worktree accept`: отчёт, статус и точки отката.
+#[derive(Debug, Clone)]
+pub struct AcceptOutcome {
+    /// Текст отчёта приёмки (вердикт гейта, статус, предупреждения, пометки).
+    pub text: String,
+    /// Статус приёмки.
+    pub status: AcceptStatus,
+    /// Коммит основной ветки ДО мержа (`<pre-merge>`) — точка отката.
+    pub pre_merge: String,
+    /// Мерж-коммит приёмки (HEAD после мержа) — для восстановления ветки.
+    pub merge_commit: String,
+}
+
+impl AcceptOutcome {
+    /// Код возврата CLI: 0 — приёмка чистая, [`EXIT_CONSTRAINTS_FAILED`] —
+    /// мерж состоялся, но правила красные.
+    #[must_use]
+    pub fn exit_code(&self) -> i32 {
+        match self.status {
+            AcceptStatus::Ok => 0,
+            AcceptStatus::ConstraintsFailed => EXIT_CONSTRAINTS_FAILED,
+        }
+    }
+
+    /// Приёмка с красными правилами?
+    #[must_use]
+    pub fn constraints_failed(&self) -> bool {
+        self.status == AcceptStatus::ConstraintsFailed
+    }
+}
+
 /// Accept: merge ветки worktree в текущую ветку основного дерева и уборка.
 ///
 /// Отказывает при незакоммиченных изменениях в worktree (merge взял бы
@@ -263,6 +315,16 @@ pub async fn diff(repo: &Path, name: &str) -> Result<String> {
 /// с пометкой «не проверено» (отсутствие проверки ≠ успех). Автоматического
 /// merge нет: без аппрувера и без `READY` интеграция не выполняется.
 ///
+/// Шаги 2–3 процедуры приёмки (ADR-024 кейса `laguna-compact`; платформенные
+/// решения — ADR-048) — до merge, не блокируя: сверка `sha256` редакции
+/// правил ветки с основной веткой и список изменённых (не добавленных)
+/// `evidence/**` ([`crate::post_merge::pre_merge`]). Шаг 5 — после merge:
+/// гейт правил на основной рабочей копии
+/// ([`crate::post_merge::post_merge_gate`]). Красный гейт мерж НЕ откатывает
+/// (красное могло быть и до мержа): приёмка помечается
+/// [`AcceptStatus::ConstraintsFailed`] (код возврата
+/// [`EXIT_CONSTRAINTS_FAILED`]), решение — за владельцем.
+///
 /// # Errors
 /// Незакоммиченные изменения, блокирующий вердикт `NOT-READY` без аппрувера,
 /// конфликт merge, worktree не найден, сбой записи решения приёмки.
@@ -271,7 +333,7 @@ pub async fn accept(
     repo: &Path,
     name: &str,
     approver: Option<&str>,
-) -> Result<String> {
+) -> Result<AcceptOutcome> {
     validate_name(name)?;
     let branch = format!("{BRANCH_PREFIX}{name}");
     let path = worktrees_root(cfg, repo).join(name);
@@ -292,6 +354,12 @@ pub async fn accept(
             )));
         }
     }
+    // Шаги 2–3 ADR-024 (сверка редакции правил, исторические evidence) —
+    // до мержа и без права вето: это предупреждения владельцу.
+    let pre_merge_warnings = crate::post_merge::pre_merge(repo, &branch).await;
+    let pre_merge = git(repo, &["rev-parse", "HEAD"])
+        .await
+        .map_or_else(|_| "?".to_string(), |sha| sha.trim().to_string());
     // Идентичность коммиттера может быть не настроена (CI, свежие
     // контейнеры) — merge тогда падает с «Committer identity unknown».
     // Если git не разрешил идентичность, подставляем фолбэк харнесса через
@@ -308,7 +376,22 @@ pub async fn accept(
         ]);
     }
     args.extend(["merge", "--no-ff", "-m", &message, &branch]);
-    git(repo, &args).await?;
+    if let Err(e) = git(repo, &args).await {
+        // Отказ до мержа: предупреждения шагов 2–3 не теряются — совет
+        // «сначала влей основную ветку в ветку» нужен именно здесь.
+        let warnings = pre_merge_warnings.render();
+        return Err(HarnessError::Tool(if warnings.is_empty() {
+            e.to_string()
+        } else {
+            format!("{e}\n{warnings}")
+        }));
+    }
+    // Шаг 5 ADR-024: гейт правил основной рабочей копии — сразу после мержа,
+    // до уборки (мерж уже состоялся; вердикт только докладывается).
+    let gate = crate::post_merge::post_merge_gate(repo).await?;
+    let merge_commit = git(repo, &["rev-parse", "HEAD"])
+        .await
+        .map_or_else(|_| "?".to_string(), |sha| sha.trim().to_string());
     // Доменное событие post_accept — после УСПЕШНОГО merge и ДО уборки:
     // remove_handoff_copy снесёт .arch-handoff вместе с HYPOTHESES.json, а
     // хуку нужен именно этот файл (фиксирует факт использования карточек).
@@ -335,7 +418,10 @@ pub async fn accept(
         HarnessError::Tool(format!(
             "worktree '{name}': merge ВЫПОЛНЕН (коммит в основной ветке), но ветка \
              {branch} не удалена: {e} — вероятно, она checkout'нута в worktree вне \
-             фабрики; уберите его (`git worktree remove`) и удалите ветку вручную"
+             фабрики; уберите его (`git worktree remove`) и удалите ветку вручную\n\
+             статус приёмки: {} (гейт отработал до уборки)\n{}",
+            gate.status_label(),
+            gate.text
         ))
     })?;
     let mut note = crate::accept_gate::decision_note(name, &scan, approver);
@@ -355,7 +441,51 @@ pub async fn accept(
             })?;
         let _ = write!(note, "\nрешение приёмки: {}", journal.display());
     }
-    Ok(format!("worktree '{name}' принят (merge) и убран\n{note}"))
+    // Отчёт приёмки: сверки до мержа (шаги 2–3), вердикт гейта (шаг 5) и
+    // статус. Предупреждения шагов 2–3 идут первыми: они относятся к тому,
+    // что проверялось ДО мержа, — порядок чтения совпадает с порядком
+    // процедуры (ADR-024).
+    let mut text = format!("worktree '{name}' принят (merge) и убран\n");
+    let warnings = pre_merge_warnings.render();
+    if !warnings.is_empty() {
+        let _ = write!(text, "{warnings}");
+    }
+    let _ = writeln!(text, "── post-merge гейт (ADR-024, шаг 5) ──");
+    let _ = write!(text, "{}", gate.text);
+    let _ = writeln!(text, "статус приёмки: {}", gate.status_label());
+    if gate.failed {
+        let _ = writeln!(
+            text,
+            "мерж НЕ откатывается (ADR-024, шаг 5): решение владельца — откат или починка поверх"
+        );
+        let _ = writeln!(
+            text,
+            "  откат: git -C {} reset --hard {pre_merge}",
+            repo.display()
+        );
+        let _ = writeln!(
+            text,
+            "  починка поверх: разобрать красные правила и починить основную ветку \
+             (`arch-ml control check {}`)",
+            repo.display()
+        );
+        let _ = writeln!(
+            text,
+            "  ветка {branch} удалена приёмкой; коммиты дельты — в мерж-коммите {merge_commit} \
+             (reflog)"
+        );
+    }
+    let _ = write!(text, "{note}");
+    Ok(AcceptOutcome {
+        text,
+        status: if gate.failed {
+            AcceptStatus::ConstraintsFailed
+        } else {
+            AcceptStatus::Ok
+        },
+        pre_merge,
+        merge_commit,
+    })
 }
 
 /// Drop: удаление worktree и ветки БЕЗ merge (откат изоляции).
@@ -397,8 +527,10 @@ pub enum MergeGateOutcome {
     /// Мерж отклонён гейтом владельца: строка — сводка прогона для решения
     /// человеком (diff stat, коммиты, evidence).
     Refused(String),
-    /// Мерж выполнен: строка — отчёт accept (ветка влита, worktree убран).
-    Merged(String),
+    /// Мерж выполнен: отчёт accept (ветка влита, worktree убран) и статус —
+    /// в том числе `CONSTRAINTS-FAILED` post-merge гейта (ADR-024, шаг 5):
+    /// мерж состоялся, решение об откате — за владельцем.
+    Merged(AcceptOutcome),
 }
 
 /// Статус контракта результата прогона из лога (evidence): ищется файл
@@ -512,8 +644,8 @@ pub async fn merge_preview(cfg: &crate::config::Config, repo: &Path, name: &str)
 /// (ADR-046, п. 2), а решение уходит в append-only журнал приёмки — той же
 /// записью [`crate::accept_gate::record_decision`], что у `worktree accept`.
 /// `owner_approve` без аппрувера именным обходом НЕ является: `NOT-READY`
-/// блокирует и его. Далее выполняется [`accept`]: merge `--no-ff` ветки и
-/// уборка worktree.
+/// блокирует и его. Далее выполняется [`accept`]: merge `--no-ff` ветки,
+/// post-merge гейт правил (ADR-024, шаг 5) и уборка worktree.
 ///
 /// # Errors
 /// Пустое имя аппрувера, невалидный run-id, незакоммиченные изменения в
@@ -833,10 +965,10 @@ mod tests {
         let path = worktree_with_commit(&cfg, &repo, "hook-wt").await;
         seed_handoff(&path);
 
-        let msg = accept(&cfg, &repo, "hook-wt", None)
+        let out = accept(&cfg, &repo, "hook-wt", None)
             .await
             .expect("accept с хуком");
-        assert!(msg.contains("принят"), "{msg}");
+        assert!(out.text.contains("принят"), "{}", out.text);
         let seen = std::fs::read_to_string(&marker)
             .expect("хук увидел HYPOTHESES.json до уборки .arch-handoff");
         assert_eq!(seen.trim(), "hook-wt", "имя прогона доехало");
@@ -886,10 +1018,14 @@ mod tests {
         let path = worktree_with_commit(&cfg, &repo, "fail-wt").await;
         seed_handoff(&path);
 
-        let msg = accept(&cfg, &repo, "fail-wt", None)
+        let out = accept(&cfg, &repo, "fail-wt", None)
             .await
             .expect("exit 3 хука не ломает accept");
-        assert!(repo.join("feature.md").is_file(), "merge выполнен: {msg}");
+        assert!(
+            repo.join("feature.md").is_file(),
+            "merge выполнен: {}",
+            out.text
+        );
         assert!(list(&repo).await.expect("list").is_empty(), "уборка прошла");
     }
 
@@ -944,8 +1080,8 @@ mod tests {
         assert_eq!(infos[0].ahead, 1);
         let d = diff(&repo, "pilot-x").await.expect("diff");
         assert!(d.contains("feature.md"), "diff видит файл: {d}");
-        let msg = accept(&cfg, &repo, "pilot-x", None).await.expect("accept");
-        assert!(msg.contains("принят"), "{msg}");
+        let out = accept(&cfg, &repo, "pilot-x", None).await.expect("accept");
+        assert!(out.text.contains("принят"), "{}", out.text);
         assert!(repo.join("feature.md").is_file(), "merge перенёс файл");
         assert!(
             list(&repo).await.expect("list2").is_empty(),
@@ -1085,10 +1221,10 @@ mod tests {
         let outcome = gated_merge(&cfg, &repo, "run-x", true, None)
             .await
             .expect("gated_merge approve");
-        let MergeGateOutcome::Merged(msg) = outcome else {
+        let MergeGateOutcome::Merged(out) = outcome else {
             panic!("ожидался merge");
         };
-        assert!(msg.contains("принят"), "{msg}");
+        assert!(out.text.contains("принят"), "{}", out.text);
         assert!(repo.join("feature.md").is_file(), "merge перенёс файл");
         assert!(list(&repo).await.expect("list").is_empty());
     }
@@ -1166,11 +1302,15 @@ mod tests {
         let outcome = gated_merge(&cfg, &repo, "impl-wt", false, Some("roman"))
             .await
             .expect("именной аппрувер обходит блокировку");
-        let MergeGateOutcome::Merged(msg) = outcome else {
+        let MergeGateOutcome::Merged(out) = outcome else {
             panic!("ожидался merge именным аппрувером");
         };
-        assert!(msg.contains("принят"), "{msg}");
-        assert!(msg.contains("roman"), "решение аппрувера названо: {msg}");
+        assert!(out.text.contains("принят"), "{}", out.text);
+        assert!(
+            out.text.contains("roman"),
+            "решение аппрувера названо: {}",
+            out.text
+        );
         assert!(repo.join("feature.md").is_file(), "merge выполнен");
         assert!(
             list(&repo).await.expect("list").is_empty(),
@@ -1234,10 +1374,10 @@ mod tests {
         worktree_with_commit(&cfg, &repo, "impl-wt").await;
         write_review_journal(&cfg, "fpl-101", "impl-wt", "fail");
 
-        let msg = accept(&cfg, &repo, "impl-wt", Some("roman"))
+        let out = accept(&cfg, &repo, "impl-wt", Some("roman"))
             .await
             .expect("именной аппрувер обходит блокировку");
-        assert!(msg.contains("принят"), "{msg}");
+        assert!(out.text.contains("принят"), "{}", out.text);
         assert!(repo.join("feature.md").is_file(), "merge выполнен");
         assert!(
             list(&repo).await.expect("list").is_empty(),
@@ -1273,10 +1413,10 @@ mod tests {
         worktree_with_commit(&cfg, &repo, "impl-wt").await;
         write_review_journal(&cfg, "fpl-102", "impl-wt", "ok");
 
-        let msg = accept(&cfg, &repo, "impl-wt", None)
+        let out = accept(&cfg, &repo, "impl-wt", None)
             .await
             .expect("READY — merge без вопросов");
-        assert!(msg.contains("READY"), "{msg}");
+        assert!(out.text.contains("READY"), "{}", out.text);
         assert!(repo.join("feature.md").is_file(), "merge перенёс файл");
         assert!(list(&repo).await.expect("list").is_empty());
         assert!(
@@ -1296,11 +1436,11 @@ mod tests {
         worktree_with_commit(&cfg, &repo, "lone-wt").await;
 
         // Журналов нет вовсе.
-        let msg = accept(&cfg, &repo, "lone-wt", None)
+        let out = accept(&cfg, &repo, "lone-wt", None)
             .await
             .expect("без вердиктов merge разрешён");
-        assert!(msg.contains("не найдено"), "{msg}");
-        assert!(msg.contains("не проверено"), "{msg}");
+        assert!(out.text.contains("не найдено"), "{}", out.text);
+        assert!(out.text.contains("не проверено"), "{}", out.text);
         assert!(repo.join("feature.md").is_file(), "merge выполнен");
         assert!(list(&repo).await.expect("list").is_empty());
     }
@@ -1326,5 +1466,215 @@ mod tests {
             .await
             .expect_err("грязное дерево — отказ и с аппрувером");
         assert!(err.to_string().contains("незакоммиченные"), "{err}");
+    }
+
+    // ── ADR-024: сверки до мержа и post-merge гейт ──────────────────────────
+
+    /// Правила основной ветки фикстуры: `README.md` обязан существовать, а
+    /// маркер `ЗАПРЕЩЕНО` в корневых `*.md` — нарушение. Первое правило
+    /// зелёное всегда, второе ловит именно то, что приносит дельта.
+    const RULES: &str = r#"rules:
+  - id: C-1
+    name: readme_needed
+    type: file_exists
+    path: README.md
+  - id: C-2
+    name: no_forbidden_marker
+    type: must_not_contain
+    glob: "*.md"
+    pattern: "ЗАПРЕЩЕНО"
+"#;
+
+    /// Репозиторий-фикстура с рабочим `CONSTRAINTS.yaml` в основной ветке.
+    async fn make_repo_with_rules(dir: &Path, rules: &str) {
+        git_in(dir, &["init", "-b", "main"]).await;
+        std::fs::write(dir.join("README.md"), "base\n").expect("write");
+        std::fs::write(dir.join("CONSTRAINTS.yaml"), rules).expect("write rules");
+        git_in(dir, &["add", "."]).await;
+        git_in(dir, &["commit", "-m", "init"]).await;
+    }
+
+    /// Ветка `arch/<name>` с одним коммитом: `feature.md` заданного
+    /// содержимого (плюс правки `extra`: путь → содержимое, `None` — удалить).
+    async fn branch_with_commit(
+        cfg: &Config,
+        repo: &Path,
+        name: &str,
+        feature: &str,
+        extra: &[(&str, Option<&str>)],
+    ) {
+        let path = create(cfg, repo, name, None).await.expect("create");
+        std::fs::write(path.join("feature.md"), feature).expect("write");
+        for (rel, body) in extra {
+            let full = path.join(rel);
+            match body {
+                Some(body) => {
+                    if let Some(parent) = full.parent() {
+                        std::fs::create_dir_all(parent).expect("mkdir");
+                    }
+                    std::fs::write(&full, body).expect("write");
+                }
+                None => std::fs::remove_file(&full).expect("remove"),
+            }
+        }
+        git_in(&path, &["add", "."]).await;
+        git_in(&path, &["commit", "-m", "feature"]).await;
+    }
+
+    /// Тест (а): мерж без нарушений — приёмка OK, гейт подтверждает правила
+    /// основной ветки, работа перенесена, ветка и worktree убраны.
+    #[tokio::test]
+    async fn accept_post_merge_gate_green() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo_with_rules(&repo, RULES).await;
+        let cfg = test_cfg(tmp.path());
+        branch_with_commit(&cfg, &repo, "green-wt", "обычная фича\n", &[]).await;
+
+        let out = accept(&cfg, &repo, "green-wt", None)
+            .await
+            .expect("приёмка с зелёным гейтом");
+        assert_eq!(out.status, AcceptStatus::Ok);
+        assert_eq!(out.exit_code(), 0);
+        assert!(
+            out.text.contains("── post-merge гейт (ADR-024, шаг 5) ──"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("Правил: 2"), "счёт правил: {}", out.text);
+        assert!(out.text.contains("статус приёмки: OK"), "{}", out.text);
+        assert!(!out.text.contains("CONSTRAINTS-FAILED"), "{}", out.text);
+        assert!(repo.join("feature.md").is_file(), "мерж перенёс файл");
+        assert!(list(&repo).await.expect("list").is_empty(), "уборка прошла");
+    }
+
+    /// Тест (б): мерж вносит нарушение правила — `CONSTRAINTS-FAILED` и код 4,
+    /// но мерж НЕ откатывается (решение владельца, ADR-024).
+    #[tokio::test]
+    async fn accept_post_merge_gate_red_keeps_merge() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo_with_rules(&repo, RULES).await;
+        let cfg = test_cfg(tmp.path());
+        branch_with_commit(&cfg, &repo, "red-wt", "ЗАПРЕЩЕНО так делать\n", &[]).await;
+
+        let out = accept(&cfg, &repo, "red-wt", None)
+            .await
+            .expect("приёмка с красным гейтом — не ошибка");
+        assert_eq!(out.status, AcceptStatus::ConstraintsFailed);
+        assert!(out.constraints_failed());
+        assert_eq!(out.exit_code(), EXIT_CONSTRAINTS_FAILED);
+        assert!(
+            out.text.contains("статус приёмки: CONSTRAINTS-FAILED"),
+            "{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("no_forbidden_marker"),
+            "поимённо красные: {}",
+            out.text
+        );
+        // Мерж состоялся и НЕ откатывается — решение владельца.
+        assert!(repo.join("feature.md").is_file(), "мерж не откатывается");
+        assert!(out.text.contains("мерж НЕ откатывается"), "{}", out.text);
+        assert!(
+            out.text.contains(&out.pre_merge),
+            "точка отката: {}",
+            out.text
+        );
+        assert!(
+            out.pre_merge.len() == 40,
+            "pre-merge — sha: {}",
+            out.pre_merge
+        );
+    }
+
+    /// Тест (в): редакция правил в ветке расходится с основной — явное
+    /// предупреждение с обоими хешами и советом синхронизации.
+    #[tokio::test]
+    async fn accept_warns_on_divergent_rules_edition() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo_with_rules(&repo, RULES).await;
+        let cfg = test_cfg(tmp.path());
+        // Дельта правит редакцию правил (например, ослабляет правило).
+        let edited = RULES.replace(r#"pattern: "ЗАПРЕЩЕНО""#, r#"pattern: "НЕ БЫВАЕТ""#);
+        branch_with_commit(
+            &cfg,
+            &repo,
+            "rules-wt",
+            "фича\n",
+            &[("CONSTRAINTS.yaml", Some(&edited))],
+        )
+        .await;
+
+        let out = accept(&cfg, &repo, "rules-wt", None)
+            .await
+            .expect("приёмка с расхождением редакции");
+        assert!(
+            out.text.contains("редакция правил расходится"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("git merge main"), "совет: {}", out.text);
+        let hashes: Vec<&str> = out
+            .text
+            .split_whitespace()
+            .filter(|w| w.starts_with("sha256:"))
+            .collect();
+        assert_eq!(hashes.len(), 2, "оба хеша в предупреждении: {}", out.text);
+        assert_ne!(hashes[0], hashes[1]);
+        // Предупреждение не блокирует: мерж состоялся.
+        assert_eq!(out.status, AcceptStatus::Ok);
+        assert!(repo.join("feature.md").is_file());
+    }
+
+    /// Тест (г): правка исторического `evidence/*` — предупреждение со
+    /// списком; добавленные доказательства не предупреждаются.
+    #[tokio::test]
+    async fn accept_warns_on_modified_evidence() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = tmp.path().join("repo");
+        std::fs::create_dir(&repo).expect("mkdir");
+        make_repo_with_rules(&repo, RULES).await;
+        std::fs::create_dir_all(repo.join("evidence")).expect("mkdir evidence");
+        std::fs::write(repo.join("evidence/s1.json"), "{\"stage\":\"S1\"}\n").expect("write");
+        git_in(&repo, &["add", "."]).await;
+        git_in(&repo, &["commit", "-m", "evidence S1"]).await;
+        let cfg = test_cfg(tmp.path());
+        branch_with_commit(
+            &cfg,
+            &repo,
+            "ev-wt",
+            "фича\n",
+            &[
+                ("evidence/s1.json", Some("{\"stage\":\"S1\",\"rev\":2}\n")),
+                ("evidence/s2.json", Some("{\"stage\":\"S2\"}\n")),
+            ],
+        )
+        .await;
+
+        let out = accept(&cfg, &repo, "ev-wt", None)
+            .await
+            .expect("приёмка с правкой evidence");
+        assert!(
+            out.text.contains("правка исторических evidence"),
+            "{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("изменён evidence/s1.json"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("решения владельца"), "{}", out.text);
+        assert!(
+            !out.text.contains("evidence/s2.json"),
+            "добавленное доказательство не предупреждается: {}",
+            out.text
+        );
     }
 }

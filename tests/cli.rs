@@ -1071,3 +1071,91 @@ fn fleet_plan_propose_from_adrs_status_filter() {
         .stdout(contains("ADR-021"))
         .stdout(contains("ADR-020").not());
 }
+
+/// git в каталоге теста (фикстура worktree-приёмки).
+fn git_in_fixture(dir: &Path, args: &[&str]) {
+    let out = std::process::Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .output()
+        .expect("git запускается");
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+/// Код возврата `accept`, когда мерж состоялся, но post-merge гейт красный
+/// (литерал, а не константа библиотеки: контракт CLI пинится независимо от
+/// реализации — смена значения обязана ронять этот тест).
+const EXIT_CONSTRAINTS_FAILED: i32 = 4;
+
+/// Сквозной CLI-контракт ADR-024 (шаг 5): `worktree accept` прогоняет fitness-
+/// правила основной ветки после мержа и РАЗЛИЧАЕТ коды возврата — 0 при
+/// зелёном гейте и 4 («мерж состоялся, правила красные»), не смешивая
+/// последнее с 1 («приёмка отклонена, основная ветка не тронута»).
+#[test]
+fn worktree_accept_post_merge_gate_exit_codes() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let repo = tmp.path().join("repo");
+    std::fs::create_dir_all(&repo).expect("repo");
+    git_in_fixture(&repo, &["init", "-q", "-b", "main"]);
+    std::fs::write(repo.join("README.md"), "база\n").expect("write");
+    // Правило основной ветки: маркер в корневых *.md — нарушение.
+    std::fs::write(
+        repo.join("CONSTRAINTS.yaml"),
+        r#"rules:
+  - id: C-1
+    name: no_forbidden_marker
+    type: must_not_contain
+    glob: "*.md"
+    pattern: "ЗАПРЕЩЕНО"
+"#,
+    )
+    .expect("write rules");
+    git_in_fixture(&repo, &["add", "-A"]);
+    git_in_fixture(&repo, &["commit", "-qm", "base"]);
+    for (name, body) in [("ok", "обычная фича\n"), ("bad", "ЗАПРЕЩЕНО так делать\n")]
+    {
+        git_in_fixture(
+            &repo,
+            &["checkout", "-q", "-b", &format!("arch/{name}"), "main"],
+        );
+        std::fs::write(repo.join(format!("feature-{name}.md")), body).expect("write");
+        git_in_fixture(&repo, &["add", "-A"]);
+        git_in_fixture(&repo, &["commit", "-qm", "feature"]);
+        git_in_fixture(&repo, &["checkout", "-q", "main"]);
+    }
+
+    // (а) зелёный: приёмка чистая, код 0.
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("worktree")
+        .arg("accept")
+        .arg("ok")
+        .arg("--repo")
+        .arg(repo.as_os_str());
+    cmd.assert()
+        .success()
+        .stdout(contains("── post-merge гейт (ADR-024, шаг 5) ──"))
+        .stdout(contains("статус приёмки: OK"));
+    assert!(repo.join("feature-ok.md").is_file(), "мерж выполнен");
+
+    // (б) красный: мерж состоялся, но код 4 и пометка CONSTRAINTS-FAILED.
+    let mut cmd = arch_cmd(tmp.path());
+    cmd.arg("worktree")
+        .arg("accept")
+        .arg("bad")
+        .arg("--repo")
+        .arg(repo.as_os_str());
+    cmd.assert()
+        .code(EXIT_CONSTRAINTS_FAILED)
+        .stdout(contains("статус приёмки: CONSTRAINTS-FAILED"))
+        .stdout(contains("no_forbidden_marker"))
+        .stdout(contains("мерж НЕ откатывается"));
+    assert!(
+        repo.join("feature-bad.md").is_file(),
+        "мерж не откатывается автоматически — решение владельца"
+    );
+}

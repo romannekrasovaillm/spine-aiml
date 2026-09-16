@@ -31,7 +31,9 @@
         --dataset datasets/cpt_corpus_v12r_8192_qwen25.npy \\
         --base-model Qwen/Qwen2.5-0.5B --pipeline laguna_pipeline_v8.py \\
         --seed 42 --stages cpt=done,sft=done,eval=pending \\
-        --image "$LAGUNA_IMAGE"
+        --image "$LAGUNA_IMAGE" \\
+        --run-version "tools/run_smoke.py@$(sha256sum tools/run_smoke.py | cut -c1-12)" \\
+        --dataset-extra sft=datasets/tok/sft_train_v12_8192_qwen25.npz
 """
 
 from __future__ import annotations
@@ -99,6 +101,35 @@ def parse_stages(spec: str) -> list[dict]:
     return stages
 
 
+def parse_extra(spec: str) -> tuple[str, str]:
+    """``NAME=PATH`` → (name, path) для дополнительно пиннуемого датасета."""
+    name, sep, path = spec.partition("=")
+    name, path = name.strip(), path.strip()
+    if not sep or not name or not path:
+        raise NotVerified(f"--dataset-extra: ожидается NAME=PATH, получено '{spec}'")
+    return name, path
+
+
+def parse_hyperparams(spec: str) -> tuple[str, object]:
+    """``NAME=VALUE`` → (имя, значение) для фактического гиперпараметра прогона.
+
+    AD-2 требует от манифеста **фактических** гиперпараметров, а не пересказа
+    чужого манифеста: у пайплайна в его собственном ``run_manifest.json``
+    ``resync_every`` записан как 25, тогда как RL-петля работает с 10 (ADR-010).
+    Поэтому значения сюда передаёт тот, кто их измерил или прочитал в коде, и
+    вместе с ними — источник (``--hyperparams-source``).
+    """
+    name, sep, raw = spec.partition("=")
+    name, raw = name.strip(), raw.strip()
+    if not sep or not name:
+        raise NotVerified(f"--hyperparams: ожидается NAME=VALUE, получено '{spec}'")
+    try:  # числа/списки/булевы — как JSON; иначе строка как есть
+        value: object = json.loads(raw)
+    except json.JSONDecodeError:
+        value = raw
+    return name, value
+
+
 def git_arch_version(case_root: Path) -> str | None:
     """Версия архитектурной базы: коммит кейса (если он в git)."""
     try:
@@ -120,6 +151,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seed", type=int, required=True, help="сид прогона")
     ap.add_argument("--stages", required=True,
                     help="стадии: 'cpt=done,sft=done,eval=pending'")
+    ap.add_argument("--run-version", default=None,
+                    help="версия прогона: раннер стадий (SPEC §1a — в манифесте "
+                         "обе версии: pipeline_version и run_version)")
+    ap.add_argument("--dataset-extra", action="append", default=[], metavar="NAME=PATH",
+                    help="дополнительно пиннуемый датасет прогона (повторяемый); "
+                         "C-012 пиннит основной --dataset, остальные — тем же хешем")
+    ap.add_argument("--hyperparams", action="append", default=[], metavar="NAME=VALUE",
+                    help="фактический гиперпараметр прогона (повторяемый): AD-2 требует "
+                         "гиперпараметры по факту, а не пересказ манифеста пайплайна")
+    ap.add_argument("--hyperparams-source", default=None,
+                    help="откуда взяты гиперпараметры (напр. 'код пайплайна, регулярки')")
     ap.add_argument("--image", default=os.environ.get("LAGUNA_IMAGE"),
                     help="версия образа окружения ($LAGUNA_IMAGE)")
     ap.add_argument("--relative-to", default=None,
@@ -140,6 +182,11 @@ def main(argv: list[str] | None = None) -> int:
             raise NotVerified("не задан --image и пуст $LAGUNA_IMAGE: версия образа "
                               "не угадывается")
         stages = parse_stages(args.stages)
+        extras = [parse_extra(spec) for spec in args.dataset_extra]
+        hyperparams = dict(parse_hyperparams(spec) for spec in args.hyperparams)
+        for name, path in extras:
+            if not Path(path).is_file():
+                raise NotVerified(f"--dataset-extra {name}: файл не найден: {path}")
     except NotVerified as e:
         print(f"NOT-VERIFIED: {e}", file=sys.stderr)
         return EXIT_NOT_VERIFIED
@@ -165,6 +212,15 @@ def main(argv: list[str] | None = None) -> int:
         "arch_base_version": arch,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+    if args.run_version:
+        manifest["run_version"] = args.run_version
+    for name, path in extras:
+        manifest.setdefault("datasets_extra", {})[name] = {
+            "path": rel(Path(path), case_root), "sha256": sha256_file(Path(path))}
+    if hyperparams:
+        manifest["hyperparameters"] = hyperparams
+        if args.hyperparams_source:
+            manifest["hyperparameters_source"] = args.hyperparams_source
 
     mf = run_dir / MANIFEST_NAME
     for st in stages:
@@ -211,10 +267,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"записан: {mf}")
         print(f"  dataset_sha256:    {ds_sha}")
         print(f"  pipeline_version:  {manifest['pipeline_version']}")
+        if args.run_version:
+            print(f"  run_version:       {manifest['run_version']}")
         print(f"  image:             {manifest['image']}")
         print(f"  seed:              {manifest['seed']}")
         print("  stages:            "
               + ", ".join(f"{s['name']}={s['status']}" for s in stages))
+        if hyperparams:
+            print("  hyperparameters:   "
+                  + ", ".join(f"{k}={v}" for k, v in hyperparams.items())
+                  + (f"  ({args.hyperparams_source})" if args.hyperparams_source else ""))
         print(f"  pipeline_complete: {manifest['pipeline_complete']}")
     return EXIT_OK
 

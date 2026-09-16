@@ -531,7 +531,7 @@ budget_max_attempts = 0    # потолок суммарных попыток п
 [[gpus.local]]
 name = "gb10"            # DGX Spark, unified 128 ГБ, headless (отдельная машина)
 device = "gb10"
-ssh = "gb10-fast"        # Host-алиас в ~/.ssh/config (прямой 10GbE, 192.0.2.2)
+ssh = "gb10-fast"        # Host-алиас в ~/.ssh/config (прямой 10GbE, 10.55.0.2)
 
 [[gpus.local]]
 name = "rtx4080super"    # дискретная 16 ГБ (эта машина)

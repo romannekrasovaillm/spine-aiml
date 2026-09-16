@@ -166,7 +166,7 @@
       "rule": "AD-5 (pending evidence)",
       "exit": 0,
       "verdict": "gb10 not reachable — check skipped",
-      "note": "ssh gb10 (192.0.2.50:22) недоступен из этой сети; сенсоры не отработали, инвариант остаётся [PENDING-EVIDENCE]"
+      "note": "ssh gb10 (192.168.101.50:22) недоступен из этой сети; сенсоры не отработали, инвариант остаётся [PENDING-EVIDENCE]"
     }
   ],
   "leak_audit": {

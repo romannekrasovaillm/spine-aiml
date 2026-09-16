@@ -1,0 +1,1411 @@
+{
+  "stage": "S3a",
+  "date": "2026-09-14T14:57:28",
+  "purpose": "детерминизм-проба ADR-009: измерить, воспроизводится ли прогон по манифесту (тот же сид) и какова цена детерминированного режима",
+  "basis": [
+    "ADR-009 п.3 — проба вводится в S3: два прогона CPT по 20 шагов, один сид, детерминированный гейтовый профиль (use_deterministic_algorithms + CUBLAS_WORKSPACE_CONFIG)",
+    "ADR-009 п.4 — исход пробы меняет план (A5-drift), а не откладывается",
+    "ADR-001 — ось успеха и k-из-k; ADR-002 — семейство Qwen2.5-0.5B; ADR-007 п.5 — недоступность стенда это красный вердикт"
+  ],
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "seed": 42,
+    "steps": 20,
+    "max_len": 8192,
+    "batch_size": 1,
+    "max_samples": 9776,
+    "peak_lr_scale": 0.7,
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "attn": "flex",
+    "cpt_data": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+    "tok_cache": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+    "gen_eval_every": 10,
+    "entropy": {
+      "mode": "on",
+      "every": 1,
+      "pos_stride": 16
+    },
+    "deterministic_runs": [
+      "a",
+      "b"
+    ],
+    "nondeterministic_runs": [
+      "c"
+    ],
+    "launch": "/home/user/gb10-shared/nvrm-storm/safe_start.sh -d 60 -i 5 -- docker run (absorbер включён)",
+    "same_as_s2": "конфиг совпадает со смоуком S2, кроме числа шагов (20 против 50) и каталогов чекпойнтов: иначе цена мерила бы другую стадию"
+  },
+  "stand": {
+    "host": "gb10-fast",
+    "run_dir": "/home/user/experiments/det-probe-compact-20260914-1450",
+    "case_run_dir": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/det-probe-20260914-1450"
+  },
+  "preconditions": {
+    "checks": [
+      {
+        "name": "host",
+        "ok": true,
+        "detail": "gb10-fast → spark-44c3"
+      },
+      {
+        "name": "owner",
+        "ok": true,
+        "exit": 0,
+        "report": {
+          "tool": "check_resource_owner.sh",
+          "host": "gb10-fast",
+          "mode": "ssh",
+          "stage": "cpt",
+          "threshold_gb": 35,
+          "mem_available_gb": 78.6,
+          "mem_total_gb": 121.7,
+          "lock_present": false,
+          "watchdog_executable": false,
+          "cron_readable": true,
+          "cron_watchdog_lines": 0,
+          "cron_disabled_lines": 7,
+          "n_loads": 0,
+          "load_tags": "",
+          "owner_ok": true,
+          "memory_ok": true,
+          "loads_ok": true,
+          "warnings": [
+            "в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка"
+          ],
+          "verdict": "CAN-START",
+          "exit": 0
+        },
+        "detail": "AD-9 OK: CAN-START",
+        "output": [
+          "",
+          "  · ПРЕДУПРЕЖДЕНИЕ: в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка",
+          "",
+          "ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен связкой «сторож неисполняем + нет строки крона» (ADR-012 п.3); память: доступно 78.6 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+          "AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+          "{\"tool\": \"check_resource_owner.sh\", \"host\": \"gb10-fast\", \"mode\": \"ssh\", \"stage\": \"cpt\", \"threshold_gb\": 35, \"mem_available_gb\": 78.6, \"mem_total_gb\": 121.7, \"lock_present\": false, \"watchdog_executable\": false, \"cron_readable\": true, \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [\"в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка\"], \"verdict\": \"CAN-START\", \"exit\": 0}"
+        ]
+      },
+      {
+        "name": "memory",
+        "ok": true,
+        "detail": "доступно 78.58 ГБ из 121.7 ГБ (порог 35); free -g: 121 / 43 / 9",
+        "mem_available_gb": 78.58,
+        "threshold_gb": 35,
+        "free_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          43           9           1          80          78\nПодкачка:         31           0          31\n"
+      },
+      {
+        "name": "containers",
+        "ok": true,
+        "detail": "llm-platform-* живы: llm-platform-gateway, llm-platform-ollama, llm-platform-runtime, llm-platform-supervisor",
+        "platform": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "containers": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "smoke_running": []
+      },
+      {
+        "name": "serialization",
+        "ok": true,
+        "strict": true,
+        "exit": 0,
+        "detail": "AD-5 OK: одновременных нагрузок нет",
+        "output": [
+          "    3061661, /opt/llama/llama-server, 170 MiB",
+          "    3061798, /opt/llama/llama-server, 28119 MiB",
+          "ВНИМАНИЕ: на GPU больше одного процесса — сверь с сенсором процессов",
+          "",
+          "  · CUDA-процессов 2: параллельная нагрузка возможна, но не подтверждена",
+          "  · tmux недоступен/нет сервера сессий — сенсор tmux пропущен",
+          "",
+          "GB10 SERIALIZATION OK: одновременных нагрузок не обнаружено (сенсоров: 2)"
+        ]
+      },
+      {
+        "name": "image",
+        "ok": true,
+        "detail": "nvcr.io/nvidia/pytorch:26.07-py3-vllm: есть"
+      },
+      {
+        "name": "data",
+        "ok": true,
+        "detail": "кэши и входы на месте; имя CPT-датасета (`datasets/cpt_corpus_v12r.txt`) на стенде отсутствует — это ожидаемо: читается преток-кэш, а путь нужен только для его разрешения и для lineage-хеша (как в run_v12_ladder.sh)",
+        "missing": [],
+        "notes": [
+          "имя CPT-датасета (`datasets/cpt_corpus_v12r.txt`) на стенде отсутствует — это ожидаемо: читается преток-кэш, а путь нужен только для его разрешения и для lineage-хеша (как в run_v12_ladder.sh)"
+        ],
+        "caches": [
+          "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+          "datasets/tok/sft_train_v12_8192_qwen25.npz",
+          "datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy"
+        ]
+      }
+    ],
+    "ok": true,
+    "dmesg_before": {
+      "nvrm_xid": 0,
+      "oom": 0
+    },
+    "resource_owner": {
+      "name": "owner",
+      "ok": true,
+      "exit": 0,
+      "report": {
+        "tool": "check_resource_owner.sh",
+        "host": "gb10-fast",
+        "mode": "ssh",
+        "stage": "cpt",
+        "threshold_gb": 35,
+        "mem_available_gb": 78.6,
+        "mem_total_gb": 121.7,
+        "lock_present": false,
+        "watchdog_executable": false,
+        "cron_readable": true,
+        "cron_watchdog_lines": 0,
+        "cron_disabled_lines": 7,
+        "n_loads": 0,
+        "load_tags": "",
+        "owner_ok": true,
+        "memory_ok": true,
+        "loads_ok": true,
+        "warnings": [
+          "в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка"
+        ],
+        "verdict": "CAN-START",
+        "exit": 0
+      },
+      "detail": "AD-9 OK: CAN-START",
+      "output": [
+        "",
+        "  · ПРЕДУПРЕЖДЕНИЕ: в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка",
+        "",
+        "ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен связкой «сторож неисполняем + нет строки крона» (ADR-012 п.3); память: доступно 78.6 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 0 ≤ 1",
+        "AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён.",
+        "{\"tool\": \"check_resource_owner.sh\", \"host\": \"gb10-fast\", \"mode\": \"ssh\", \"stage\": \"cpt\", \"threshold_gb\": 35, \"mem_available_gb\": 78.6, \"mem_total_gb\": 121.7, \"lock_present\": false, \"watchdog_executable\": false, \"cron_readable\": true, \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [\"в кроне активны строки автозапуска автономного контура (шаг «г» паузы, ADR-012 п.2): @reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 & — снятие строк решает владелец (R4+); блокирующий критерий AD-9 — сторож и его строка\"], \"verdict\": \"CAN-START\", \"exit\": 0}"
+      ]
+    }
+  },
+  "runs": {
+    "a": {
+      "exp_name": "det-probe-a-20260914-1450",
+      "deterministic": true,
+      "stage_result": {
+        "run": "a",
+        "exp_name": "det-probe-a-20260914-1450",
+        "det": true,
+        "exit": 0,
+        "ssh_exit": 0,
+        "wall_seconds": 155.8,
+        "script_sha256": "a8e2113d34e510df81aab05554caf1909e2de845bfd07233b5d279796f2ca0da",
+        "checkpoint_sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+        "checkpoint_bytes": 2963141069,
+        "checkpoint_sha256_source": "sha256sum на стенде по финальному чекпойнту (файл ~3 ГБ в кейс не копируется, AD-4)",
+        "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/det-probe-20260914-1450/a/logs/cpt.log",
+        "ok": true,
+        "incidents_in_log": [],
+        "fetched_probe_cpt.jsonl": 5804,
+        "fetched_mem_cpt.jsonl": 7167,
+        "fetched_probes_cpt.json": 11022,
+        "fetched_general_eval_history.jsonl": 132,
+        "fetched_pipeline_run_manifest.json": 886
+      },
+      "summary": {
+        "steps": 20,
+        "tokens_total": 163840,
+        "train_seconds": 84.65,
+        "step_intervals_used": 18,
+        "step_intervals_skipped_eval": 1,
+        "wall_seconds": null,
+        "tok_per_s": 1741.9,
+        "step_seconds_mean": 4.703,
+        "step_seconds_min": 4.468,
+        "step_seconds_max": 6.004,
+        "forward_seconds_mean": 0.2638,
+        "loss_first": 2.3646,
+        "loss_last": 4.0626,
+        "loss_first_step": 2.0989,
+        "loss_last_step": 3.2742,
+        "loss_min": 2.0989,
+        "loss_max": 11.7861,
+        "loss_argmin_step": 0,
+        "loss_slope_per_step": -0.022389,
+        "loss_decreasing_head_to_tail": false,
+        "loss_decreasing_after_peak": true,
+        "tokens_per_step": [
+          8192
+        ],
+        "entropy": {
+          "points": 20,
+          "mean": 3.4158,
+          "first": 2.1929,
+          "last": 3.1111,
+          "min": 1.6002,
+          "max": 4.5861,
+          "corridor": [
+            1.0,
+            2.0
+          ],
+          "in_corridor": false
+        },
+        "skipped_forwards": 1928,
+        "eval_seconds": 23.502,
+        "probe_seconds": 137.168,
+        "torch_peak_allocated_gb": 19.47,
+        "torch_peak_reserved_gb": 25.63,
+        "run": "a",
+        "loss_series": [
+          2.098926,
+          2.630323,
+          3.664598,
+          5.212391,
+          4.729411,
+          5.254248,
+          4.710885,
+          11.786132,
+          5.098365,
+          5.631826,
+          4.211971,
+          3.489221,
+          4.01052,
+          3.387287,
+          2.866411,
+          2.821905,
+          5.369296,
+          3.995684,
+          4.850881,
+          3.274235
+        ],
+        "step_seconds_series": [
+          null,
+          6.0037,
+          5.9926,
+          4.6314,
+          4.5291,
+          4.5345,
+          4.4677,
+          4.5066,
+          4.4983,
+          4.5412,
+          4.4923,
+          5.258,
+          4.8589,
+          4.4814,
+          4.553,
+          4.4824,
+          4.6237,
+          4.4707,
+          4.4928,
+          4.4929
+        ],
+        "deterministic_mode": {
+          "requested": true,
+          "cublas_workspace_config": ":4096:8",
+          "cublas_workspace_config_source": "env запуска (docker -e)",
+          "use_deterministic_algorithms": true,
+          "cudnn_deterministic": true,
+          "cudnn_benchmark": false,
+          "cuda_matmul_allow_tf32": true,
+          "cudnn_allow_tf32": true,
+          "cuda_available": true,
+          "torch_version": "2.11.0+cu130",
+          "seeding": "пайплайн (--seed); обвязка сид не ставит"
+        },
+        "memory": {
+          "samples": 22,
+          "mem_total_gb": 121.7,
+          "peak_used_gb": 68.73,
+          "min_available_gb": 52.96,
+          "used_first_gb": 39.19,
+          "used_last_gb": 68.73,
+          "container_peak_gb": 2.34,
+          "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+          "container_peak_note": "память контейнера по cgroup (2.34 ГБ) много меньше прироста по хосту (29.54 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту"
+        },
+        "incidents_in_log": []
+      }
+    },
+    "b": {
+      "exp_name": "det-probe-b-20260914-1450",
+      "deterministic": true,
+      "stage_result": {
+        "run": "b",
+        "exp_name": "det-probe-b-20260914-1450",
+        "det": true,
+        "exit": 0,
+        "ssh_exit": 0,
+        "wall_seconds": 155.7,
+        "script_sha256": "67ebb6d2f77efa7f32ba16b264035ca8b3f0a2a96436c924cbae7c66d08c7d99",
+        "checkpoint_sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+        "checkpoint_bytes": 2963141069,
+        "checkpoint_sha256_source": "sha256sum на стенде по финальному чекпойнту (файл ~3 ГБ в кейс не копируется, AD-4)",
+        "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/det-probe-20260914-1450/b/logs/cpt.log",
+        "ok": true,
+        "incidents_in_log": [],
+        "fetched_probe_cpt.jsonl": 5804,
+        "fetched_mem_cpt.jsonl": 7157,
+        "fetched_probes_cpt.json": 11022,
+        "fetched_general_eval_history.jsonl": 132,
+        "fetched_pipeline_run_manifest.json": 886
+      },
+      "summary": {
+        "steps": 20,
+        "tokens_total": 163840,
+        "train_seconds": 86.04,
+        "step_intervals_used": 18,
+        "step_intervals_skipped_eval": 1,
+        "wall_seconds": null,
+        "tok_per_s": 1713.8,
+        "step_seconds_mean": 4.78,
+        "step_seconds_min": 4.498,
+        "step_seconds_max": 6.976,
+        "forward_seconds_mean": 0.2687,
+        "loss_first": 2.3646,
+        "loss_last": 4.0626,
+        "loss_first_step": 2.0989,
+        "loss_last_step": 3.2742,
+        "loss_min": 2.0989,
+        "loss_max": 11.7861,
+        "loss_argmin_step": 0,
+        "loss_slope_per_step": -0.022389,
+        "loss_decreasing_head_to_tail": false,
+        "loss_decreasing_after_peak": true,
+        "tokens_per_step": [
+          8192
+        ],
+        "entropy": {
+          "points": 20,
+          "mean": 3.4158,
+          "first": 2.1929,
+          "last": 3.1111,
+          "min": 1.6002,
+          "max": 4.5861,
+          "corridor": [
+            1.0,
+            2.0
+          ],
+          "in_corridor": false
+        },
+        "skipped_forwards": 1928,
+        "eval_seconds": 24.028,
+        "probe_seconds": 140.846,
+        "torch_peak_allocated_gb": 19.47,
+        "torch_peak_reserved_gb": 25.63,
+        "run": "b",
+        "loss_series": [
+          2.098926,
+          2.630323,
+          3.664598,
+          5.212391,
+          4.729411,
+          5.254248,
+          4.710885,
+          11.786132,
+          5.098365,
+          5.631826,
+          4.211971,
+          3.489221,
+          4.01052,
+          3.387287,
+          2.866411,
+          2.821905,
+          5.369296,
+          3.995684,
+          4.850881,
+          3.274235
+        ],
+        "step_seconds_series": [
+          null,
+          6.9762,
+          5.2732,
+          4.7004,
+          4.5709,
+          4.498,
+          4.6367,
+          4.5979,
+          4.6591,
+          4.613,
+          4.6191,
+          5.7118,
+          4.9123,
+          4.5229,
+          4.5887,
+          4.5198,
+          4.5254,
+          4.5315,
+          4.7532,
+          4.5401
+        ],
+        "deterministic_mode": {
+          "requested": true,
+          "cublas_workspace_config": ":4096:8",
+          "cublas_workspace_config_source": "env запуска (docker -e)",
+          "use_deterministic_algorithms": true,
+          "cudnn_deterministic": true,
+          "cudnn_benchmark": false,
+          "cuda_matmul_allow_tf32": true,
+          "cudnn_allow_tf32": true,
+          "cuda_available": true,
+          "torch_version": "2.11.0+cu130",
+          "seeding": "пайплайн (--seed); обвязка сид не ставит"
+        },
+        "memory": {
+          "samples": 22,
+          "mem_total_gb": 121.7,
+          "peak_used_gb": 68.73,
+          "min_available_gb": 52.96,
+          "used_first_gb": 38.83,
+          "used_last_gb": 68.73,
+          "container_peak_gb": 2.36,
+          "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+          "container_peak_note": "память контейнера по cgroup (2.36 ГБ) много меньше прироста по хосту (29.9 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту"
+        },
+        "incidents_in_log": []
+      }
+    },
+    "c": {
+      "exp_name": "det-probe-c-20260914-1450",
+      "deterministic": false,
+      "stage_result": {
+        "run": "c",
+        "exp_name": "det-probe-c-20260914-1450",
+        "det": false,
+        "exit": 0,
+        "ssh_exit": 0,
+        "wall_seconds": 99.4,
+        "script_sha256": "2b3cf0107501760044cd1422b154c6e6085d89957e50ff9059228bdc3796591e",
+        "checkpoint_sha256": "e5d5437d0579934484ec48e31bf57ee391d8e66f8a88f6002c3e49bee2ecb86f",
+        "checkpoint_bytes": 2963141069,
+        "checkpoint_sha256_source": "sha256sum на стенде по финальному чекпойнту (файл ~3 ГБ в кейс не копируется, AD-4)",
+        "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/det-probe-20260914-1450/c/logs/cpt.log",
+        "ok": true,
+        "incidents_in_log": [],
+        "fetched_probe_cpt.jsonl": 5183,
+        "fetched_mem_cpt.jsonl": 4547,
+        "fetched_probes_cpt.json": 9853,
+        "fetched_general_eval_history.jsonl": 132,
+        "fetched_pipeline_run_manifest.json": 886
+      },
+      "summary": {
+        "steps": 20,
+        "tokens_total": 163840,
+        "train_seconds": 47.74,
+        "step_intervals_used": 18,
+        "step_intervals_skipped_eval": 1,
+        "wall_seconds": null,
+        "tok_per_s": 3088.5,
+        "step_seconds_mean": 2.652,
+        "step_seconds_min": 2.397,
+        "step_seconds_max": 5.171,
+        "forward_seconds_mean": 0.1842,
+        "loss_first": 2.3646,
+        "loss_last": 4.0246,
+        "loss_first_step": 2.0989,
+        "loss_last_step": 3.3423,
+        "loss_min": 2.0989,
+        "loss_max": 5.5185,
+        "loss_argmin_step": 0,
+        "loss_slope_per_step": 0.000821,
+        "loss_decreasing_head_to_tail": false,
+        "loss_decreasing_after_peak": true,
+        "tokens_per_step": [
+          8192
+        ],
+        "entropy": {
+          "points": 20,
+          "mean": 3.5494,
+          "first": 2.1929,
+          "last": 3.5371,
+          "min": 2.1929,
+          "max": 4.8825,
+          "corridor": [
+            1.0,
+            2.0
+          ],
+          "in_corridor": false
+        },
+        "skipped_forwards": 1928,
+        "eval_seconds": 10.949,
+        "probe_seconds": 84.353,
+        "torch_peak_allocated_gb": 19.42,
+        "torch_peak_reserved_gb": 25.61,
+        "run": "c",
+        "loss_series": [
+          2.098926,
+          2.630323,
+          3.662894,
+          5.207493,
+          4.753851,
+          5.518495,
+          4.081708,
+          4.340346,
+          4.345198,
+          5.471701,
+          3.991859,
+          3.482098,
+          4.114594,
+          3.096953,
+          2.725296,
+          2.678818,
+          4.971257,
+          4.015663,
+          4.706979,
+          3.342294
+        ],
+        "step_seconds_series": [
+          null,
+          5.1709,
+          2.7482,
+          2.794,
+          2.4116,
+          2.4068,
+          2.4601,
+          2.4004,
+          2.5185,
+          2.416,
+          2.4501,
+          3.1861,
+          2.9099,
+          2.4137,
+          2.5133,
+          2.4464,
+          2.4156,
+          2.4653,
+          2.3965,
+          2.4055
+        ],
+        "deterministic_mode": {
+          "requested": false,
+          "reason": "--deterministic off (режим контура по умолчанию)"
+        },
+        "memory": {
+          "samples": 14,
+          "mem_total_gb": 121.7,
+          "peak_used_gb": 68.63,
+          "min_available_gb": 53.05,
+          "used_first_gb": 38.95,
+          "used_last_gb": 68.63,
+          "container_peak_gb": 2.34,
+          "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+          "container_peak_note": "память контейнера по cgroup (2.34 ГБ) много меньше прироста по хосту (29.68 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту"
+        },
+        "incidents_in_log": []
+      }
+    }
+  },
+  "measurements": {
+    "loss_by_step": {
+      "a": [
+        2.098926,
+        2.630323,
+        3.664598,
+        5.212391,
+        4.729411,
+        5.254248,
+        4.710885,
+        11.786132,
+        5.098365,
+        5.631826,
+        4.211971,
+        3.489221,
+        4.01052,
+        3.387287,
+        2.866411,
+        2.821905,
+        5.369296,
+        3.995684,
+        4.850881,
+        3.274235
+      ],
+      "b": [
+        2.098926,
+        2.630323,
+        3.664598,
+        5.212391,
+        4.729411,
+        5.254248,
+        4.710885,
+        11.786132,
+        5.098365,
+        5.631826,
+        4.211971,
+        3.489221,
+        4.01052,
+        3.387287,
+        2.866411,
+        2.821905,
+        5.369296,
+        3.995684,
+        4.850881,
+        3.274235
+      ],
+      "c": [
+        2.098926,
+        2.630323,
+        3.662894,
+        5.207493,
+        4.753851,
+        5.518495,
+        4.081708,
+        4.340346,
+        4.345198,
+        5.471701,
+        3.991859,
+        3.482098,
+        4.114594,
+        3.096953,
+        2.725296,
+        2.678818,
+        4.971257,
+        4.015663,
+        4.706979,
+        3.342294
+      ]
+    },
+    "loss_divergence": {
+      "a_vs_b": {
+        "a": "a",
+        "b": "b",
+        "steps_compared": 20,
+        "steps_a": 20,
+        "steps_b": 20,
+        "loss_first_a": 2.098926,
+        "loss_first_b": 2.098926,
+        "loss_last_a": 3.274235,
+        "loss_last_b": 3.274235,
+        "precision": "loss записан с точностью 1e-6 (обвязка tools/smoke_probe.py)",
+        "identical": true,
+        "divergent_steps": 0,
+        "first_divergent_step": null,
+        "max_abs_diff": 0.0,
+        "max_abs_diff_step": 0,
+        "max_rel_diff": 0.0,
+        "verdict": "BIT-IDENTICAL"
+      },
+      "a_vs_c": {
+        "a": "a",
+        "b": "c",
+        "steps_compared": 20,
+        "steps_a": 20,
+        "steps_b": 20,
+        "loss_first_a": 2.098926,
+        "loss_first_b": 2.098926,
+        "loss_last_a": 3.274235,
+        "loss_last_b": 3.342294,
+        "precision": "loss записан с точностью 1e-6 (обвязка tools/smoke_probe.py)",
+        "identical": false,
+        "divergent_steps": 18,
+        "first_divergent_step": 2,
+        "first_divergence": {
+          "step": 2,
+          "a": 3.664598,
+          "b": 3.662894,
+          "abs": 0.001704,
+          "rel": 0.000465
+        },
+        "max_abs_diff": 7.445786,
+        "max_abs_diff_step": 7,
+        "max_rel_diff": 0.631741,
+        "verdict": "DIVERGED"
+      },
+      "b_vs_c": {
+        "a": "b",
+        "b": "c",
+        "steps_compared": 20,
+        "steps_a": 20,
+        "steps_b": 20,
+        "loss_first_a": 2.098926,
+        "loss_first_b": 2.098926,
+        "loss_last_a": 3.274235,
+        "loss_last_b": 3.342294,
+        "precision": "loss записан с точностью 1e-6 (обвязка tools/smoke_probe.py)",
+        "identical": false,
+        "divergent_steps": 18,
+        "first_divergent_step": 2,
+        "first_divergence": {
+          "step": 2,
+          "a": 3.664598,
+          "b": 3.662894,
+          "abs": 0.001704,
+          "rel": 0.000465
+        },
+        "max_abs_diff": 7.445786,
+        "max_abs_diff_step": 7,
+        "max_rel_diff": 0.631741,
+        "verdict": "DIVERGED"
+      }
+    },
+    "step_seconds": {
+      "a": 4.703,
+      "b": 4.78,
+      "c": 2.652
+    },
+    "tok_per_s": {
+      "a": 1741.9,
+      "b": 1713.8,
+      "c": 3088.5
+    },
+    "determinism_price": {
+      "vs_s2": {
+        "deterministic_step_seconds": 4.7415,
+        "base_label": "S2 (тот же конфиг, 50 шагов CPT)",
+        "base_step_seconds": 2.569,
+        "percent": 84.57,
+        "absolute_seconds": 2.1725
+      },
+      "vs_run_c": {
+        "deterministic_step_seconds": 4.7415,
+        "base_label": "прогон C того же дня (без режима)",
+        "base_step_seconds": 2.652,
+        "percent": 78.79,
+        "absolute_seconds": 2.0895
+      },
+      "deterministic_step_seconds_mean": 4.7415,
+      "definition": "время шага — интервал между началами обучающих forward'ов (тот же замер, что в S2: eval-интервалы исключены, энтропия внутри)"
+    },
+    "price_calendar": {
+      "basis": "ADR-008 п.2: CPT 9776 шагов × 2.569 с = 7.0 ч/сид, CPT+SFT на 3 сида ≈ 8.5 сут; ADR-011: полный цикл ≈ 10.0–10.7 сут",
+      "measured_stage": "CPT (20 шагов); SFT/RL пробой не покрыты",
+      "factor": 1.7879,
+      "cpt_hours_per_seed_nondet": 7.0,
+      "cpt_hours_per_seed_det": 12.5,
+      "cycle_days_if_det_only_cpt": [
+        10.7,
+        11.4
+      ],
+      "cycle_days_if_same_price_all_stages": [
+        17.9,
+        19.1
+      ],
+      "note": "пересчёт измеренного процента, а не замер календаря; второй блок помечен отдельно, потому что цена на SFT/RL не измерялась"
+    },
+    "divergence_onset_cross_check": {
+      "s2_observation": "ADR-009 Context: при одном сиде loss шага 0 совпадал бит-в-бит, с шага ~2 траектории расходились (наблюдение; артефакты удалены)",
+      "s2_observed_onset_step": 2,
+      "measured_first_divergent_step": 2,
+      "identical_head_steps": 2,
+      "match": true,
+      "note": "наблюдение S2 теперь либо подтверждено замером, либо опровергнуто; проба не «ссылается» на него как на доказательство"
+    },
+    "checkpoint_sha256": {
+      "a": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+      "b": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+      "c": "e5d5437d0579934484ec48e31bf57ee391d8e66f8a88f6002c3e49bee2ecb86f"
+    },
+    "checkpoint_bytes": {
+      "a": 2963141069,
+      "b": 2963141069,
+      "c": 2963141069
+    },
+    "checkpoint_compare": {
+      "pairs": {
+        "a_vs_b": {
+          "exit": 0,
+          "report": {
+            "a": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/a/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada"
+            },
+            "b": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/b/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada"
+            },
+            "file_sha256_equal": true,
+            "reader": {
+              "a": "weights_only=True",
+              "b": "weights_only=True"
+            },
+            "reader_used": "weights_only=True",
+            "tensors_compared": 1463,
+            "tensors_identical": 1463,
+            "keys_only_in_a": [],
+            "keys_only_in_b": [],
+            "elements_compared": 1617283490,
+            "elements_differing": 0,
+            "max_abs_diff": null,
+            "first_differing": [],
+            "identical": true,
+            "verdict": "IDENTICAL",
+            "identity_kind": "побитовое совпадение всех тензоров"
+          },
+          "stderr_tail": []
+        },
+        "a_vs_c": {
+          "exit": 1,
+          "report": {
+            "a": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/a/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada"
+            },
+            "b": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/c/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "e5d5437d0579934484ec48e31bf57ee391d8e66f8a88f6002c3e49bee2ecb86f"
+            },
+            "file_sha256_equal": false,
+            "reader": {
+              "a": "weights_only=True",
+              "b": "weights_only=True"
+            },
+            "reader_used": "weights_only=True",
+            "tensors_compared": 1463,
+            "tensors_identical": 614,
+            "keys_only_in_a": [],
+            "keys_only_in_b": [],
+            "elements_compared": 1617283490,
+            "elements_differing": 1562219651,
+            "max_abs_diff": 0.02515411376953125,
+            "first_differing": [
+              {
+                "key": "model.lm_head.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 135897216,
+                "bytes_differing": 130921702,
+                "max_abs_diff": 0.005126953125,
+                "elements_differing": 122464121
+              },
+              {
+                "key": "model.model.embed_tokens.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 135897216,
+                "bytes_differing": 130921702,
+                "max_abs_diff": 0.005126953125,
+                "elements_differing": 122464121
+              },
+              {
+                "key": "model.model.layers.0.input_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 579,
+                "max_abs_diff": 0.003173828125,
+                "elements_differing": 567
+              },
+              {
+                "key": "model.model.layers.0.mlp.down_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4510012,
+                "max_abs_diff": 0.004638671875,
+                "elements_differing": 4121784
+              },
+              {
+                "key": "model.model.layers.0.mlp.gate_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4346778,
+                "max_abs_diff": 0.004638671875,
+                "elements_differing": 4018107
+              },
+              {
+                "key": "model.model.layers.0.mlp.up_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4484231,
+                "max_abs_diff": 0.0048828125,
+                "elements_differing": 4116187
+              },
+              {
+                "key": "model.model.layers.0.self_attn.k_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 12,
+                "max_abs_diff": 0.001708984375,
+                "elements_differing": 12
+              },
+              {
+                "key": "model.model.layers.0.self_attn.k_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 87667,
+                "max_abs_diff": 0.00439453125,
+                "elements_differing": 81963
+              },
+              {
+                "key": "model.model.layers.0.self_attn.o_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 802816,
+                "bytes_differing": 842854,
+                "max_abs_diff": 0.0037841796875,
+                "elements_differing": 764384
+              },
+              {
+                "key": "model.model.layers.0.self_attn.q_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 98,
+                "max_abs_diff": 0.0028076171875,
+                "elements_differing": 91
+              },
+              {
+                "key": "model.model.layers.0.self_attn.q_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 802816,
+                "bytes_differing": 653930,
+                "max_abs_diff": 0.0048828125,
+                "elements_differing": 603377
+              },
+              {
+                "key": "model.model.layers.0.self_attn.v_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 134,
+                "max_abs_diff": 0.0008544921875,
+                "elements_differing": 123
+              },
+              {
+                "key": "model.model.layers.0.self_attn.v_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 125765,
+                "max_abs_diff": 0.0035858154296875,
+                "elements_differing": 111002
+              },
+              {
+                "key": "model.model.layers.1.input_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 3,
+                "max_abs_diff": 0.000732421875,
+                "elements_differing": 3
+              },
+              {
+                "key": "model.model.layers.1.mlp.down_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4528563,
+                "max_abs_diff": 0.00469970703125,
+                "elements_differing": 4133653
+              },
+              {
+                "key": "model.model.layers.1.mlp.gate_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4337839,
+                "max_abs_diff": 0.0045166015625,
+                "elements_differing": 4014741
+              },
+              {
+                "key": "model.model.layers.1.mlp.up_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4528426,
+                "max_abs_diff": 0.0050048828125,
+                "elements_differing": 4137009
+              },
+              {
+                "key": "model.model.layers.1.post_attention_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 1,
+                "max_abs_diff": 0.000774383544921875,
+                "elements_differing": 1
+              },
+              {
+                "key": "model.model.layers.1.self_attn.k_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 7,
+                "max_abs_diff": 0.001708984375,
+                "elements_differing": 7
+              },
+              {
+                "key": "model.model.layers.1.self_attn.k_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 99236,
+                "max_abs_diff": 0.00439453125,
+                "elements_differing": 93313
+              }
+            ],
+            "identical": false,
+            "verdict": "DIFFERS",
+            "identity_kind": "тензоры расходятся — см. first_differing"
+          },
+          "stderr_tail": []
+        },
+        "b_vs_c": {
+          "exit": 1,
+          "report": {
+            "a": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/b/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada"
+            },
+            "b": {
+              "path": "/workspace/experiments/det-probe-compact-20260914-1450/c/checkpoints/checkpoint_final.pt",
+              "size_bytes": 2963141069,
+              "sha256": "e5d5437d0579934484ec48e31bf57ee391d8e66f8a88f6002c3e49bee2ecb86f"
+            },
+            "file_sha256_equal": false,
+            "reader": {
+              "a": "weights_only=True",
+              "b": "weights_only=True"
+            },
+            "reader_used": "weights_only=True",
+            "tensors_compared": 1463,
+            "tensors_identical": 614,
+            "keys_only_in_a": [],
+            "keys_only_in_b": [],
+            "elements_compared": 1617283490,
+            "elements_differing": 1562219651,
+            "max_abs_diff": 0.02515411376953125,
+            "first_differing": [
+              {
+                "key": "model.lm_head.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 135897216,
+                "bytes_differing": 130921702,
+                "max_abs_diff": 0.005126953125,
+                "elements_differing": 122464121
+              },
+              {
+                "key": "model.model.embed_tokens.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 135897216,
+                "bytes_differing": 130921702,
+                "max_abs_diff": 0.005126953125,
+                "elements_differing": 122464121
+              },
+              {
+                "key": "model.model.layers.0.input_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 579,
+                "max_abs_diff": 0.003173828125,
+                "elements_differing": 567
+              },
+              {
+                "key": "model.model.layers.0.mlp.down_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4510012,
+                "max_abs_diff": 0.004638671875,
+                "elements_differing": 4121784
+              },
+              {
+                "key": "model.model.layers.0.mlp.gate_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4346778,
+                "max_abs_diff": 0.004638671875,
+                "elements_differing": 4018107
+              },
+              {
+                "key": "model.model.layers.0.mlp.up_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4484231,
+                "max_abs_diff": 0.0048828125,
+                "elements_differing": 4116187
+              },
+              {
+                "key": "model.model.layers.0.self_attn.k_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 12,
+                "max_abs_diff": 0.001708984375,
+                "elements_differing": 12
+              },
+              {
+                "key": "model.model.layers.0.self_attn.k_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 87667,
+                "max_abs_diff": 0.00439453125,
+                "elements_differing": 81963
+              },
+              {
+                "key": "model.model.layers.0.self_attn.o_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 802816,
+                "bytes_differing": 842854,
+                "max_abs_diff": 0.0037841796875,
+                "elements_differing": 764384
+              },
+              {
+                "key": "model.model.layers.0.self_attn.q_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 98,
+                "max_abs_diff": 0.0028076171875,
+                "elements_differing": 91
+              },
+              {
+                "key": "model.model.layers.0.self_attn.q_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 802816,
+                "bytes_differing": 653930,
+                "max_abs_diff": 0.0048828125,
+                "elements_differing": 603377
+              },
+              {
+                "key": "model.model.layers.0.self_attn.v_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 134,
+                "max_abs_diff": 0.0008544921875,
+                "elements_differing": 123
+              },
+              {
+                "key": "model.model.layers.0.self_attn.v_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 125765,
+                "max_abs_diff": 0.0035858154296875,
+                "elements_differing": 111002
+              },
+              {
+                "key": "model.model.layers.1.input_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 3,
+                "max_abs_diff": 0.000732421875,
+                "elements_differing": 3
+              },
+              {
+                "key": "model.model.layers.1.mlp.down_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4528563,
+                "max_abs_diff": 0.00469970703125,
+                "elements_differing": 4133653
+              },
+              {
+                "key": "model.model.layers.1.mlp.gate_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4337839,
+                "max_abs_diff": 0.0045166015625,
+                "elements_differing": 4014741
+              },
+              {
+                "key": "model.model.layers.1.mlp.up_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 4358144,
+                "bytes_differing": 4528426,
+                "max_abs_diff": 0.0050048828125,
+                "elements_differing": 4137009
+              },
+              {
+                "key": "model.model.layers.1.post_attention_layernorm.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 896,
+                "bytes_differing": 1,
+                "max_abs_diff": 0.000774383544921875,
+                "elements_differing": 1
+              },
+              {
+                "key": "model.model.layers.1.self_attn.k_proj.bias",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 128,
+                "bytes_differing": 7,
+                "max_abs_diff": 0.001708984375,
+                "elements_differing": 7
+              },
+              {
+                "key": "model.model.layers.1.self_attn.k_proj.weight",
+                "kind": "tensor",
+                "same": false,
+                "dtype": "torch.bfloat16",
+                "numel": 114688,
+                "bytes_differing": 99236,
+                "max_abs_diff": 0.00439453125,
+                "elements_differing": 93313
+              }
+            ],
+            "identical": false,
+            "verdict": "DIFFERS",
+            "identity_kind": "тензоры расходятся — см. first_differing"
+          },
+          "stderr_tail": []
+        }
+      },
+      "runs": {
+        "a": {
+          "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+          "bytes": 2963141069
+        },
+        "b": {
+          "sha256": "df37031bd4f1361ab1f817e94e71e776e86a57d2c768fbeda877fe0c61893ada",
+          "bytes": 2963141069
+        },
+        "c": {
+          "sha256": "e5d5437d0579934484ec48e31bf57ee391d8e66f8a88f6002c3e49bee2ecb86f",
+          "bytes": 2963141069
+        }
+      },
+      "note": "сравнение в образе прогона без GPU (чтение чекпойнтов и байтовое сравнение тензоров); sha256 файла приведён рядом, но вердикт выносится по значениям тензоров: torch.save кладёт их в zip-контейнер, и разные байты файла не означают разные числа"
+    },
+    "tensor_identity_note": "вердикт «совпало бит-в-бит» вынесен по значениям тензоров (compare_checkpoints.py), а не по sha256 файла: torch.save упаковывает тензоры в zip-контейнер, и разные байты файла не означают разные числа (и наоборот) — измерено на синтетической паре в тестах инструмента",
+    "incidents": {
+      "by_run": {
+        "a": [],
+        "b": [],
+        "c": []
+      },
+      "oom_or_nvrm": []
+    }
+  },
+  "determinism_verdict": {
+    "question": "воспроизводится ли прогон по манифесту после включения детерминизма",
+    "answer": "да",
+    "basis": [
+      "пара A/B (детерминированный режим, 20 шагов, сид один): loss идентичны (первый расходящийся шаг: None); чекпойнты побитово идентичны",
+      "A/C и B/C (детерминированный против режима контура): расходятся (A/C первый расходящийся шаг 2, B/C 2)",
+      "цена детерминизма: 84.57% к S2 (тот же конфиг, 50 шагов CPT)"
+    ],
+    "det_pair_identical": true,
+    "nondet_pair_differs": true,
+    "consequence_for_a5_drift": "A5-drift в формулировке «повторить прогон по манифесту и сравнить артефакты» выполним **только в детерминированном режиме**: он даёт совпадение и loss, и тензоров чекпойнта. Прогоны без детерминированного режима (и все исторические прогоны контура) для доказательства воспроизводимости не годятся — их расхождение измерено в паре с A/C. Для оси AD-1 это меняет немного, и это важно сказать прямо: совпадение пары A/B — не статистика. Запрет ADR-009 п.2 на выводы по одиночным прогонам остаётся в силе (два прогона с одним сидом — не k сидов), мера успеха по-прежнему mean±std и k-из-k по трём сидам. Детерминизм даёт другое: он делает PoC воспроизводимым — один сид можно повторить и получить тот же чекпойнт, а значит, расхождение между сидами перестаёт смешиваться с недетерминизмом вычислений. Ограничение по цене: если детерминизм обязателен для A4/A5, время стадии растёт на измеренный процент — это решение владельца (ADR-009 п.4), а не тихий выбор исполнителя.",
+    "price_note": "цена режима измерена: +84.57% к «S2 (тот же конфиг, 50 шагов CPT)» (4.7415 с против 2.569 с на шаг). Решение о том, становится ли режим обязательным для A4/A5-прогонов, ADR-009 п.4 относит к владельцу (новый ADR) — исполнитель его не принимает; здесь только замер и его арифметика"
+  },
+  "instrument": {
+    "case_runner_sha256": "9a6b7d559811a3774b96954bc990c40fcfb8284757cda4e48347d836893424a8",
+    "case_probe_sha256": "70c463b718f8bad7467c28c6b5b9621bcf4343b8adeb821b044c9a3813acd8ed",
+    "case_comparator_sha256": "2d81803e4ea2bafa4cdc422f68bdfb1869906981016f87b4f3c5f8d0cc5e511b",
+    "case_sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "case_owner_guard_sha256": "749cfab760a2b221444a2f00c8fa7bee3459a4a3f417c4fb61adc7a3f92cb44f",
+    "stand_sha256": {
+      "smoke_probe.py": "4a80919c4045980985bb7c8bfb61f8a645c50099146079c0f3421206417c37d6",
+      "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+      "compare_checkpoints.py": "2d81803e4ea2bafa4cdc422f68bdfb1869906981016f87b4f3c5f8d0cc5e511b"
+    },
+    "pins_recheck": {
+      "available": true,
+      "stand": {
+        "smoke_probe.py": "4a80919c4045980985bb7c8bfb61f8a645c50099146079c0f3421206417c37d6",
+        "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+        "compare_checkpoints.py": "2d81803e4ea2bafa4cdc422f68bdfb1869906981016f87b4f3c5f8d0cc5e511b"
+      },
+      "case": {
+        "smoke_probe.py": "70c463b718f8bad7467c28c6b5b9621bcf4343b8adeb821b044c9a3813acd8ed",
+        "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+        "compare_checkpoints.py": "2d81803e4ea2bafa4cdc422f68bdfb1869906981016f87b4f3c5f8d0cc5e511b"
+      },
+      "case_matches_stand": false,
+      "note": "stand — файлы в каталоге прогона на стенде (то, что исполнялось); case — файлы кейса сейчас; расхождение означает, что инструмент кейса правился после прогона, и говорит это прямо, а не выдаёт текущий хеш за хеш прогона"
+    },
+    "note": "проба измерена обвязкой кейса; пайплайн и данные не менялись (read-only, AD-4/AD-7)"
+  },
+  "manifest": "runs/det-probe-20260914-1450/run_manifest.json",
+  "postcheck": {
+    "containers": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "probe_containers_running": [],
+    "container_closed": true,
+    "platform_alive": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "platform_lost": [],
+    "mem_available_gb": 79.44,
+    "dmesg_after": {
+      "nvrm_xid": 0,
+      "oom": 0
+    }
+  },
+  "measurements_limits": [
+    "loss сравнивается с точностью записи обвязки (1e-6); полная точность — только в побитовом сравнении чекпойнтов",
+    "цена детерминизма измерена на 20 шагах CPT: это замер короткой стадии, не всего календаря (ADR-008); перенос на полный прогон — арифметика, а не замер",
+    "проба не проверяет детерминизм SFT/RL-стадий и eval-пути — только CPT (ADR-009 п.3 называет именно его)",
+    "наблюдение S2 о расхождении траекторий с удалёнными артефактами остаётся наблюдением: эта проба его не «подтверждает», а заменяет собственным замером"
+  ],
+  "status": "done",
+  "rebuilt": {
+    "at": "2026-09-14T14:57:28",
+    "note": "сводка пересобрана из артефактов прогона; предусловия, результаты стадий и состояние стенда взяты из прежнего evidence и повторным замером не подменялись"
+  }
+}

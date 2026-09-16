@@ -1,0 +1,1128 @@
+{
+  "probe": "S3i — валидация верификаторов сред на эталонных ответах",
+  "adr": "ADR-021 п.2 (условие приёмки переработки: валидация на эталонных ответах)",
+  "question": "поддаются ли верификаторы сред E1–E7 бинаризации: существует ли порог, при котором проверка принимает эталон и отвергает заведомо неверные ответы",
+  "generated_at": "2026-09-16T04:12:37Z",
+  "method": {
+    "positive": "score(verify(gold, gold)) — эталон против самого себя",
+    "negatives": {
+      "other_task": "эталон другой задачи",
+      "truncated_20pct": "обрезанный эталон (первые 20 %)",
+      "shuffled_lines": "перемешанные строки эталона",
+      "empty": "пустой ответ"
+    },
+    "score_projection": "float как есть; словарь {gate, components} → 0.0 при gate=false, иначе среднее components",
+    "reference_projection": {
+      "E1_define": "gold_card (как есть)",
+      "E2_formula": "gold_card (как есть)",
+      "E3_classify": "gold_card (как есть)",
+      "E4_extract": "склейка gold_concepts[].card (в банке нет gold_card)",
+      "E5_relate": "слаги gold_relation.from + .to (gold — словарь, не текст)",
+      "E6_contrast": "gold_diff (как есть)",
+      "E7_repair": "gold_card (как есть)"
+    },
+    "threshold_rule": "середина зазора (max негатива, min позитива], округлённая вниз к шагу 0.05",
+    "verdict_rule": "binary-safe ⇔ min(позитив) > max(негатив), зазор строго > 0",
+    "n_per_env": 200,
+    "seed": 42,
+    "determinism": "отбор задач (тасуется сид-порядок, берутся первые N) и негативы (сид из seed|среда|вид|task_id) воспроизводимы: тот же seed → те же ответы"
+  },
+  "source": {
+    "envs_root": "/home/user/library/rl_envs",
+    "read_only": {
+      "unchanged": true,
+      "files": 19,
+      "changed": [],
+      "changed_total": 0,
+      "boundary": "каталог сред только читается: sha256+mtime до и после замера"
+    },
+    "verifiers_sha256": {
+      "E1_define": "60b1365c236f483ea2add19252ef79eac5264bf45e02ccf9448c74b04f512c22",
+      "E2_formula": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+      "E3_classify": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+      "E4_extract": "e8142fd922d59adb972ad4ce14c13b56156f11037114a8d0341e56a2d0adc22b",
+      "E5_relate": "cd9acef9e11034959f7369f457636d0398f8413c9fe9e881ae21e1b21df6b031",
+      "E6_contrast": "4171df64c0c5a23a31e8845c99e3599115d68dc196788b845a75c0e5c7e09b16",
+      "E7_repair": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f"
+    }
+  },
+  "registry": {
+    "available": true,
+    "task_count": {
+      "E1_define": 414,
+      "E2_formula": 1839,
+      "E3_classify": 6568,
+      "E4_extract": 45,
+      "E5_relate": 216,
+      "E6_contrast": 100,
+      "E7_repair": 100,
+      "E8_plan_experiment": 0
+    },
+    "rows": [
+      {
+        "env": "E1_define",
+        "registry": 414,
+        "actual": 414,
+        "matches": true
+      },
+      {
+        "env": "E2_formula",
+        "registry": 1839,
+        "actual": 1839,
+        "matches": true
+      },
+      {
+        "env": "E3_classify",
+        "registry": 6568,
+        "actual": 6568,
+        "matches": true
+      },
+      {
+        "env": "E4_extract",
+        "registry": 45,
+        "actual": 45,
+        "matches": true
+      },
+      {
+        "env": "E5_relate",
+        "registry": 216,
+        "actual": 216,
+        "matches": true
+      },
+      {
+        "env": "E6_contrast",
+        "registry": 100,
+        "actual": 100,
+        "matches": true
+      },
+      {
+        "env": "E7_repair",
+        "registry": 100,
+        "actual": 100,
+        "matches": true
+      },
+      {
+        "env": "E8_plan_experiment",
+        "registry": 0,
+        "actual": 0,
+        "matches": true
+      }
+    ],
+    "stale": [],
+    "absent": []
+  },
+  "summary": {
+    "measured": 7,
+    "binary_safe": 0,
+    "unsafe": 7,
+    "unsafe_envs": [
+      "E1_define",
+      "E2_formula",
+      "E3_classify",
+      "E4_extract",
+      "E5_relate",
+      "E6_contrast",
+      "E7_repair"
+    ],
+    "skipped": [
+      "E8_plan_experiment"
+    ]
+  },
+  "adr_021_p2": {
+    "condition": "детерминированная проверка не должна давать ложных нулей; если даёт — среда исключается целиком, а не подкручивается",
+    "false_negatives_by_env": {
+      "E1_define": 0.0,
+      "E2_formula": 1.0,
+      "E3_classify": 0.0,
+      "E4_extract": 0.6667,
+      "E5_relate": 0.0,
+      "E6_contrast": 1.0,
+      "E7_repair": 0.0
+    },
+    "envs_failing_no_false_negatives": [
+      "E2_formula",
+      "E4_extract",
+      "E6_contrast"
+    ],
+    "envs_failing_separation": [
+      "E1_define",
+      "E2_formula",
+      "E3_classify",
+      "E4_extract",
+      "E5_relate",
+      "E6_contrast",
+      "E7_repair"
+    ],
+    "excluded_as_written": [
+      "E1_define",
+      "E2_formula",
+      "E3_classify",
+      "E4_extract",
+      "E5_relate",
+      "E6_contrast",
+      "E7_repair"
+    ]
+  },
+  "assumptions": [
+    "эталонный ответ = носитель gold задачи; где gold не текст (E4 — список карточек, E5 — словарь), он спроецирован в текст, и проекция названа в reference_projection",
+    "позитив — эталон против самого себя: это верхняя граница того, что верификатор вообще способен выдать на правильном ответе",
+    "негатив (в) не строится для односстрочного эталона (перемешивание строк тождественно) — такие случаи помечены не применимыми, а не «нулём»",
+    "score словарных верификаторов приведён к скаляру (0.0 при gate=false, иначе среднее components) — без приведения словарь несравним с float",
+    "замер — про текущее состояние верификаторов; ни верификаторы, ни envs.yaml не правились (каталог сред только читается)"
+  ],
+  "verifiers": {
+    "E1_define": {
+      "env": "E1_define",
+      "tasks_file": "tasks/define.jsonl",
+      "verifier": "verifiers/v_define.py::verify_define",
+      "verifier_sha256": "60b1365c236f483ea2add19252ef79eac5264bf45e02ccf9448c74b04f512c22",
+      "gold_fields": [
+        "gold_card"
+      ],
+      "reference_projection": "gold_card (как есть)",
+      "notes": [],
+      "diagnosis": "доля пересечения множеств слов: перемешивание строк множество слов не меняет, поэтому перемешанный эталон набирает ровно столько же, сколько сам эталон. Порядок и структура ответа не различаются вовсе",
+      "pool_size": 414,
+      "n": 200,
+      "skipped_tasks": 0,
+      "positive_min": 1.0,
+      "positive_median": 1.0,
+      "positive_max": 1.0,
+      "false_negatives_share": 0.0,
+      "negative_max": 1.0,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 200,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "share_gt_0": 1.0,
+        "share_lt_1": 0.0,
+        "distinct_values": [
+          1.0
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 200,
+          "min": 0.0367,
+          "median": 0.2059,
+          "max": 0.55,
+          "mean": 0.216,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0367,
+            0.0524,
+            0.1243,
+            0.1275,
+            0.1284,
+            0.1325,
+            0.1355,
+            0.1371,
+            0.1395,
+            0.1404,
+            0.1409,
+            0.145
+          ],
+          "distinct_truncated": true,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 200,
+          "min": 0.15,
+          "median": 0.2245,
+          "max": 0.3171,
+          "mean": 0.227,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.15,
+            0.1688,
+            0.1739,
+            0.1778,
+            0.1792,
+            0.1875,
+            0.1881,
+            0.1899,
+            0.1907,
+            0.1908,
+            0.1922,
+            0.1939
+          ],
+          "distinct_truncated": true,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "перемешанные строки эталона",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "empty": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "share_gt_0": 0.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": 0.0,
+      "breaking_negative": [
+        "shuffled_lines"
+      ],
+      "scale_max_reachable": true,
+      "adr_strict_no_false_negatives": true,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0)"
+    },
+    "E2_formula": {
+      "env": "E2_formula",
+      "tasks_file": "tasks/formula.jsonl",
+      "verifier": "verifiers/common.py::verify_formula",
+      "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+      "gold_fields": [
+        "gold_card"
+      ],
+      "reference_projection": "gold_card (как есть)",
+      "notes": [],
+      "diagnosis": "пересечение множеств LaTeX-формул + наличие раздела обозначений: обе компоненты инвариантны к порядку строк и к обрезке (формулы остаются в тексте). Полная шкала недостижима: эталон набирает 0.4/0.65/0.9 в зависимости от того, есть ли в карточке раздел «Обозначения»",
+      "pool_size": 1839,
+      "n": 200,
+      "skipped_tasks": 0,
+      "positive_min": 0.4,
+      "positive_median": 0.65,
+      "positive_max": 0.9,
+      "false_negatives_share": 1.0,
+      "negative_max": 0.9,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 200,
+        "min": 0.4,
+        "median": 0.65,
+        "max": 0.9,
+        "mean": 0.6562,
+        "share_gt_0": 1.0,
+        "share_lt_1": 1.0,
+        "distinct_values": [
+          0.4,
+          0.65,
+          0.9
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.15,
+          "max": 0.4,
+          "mean": 0.162,
+          "share_gt_0": 0.995,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0,
+            0.15,
+            0.2333,
+            0.2864,
+            0.3,
+            0.3375,
+            0.4
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.2661,
+          "max": 0.65,
+          "mean": 0.2657,
+          "share_gt_0": 0.515,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0,
+            0.2,
+            0.2437,
+            0.2571,
+            0.275,
+            0.2864,
+            0.3,
+            0.3167,
+            0.3375,
+            0.3643,
+            0.375,
+            0.4
+          ],
+          "distinct_truncated": true,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 200,
+          "min": 0.15,
+          "median": 0.65,
+          "max": 0.9,
+          "mean": 0.6088,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.15,
+            0.2182,
+            0.2437,
+            0.2571,
+            0.275,
+            0.3,
+            0.3375,
+            0.3545,
+            0.4,
+            0.4313,
+            0.5,
+            0.525
+          ],
+          "distinct_truncated": true,
+          "title": "перемешанные строки эталона",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "empty": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "share_gt_0": 0.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": -0.5,
+      "breaking_negative": [
+        "shuffled_lines"
+      ],
+      "scale_max_reachable": false,
+      "adr_strict_no_false_negatives": false,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 0.9 равен или выше минимума позитива 0.4 (ломает: shuffled_lines=0.9); максимум шкалы недостижим: лучший позитив 0.9; доля позитивов < 1.0: 1.0"
+    },
+    "E3_classify": {
+      "env": "E3_classify",
+      "tasks_file": "tasks/classify.jsonl",
+      "verifier": "verifiers/common.py::verify_classify",
+      "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+      "gold_fields": [
+        "gold_card"
+      ],
+      "reference_projection": "gold_card (как есть)",
+      "notes": [],
+      "diagnosis": "поиск подстрок type/level/formality в ответе. Все три поля лежат в YAML-frontmatter в начале карточки, поэтому обрезка до 20 % и перемешивание строк дают 1.0; чужая карточка даёт 1.0, когда совпали type и level (formality «A» находится как подстрока почти в любом непустом тексте)",
+      "pool_size": 6568,
+      "n": 200,
+      "skipped_tasks": 0,
+      "positive_min": 1.0,
+      "positive_median": 1.0,
+      "positive_max": 1.0,
+      "false_negatives_share": 0.0,
+      "negative_max": 1.0,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 200,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "share_gt_0": 1.0,
+        "share_lt_1": 0.0,
+        "distinct_values": [
+          1.0
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.3333,
+          "max": 1.0,
+          "mean": 0.4833,
+          "share_gt_0": 0.88,
+          "share_lt_1": 0.92,
+          "distinct_values": [
+            0.0,
+            0.3333,
+            0.6667,
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "перемешанные строки эталона",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "empty": {
+          "n": 200,
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "share_gt_0": 0.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.0
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": 0.0,
+      "breaking_negative": [
+        "other_task",
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "scale_max_reachable": true,
+      "adr_strict_no_false_negatives": true,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0)"
+    },
+    "E4_extract": {
+      "env": "E4_extract",
+      "tasks_file": "tasks/extract.jsonl",
+      "verifier": "verifiers/v_extract.py::verify_extract",
+      "verifier_sha256": "e8142fd922d59adb972ad4ce14c13b56156f11037114a8d0341e56a2d0adc22b",
+      "gold_fields": [
+        "gold_concepts"
+      ],
+      "reference_projection": "склейка gold_concepts[].card (в банке нет gold_card)",
+      "notes": [
+        "сигнатура верификатора ждёт gold_card, банк несёт gold_concepts — поля не совпадают",
+        "«## Сигнал введения» есть в 15 из 45 задач, и в промпте задачи не спрашивается (0 вхождений)"
+      ],
+      "diagnosis": "ветка «сигнал введения» срабатывает по эталону, а не по ответу: проверка «любое из первых 5 слов цитаты встречается в ответе» пропускает почти любой текст — среди этих слов есть «the», а ненулевой ответ засчитывается; score зависит от эталона, а не от ответа (в 41 задаче из 45 три негатива дали ровно score эталона), пустой ответ получает 0.5 «частичного кредита»",
+      "pool_size": 45,
+      "n": 45,
+      "skipped_tasks": 0,
+      "positive_min": 0.5,
+      "positive_median": 0.5,
+      "positive_max": 1.0,
+      "false_negatives_share": 0.6667,
+      "negative_max": 1.0,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 45,
+        "min": 0.5,
+        "median": 0.5,
+        "max": 1.0,
+        "mean": 0.6667,
+        "share_gt_0": 1.0,
+        "share_lt_1": 0.6667,
+        "distinct_values": [
+          0.5,
+          1.0
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 45,
+          "min": 0.5,
+          "median": 0.5,
+          "max": 1.0,
+          "mean": 0.6111,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.7778,
+          "distinct_values": [
+            0.5,
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 45,
+          "min": 0.5,
+          "median": 0.5,
+          "max": 1.0,
+          "mean": 0.6667,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.6667,
+          "distinct_values": [
+            0.5,
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 45,
+          "min": 0.5,
+          "median": 0.5,
+          "max": 1.0,
+          "mean": 0.6667,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.6667,
+          "distinct_values": [
+            0.5,
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "перемешанные строки эталона",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "empty": {
+          "n": 45,
+          "min": 0.5,
+          "median": 0.5,
+          "max": 0.5,
+          "mean": 0.5,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.5
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": -0.5,
+      "breaking_negative": [
+        "other_task",
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "scale_max_reachable": true,
+      "adr_strict_no_false_negatives": false,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 0.5 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0); доля позитивов < 1.0: 0.6667"
+    },
+    "E5_relate": {
+      "env": "E5_relate",
+      "tasks_file": "tasks/relate.jsonl",
+      "verifier": "verifiers/v_relate.py::verify_relate",
+      "verifier_sha256": "cd9acef9e11034959f7369f457636d0398f8413c9fe9e881ae21e1b21df6b031",
+      "gold_fields": [
+        "gold_relation"
+      ],
+      "reference_projection": "слаги gold_relation.from + .to (gold — словарь, не текст)",
+      "notes": [
+        "верификатор читает ключи source/target, банк несёт from/to"
+      ],
+      "diagnosis": "ключи не совпадают: rel.get('source') и rel.get('target') пусты, а пустая строка — подстрока любого текста, поэтому верификатор возвращает 1.0 на любом ответе, включая пустой: проверка константна (не различает даже награду за ничего)",
+      "pool_size": 216,
+      "n": 200,
+      "skipped_tasks": 0,
+      "positive_min": 1.0,
+      "positive_median": 1.0,
+      "positive_max": 1.0,
+      "false_negatives_share": 0.0,
+      "negative_max": 1.0,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 200,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "share_gt_0": 1.0,
+        "share_lt_1": 0.0,
+        "distinct_values": [
+          1.0
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 0,
+          "title": "перемешанные строки эталона",
+          "applicable": false,
+          "not_applicable": 200,
+          "reason": "эталон однострочный — перемешивание строк тождественно"
+        },
+        "empty": {
+          "n": 200,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": 0.0,
+      "breaking_negative": [
+        "empty",
+        "other_task",
+        "truncated_20pct"
+      ],
+      "scale_max_reachable": true,
+      "adr_strict_no_false_negatives": true,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: empty=1.0, other_task=1.0, truncated_20pct=1.0)"
+    },
+    "E6_contrast": {
+      "env": "E6_contrast",
+      "tasks_file": "tasks/contrast.jsonl",
+      "verifier": "verifiers/v_contrast.py::verify_contrast",
+      "verifier_sha256": "4171df64c0c5a23a31e8845c99e3599115d68dc196788b845a75c0e5c7e09b16",
+      "gold_fields": [
+        "gold_diff"
+      ],
+      "reference_projection": "gold_diff (как есть)",
+      "notes": [],
+      "diagnosis": "всего два значения: 0.7 при слове «отличие»/«difference» в ответе и 0.3 иначе. 36 эталонов из 100 слова «отличие» не содержат (позитив 0.3 = негатив пустого ответа), а обрезка 20 % оставляет «В отличие…» — негатив равен позитиву",
+      "pool_size": 100,
+      "n": 100,
+      "skipped_tasks": 0,
+      "positive_min": 0.3,
+      "positive_median": 0.7,
+      "positive_max": 0.7,
+      "false_negatives_share": 1.0,
+      "negative_max": 0.7,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 100,
+        "min": 0.3,
+        "median": 0.7,
+        "max": 0.7,
+        "mean": 0.556,
+        "share_gt_0": 1.0,
+        "share_lt_1": 1.0,
+        "distinct_values": [
+          0.3,
+          0.7
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 100,
+          "min": 0.3,
+          "median": 0.7,
+          "max": 0.7,
+          "mean": 0.572,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.3,
+            0.7
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 100,
+          "min": 0.3,
+          "median": 0.7,
+          "max": 0.7,
+          "mean": 0.556,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.3,
+            0.7
+          ],
+          "distinct_truncated": false,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 0,
+          "title": "перемешанные строки эталона",
+          "applicable": false,
+          "not_applicable": 100,
+          "reason": "эталон однострочный — перемешивание строк тождественно"
+        },
+        "empty": {
+          "n": 100,
+          "min": 0.3,
+          "median": 0.3,
+          "max": 0.3,
+          "mean": 0.3,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.3
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": -0.4,
+      "breaking_negative": [
+        "other_task",
+        "truncated_20pct"
+      ],
+      "scale_max_reachable": false,
+      "adr_strict_no_false_negatives": false,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 0.7 равен или выше минимума позитива 0.3 (ломает: other_task=0.7, truncated_20pct=0.7); максимум шкалы недостижим: лучший позитив 0.7; доля позитивов < 1.0: 1.0"
+    },
+    "E7_repair": {
+      "env": "E7_repair",
+      "tasks_file": "tasks/repair.jsonl",
+      "verifier": "verifiers/common.py::verify_repair",
+      "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+      "gold_fields": [
+        "gold_card",
+        "corrupted_card"
+      ],
+      "reference_projection": "gold_card (как есть)",
+      "notes": [],
+      "diagnosis": "сверка YAML-frontmatter эталона с frontmatter ответа; если frontmatter не разобран, значения вылавливаются регуляркой из любого места текста — поэтому обрезка до 20 % (frontmatter в начале карточки) и перемешивание строк дают 1.0. Ломает только чужая карточка (0.36–0.78), и то не всегда",
+      "pool_size": 100,
+      "n": 100,
+      "skipped_tasks": 0,
+      "positive_min": 1.0,
+      "positive_median": 1.0,
+      "positive_max": 1.0,
+      "false_negatives_share": 0.0,
+      "negative_max": 1.0,
+      "proposed_threshold": null,
+      "verdict": "unsafe",
+      "positive": {
+        "n": 100,
+        "min": 1.0,
+        "median": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "share_gt_0": 1.0,
+        "share_lt_1": 0.0,
+        "distinct_values": [
+          1.0
+        ],
+        "distinct_truncated": false
+      },
+      "negatives": {
+        "other_task": {
+          "n": 100,
+          "min": 0.1111,
+          "median": 0.4167,
+          "max": 0.6667,
+          "mean": 0.4878,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.1111,
+            0.1667,
+            0.3611,
+            0.4167,
+            0.6111,
+            0.6667
+          ],
+          "distinct_truncated": false,
+          "title": "эталон другой задачи",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "truncated_20pct": {
+          "n": 100,
+          "min": 1.0,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.0,
+          "distinct_values": [
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "обрезанный эталон (первые 20 %)",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "shuffled_lines": {
+          "n": 100,
+          "min": 0.5,
+          "median": 1.0,
+          "max": 1.0,
+          "mean": 0.98,
+          "share_gt_0": 1.0,
+          "share_lt_1": 0.07,
+          "distinct_values": [
+            0.5,
+            0.75,
+            1.0
+          ],
+          "distinct_truncated": false,
+          "title": "перемешанные строки эталона",
+          "applicable": true,
+          "not_applicable": 0
+        },
+        "empty": {
+          "n": 100,
+          "min": 0.5,
+          "median": 0.5,
+          "max": 0.5,
+          "mean": 0.5,
+          "share_gt_0": 1.0,
+          "share_lt_1": 1.0,
+          "distinct_values": [
+            0.5
+          ],
+          "distinct_truncated": false,
+          "title": "пустой ответ",
+          "applicable": true,
+          "not_applicable": 0
+        }
+      },
+      "gap": 0.0,
+      "breaking_negative": [
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "scale_max_reachable": true,
+      "adr_strict_no_false_negatives": true,
+      "errors": [],
+      "errors_total": 0,
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0, truncated_20pct=1.0)"
+    }
+  },
+  "excluded": [
+    {
+      "env": "E1_define",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0)",
+      "positive_min": 1.0,
+      "negative_max": 1.0,
+      "breaking_negative": [
+        "shuffled_lines"
+      ],
+      "false_negatives_share": 0.0,
+      "scale_max_reachable": true
+    },
+    {
+      "env": "E2_formula",
+      "reason": "нет зазора: максимум негатива 0.9 равен или выше минимума позитива 0.4 (ломает: shuffled_lines=0.9); максимум шкалы недостижим: лучший позитив 0.9; доля позитивов < 1.0: 1.0",
+      "positive_min": 0.4,
+      "negative_max": 0.9,
+      "breaking_negative": [
+        "shuffled_lines"
+      ],
+      "false_negatives_share": 1.0,
+      "scale_max_reachable": false
+    },
+    {
+      "env": "E3_classify",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0)",
+      "positive_min": 1.0,
+      "negative_max": 1.0,
+      "breaking_negative": [
+        "other_task",
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "false_negatives_share": 0.0,
+      "scale_max_reachable": true
+    },
+    {
+      "env": "E4_extract",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 0.5 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0); доля позитивов < 1.0: 0.6667",
+      "positive_min": 0.5,
+      "negative_max": 1.0,
+      "breaking_negative": [
+        "other_task",
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "false_negatives_share": 0.6667,
+      "scale_max_reachable": true
+    },
+    {
+      "env": "E5_relate",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: empty=1.0, other_task=1.0, truncated_20pct=1.0)",
+      "positive_min": 1.0,
+      "negative_max": 1.0,
+      "breaking_negative": [
+        "empty",
+        "other_task",
+        "truncated_20pct"
+      ],
+      "false_negatives_share": 0.0,
+      "scale_max_reachable": true
+    },
+    {
+      "env": "E6_contrast",
+      "reason": "нет зазора: максимум негатива 0.7 равен или выше минимума позитива 0.3 (ломает: other_task=0.7, truncated_20pct=0.7); максимум шкалы недостижим: лучший позитив 0.7; доля позитивов < 1.0: 1.0",
+      "positive_min": 0.3,
+      "negative_max": 0.7,
+      "breaking_negative": [
+        "other_task",
+        "truncated_20pct"
+      ],
+      "false_negatives_share": 1.0,
+      "scale_max_reachable": false
+    },
+    {
+      "env": "E7_repair",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0, truncated_20pct=1.0)",
+      "positive_min": 1.0,
+      "negative_max": 1.0,
+      "breaking_negative": [
+        "shuffled_lines",
+        "truncated_20pct"
+      ],
+      "false_negatives_share": 0.0,
+      "scale_max_reachable": true
+    }
+  ],
+  "skipped": [
+    {
+      "env": "E8_plan_experiment",
+      "tasks_file": "tasks/plan_experiment.jsonl",
+      "verifier": "verifiers/v_plan.py",
+      "reason": "0 задач в tasks/plan_experiment.jsonl"
+    }
+  ],
+  "notes": [
+    {
+      "env": "E4_extract",
+      "note": "сигнатура верификатора ждёт gold_card, банк несёт gold_concepts — поля не совпадают"
+    },
+    {
+      "env": "E4_extract",
+      "note": "«## Сигнал введения» есть в 15 из 45 задач, и в промпте задачи не спрашивается (0 вхождений)"
+    },
+    {
+      "env": "E5_relate",
+      "note": "верификатор читает ключи source/target, банк несёт from/to"
+    }
+  ],
+  "checks": {
+    "sources_unchanged": true,
+    "errors_total": 0,
+    "all_envs_measured": true
+  },
+  "verdict_text": "ни одна из 7 измеренных сред не разделяется порогом в текущем виде: E1_define, E2_formula, E3_classify, E4_extract, E5_relate, E6_contrast, E7_repair — бинаризация требует переработки верификатора, а не подбора порога (ADR-021 п.2); условие ADR-021 п.2 («без ложных нулей») не проходит у E2_formula, E4_extract, E6_contrast",
+  "evidence_path": "evidence/verifier-validation.json",
+  "fingerprint": "9f975fd83e3defa299e99575251c960496a0429e479d8cd9d119334cacf97620",
+  "reproduced": true
+}

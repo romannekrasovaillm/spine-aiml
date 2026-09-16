@@ -1,0 +1,74 @@
+{
+  "status": "proposal",
+  "not_a_pipeline_config": true,
+  "caveat": "порог валидирован на 200 задачах на среду (seed 42), на домене концептов; это предложение по замеру, а не конфиг пайплайна — в награду не подключается до решения владельца (ADR-021 п.1: кредит остаётся бинарным)",
+  "validated_on": {
+    "n_per_env": 200,
+    "seed": 42,
+    "domain": "карточки концептов (~/library/rl_envs/tasks)",
+    "evidence": "evidence/verifier-validation.json"
+  },
+  "generated_by": "tools/validate_verifiers.py",
+  "thresholds": {
+    "E1_define": null,
+    "E2_formula": null,
+    "E3_classify": null,
+    "E4_extract": null,
+    "E5_relate": null,
+    "E6_contrast": null,
+    "E7_repair": null
+  },
+  "excluded": [
+    {
+      "env": "E1_define",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0)",
+      "negative_max": 1.0,
+      "positive_min": 1.0
+    },
+    {
+      "env": "E2_formula",
+      "reason": "нет зазора: максимум негатива 0.9 равен или выше минимума позитива 0.4 (ломает: shuffled_lines=0.9); максимум шкалы недостижим: лучший позитив 0.9; доля позитивов < 1.0: 1.0",
+      "negative_max": 0.9,
+      "positive_min": 0.4
+    },
+    {
+      "env": "E3_classify",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0)",
+      "negative_max": 1.0,
+      "positive_min": 1.0
+    },
+    {
+      "env": "E4_extract",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 0.5 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0); доля позитивов < 1.0: 0.6667",
+      "negative_max": 1.0,
+      "positive_min": 0.5
+    },
+    {
+      "env": "E5_relate",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: empty=1.0, other_task=1.0, truncated_20pct=1.0)",
+      "negative_max": 1.0,
+      "positive_min": 1.0
+    },
+    {
+      "env": "E6_contrast",
+      "reason": "нет зазора: максимум негатива 0.7 равен или выше минимума позитива 0.3 (ломает: other_task=0.7, truncated_20pct=0.7); максимум шкалы недостижим: лучший позитив 0.7; доля позитивов < 1.0: 1.0",
+      "negative_max": 0.7,
+      "positive_min": 0.3
+    },
+    {
+      "env": "E7_repair",
+      "reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0, truncated_20pct=1.0)",
+      "negative_max": 1.0,
+      "positive_min": 1.0
+    }
+  ],
+  "skipped": [
+    {
+      "env": "E8_plan_experiment",
+      "tasks_file": "tasks/plan_experiment.jsonl",
+      "verifier": "verifiers/v_plan.py",
+      "reason": "0 задач в tasks/plan_experiment.jsonl"
+    }
+  ],
+  "rule": "порог = середина зазора (max негатива, min позитива], округлённая вниз к шагу 0.05; зазор ≤ 0 → порога нет и среда исключается целиком (ADR-021 п.2)"
+}

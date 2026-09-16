@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml"><img src="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/romannekrasovaillm/spine-aiml-private/actions/workflows/ci.yml"><img src="https://github.com/romannekrasovaillm/spine-aiml-private/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -207,8 +207,11 @@ BMAD, Spec Kit, OpenSpec и др.):
 - `worktree_new` + `arch-ml worktree new|list|diff|accept|drop` — изоляция
   агентной работы в git worktree; review/accept — человеком. Вердикт
   ревьювера `NOT-READY` по ветке блокирует accept (журналы флота, ADR-046);
-  обход — только `--approver "<имя>"` с записью решения в журнал приёмки
-  (`docs/fleet.md`).
+  обход — только `--approver "<имя>"` с записью решения в журнал приёмки.
+  Приёмка по ADR-024: до мержа — сверка `sha256` редакции правил с основной
+  веткой и список изменённых `evidence/**` (предупреждения), после мержа —
+  обязательный гейт правил основной ветки (`CONSTRAINTS-FAILED` при красном,
+  мерж не откатывается; коды возврата 0 / 4 / 1) (`docs/fleet.md`).
 
 #### Слоистая модель 5.2 + дельта-протокол
 
@@ -605,7 +608,7 @@ arch-ml [--config <path>] <command>   # без команды — TUI
 | `trajectory metrics --input F [--format …] [--k N] [--json]` | Eval траекторий: `success_rate`, `ci95` (Уилсон по задачам), `pass@k` (Chen et al. 2021) |
 | `export <word\|excel> <session> <out>` | Экспорт журнала сессии |
 | `cron list/run/tick` | Планировщик md-задач |
-| `worktree new/list/diff/accept [--approver]\|drop` | Worktree-фабрика; accept блокируется вердиктом ревьювера `NOT-READY` (ADR-046) |
+| `worktree new/list/diff/accept [--approver]\|drop` | Worktree-фабрика; accept блокируется вердиктом ревьювера `NOT-READY` (ADR-046), делает сверки до мержа и post-merge гейт правил (ADR-024; exit 0 / 4 / 1) |
 | `fleet merge <run-id> [--owner-approve] [--approver]` | Гейт мерджа прогона: без подтверждения — сводка и отказ; `--approver` — именной обход `NOT-READY` с записью в журнал приёмки (ADR-046) |
 | `evolve propose/commit/list/reject` | Самоулучшение харнесса (H2.2): предложение → именной аппрувер → гейты baseline-судьёй → применение; managed-блоки для доменного слоя, `mode: file` для кода ядра `src/**` (ADR-046) |
 
@@ -727,7 +730,10 @@ BMAD, Spec Kit, OpenSpec, and more):
 - `ralph_run` — multi-round cycles toward an immutable objective, each round a
   fresh agent; state travels via workspace files + bounded handoff JSON.
 - `worktree_new` + `arch-ml worktree …` — isolated git worktrees for risky or
-  parallel agent work; review/accept stays with the human.
+  parallel agent work; review/accept stays with the human (accept runs the
+  ADR-024 acceptance procedure: rules-edition `sha256` compare and modified
+  `evidence/**` warnings before the merge, mandatory fitness gate on the main
+  tree after it — exit codes 0 / 4 / 1, see `docs/fleet.md`).
 
 **Layered model 5.2 + delta protocol**
 

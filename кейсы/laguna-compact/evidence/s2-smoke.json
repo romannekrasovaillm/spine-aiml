@@ -1,0 +1,472 @@
+{
+  "acceptance": {
+    "criteria": "SPEC §5.4: loss убывает, entropy в коридоре 1.0–2.0, нет OOM/NVRM, бюджет шага не превышен",
+    "per_stage": {
+      "cpt": {
+        "steps": 50,
+        "loss_first": 2.8773,
+        "loss_last": 2.8165,
+        "loss_decreasing_head_to_tail": true,
+        "loss_slope_per_step": -0.014487,
+        "entropy_mean": 3.18,
+        "entropy_points": 50,
+        "entropy_corridor": [
+          1.0,
+          2.0
+        ],
+        "entropy_in_corridor": false
+      },
+      "sft": {
+        "steps": 33,
+        "loss_first": 2.6034,
+        "loss_last": 2.5212,
+        "loss_decreasing_head_to_tail": true,
+        "loss_slope_per_step": -0.002269,
+        "entropy_mean": 2.5403,
+        "entropy_points": 33,
+        "entropy_corridor": [
+          1.0,
+          2.0
+        ],
+        "entropy_in_corridor": false
+      }
+    },
+    "no_incidents_in_logs_and_dmesg": 0,
+    "container_closed": true,
+    "platform_alive_after": true,
+    "entropy_note": "энтропия измерена обвязкой как средняя токенная энтропия распределения модели на супервизируемых позициях; SPEC не называет, какой энтропии принадлежит коридор 1.0–2.0"
+  },
+  "stage": "S2",
+  "date": "2026-09-14T09:38:55",
+  "purpose": "доказательство, что контур сходится: CPT 20–50 шагов + SFT 20–30 шагов на реальном миксе, один сид, Qwen2.5-0.5B",
+  "stand": {
+    "host": "gb10-fast",
+    "run_dir": "/home/user/experiments/smoke-compact-20260914-0930",
+    "case_run_dir": "runs/smoke-20260914-0930"
+  },
+  "preconditions": {
+    "required_free_gb": 30,
+    "checks": [
+      {
+        "name": "host",
+        "ok": true,
+        "detail": "gb10-fast → spark-44c3"
+      },
+      {
+        "name": "memory",
+        "ok": true,
+        "detail": "доступно 80.95 ГБ из 121.7 ГБ (порог 30); free -g: 121 / 40 / 85",
+        "mem_available_gb": 80.95,
+        "threshold_gb": 30,
+        "free_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          40          85           1           4          80\nПодкачка:         31           0          31\n"
+      },
+      {
+        "name": "containers",
+        "ok": true,
+        "detail": "llm-platform-* живы: llm-platform-gateway, llm-platform-ollama, llm-platform-runtime, llm-platform-supervisor",
+        "platform": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "containers": {
+          "llm-platform-supervisor": "llm-platform-supervisor gateway:local Up 2 days",
+          "llm-platform-gateway": "llm-platform-gateway gateway:local Up 2 days",
+          "llm-platform-runtime": "llm-platform-runtime llama.cpp:server-local Up 2 days",
+          "llm-platform-ollama": "llm-platform-ollama ollama:local Up 2 days"
+        },
+        "smoke_running": []
+      },
+      {
+        "name": "serialization",
+        "ok": true,
+        "strict": true,
+        "exit": 0,
+        "detail": "AD-5 OK: одновременных нагрузок нет",
+        "output": [
+          "    3061661, /opt/llama/llama-server, 170 MiB",
+          "    3061798, /opt/llama/llama-server, 28119 MiB",
+          "ВНИМАНИЕ: на GPU больше одного процесса — сверь с сенсором процессов",
+          "",
+          "  · CUDA-процессов 2: параллельная нагрузка возможна, но не подтверждена",
+          "  · tmux недоступен/нет сервера сессий — сенсор tmux пропущен",
+          "",
+          "GB10 SERIALIZATION OK: одновременных нагрузок не обнаружено (сенсоров: 2)"
+        ]
+      },
+      {
+        "name": "image",
+        "ok": true,
+        "detail": "nvcr.io/nvidia/pytorch:26.07-py3-vllm: есть"
+      },
+      {
+        "name": "data",
+        "ok": true,
+        "detail": "кэши и входы на месте; имя CPT-датасета (`datasets/cpt_corpus_v12r.txt`) на стенде отсутствует — это ожидаемо: читается преток-кэш, а путь нужен только для его разрешения и для lineage-хеша (как в run_v12_ladder.sh)",
+        "missing": [],
+        "notes": [
+          "имя CPT-датасета (`datasets/cpt_corpus_v12r.txt`) на стенде отсутствует — это ожидаемо: читается преток-кэш, а путь нужен только для его разрешения и для lineage-хеша (как в run_v12_ladder.sh)"
+        ],
+        "caches": [
+          "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+          "datasets/tok/sft_train_v12_8192_qwen25.npz",
+          "datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy"
+        ]
+      }
+    ],
+    "ok": true
+  },
+  "instrument": {
+    "case_probe_sha256": "ff735c6c87b90d5ce2edfe0ae369e6129152a36a4d9689dda06d8ec7eb3825a5",
+    "case_sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "case_runner_sha256": "3a22ab1a596b45ebe3260197b5b27bf467d9c50cd732cfb29e21d59e07247926",
+    "note": "case_* — файлы кейса на момент сборки сводки (--analyze-only пересобирает после правок раннера, поэтому хеш раннера относится к сборке отчёта); stand_* — файлы в каталоге прогона на стенде",
+    "stand_probe_sha256": "ff735c6c87b90d5ce2edfe0ae369e6129152a36a4d9689dda06d8ec7eb3825a5",
+    "stand_sampler_sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+    "stand_available": true,
+    "stand_matches_case": true
+  },
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B",
+    "seed": 42,
+    "max_len": 8192,
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "attn": "flex",
+    "cpt": {
+      "steps": 50,
+      "batch": 1,
+      "max_samples": 9776,
+      "data": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+      "tok_cache": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy"
+    },
+    "sft": {
+      "steps": 30,
+      "batch": 2,
+      "max_samples": 2000,
+      "data": "/workspace/shared/datasets/sft_train_v12.jsonl",
+      "tok_cache": "datasets/tok/sft_train_v12_8192_qwen25.npz"
+    },
+    "rl": "не запускалась",
+    "launch": "/home/user/gb10-shared/nvrm-storm/safe_start.sh -d 60 -i 5 -- docker run (absorbер включён)",
+    "instrumentation": {
+      "probe": "tools/smoke_probe.py",
+      "mem_sampler": "tools/smoke_mem_sampler.sh",
+      "entropy": "on, подвыборка позиций с шагом 16, блок 64"
+    }
+  },
+  "stage_results": {
+    "cpt": {
+      "stage": "cpt",
+      "exp_name": "smoke-compact-cpt-20260914-0930",
+      "exit": 0,
+      "ssh_exit": 0,
+      "wall_seconds": 179.1,
+      "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/smoke-20260914-0930/logs/cpt.log",
+      "ok": true,
+      "fetched_probe_cpt.jsonl": 10618,
+      "fetched_mem_cpt.jsonl": 8249,
+      "fetched_probes_cpt.json": 10428,
+      "fetched_general_eval_history.jsonl": 620,
+      "fetched_pipeline_run_manifest.json": 892
+    },
+    "sft": {
+      "stage": "sft",
+      "exp_name": "smoke-compact-sft-20260914-0930",
+      "exit": 0,
+      "ssh_exit": 0,
+      "wall_seconds": 184.1,
+      "local_log": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-s2/кейсы/laguna-compact/runs/smoke-20260914-0930/logs/sft.log",
+      "ok": true,
+      "fetched_probe_sft.jsonl": 7449,
+      "fetched_mem_sft.jsonl": 8582,
+      "fetched_probes_sft.json": 9236,
+      "fetched_general_eval_history.jsonl": 751,
+      "fetched_pipeline_run_manifest.json": 968
+    }
+  },
+  "measurements": {
+    "cpt": {
+      "probe_start": {
+        "event": "start",
+        "ts": 1789367208.9555075,
+        "pipeline": "/workspace/shared/laguna_pipeline_v8.py",
+        "pipeline_args": [
+          "--model_name",
+          "Qwen/Qwen2.5-0.5B",
+          "--stage",
+          "cpt",
+          "--exp_name",
+          "smoke-compact-cpt-20260914-0930",
+          "--max_steps",
+          "50",
+          "--max_samples",
+          "9776",
+          "--batch_size",
+          "1",
+          "--max_len",
+          "8192",
+          "--seed",
+          "42",
+          "--peak_lr_scale",
+          "0.7",
+          "--cpt_data",
+          "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+          "--sft_data",
+          "/workspace/shared/datasets/sft_train_v12.jsonl",
+          "--rl_data",
+          "/workspace/shared/datasets/rl_tasks_oxalpha.jsonl",
+          "--eval_data",
+          "/workspace/shared/datasets/eval_ood_clean.jsonl",
+          "--ckpt_dir",
+          "/workspace/experiments/smoke-compact-20260914-0930/checkpoints",
+          "--log_dir",
+          "/workspace/experiments/smoke-compact-20260914-0930/logs"
+        ],
+        "stage": "cpt",
+        "exp_name": "smoke-compact-cpt-20260914-0930",
+        "entropy": {
+          "entropy": true,
+          "pos_stride": 16,
+          "block": 64
+        },
+        "entropy_every": 1,
+        "pid": 4116221
+      },
+      "steps": 50,
+      "tokens_total": 409600,
+      "train_seconds": 115.6,
+      "step_intervals_used": 45,
+      "step_intervals_skipped_eval": 4,
+      "wall_seconds": null,
+      "tok_per_s": 3189.0,
+      "step_seconds_mean": 2.569,
+      "step_seconds_min": 2.426,
+      "step_seconds_max": 4.219,
+      "forward_seconds_mean": 0.1365,
+      "loss_first": 2.8773,
+      "loss_last": 2.8165,
+      "loss_first_step": 2.0989,
+      "loss_last_step": 2.7325,
+      "loss_min": 2.0989,
+      "loss_max": 5.7392,
+      "loss_argmin_step": 0,
+      "loss_slope_per_step": -0.014487,
+      "loss_decreasing_head_to_tail": true,
+      "loss_decreasing_after_peak": true,
+      "tokens_per_step": [
+        8192
+      ],
+      "entropy": {
+        "points": 50,
+        "mean": 3.18,
+        "first": 2.1929,
+        "last": 2.6006,
+        "min": 2.1686,
+        "max": 5.8228,
+        "corridor": [
+          1.0,
+          2.0
+        ],
+        "in_corridor": false
+      },
+      "skipped_forwards": 1952,
+      "eval_seconds": 11.442,
+      "probe_seconds": 163.931,
+      "torch_peak_allocated_gb": 19.42,
+      "torch_peak_reserved_gb": 25.82,
+      "memory": {
+        "samples": 25,
+        "mem_total_gb": 121.7,
+        "peak_used_gb": 69.36,
+        "min_available_gb": 52.33,
+        "used_first_gb": 39.17,
+        "used_last_gb": 69.36,
+        "container_peak_gb": 2.37,
+        "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+        "container_peak_note": "память контейнера по cgroup (2.37 ГБ) много меньше прироста по хосту (30.18 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту"
+      },
+      "incidents": [],
+      "incidents_count": 0
+    },
+    "sft": {
+      "probe_start": {
+        "event": "start",
+        "ts": 1789367389.3679113,
+        "pipeline": "/workspace/shared/laguna_pipeline_v8.py",
+        "pipeline_args": [
+          "--model_name",
+          "Qwen/Qwen2.5-0.5B",
+          "--stage",
+          "sft",
+          "--exp_name",
+          "smoke-compact-sft-20260914-0930",
+          "--max_steps",
+          "30",
+          "--max_samples",
+          "2000",
+          "--batch_size",
+          "2",
+          "--max_len",
+          "8192",
+          "--seed",
+          "42",
+          "--peak_lr_scale",
+          "0.7",
+          "--cpt_data",
+          "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+          "--sft_data",
+          "/workspace/shared/datasets/sft_train_v12.jsonl",
+          "--rl_data",
+          "/workspace/shared/datasets/rl_tasks_oxalpha.jsonl",
+          "--eval_data",
+          "/workspace/shared/datasets/eval_ood_clean.jsonl",
+          "--ckpt_dir",
+          "/workspace/experiments/smoke-compact-20260914-0930/checkpoints",
+          "--log_dir",
+          "/workspace/experiments/smoke-compact-20260914-0930/logs"
+        ],
+        "stage": "sft",
+        "exp_name": "smoke-compact-sft-20260914-0930",
+        "entropy": {
+          "entropy": true,
+          "pos_stride": 16,
+          "block": 64
+        },
+        "entropy_every": 1,
+        "pid": 4119448
+      },
+      "steps": 33,
+      "tokens_total": 540672,
+      "train_seconds": 97.52,
+      "step_intervals_used": 30,
+      "step_intervals_skipped_eval": 2,
+      "wall_seconds": null,
+      "tok_per_s": 5040.2,
+      "step_seconds_mean": 3.251,
+      "step_seconds_min": 2.662,
+      "step_seconds_max": 8.41,
+      "forward_seconds_mean": 0.1299,
+      "loss_first": 2.6034,
+      "loss_last": 2.5212,
+      "loss_first_step": 2.6621,
+      "loss_last_step": 2.3161,
+      "loss_min": 1.6698,
+      "loss_max": 3.0283,
+      "loss_argmin_step": 19,
+      "loss_slope_per_step": -0.002269,
+      "loss_decreasing_head_to_tail": true,
+      "loss_decreasing_after_peak": true,
+      "tokens_per_step": [
+        16384
+      ],
+      "entropy": {
+        "points": 33,
+        "mean": 2.5403,
+        "first": 2.5309,
+        "last": 2.2604,
+        "min": 1.796,
+        "max": 3.282,
+        "corridor": [
+          1.0,
+          2.0
+        ],
+        "in_corridor": false
+      },
+      "skipped_forwards": 3852,
+      "eval_seconds": 23.848,
+      "probe_seconds": 172.031,
+      "torch_peak_allocated_gb": 31.32,
+      "torch_peak_reserved_gb": 37.41,
+      "memory": {
+        "samples": 26,
+        "mem_total_gb": 121.7,
+        "peak_used_gb": 83.52,
+        "min_available_gb": 38.17,
+        "used_first_gb": 39.1,
+        "used_last_gb": 82.85,
+        "container_peak_gb": 5.27,
+        "container_mem_source": "docker stats (память cgroup; CUDA-аллокации unified могут не учитываться)",
+        "container_peak_note": "память контейнера по cgroup (5.27 ГБ) много меньше прироста по хосту (44.42 ГБ) — CUDA-аллокации unified-памяти в cgroup не учитываются; опираться на пик по хосту"
+      },
+      "incidents": [],
+      "incidents_count": 0
+    }
+  },
+  "forgetting_ppl": [
+    {
+      "step": 10,
+      "ppl_general": 126.92656205128498,
+      "ppl_domain": 24.913367445915153,
+      "delta_general_pct": 0.0,
+      "delta_domain_pct": 0.0
+    },
+    {
+      "step": 20,
+      "ppl_general": 191.67607928418522,
+      "ppl_domain": 26.900659397179275,
+      "delta_general_pct": 51.01337039818195,
+      "delta_domain_pct": 7.976809861526619
+    },
+    {
+      "step": 30,
+      "ppl_general": 155.68062089018667,
+      "ppl_domain": 18.025245023487873,
+      "delta_general_pct": 22.654090975286604,
+      "delta_domain_pct": -27.648299401439086
+    },
+    {
+      "step": 40,
+      "ppl_general": 162.26102095966002,
+      "ppl_domain": 14.842770770150029,
+      "delta_general_pct": 27.83850624906871,
+      "delta_domain_pct": -40.42246275068014
+    },
+    {
+      "step": 0,
+      "ppl_general": 127.50231470270732,
+      "ppl_domain": 11.75640733743271,
+      "delta_general_pct": 0.0,
+      "delta_domain_pct": 0.0
+    }
+  ],
+  "incidents": {
+    "per_stage_from_logs": {
+      "cpt": 0,
+      "sft": 0
+    },
+    "dmesg_nvrm_xid_delta": 0,
+    "dmesg_oom_delta": 0,
+    "dmesg_note": "dmesg — кольцевой буфер: при перезаписи дельта занижается; основное доказательство — лог стадии и код возврата"
+  },
+  "postconditions": {
+    "containers_after": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "platform_alive": [
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "free_after_g": "               всего        занят        своб      общая  буф/врем.   доступно\nПамять:          121          40          86           1           3          81\nПодкачка:         31           0          31\n",
+    "container_closed": true
+  },
+  "run_manifest": "runs/smoke-20260914-0930/run_manifest.json",
+  "not_verified": [
+    "RL-стадия и всё, что с ней связано: reward, pass-rate, judge_mean — смоук ограничен CPT+SFT по заданию дельты; AD-1 (ось успеха) смоуком не закрывается",
+    "eval-стадия и метрики judge_mean/slug_accuracy: в смоуке не запускались (нужны GLM-судья и полный набор; не входят в перечень замеров дельты)",
+    "три сида и полный набор SFT/RL: смоук — один сид и урезанные max_samples",
+    "устойчивость к NVRM-бурям на длинных прогонах: окно смоука минуты, а не часы; отсутствие инцидентов здесь не переносится на S3",
+    "энтропия: пайплайн её не логирует, замер сделан обвязкой (средняя токенная энтропия на супервизируемых позициях по подвыборке) — это методика смоука, а не величина, которую считает контур",
+    "контроль «loss убывает» на коротком окне CPT ограничен разогревом WSD и домен-сдвигом: вердикт считается по крайним десяткам шагов и наклону, оба числа в замерах"
+  ],
+  "evidence_limits": "замеры получены обвязкой tools/smoke_probe.py и сэмплером tools/smoke_mem_sampler.sh; пайплайн не менялся, sha256 пайплайна — в run_manifest.json",
+  "rebuilt": {
+    "at": "2026-09-14T09:38:55",
+    "note": "сводка пересобрана из артефактов; предусловия, результаты стадий и состояние стенда после прогона взяты из прежнего evidence и повторным замером не подменялись"
+  }
+}

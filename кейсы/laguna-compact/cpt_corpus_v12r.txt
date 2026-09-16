@@ -1,0 +1,1 @@
+/home/user/gb10-shared/cpt_corpus_v12r.txt

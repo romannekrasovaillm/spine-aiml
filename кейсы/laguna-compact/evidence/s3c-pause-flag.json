@@ -1,0 +1,110 @@
+{
+  "stage": "S3c",
+  "date": "2026-09-14T17:20:00",
+  "status": "complete",
+  "purpose": "Сделать флаг паузы REVISION-WINDOW.lock настоящим механизмом (а не декларацией) и запустить пилот ревизии (ADR-013 фаза 1)",
+  "basis": [
+    "AD-9 (уточнение 14.09.2026): флаг паузы действителен только если контур лесенки его читает; флаг без поддержки — декларация, и страж обязан отказать",
+    "ADR-012 п.2-3: четыре шага паузы; @reboot-строка зовёт restart_v12.sh напрямую, минуя сторожа",
+    "ADR-013 п.1: состав пилота (CPT → SFT → RL → eval), один сид 42",
+    "C-018: страж хозяина ресурса (fitness-правило AD-9)"
+  ],
+  "foreign_contour_change": {
+    "why": "Прошлый прогон завершился blocked правильно: страж отказал, потому что активная @reboot-строка зовёт restart_v12.sh, а тот флага не знает — один ребут за 3.5 суток пилота убил бы стадию (docker kill всех не-llm-platform контейнеров + подъём tmux v12-ladder)",
+    "file": "/home/user/gb10-shared/restart_v12.sh",
+    "file_is_outside_git": true,
+    "backup": "/home/user/gb10-shared/restart_v12.sh.bak_revision_window",
+    "sha256_before": "126423ca9dcd2a303ec397c923950276ee9f2ecb976383117864cb8d0437e92a",
+    "sha256_after": "57c2db9e0c0823561990279560fe076c88343f2b5bcec8deb34fca9b2082718f",
+    "sha256_backup": "126423ca9dcd2a303ec397c923950276ee9f2ecb976383117864cb8d0437e92a",
+    "scope": "вставлен один блок между шапкой лога и шагом 1 (проверкой tmux); остальной скрипт не тронут, @reboot-строка не снята, сторож лесенки не восстановлен",
+    "inserted_block": [
+      "# 0. ПАУЗА РЕВИЗИИ (REVISION-WINDOW, ADR-012 п.3, AD-9). Флаг читается ЗДЕСЬ — до любых",
+      "#    действий: пока он на месте, скрипт не поднимает лесенку и не трогает контейнеры",
+      "#    (в том числе при @reboot). Правка 14.09.2026 (окно ревизии), обратима из бэкапа",
+      "#    restart_v12.sh.bak_revision_window. Флаг снимает владелец (R4+).",
+      "if [ -f \"$SHARED/REVISION-WINDOW.lock\" ]; then",
+      "  echo \"[$(date +%H:%M:%S)] [REVISION-WINDOW] пауза: лесенка не запускается (см. REVISION-WINDOW.lock)\"",
+      "  echo \"=== V12 RESTART PAUSED $(date -Is) ===\"",
+      "  exit 0",
+      "fi"
+    ],
+    "rollback": "cp ~/gb10-shared/restart_v12.sh.bak_revision_window ~/gb10-shared/restart_v12.sh (восстанавливает байт-в-байт, sha256_before)"
+  },
+  "checks": [
+    {
+      "name": "syntax",
+      "cmd": "bash -n ~/gb10-shared/restart_v12.sh",
+      "ok": true,
+      "detail": "синтаксис после правки валиден; на стенде sha файла совпадает с локальным (NFS)"
+    },
+    {
+      "name": "rehearsal_stubbed",
+      "cmd": "ssh gb10-fast 'PATH=/tmp/rw-rehearsal/bin:$PATH bash ~/gb10-shared/restart_v12.sh' (tmux и docker подменены заглушками, пишущими вызовы)",
+      "ok": true,
+      "detail": "rc=0; файл вызовов заглушек пуст — до ветки паузы не вызвано ни tmux, ни docker (ветка срабатывает раньше шага 3 с `docker kill`)",
+      "calls_log": "пусто"
+    },
+    {
+      "name": "real_run_with_flag",
+      "cmd": "ssh gb10-fast 'bash ~/gb10-shared/restart_v12.sh'",
+      "ok": true,
+      "detail": "rc=0; docker ps до и после совпадает (те же 4 llm-platform-*, всего контейнеров 6), tmux-сессия v12-ladder не создана, в лог записана строка паузы",
+      "containers_before": ["llm-platform-supervisor", "llm-platform-gateway", "llm-platform-runtime", "llm-platform-ollama"],
+      "containers_after": ["llm-platform-supervisor", "llm-platform-gateway", "llm-platform-runtime", "llm-platform-ollama"],
+      "tmux_before": "no server running",
+      "tmux_after": "no server running",
+      "log_lines": [
+        "[10:44:39] [REVISION-WINDOW] пауза: лесенка не запускается (см. REVISION-WINDOW.lock)",
+        "=== V12 RESTART PAUSED 2026-09-14T10:44:39-03:00 ===",
+        "[10:44:43] [REVISION-WINDOW] пауза: лесенка не запускается (см. REVISION-WINDOW.lock)",
+        "=== V12 RESTART PAUSED 2026-09-14T10:44:43-03:00 ==="
+      ],
+      "log_path": "/home/user/gb10-shared/v12_restart.log"
+    },
+    {
+      "name": "guard_flag_supported",
+      "cmd": "bash tools/check_resource_owner.sh --stage cpt --json",
+      "ok": true,
+      "exit": 0,
+      "verdict": "CAN-START",
+      "owner_branch": "lock-supported",
+      "detail": "флаг на месте + restart_v12.sh его читает → активная @reboot-строка обезврежена; память 79.0 ГБ ≥ 35, нагрузок 0",
+      "flag_supported": true,
+      "cron_autostart_lines": 1,
+      "cron_autostart_blocking": false,
+      "cron_autostart_defused": true
+    },
+    {
+      "name": "guard_flag_unsupported",
+      "cmd": "bash tools/check_resource_owner.sh --stage cpt --json --restart-script /home/user/gb10-shared/restart_v12.sh.bak_revision_window",
+      "ok": true,
+      "exit": 2,
+      "verdict": "CANNOT-START",
+      "owner_branch": "autostart-blocked",
+      "detail": "тот же стенд и тот же флаг, но скрипт флага не читает (взят бэкап) → отказ; в причинах названы и @reboot-строка, и флаг без поддержки",
+      "flag_supported": false,
+      "cron_autostart_blocking": true
+    }
+  ],
+  "code_changes_in_git": [
+    "tools/check_resource_owner.sh — сенсор поддержки флага (--restart-script, GB10_LADDER_RESTART) и ветвь lock-supported: @reboot блокирует, только если флаг не поддержан; режим --unreachable-not-verified сохранён",
+    "tools/pilot_chain.sh — починено соответствие позиций в pipeline_args (--exp_name брался из поля eval_ckpt, --eval_ckpt — из поля exp): контейнер стадии падал в argparse за 6 с",
+    "tools/run_pilot.py — not_verified и next_actions условны по launch; статусы стадий в манифесте кейса на запуске — pending, а не done (done = артефакт на месте)",
+    "tools/tests/run_tool_tests.sh — фикстуры контура со/без поддержки флага, аргумент-лист контейнера, честность отчёта о запуске"
+  ],
+  "not_verified": [
+    "реальный ребут стенда не воспроизводился: проверено исполнение той же команды, которую зовёт @reboot-строка (bash restart_v12.sh при флаге), а не сам ребут",
+    "сенсор поддержки читает текст restart_v12.sh и не доказывает порядок ветвей внутри него (что проверка флага стоит до docker kill) — это доказано прогоном, а не чтением; граница названа в шапке стража",
+    "сторож лесенки флага не читает: он гасит контейнер сам и лишь потом зовёт restart_v12.sh. Пауза держится тем, что сторож неисполняем и его строка крона закомментирована; страж печатает это предупреждением, если состояние изменится",
+    "точка решения ADR-013 п.3 — после завершения пилота (≈3.5 суток), не сейчас"
+  ],
+  "acceptance": {
+    "flag_respected_by_ladder_contour": "проверено фактом: rc=0, контейнеры не тронуты, лесенка не поднята, бэкап на месте",
+    "guard_verdicts": "флаг + поддержка → CAN-START (exit 0); флаг без поддержки → CANNOT-START (exit 2)",
+    "pilot_launched": "tmux pilot-compact-s42 + контейнер laguna-pilot-20260914-1626-cpt + шаги CPT в logs/cpt.log + манифест стадии",
+    "tool_tests": "PASS=251 FAIL=0 (tools/tests/run_tool_tests.sh)",
+    "fitness": "C-018 → exit 0; C-014 красное (evidence/result-report-*.json появляется после завершения пилота)",
+    "platform": "llm-platform-* живы (4 контейнера, Up 3 days), чужие чекпойнты не тронуты (проверено find по mtime)"
+  }
+}

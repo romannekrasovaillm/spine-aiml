@@ -54,10 +54,10 @@ constraints:
     evidence: "model/AD-*.md → поле «**Rule**»"
 
   - id: C-005
-    name: "Спайн: инвариант привязан к fitness-правилу (нет правила — нет стража)"
+    name: "Спайн: инвариант привязан к fitness-правилу ИЛИ честно помечен PENDING-EVIDENCE (третьего состояния нет)"
     type: each_file_must_contain
     glob: "model/AD-*.md"
-    pattern: "verified_by:\\s*\\[C-0"
+    pattern: "verified_by:\\s*\\[C-0|PENDING-EVIDENCE"
     severity: critical
     scope: case
     kind: documentary
@@ -163,16 +163,37 @@ constraints:
     kind: documentary
     evidence: "evidence/result-report-*.json → поля axis, judge_mean, std, entropy, clip_frac"
 
+  # ── AD-9: хозяин ресурса GB10 ─────────────────────────────────────────────
+  - id: C-018
+    name: "AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки"
+    type: command_succeeds
+    command: "bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified"
+    severity: critical
+    scope: case
+    kind: behavioural
+    evidence: "tools/check_resource_owner.sh → exit 0 = CAN-START. Флаг REVISION-WINDOW.lock считается действительным только если контур лесенки его ЧИТАЕТ (обработка в restart_v12.sh); иначе при ребуте автозапуск всё равно вернёт конкурирующий прогон. Стенд недоступен → NOT-VERIFIED (не красный)"
+
+  # ── AD-10: граница стража и раннера ───────────────────────────────────────
+  - id: C-019
+    name: "AD-10: гейт ссылается только на стражей (tools/check_*), но не на раннеры и билдеры"
+    type: must_not_contain
+    glob: "CONSTRAINTS.yaml"
+    pattern: "command:\\s*\"[^\"]*tools/(run_|pilot_chain|smoke_|build_|compare_)"
+    severity: high
+    scope: case
+    kind: documentary
+    evidence: "CONSTRAINTS.yaml → ни одно правило не вызывает tools/run_*, tools/pilot_chain.sh, tools/smoke_*, tools/build_*, tools/compare_*; раннеры исполняются человеком или харнессом, обратное (раннер вызывает стража) разрешено (ADR-019, спайн AD-10)"
+
   # ── AD-8: лицензионный статус доменной части ─────────────────────────────
   - id: C-016
-    name: "AD-8: карточка корпуса несёт лицензионный статус (internal_only) и границу публикации (ADR-011)"
+    name: "AD-8: карточка корпуса несёт лицензионный статус (internal_only); публикация производных запрещена"
     type: each_file_must_contain
     glob: "data/corpus-card.json"
     pattern: "license_status|domain_license_unresolved"
     severity: high
     scope: case
     kind: documentary
-    evidence: "data/corpus-card.json → license_status: internal_only (решение владельца 14.09.2026, ADR-005) + publication (ADR-011): корпус и производные — prohibited, документы кейса и карточка-метаданные — allowed"
+    evidence: "data/corpus-card.json → license_status: internal_only (решение владельца 14.09.2026, ADR-005); публикация артефактов за периметр — только отдельным решением владельца и новым ADR"
 
   # ── AD-5: ресурсный инвариант GB10 ────────────────────────────────────────
   - id: C-015

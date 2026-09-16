@@ -33,207 +33,25 @@
   },
   "sft_rl_overlap": {
     "sft": "datasets/sft_train_v12.jsonl",
-    "rl": "datasets/rl_tasks_oxalpha.jsonl",
+    "rl": "runs/rev-pool-v2/rl_pool_filtered.jsonl",
     "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
     "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
     "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
-    "rl_tasks": 28000,
-    "rl_unique_prompts": 27009,
+    "rl_tasks": 9162,
+    "rl_unique_prompts": 9162,
     "sft_examples": 44949,
-    "sft_matched_prompts": 39,
-    "sft_rl_pairs": 39,
-    "rl_matched_tasks": 8,
-    "rl_matched_tasks_from_sft_side": 8,
-    "matches": [
-      {
-        "sft_line": 758,
-        "sft_id": "line:758",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 4744,
-        "sft_id": "line:4744",
-        "rl_line": 11959,
-        "rl_id": "line:11959",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "6ca856c94dd2",
-        "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
-      },
-      {
-        "sft_line": 6237,
-        "sft_id": "line:6237",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 10169,
-        "sft_id": "line:10169",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 10184,
-        "sft_id": "line:10184",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 10497,
-        "sft_id": "line:10497",
-        "rl_line": 11959,
-        "rl_id": "line:11959",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "6ca856c94dd2",
-        "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
-      },
-      {
-        "sft_line": 15844,
-        "sft_id": "line:15844",
-        "rl_line": 11685,
-        "rl_id": "line:11685",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "262af1be031b",
-        "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
-      },
-      {
-        "sft_line": 16090,
-        "sft_id": "line:16090",
-        "rl_line": 11959,
-        "rl_id": "line:11959",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "6ca856c94dd2",
-        "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
-      },
-      {
-        "sft_line": 17512,
-        "sft_id": "line:17512",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 19385,
-        "sft_id": "line:19385",
-        "rl_line": 11685,
-        "rl_id": "line:11685",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "262af1be031b",
-        "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
-      },
-      {
-        "sft_line": 21437,
-        "sft_id": "line:21437",
-        "rl_line": 11685,
-        "rl_id": "line:11685",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "262af1be031b",
-        "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
-      },
-      {
-        "sft_line": 23754,
-        "sft_id": "line:23754",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 25435,
-        "sft_id": "line:25435",
-        "rl_line": 11959,
-        "rl_id": "line:11959",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "6ca856c94dd2",
-        "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
-      },
-      {
-        "sft_line": 25617,
-        "sft_id": "line:25617",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 26288,
-        "sft_id": "line:26288",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 26373,
-        "sft_id": "line:26373",
-        "rl_line": 11685,
-        "rl_id": "line:11685",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "262af1be031b",
-        "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
-      },
-      {
-        "sft_line": 26744,
-        "sft_id": "line:26744",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 27453,
-        "sft_id": "line:27453",
-        "rl_line": 11959,
-        "rl_id": "line:11959",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "6ca856c94dd2",
-        "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
-      },
-      {
-        "sft_line": 27650,
-        "sft_id": "line:27650",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      },
-      {
-        "sft_line": 27673,
-        "sft_id": "line:27673",
-        "rl_line": 2896,
-        "rl_id": "line:2896",
-        "rl_task_type": "explain_relation",
-        "normalized_sha1": "33aa08d54e3d",
-        "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
-      }
-    ],
-    "matches_truncated": true,
-    "verdict": "совпадения найдены — фильтрация данных решением архитектора (AD-7: состав заморожен, инструмент данные не меняет)",
-    "cross_check": {
-      "expected_sft_matched_prompts": 39,
-      "actual_sft_matched_prompts": 39,
-      "matched": true,
-      "source": "известный замер, переданный флагом --expect-matched"
-    }
+    "sft_matched_prompts": 0,
+    "sft_rl_pairs": 0,
+    "rl_matched_tasks": 0,
+    "rl_matched_tasks_from_sft_side": 0,
+    "matched_rl_lines": [],
+    "matched_rl_ids": [],
+    "matches": [],
+    "matches_truncated": false,
+    "tolerance": {
+      "allowed_sft_matched_prompts": 0
+    },
+    "verdict": "совпадений нет"
   },
   "corpus": {
     "card": "data/corpus-card.json",
@@ -348,5 +166,498 @@
       "seconds": 0.0
     }
   ],
-  "audit_commands_note": "команды записаны в порядке чтения отчёта; команда, пишущая evidence, исполнена последней, чтобы прогоны не конкурировали за один файл"
+  "audit_commands_note": "команды записаны в порядке чтения отчёта; команда, пишущая evidence, исполнена последней, чтобы прогоны не конкурировали за один файл",
+  "sft_rl_overlap_history": [
+    {
+      "sft": "datasets/sft_train_v12.jsonl",
+      "rl": "datasets/rl_tasks_oxalpha.jsonl",
+      "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
+      "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
+      "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
+      "rl_tasks": 28000,
+      "rl_unique_prompts": 27009,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 39,
+      "sft_rl_pairs": 39,
+      "rl_matched_tasks": 8,
+      "rl_matched_tasks_from_sft_side": 8,
+      "matches": [
+        {
+          "sft_line": 758,
+          "sft_id": "line:758",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 4744,
+          "sft_id": "line:4744",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 6237,
+          "sft_id": "line:6237",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10169,
+          "sft_id": "line:10169",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10184,
+          "sft_id": "line:10184",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10497,
+          "sft_id": "line:10497",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 15844,
+          "sft_id": "line:15844",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 16090,
+          "sft_id": "line:16090",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 17512,
+          "sft_id": "line:17512",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 19385,
+          "sft_id": "line:19385",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 21437,
+          "sft_id": "line:21437",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 23754,
+          "sft_id": "line:23754",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 25435,
+          "sft_id": "line:25435",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 25617,
+          "sft_id": "line:25617",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26288,
+          "sft_id": "line:26288",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26373,
+          "sft_id": "line:26373",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26744,
+          "sft_id": "line:26744",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27453,
+          "sft_id": "line:27453",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27650,
+          "sft_id": "line:27650",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27673,
+          "sft_id": "line:27673",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        }
+      ],
+      "matches_truncated": true,
+      "verdict": "совпадения найдены — фильтрация данных решением архитектора (AD-7: состав заморожен, инструмент данные не меняет)",
+      "cross_check": {
+        "expected_sft_matched_prompts": 39,
+        "actual_sft_matched_prompts": 39,
+        "matched": true,
+        "source": "известный замер, переданный флагом --expect-matched"
+      }
+    },
+    {
+      "sft": "datasets/sft_train_v12.jsonl",
+      "rl": "runs/rev-pool/rl_pool_filtered.jsonl",
+      "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
+      "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
+      "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
+      "rl_tasks": 27992,
+      "rl_unique_prompts": 27001,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 0,
+      "sft_rl_pairs": 0,
+      "rl_matched_tasks": 0,
+      "rl_matched_tasks_from_sft_side": 0,
+      "matched_rl_lines": [],
+      "matched_rl_ids": [],
+      "matches": [],
+      "matches_truncated": false,
+      "tolerance": {
+        "allowed_sft_matched_prompts": 0
+      },
+      "verdict": "совпадений нет"
+    },
+    {
+      "sft": "datasets/sft_train_v12.jsonl",
+      "rl": "datasets/rl_tasks_oxalpha.jsonl",
+      "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
+      "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
+      "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
+      "rl_tasks": 28000,
+      "rl_unique_prompts": 27009,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 39,
+      "sft_rl_pairs": 39,
+      "rl_matched_tasks": 8,
+      "rl_matched_tasks_from_sft_side": 8,
+      "matched_rl_lines": [
+        2896,
+        5628,
+        11685,
+        11871,
+        11959,
+        14394,
+        17470,
+        18248
+      ],
+      "matched_rl_ids": [
+        "line:11685",
+        "line:11871",
+        "line:11959",
+        "line:14394",
+        "line:17470",
+        "line:18248",
+        "line:2896",
+        "line:5628"
+      ],
+      "matches": [
+        {
+          "sft_line": 758,
+          "sft_id": "line:758",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 4744,
+          "sft_id": "line:4744",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 6237,
+          "sft_id": "line:6237",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10169,
+          "sft_id": "line:10169",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10184,
+          "sft_id": "line:10184",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 10497,
+          "sft_id": "line:10497",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 15844,
+          "sft_id": "line:15844",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 16090,
+          "sft_id": "line:16090",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 17512,
+          "sft_id": "line:17512",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 19385,
+          "sft_id": "line:19385",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 21437,
+          "sft_id": "line:21437",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 23754,
+          "sft_id": "line:23754",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 25435,
+          "sft_id": "line:25435",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 25617,
+          "sft_id": "line:25617",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26288,
+          "sft_id": "line:26288",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26373,
+          "sft_id": "line:26373",
+          "rl_line": 11685,
+          "rl_id": "line:11685",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "262af1be031b",
+          "prompt_preview": "объясни связь между концептами 'extended_linear_regression_model' и 'extended_quantization_model'. как они соотносятся?"
+        },
+        {
+          "sft_line": 26744,
+          "sft_id": "line:26744",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27453,
+          "sft_id": "line:27453",
+          "rl_line": 11959,
+          "rl_id": "line:11959",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "6ca856c94dd2",
+          "prompt_preview": "объясни связь между концептами 'type_d_configuration_file_only' и 'type_b_message_signature'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27650,
+          "sft_id": "line:27650",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        },
+        {
+          "sft_line": 27673,
+          "sft_id": "line:27673",
+          "rl_line": 2896,
+          "rl_id": "line:2896",
+          "rl_task_type": "explain_relation",
+          "normalized_sha1": "33aa08d54e3d",
+          "prompt_preview": "объясни связь между концептами 'shared_visual_anchor' и 'clean_latent_tokens'. как они соотносятся?"
+        }
+      ],
+      "matches_truncated": true,
+      "tolerance": {
+        "allowed_sft_matched_prompts": 0
+      },
+      "verdict": "совпадения найдены — фильтрация данных решением архитектора (AD-7: состав заморожен, инструмент данные не меняет)"
+    },
+    {
+      "sft": "datasets/sft_train_v12.jsonl",
+      "rl": "runs/rev-pool-v2/rl_pool_filtered.jsonl",
+      "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
+      "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
+      "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
+      "rl_tasks": 8692,
+      "rl_unique_prompts": 8692,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 0,
+      "sft_rl_pairs": 0,
+      "rl_matched_tasks": 0,
+      "rl_matched_tasks_from_sft_side": 0,
+      "matched_rl_lines": [],
+      "matched_rl_ids": [],
+      "matches": [],
+      "matches_truncated": false,
+      "tolerance": {
+        "allowed_sft_matched_prompts": 0
+      },
+      "verdict": "совпадений нет"
+    },
+    {
+      "sft": "datasets/sft_train_v12.jsonl",
+      "rl": "runs/rev-pool-v2/rl_pool_filtered.jsonl",
+      "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи",
+      "normalization": "lower + схлопнутые пробелы (norm из tools/check_eval_leakage.py)",
+      "id_scheme": "id задачи — явное поле (id/task_id/slug), иначе line:<N> (1-based)",
+      "rl_tasks": 9162,
+      "rl_unique_prompts": 9162,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 0,
+      "sft_rl_pairs": 0,
+      "rl_matched_tasks": 0,
+      "rl_matched_tasks_from_sft_side": 0,
+      "matched_rl_lines": [],
+      "matched_rl_ids": [],
+      "matches": [],
+      "matches_truncated": false,
+      "tolerance": {
+        "allowed_sft_matched_prompts": 0
+      },
+      "verdict": "совпадений нет"
+    }
+  ]
 }

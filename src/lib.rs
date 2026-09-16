@@ -74,6 +74,7 @@ pub mod openapi;
 pub mod openspec;
 pub mod plugin;
 pub mod policy;
+pub mod post_merge;
 pub mod preflight;
 pub mod provenance;
 pub mod publish;

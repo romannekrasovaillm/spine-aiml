@@ -917,7 +917,10 @@ enum WorktreeCmd {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
-    /// Принять: merge в текущую ветку + уборка worktree.
+    /// Принять: merge в текущую ветку + post-merge гейт правил + уборка
+    /// worktree. Коды возврата: 0 — приёмка чистая; 4 — мерж состоялся, но
+    /// правила основной ветки красные (CONSTRAINTS-FAILED, решение
+    /// владельца); 1 — приёмка отклонена, основная ветка не тронута.
     Accept {
         /// Имя worktree.
         name: String,
@@ -2100,7 +2103,14 @@ async fn cmd_fleet(cfg: &Arc<Config>, cmd: FleetCmd) -> Result<()> {
                     outln!("{summary}");
                     std::process::exit(1);
                 }
-                arch_harness::worktree::MergeGateOutcome::Merged(msg) => outln!("{msg}"),
+                arch_harness::worktree::MergeGateOutcome::Merged(outcome) => {
+                    outln!("{}", outcome.text);
+                    // Как у `worktree accept`: красный post-merge гейт —
+                    // код 4, а не 0 (мерж состоялся, ADR-024, шаг 5).
+                    if outcome.exit_code() != 0 {
+                        std::process::exit(outcome.exit_code());
+                    }
+                }
             }
         }
         FleetCmd::Run {
@@ -2405,11 +2415,15 @@ async fn cmd_worktree(cfg: &Arc<Config>, cmd: WorktreeCmd) -> Result<()> {
             repo,
             approver,
         } => {
-            outln!(
-                "{}",
+            let outcome =
                 arch_harness::worktree::accept(cfg, &repo_of(repo), &name, approver.as_deref())
-                    .await?
-            );
+                    .await?;
+            outln!("{}", outcome.text);
+            // Код 4 — «мерж состоялся, но post-merge гейт красный»: отличим
+            // от 1 («приёмка отклонена, основная ветка не тронута»), ADR-024.
+            if outcome.exit_code() != 0 {
+                std::process::exit(outcome.exit_code());
+            }
         }
         WorktreeCmd::Drop { name, repo } => {
             outln!(

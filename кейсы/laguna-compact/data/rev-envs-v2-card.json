@@ -1,0 +1,484 @@
+{
+  "card": "laguna-compact / rev-envs-v2",
+  "decision": "ADR-021: подключаем верифицируемую часть сред E1–E8 (verifiable_weight >= 0.8, judge_weight <= 0.2) + env_types",
+  "sources_unchanged": true,
+  "inputs": {
+    "registry": {
+      "path": "/home/user/library/rl_envs/envs.yaml",
+      "sha256": "626d33a3c4d4923129b64495e1b95e9966a27b1d98fa18485a95dbd884269815"
+    },
+    "index": {
+      "path": "datasets/concepts_search_index.jsonl",
+      "sha256": "92b86c9b64efe02c4d82506afdeb3fc6952324f701e6452144f492a1272adfeb",
+      "entries": 237226
+    }
+  },
+  "envs": {
+    "E1_define": {
+      "source": "/home/user/library/rl_envs/tasks/define.jsonl",
+      "registry_count": 414,
+      "actual": 414,
+      "judge_weight": 0.5,
+      "verifiable_weight": 0.5,
+      "kept": 0,
+      "excluded": 414,
+      "excluded_reason": "judge_weight 0.5 > 0.2 — судья в контуре награды (AD-6/C-013, ADR-021 п.2)",
+      "projection": null
+    },
+    "E2_formula": {
+      "source": "/home/user/library/rl_envs/tasks/formula.jsonl",
+      "registry_count": 1839,
+      "actual": 1839,
+      "judge_weight": 0.1,
+      "verifiable_weight": 0.9,
+      "kept": 1818,
+      "excluded": 21,
+      "excluded_reason": null,
+      "projection": "card_slug",
+      "excluded_by_reason": {
+        "prompt_leak": 21
+      },
+      "projection_how": {
+        "frontmatter(yaml)": 1815,
+        "frontmatter(regex: yaml не разобрался)": 24
+      },
+      "kept_in_pool": 1814
+    },
+    "E3_classify": {
+      "source": "/home/user/library/rl_envs/tasks/classify.jsonl",
+      "registry_count": 6568,
+      "actual": 6568,
+      "judge_weight": 0.0,
+      "verifiable_weight": 1.0,
+      "kept": 6484,
+      "excluded": 84,
+      "excluded_reason": null,
+      "projection": "card_slug",
+      "excluded_by_reason": {
+        "prompt_leak": 81,
+        "token_too_short": 3
+      },
+      "projection_how": {
+        "frontmatter(yaml)": 6539,
+        "frontmatter(regex: yaml не разобрался)": 29
+      },
+      "kept_in_pool": 6484
+    },
+    "E4_extract": {
+      "source": "/home/user/library/rl_envs/tasks/extract.jsonl",
+      "registry_count": 45,
+      "actual": 45,
+      "judge_weight": 0.4,
+      "verifiable_weight": 0.6,
+      "kept": 0,
+      "excluded": 45,
+      "excluded_reason": "judge_weight 0.4 > 0.2 — судья в контуре награды (AD-6/C-013, ADR-021 п.2)",
+      "projection": null
+    },
+    "E5_relate": {
+      "source": "/home/user/library/rl_envs/tasks/relate.jsonl",
+      "registry_count": 216,
+      "actual": 216,
+      "judge_weight": 0.2,
+      "verifiable_weight": 0.8,
+      "kept": 210,
+      "excluded": 6,
+      "excluded_reason": null,
+      "projection": "gold_relation",
+      "excluded_by_reason": {
+        "prompt_leak": 6
+      },
+      "projection_how": {
+        "gold_relation.{from,to}": 216
+      },
+      "kept_in_pool": 194
+    },
+    "E6_contrast": {
+      "source": "/home/user/library/rl_envs/tasks/contrast.jsonl",
+      "registry_count": 100,
+      "actual": 100,
+      "judge_weight": 0.7,
+      "verifiable_weight": 0.3,
+      "kept": 0,
+      "excluded": 100,
+      "excluded_reason": "judge_weight 0.7 > 0.2 — судья в контуре награды (AD-6/C-013, ADR-021 п.2)",
+      "projection": null
+    },
+    "E7_repair": {
+      "source": "/home/user/library/rl_envs/tasks/repair.jsonl",
+      "registry_count": 100,
+      "actual": 100,
+      "judge_weight": 0.0,
+      "verifiable_weight": 1.0,
+      "kept": 0,
+      "excluded": 100,
+      "excluded_reason": "нет однозначной проекции gold: исправляемые значения присутствуют в тексте промпта (золотой type — в 97 из 100 карточек, раздел «## Тип концепции»; slug — в 100 из 100), проверка сводится к копированию из промпта, а собственный верификатор среды (verifiers/common.py::verify_repair разбирает frontmatter ОТВЕТА) пайплайном не вызывается",
+      "projection": "unprojectable"
+    },
+    "E8_plan_experiment": {
+      "source": "/home/user/library/rl_envs/tasks/plan_experiment.jsonl",
+      "registry_count": 0,
+      "actual": 0,
+      "judge_weight": 0.7,
+      "verifiable_weight": 0.3,
+      "kept": 0,
+      "excluded": 0,
+      "excluded_reason": "среда не заполнена: 0 задач (ADR-021 п.2)",
+      "projection": null
+    },
+    "env_types": {
+      "source": "datasets/rl_tasks_env_types.jsonl",
+      "registry_count": null,
+      "actual": 700,
+      "judge_weight": null,
+      "verifiable_weight": null,
+      "kept": 670,
+      "excluded": 30,
+      "excluded_reason": null,
+      "projection": "as_is",
+      "excluded_by_reason": {
+        "prompt_leak": 30
+      },
+      "rerouted_ood_pair": 200,
+      "prompt_leak": {
+        "total": 30,
+        "by_form": {
+          "slug_in_prompt": 30
+        }
+      },
+      "slug_not_in_index": 0,
+      "chain_projection": {
+        "checked": 500,
+        "projected": 500,
+        "roles_recognized": 500,
+        "roles_unknown": 0,
+        "hint_named": 300,
+        "projection_impossible": 0,
+        "by_task_type": {
+          "chain_reasoning": 300,
+          "formula_chain": 200
+        }
+      },
+      "note": "формат пайплайна уже есть; 200 ood_pair перемаршрутизированы в explain_relation (у них keywords, а не expected_slugs — slug-ветка верификатора вернула бы False на любой ответ); 500 цепочек перепроецированы: проверяемый набор — термины определений концептов-условий, а не их имена, названные в промпте (S3f-fix-2; прежняя проекция проверяла концы — лейк-фильтр S3f-fix снимал тип целиком)",
+      "kept_in_pool": 670
+    }
+  },
+  "gold_projection": {
+    "E2_formula": "gold_card → slug карточки концепта → expected_slugs=[slug]; проверяет slug-ветка verify_task (все строки expected_slugs присутствуют в ответе). Мера — «модель назвала концепт, о котором задача»; содержание ответа (формула в E2, тип/уровень/формальность в E3) этой веткой не проверяется.",
+    "E3_classify": "gold_card → slug карточки концепта → expected_slugs=[slug]; проверяет slug-ветка verify_task (все строки expected_slugs присутствуют в ответе). Мера — «модель назвала концепт, о котором задача»; содержание ответа (формула в E2, тип/уровень/формальность в E3) этой веткой не проверяется.",
+    "E5_relate": "gold_relation.{from,to} → keywords=[from,to]; проверяет keyword-ветка verify_task (термины ОПРЕДЕЛЕНИЙ обоих концептов по индексу концептов, >= min(3, |терминов|) на каждый). Slug-и в промпте для этой ветки безразличны — она ими не пользуется.",
+    "E7_repair": "проекция невозможна: проверяемое значение gold присутствует в промпте либо проверка требует верификатора среды, который пайплайн не вызывает",
+    "env_types": "формат пайплайна как есть (проекция не нужна — gold уже в форме верификатора); 200 ood_pair перемаршрутизированы в explain_relation; 500 цепочек перепроецированы на содержание концептов-условий — S3f-fix-2)",
+    "chain_definition_terms": "Цепочки (chain_reasoning/formula_chain): проверяемый набор — термины ОПРЕДЕЛЕНИЙ концептов-условий, а не их имена. Промпт цепочки называет начало и конец по построению задачи («Начало: …/Конец: …», «Концепт A: …/Концепт B: …»), поэтому имена концептов — условие, и проверка сводилась бы к копированию условия (S3f-fix снял по этой причине все 500 цепочек — правильно снял, но проекция была неверной). Проверяется то, что промпт обязывает найти: определения концептов-условий («Шаг 1: Найди определение 'a'», «Найди оба определения»). Мера — не больше 3 значимых слов определения на каждый концепт (min(3, |терминов|) — ровно порог keyword-ветки замороженного верификатора), из которых вычтены слова имени самого концепта: имя промпт даёт даром, проверять его значило бы проверять условие. Промежуточный концепт (подсказка «например, 'b' или другой») не проверяется: промпт разрешает другой выбор, и требование именно генераторского звена давало бы ложный ноль на верном ответе. Роли якорей не распознаны → проекция невозможна → задача исключается с причиной, а не угадывается. Копирование промпта верификатор при этом не проходит: слова имени концепта из набора вычтены (замер — `chain_projection.validation`). Буквальное совпадение термина с текстом промпта всё же возможно (термин одного концепта может совпасть со словом из имени другого) — такие задачи снимает лейк-правило, не ослабленное ради них: числа в `chain_projection.still_excluded`."
+  },
+  "filters": {
+    "duplicates": {
+      "excluded": 20,
+      "remaining": 9162
+    },
+    "eval_overlap": {
+      "excluded": 0,
+      "remaining": 9162
+    },
+    "v1_overlap": {
+      "excluded": 0,
+      "remaining": 9162
+    },
+    "sft_overlap": {
+      "excluded": 0,
+      "remaining": 9162,
+      "sft_examples": 44949,
+      "sft_matched_prompts": 0
+    }
+  },
+  "checks": {
+    "sft_overlap": {
+      "excluded": 0,
+      "guard_profile": "python3 tools/check_sft_rl_overlap.py --sft datasets/sft_train_v12.jsonl --rl runs/rev-pool-v2/rl_pool_filtered.jsonl --max-matched 0"
+    },
+    "eval_overlap": {
+      "excluded": 0,
+      "criterion": "нормализованный промпт + проверяемый набор строк"
+    },
+    "v1_overlap": {
+      "excluded": 0,
+      "criterion": "нормализованный промпт + проверяемый набор строк"
+    },
+    "gold_in_prompt_audit": {
+      "tasks_with_gold_in_prompt": 0,
+      "by_task_type": {},
+      "examples": [],
+      "by_leak_form": {},
+      "chains_checked_in_prompt": 0,
+      "keyword_slugs_in_prompt": 214
+    },
+    "judge_in_reward": {
+      "envs_with_judge_weight_above_threshold": [
+        "E1_define",
+        "E4_extract",
+        "E6_contrast",
+        "E8_plan_experiment"
+      ],
+      "rule": "AD-6/C-013: LLM-судья не участвует в награде (ADR-021 п.2)"
+    }
+  },
+  "leak_fix": {
+    "rule": "Проверяемый ответ не должен присутствовать в промпте в проверяемой форме (S3f-fix, ADR-021 п.3 — тот же принцип, что C-009 для eval-набора). «Проверяемая форма» — та, в которой строку потребляет замороженный верификатор: у slug-ветки это буквальное вхождение строки (гейт A стража C-009), у keyword-ветки — порог min(3, |терминов|) терминов определений обоих концептов, набранный из промпта. Правило применено к цепочкам без исключений: набор цепочки — термины определений концептов-условий (S3f-fix-2), и ни один из них не должен встречаться в промпте. Ролевого исключения у цепочек больше нет: оно существовало, пока проверялись ИМЕНА концептов (чтобы промежуточное значение не путалось с концом); у содержания определения роли в цепочке нет, и исключение оправдывало бы любое совпадение, то есть было бы дырой, а не правилом.",
+    "forms": {
+      "slug_in_prompt": "проверяемая строка встречается в промпте буквально — та же форма, что у гейта A стража C-009; ответ копируется из промпта, а не добывается (у цепочек проверяемые строки — термины определений концептов-условий)",
+      "keyword_prompt_satisfies_verifier": "термины определений обоих концептов набираются из самого промпта: дословный пересказ промпта проходит keyword-ветку верификатора (порог min(3, |терминов|) на каждый концепт)"
+    },
+    "normalization": "буквальное вхождение без учёта регистра (checked_in_prompt из tools/check_eval_leakage.py — одно правило с гейтом A стража C-009)",
+    "baseline_pool": {
+      "lines": 9197,
+      "sha256": "a5d6496aa3427c59a1ef2bcfcd50981af95d9e8fc81e64f3a95c02695dd9de0e"
+    },
+    "before_fix": {
+      "answer_in_prompt": {
+        "slug_in_prompt": 500,
+        "keyword_prompt_satisfies_verifier": 6
+      }
+    },
+    "after_leak_filter_candidates": 9182,
+    "excluded": {
+      "total": 138,
+      "by_form": {
+        "slug_in_prompt": 132,
+        "keyword_prompt_satisfies_verifier": 6
+      },
+      "by_task_type": {
+        "chain_reasoning": 22,
+        "explain_relation": 6,
+        "find_concept": 102,
+        "formula_chain": 8
+      },
+      "by_env": {
+        "E2_formula": 21,
+        "E3_classify": 81,
+        "E5_relate": 6,
+        "env_types": 30
+      },
+      "already_in_baseline": {
+        "total": 102,
+        "by_env": {
+          "E2_formula": 21,
+          "E3_classify": 81
+        }
+      }
+    },
+    "delta": {
+      "excluded_by_this_filter": 506,
+      "net_pool_change": 505,
+      "why_they_differ": "На единицу: одна из шести keyword-задач E5 была одновременно дублем по gold (`duplicate_gold`) — фильтр дублей снял бы её и без лейк-правила, поэтому пул теряет на одну задачу меньше, чем снимает фильтр. Проверяемо: `by_reason.duplicate_gold` базовой ревизии 16, после правки — 15.",
+      "current_build_leak_exclusions": 138,
+      "current_build_beyond_baseline": 36,
+      "why_current_differs": "Сборка после S3f-fix-2 снимает по этому правилу 108 задач базовой ревизии (102 slug-ветки E2/E3 + 6 keyword E5) и 30 цепочек — тех, у которых один термин определения совпал с промптом (консервативно; числа в `chain_projection`). Цепочки, снятые S3f-fix (500), в текущей проекции либо вернулись (470), либо сняты этими 30 — развитие смотрится по `chain_projection`, а не по этому разделу."
+    },
+    "independent_check": {
+      "what": "тем же замороженным верификатором, что судит награду: ответ = сам промпт → сколько задач награждается за копирование (прямая проверка меры, а не повтор правила)",
+      "command": "CONCEPTS_INDEX=datasets/concepts_search_index.jsonl python3 -c \"import json,sys; sys.path.insert(0,'.'); import laguna_pipeline_v8 as P; tasks=[json.loads(l) for l in open(sys.argv[1],encoding='utf-8') if l.strip()]; print('prompt_copied_gets_reward:', sum(1 for t in tasks if P.verify_task(t['prompt'], t)))\" <пул.jsonl>",
+      "baseline_pool": 505,
+      "after_fix": 0,
+      "note": "Числа `baseline_pool`/`after_fix` — замер на артефактах 16.09.2026, сборкой не пересчитываются (требуют импорта пайплайна). Инвариант, который они подтверждают: `net_pool_change` = числу задач, награждавших копирование промпта в базовом пуле (505 = 505)."
+    },
+    "chain_projection": {
+      "what": "как отработала проекция цепочек на реальных задачах (chain_reasoning/formula_chain): проверяемый набор — термины определений концептов-условий, роли берутся из якорей промпта, промежуточный концепт не проверяется",
+      "checked": 500,
+      "projected": 500,
+      "roles_recognized": 500,
+      "roles_unknown": 0,
+      "hint_named": 300,
+      "projection_impossible": 0,
+      "by_task_type": {
+        "chain_reasoning": 300,
+        "formula_chain": 200
+      },
+      "note": "`hint_named` — сколько промптов называют промежуточный концепт примером («например, 'b' или другой»), то есть «промежуточное» — не мёртвая роль, а измеренная; в проверяемый набор оно при этом не входит (промпт разрешает другой выбор), и это проверяется ответом-пробой, а не обещанием — см. `chain_projection.validation.intermediate_not_checked`. `projection_impossible` — сколько цепочек снято до фильтров: без ролей или без определений проверяемый набор не построить, и угадывать его нельзя."
+    },
+    "after_fix": {
+      "kept": 8692,
+      "residual_answer_in_prompt": 0,
+      "residual_by_form": {},
+      "residual_measured_on": "текущий пул (см. `pool`)"
+    },
+    "rollback": {
+      "command": "P=/tmp/s3f-fix-rollback; mkdir -p \"$P\"; PFX=$(git rev-parse --show-prefix); git show 35f933d:\"${PFX}tools/build_rev_envs.py\" > \"$P/build_rev_envs.py\"; git show 35f933d:\"${PFX}tools/check_eval_leakage.py\" > \"$P/check_eval_leakage.py\"; ln -sf \"$PWD/tools/check_sft_rl_overlap.py\" \"$P/\"; python3 \"$P/build_rev_envs.py\" --out \"$P/pool.jsonl\" --card \"$P/card.json\" --report \"$P/report.json\" --link \"$P/link.jsonl\" --force",
+      "result": "воспроизводит базу ровно: 9197 задач, sha256 a5d6496aa342… (проверено 16.09.2026)"
+    },
+    "not_leak_but_measured": {
+      "keyword_slugs_in_prompt": 214,
+      "why": "keyword-ветка ищет в ответе термины определений, а не `keywords`: slug-и в промпте для неё безразличны (см. verifier_accepts). Число приведено, чтобы выбор формы правила был проверяем."
+    }
+  },
+  "chain_projection": {
+    "rule": "Цепочки (chain_reasoning/formula_chain): проверяемый набор — термины ОПРЕДЕЛЕНИЙ концептов-условий, а не их имена. Промпт цепочки называет начало и конец по построению задачи («Начало: …/Конец: …», «Концепт A: …/Концепт B: …»), поэтому имена концептов — условие, и проверка сводилась бы к копированию условия (S3f-fix снял по этой причине все 500 цепочек — правильно снял, но проекция была неверной). Проверяется то, что промпт обязывает найти: определения концептов-условий («Шаг 1: Найди определение 'a'», «Найди оба определения»). Мера — не больше 3 значимых слов определения на каждый концепт (min(3, |терминов|) — ровно порог keyword-ветки замороженного верификатора), из которых вычтены слова имени самого концепта: имя промпт даёт даром, проверять его значило бы проверять условие. Промежуточный концепт (подсказка «например, 'b' или другой») не проверяется: промпт разрешает другой выбор, и требование именно генераторского звена давало бы ложный ноль на верном ответе. Роли якорей не распознаны → проекция невозможна → задача исключается с причиной, а не угадывается. Копирование промпта верификатор при этом не проходит: слова имени концепта из набора вычтены (замер — `chain_projection.validation`). Буквальное совпадение термина с текстом промпта всё же возможно (термин одного концепта может совпасть со словом из имени другого) — такие задачи снимает лейк-правило, не ослабленное ради них: числа в `chain_projection.still_excluded`.",
+    "before": {
+      "lines": 8692,
+      "sha256": "78c502121dd912d193e2bb57303ab3ebf0eca33140676587b73c134b1f5eb2fd",
+      "by_task_type_chains": {
+        "chain_reasoning": 0,
+        "formula_chain": 0
+      },
+      "chains_excluded": {
+        "chain_reasoning": 300,
+        "formula_chain": 200
+      },
+      "why": "проекция брала концы цепочки проверяемым набором, а концы названы в промпте у 500 из 500 — лейк-фильтр снял тип целиком"
+    },
+    "after": {
+      "pool_lines": 9162,
+      "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+      "by_type_chains": {
+        "chain_reasoning": 278,
+        "formula_chain": 192
+      }
+    },
+    "chains_returned": {
+      "total": 470,
+      "by_type": {
+        "chain_reasoning": 278,
+        "formula_chain": 192
+      },
+      "source": {
+        "chain_reasoning": 300,
+        "formula_chain": 200
+      }
+    },
+    "reconciliation": {
+      "source_total": 500,
+      "returned": 470,
+      "excluded_named": 30,
+      "unaccounted": 0
+    },
+    "still_excluded": {
+      "total": 30,
+      "by_reason": {
+        "prompt_leak": 30
+      },
+      "examples": [
+        {
+          "task_id": "line:3",
+          "reason_code": "prompt_leak",
+          "reason": "проверяемые строки ['определение'] (термины определений концептов-условий цепочки) есть в промпте буквально: правило «проверяемая строка не в промпте» исключений для цепочек не делает, задача снята **консервативно**. Копирование промпта верификатор при этом не проходит — он требует все термины обоих концептов, — поэтому это «снято консервативно», а не измеренный лейк (числа: chain_projection.still_excluded, conservative_not_measured)"
+        },
+        {
+          "task_id": "line:11",
+          "reason_code": "prompt_leak",
+          "reason": "проверяемые строки ['function', 'reward'] (термины определений концептов-условий цепочки) есть в промпте буквально: правило «проверяемая строка не в промпте» исключений для цепочек не делает, задача снята **консервативно**. Копирование промпта верификатор при этом не проходит — он требует все термины обоих концептов, — поэтому это «снято консервативно», а не измеренный лейк (числа: chain_projection.still_excluded, conservative_not_measured)"
+        },
+        {
+          "task_id": "line:16",
+          "reason_code": "prompt_leak",
+          "reason": "проверяемые строки ['neural'] (термины определений концептов-условий цепочки) есть в промпте буквально: правило «проверяемая строка не в промпте» исключений для цепочек не делает, задача снята **консервативно**. Копирование промпта верификатор при этом не проходит — он требует все термины обоих концептов, — поэтому это «снято консервативно», а не измеренный лейк (числа: chain_projection.still_excluded, conservative_not_measured)"
+        },
+        {
+          "task_id": "line:21",
+          "reason_code": "prompt_leak",
+          "reason": "проверяемые строки ['определение'] (термины определений концептов-условий цепочки) есть в промпте буквально: правило «проверяемая строка не в промпте» исключений для цепочек не делает, задача снята **консервативно**. Копирование промпта верификатор при этом не проходит — он требует все термины обоих концептов, — поэтому это «снято консервативно», а не измеренный лейк (числа: chain_projection.still_excluded, conservative_not_measured)"
+        },
+        {
+          "task_id": "line:26",
+          "reason_code": "prompt_leak",
+          "reason": "проверяемые строки ['atomic'] (термины определений концептов-условий цепочки) есть в промпте буквально: правило «проверяемая строка не в промпте» исключений для цепочек не делает, задача снята **консервативно**. Копирование промпта верификатор при этом не проходит — он требует все термины обоих концептов, — поэтому это «снято консервативно», а не измеренный лейк (числа: chain_projection.still_excluded, conservative_not_measured)"
+        }
+      ],
+      "why": "`prompt_leak` здесь — совпадение **одного** термина определения с текстом промпта (чаще всего со словом из имени соседнего концепта-условия): правило «любая проверяемая строка в промпте — лейк» не ослаблено, поэтому задача снимается консервативно. Копирование промпта при этом верификатор не проходит — он требует конъюнкцию всех терминов обоих концептов (`conservative_not_measured`): «снято консервативно» и «награда копируется» — разные вещи, и разница названа числом."
+    },
+    "conservative_not_measured": {
+      "dropped_by_single_term_coincidence": 30,
+      "prompt_copy_satisfies_verifier_in_pool": 0,
+      "why": "второе число — прямой замер (ответ = промпт, тот же замороженный верификатор, что судит награду), снят пробой `tools/probe_chain_projection.py`; в базе этой дельты копирование награждалось у 500 цепочек, потому что проекция проверяла концы (`S3F_FIX_POOL`)"
+    },
+    "validation": {
+      "tool": "tools/probe_chain_projection.py",
+      "evidence": "evidence/s3f-fix-2-validation.json",
+      "verifier": "laguna_pipeline_v8.verify_task (заморожен, читается живым импортом)",
+      "command": "python3 tools/probe_chain_projection.py --baseline-projection --pool runs/rev-pool-v2/rl_pool_filtered.jsonl",
+      "gold_accepted": {
+        "checked": 470,
+        "accepted": 470
+      },
+      "prompt_copy_rewarded_pool_wide": {
+        "checked": 9162,
+        "rewarded": 0
+      },
+      "prompt_copy_rewarded": {
+        "checked": 470,
+        "after_fix": 0,
+        "before_fix": {
+          "checked": 500,
+          "rewarded": 500
+        }
+      },
+      "ends_only_rejected": {
+        "checked": 470,
+        "rejected": 470
+      },
+      "intermediate_not_checked": {
+        "checked": 278,
+        "rejected": 278
+      },
+      "note": "`before_fix` — та же проба на проекции «концы» (состояние S3f-fix) по всем 500 цепочкам источника: копирование промпта награждалось у всех. `intermediate_not_checked` — ответ, называющий начало, конец и промежуточный концепт (имена без определений), тоже отвергается: проверяется содержание концептов-условий, а не имена звеньев; счёт — по задачам, где промпт называет промежуточный концепт (chain_reasoning), у `formula_chain` подсказки в формате нет. Числа пересчитываются пробой, а не сборкой: проба импортирует пайплайн (torch), конвертер — нет. `prompt_copy_rewarded_pool_wide` — тот же замер по всему пулу: критерий приёмки про пул, а не про один тип.",
+      "evidence_sha256": "cef86dcc2f7b22f78fad71a5dc4b36cff2a2ba20f3145b22956bae74417e4db9"
+    },
+    "rollback": {
+      "command": "P=/tmp/s3f-fix-2-rollback; mkdir -p \"$P\"; PFX=$(git rev-parse --show-prefix); git show ae692aa:\"${PFX}tools/build_rev_envs.py\" > \"$P/build_rev_envs.py\"; git show ae692aa:\"${PFX}tools/check_eval_leakage.py\" > \"$P/check_eval_leakage.py\"; ln -sf \"$PWD/tools/check_sft_rl_overlap.py\" \"$P/\"; python3 \"$P/build_rev_envs.py\" --out \"$P/pool.jsonl\" --card \"$P/card.json\" --report \"$P/report.json\" --link \"$P/link.jsonl\" --force",
+      "result": "воспроизводит базу этой дельты ровно: 8692 задач, sha256 78c502121dd9…, цепочек 0 (проверено прогоном 16.09.2026)"
+    }
+  },
+  "counts": {
+    "candidates": 9182,
+    "kept": 9162,
+    "excluded": 20,
+    "by_reason": {
+      "judge_weight": 3,
+      "prompt_leak": 138,
+      "token_too_short": 3,
+      "gold_unprojectable": 1,
+      "env_empty": 1,
+      "ambiguous_prompt": 4,
+      "duplicate_gold": 15,
+      "duplicate_prompt": 1
+    },
+    "by_reason_note": "`by_reason` считает записи отчёта: код уровня задачи — по задаче, исключение среды целиком (веса, пустота, непроецируемый gold) — одной записью на среду, поэтому сумма по кодам больше `excluded` — сколько задач снято у среды, видно в envs.<id>.excluded",
+    "by_env_in_pool": {
+      "E2_formula": 1814,
+      "E3_classify": 6484,
+      "E5_relate": 194,
+      "env_types": 670
+    },
+    "by_task_type": {
+      "chain_reasoning": 278,
+      "explain_relation": 394,
+      "find_concept": 8298,
+      "formula_chain": 192
+    },
+    "excluded_envs": [
+      "E1_define",
+      "E4_extract",
+      "E6_contrast",
+      "E7_repair",
+      "E8_plan_experiment"
+    ]
+  },
+  "limits": [
+    "Смешение двух генераций задач: E-среды (июль 2026, «Ариадна», tasks/*.jsonl) и env_types (август 2026, «oxalpha») — разные стили промптов; стилевая неоднородность пула не измерена и не сглажена.",
+    "Проекция E2/E3 (slug карточки) проверяет, что модель назвала концепт, о котором задача, — но не содержание ответа (формулу E2, тип/уровень/формальность E3). Это следствие замороженного бинарного верификатора, а не свойство задач.",
+    "E7_repair (100 задач, verifiable_weight 1.0) не подключена: проверяемые значения gold присутствуют в тексте промпта (type — в 97/100, slug — в 100/100), проверка сводилась бы к копированию из промпта.",
+    "Класс «проверяемый slug назван в промпте» цепочек больше не описывает: их проверяемый набор перепроецирован на содержание концептов-условий (S3f-fix-2), и тип возвращён в пул — числа в `chain_projection`. У E2/E3 (`find_concept`) проекция прежняя и это не дефект: там проверяемый slug — сам предмет задачи («назови концепт»), а не условие, и промпт его не называет; 102 задачи E2/E3 сняты лейк-фильтром ещё базовой ревизией (`leak_fix`).",
+    "Один тип пула может нести несколько сред (find_concept ← E2_formula и E3_classify): поле source_env сохраняет провенанс, но штатные метрики пайплайна считаются по task_type — разбивка по средам потребует правки пайплайна (фаза 2).",
+    "Пул не подключён к пайплайну: пилот идёт на rl_tasks_revpool_v1 (ADR-007/ADR-016), переключение — отдельная дельта.",
+    "Цепочки проверяются по содержанию, а не по форме задачи (S3f-fix-2): проверяемый набор — термины определений концептов-условий, поэтому сама связь a→b→c (то, ради чего тип существует) этой веткой не проверяется. Это тот же класс ограничения, что у E2/E3 (проверяется «назвал концепт», а не содержание ответа): следствие замороженного бинарного верификатора, а не свойство задач. Проверка содержания связи — правка пайплайна (фаза 2).",
+    "Промежуточный концепт цепочки не входит в проверяемый набор сознательно: промпт предлагает его примером и разрешает другой («например, 'b' или другой»), поэтому требование именно генераторского звена давало бы ложный ноль на верном ответе. Цена решения: модель может не найти связующее звено и всё равно получить награду, если назвала термины определений; число промптов с подсказкой — в `chain_projection` (`hint_named`).",
+    "Проверяемый набор цепочки — слова определения, поэтому ответ, пересказывающий определение **своими** словами, может их не набрать и получить ноль. Это тот же класс риска, что у keyword-ветки E5 (и там верификатор требует три значимых слова определения буквально), и та же мера: дословное совпадение — цена бинарной проверки без судьи (ADR-011 не вводит частичный кредит). Числа пробы (`gold_accepted 470/470`) показывают, что эталон конвертера меру проходит; на «пересказ другими словами» проба ответить не может — это свойство меры, а не пула.",
+    "Часть цепочек снята консервативно, а не как измеренный лейк: если один термин определения буквально встречается в промпте (чаще всего — со словом из имени соседнего концепта-условия), правило «любая проверяемая строка в промпте — лейк» снимает задачу, хотя копирование промпта верификатор не проходит (он требует конъюнкцию всех терминов обоих концептов). Числа — в `chain_projection.still_excluded` и `conservative_not_measured`; правило не ослаблено сознательно.",
+    "Поле `n_min_steps`, которое env_types несёт в каждой задаче (3 у chain_reasoning), пайплайном не читается: минимум вызовов выводится из `task_type` (`MULTI_STEP_TASKS` → 2, остальные → 1). Расхождение замысла генератора и контура — не дефект пула, но при фазе 2 его стоит свести (правка пайплайна)."
+  ],
+  "pool": {
+    "path": "datasets/rl_tasks_revpool_v2.jsonl",
+    "lines": 9162,
+    "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+    "link": "runs/rev-pool-v2/rl_pool_filtered.jsonl"
+  },
+  "report": "runs/rev-pool-v2/exclusions.json"
+}
