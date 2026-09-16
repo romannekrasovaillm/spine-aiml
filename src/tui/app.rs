@@ -709,6 +709,9 @@ pub(crate) struct App {
     pub(crate) queue: VecDeque<String>,
     /// Кадр спиннера.
     spinner: usize,
+    /// Стартовая заставка-интро («живая сессия», см. [`super::intro`]):
+    /// `Some`, пока сценарий играет; любая клавиша снимает.
+    pub(crate) intro: Option<super::intro::Intro>,
     /// Счётчик тиков для live-обновления вкладки «Флот» (троттлинг).
     fleet_ticks: usize,
     /// Счётчик тиков для live-обновления вкладки «Субагенты» (троттлинг).
@@ -863,6 +866,7 @@ impl App {
             turn_cancel: None,
             queue: VecDeque::new(),
             spinner: 0,
+            intro: None,
             fleet_ticks: 0,
             subagent_ticks: 0,
             pending_slash: None,
@@ -934,11 +938,17 @@ impl App {
         super::render::draw(f, self);
     }
 
+    /// Запускает стартовую заставку-интро (старт TUI и `/intro`).
+    pub(crate) fn start_intro(&mut self) {
+        self.intro = Some(super::intro::Intro::new());
+    }
+
     /// Нужны ли периодические тики (спиннер ожидания).
     /// Тики нужны, пока идёт ход ИЛИ работают фоновые субагенты
     /// (индикатор в статус-баре должен крутиться и обновляться).
     pub(crate) fn needs_tick(&self) -> bool {
         self.thinking
+            || self.intro.is_some()
             || self.subagents_running() > 0
             || self.right_tab == RightTab::Fleet
             || self.right_tab == RightTab::Subagents
@@ -1097,6 +1107,12 @@ impl App {
     /// модуль по своей длине на месте отрисовки (`PULSE`, `SPINNER`).
     pub(crate) fn tick(&mut self) {
         self.spinner += 1;
+        // Интро владеет кадром: продвигаем сценарий; доигран — снимаем.
+        if let Some(intro) = self.intro.as_mut() {
+            if !intro.advance() {
+                self.intro = None;
+            }
+        }
         if self.toast.as_ref().is_some_and(|t| !t.alive(self.spinner)) {
             self.toast = None;
         }
@@ -1212,6 +1228,11 @@ impl App {
         // Ctrl-C — выход всегда.
         if key.modifiers.contains(KeyModifiers::CONTROL) && matches!(key.code, KeyCode::Char('c')) {
             self.should_quit = true;
+            return;
+        }
+        // Стартовая заставка перехватывает клавиши: любая — пропуск в чат.
+        if self.intro.is_some() {
+            self.intro = None;
             return;
         }
         // Модалка выбора (propose_options) перехватывает клавиши: агент
@@ -2194,6 +2215,7 @@ impl App {
                         self.push_block(ChatBlock::System { command, text });
                     }
                     Ok(slash::SlashOutcome::PickModel) => self.open_model_picker(),
+                    Ok(slash::SlashOutcome::PlayIntro) => self.start_intro(),
                     Ok(slash::SlashOutcome::PickSession) => self.open_session_picker(),
                     Ok(slash::SlashOutcome::NewSession) => {
                         // /new: чистый лист — блоки, вкладки и скролл сброшены;

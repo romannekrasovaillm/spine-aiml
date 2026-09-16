@@ -191,6 +191,7 @@ pub(crate) fn draw(f: &mut Frame, app: &mut App) {
     }
     match &app.screen {
         Screen::Fatal(_) => draw_fatal(f, area, app, &theme),
+        Screen::Chat if app.intro.is_some() => super::intro::draw(f, app),
         Screen::Chat => draw_chat(f, app),
     }
 }

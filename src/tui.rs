@@ -38,6 +38,7 @@ use crate::error::{HarnessError, Result};
 
 pub(crate) mod app;
 pub mod caps;
+mod intro;
 mod keymap;
 mod render;
 #[cfg(test)]
@@ -87,6 +88,10 @@ pub async fn run_with(cfg: Arc<Config>, overrides: caps::Overrides) -> Result<()
         .map_err(|e| HarnessError::Tui(format!("очистка экрана: {e}")))?;
 
     let mut app = App::build(cfg, caps).await;
+    // Стартовая заставка-интро (уважает `--no-animation` / `[tui] animation`).
+    if app.caps.animation {
+        app.start_intro();
+    }
     let (msg_tx, mut msg_rx) = mpsc::channel::<AppMessage>(APP_CHANNEL_CAP);
     app.attach(msg_tx);
 

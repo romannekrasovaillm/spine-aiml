@@ -152,6 +152,11 @@ user/assistant; вызовы инструментов остаются в жур
 `flowchart` или `sequenceDiagram`, рендерится как inline-код; иначе —
 путь к файлу (от cwd). Результат попадает также на вкладку «Mermaid».
 
+### `/intro`
+Реиграция стартовой заставки: «живая сессия» ≈10 с — сплэш, печать запроса,
+тики инструментов, сборка mermaid-схемы по узлам. Пропуск — любая клавиша;
+показ при старте отключается `--no-animation` / `[tui] animation = false`.
+
 ```
 /mermaid examples/mermaid/flow.mmd
 /mermaid flowchart LR\nA[Каналы] --> B[API Gateway]
