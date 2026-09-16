@@ -12,7 +12,7 @@
   <a href="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml"><img src="https://github.com/romannekrasovaillm/spine-aiml/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/rust-edition_2024-e43717?logo=rust&logoColor=white" alt="Rust edition 2024">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT">
-  <img src="https://img.shields.io/badge/cases-11-blueviolet" alt="11 cases">
+  <img src="https://img.shields.io/badge/cases-12-blueviolet" alt="12 cases">
 </p>
 
 <p align="center">
@@ -20,6 +20,14 @@
 </p>
 
 ---
+
+<p align="center">
+  <img src="docs/screenshots/00-demo.svg" alt="Живая сессия Spine AI/ML Edition (анимация): запрос про MoE-графтинг, вызовы инструментов, ответ архитектора, mermaid-рендер, control_score · live session (animated)" width="92%">
+</p>
+
+<p align="center">
+  <sub>Живая сессия — анимированный цикл 14 с, проигрывается прямо здесь · Live session — a 14-second animated loop, plays inline.</sub>
+</p>
 
 <p align="center">
   <img src="docs/screenshots/02-chat-mermaid.png" alt="Spine: архитектурный ход — скиллы, база знаний, скоринг, живой mermaid-арт, индикатор контекста и фоновые субагенты · architecture turn: skills, KB, scoring, live mermaid, context gauge, background subagents" width="92%">
@@ -62,6 +70,19 @@ spine-инвариантов до пакета передачи кодовому
   <sub>Передача контекста кодовому харнессу — пошагово: <a href="docs/handoff_walkthrough.md">docs/handoff_walkthrough.md</a> ·
   Handing context to a coding harness, step by step.</sub>
 </p>
+
+### 🏗 Архитектура за 10 секунд
+
+```mermaid
+flowchart TD
+  U["🧑‍🔬 AI/ML-исследователь"] --> T["arch-ml — один бинарь: TUI + CLI + library"]
+  T --> A["Агентный цикл: turn loop · компакция L1/prune/L3 · журнал JSONL"]
+  A --> TL["Инструменты архитектора: kb · rubric · control · trace · mermaid · handoff …"]
+  A --> P["Единый OpenAI-слой: DeepSeek · GLM · Kimi · GigaChat · self-hosted"]
+  TL --> PL["Плагины и скиллы: пресет ml-researcher · инварианты ML-01…14 · fitness-библиотека"]
+  A --> G["Детерминированный контроль: fitness-гейты и спайн-гейт — без LLM"]
+  A --> H["handoff → кодовые харнессы: пакет .arch-handoff + контракт результата"]
+```
 
 > [!NOTE]
 > **🇷🇺 Форк:** локальный форк Spine Banking Edition (точка форка `b928684`,
