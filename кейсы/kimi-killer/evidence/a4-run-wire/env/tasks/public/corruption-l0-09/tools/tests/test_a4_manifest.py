@@ -437,14 +437,14 @@ def test_k11_verify_rejects_absolute_run_ref(tmp_path: Path) -> None:
     код 1 и сообщение «абсолютный путь запрещён: …». Остальная часть
     манифеста валидна (полное покрытие), так что вердикт — именно о пути,
     в том числе если файл вручную отредактирован после генерации."""
-    manifest = _v2_manifest(run_ref="/home/builder/runs/a4/run-journal.json")
+    manifest = _v2_manifest(run_ref="/home/user/runs/a4/run-journal.json")
     path = tmp_path / "manifest.json"
     _write(path, manifest)
     result = _run("--verify", "--manifest", str(path))
     assert result.returncode == 1
     assert "абсолютный путь запрещён" in result.stderr
     assert "run_ref" in result.stderr
-    assert "/home/builder/runs/a4/run-journal.json" in result.stderr
+    assert "/home/user/runs/a4/run-journal.json" in result.stderr
 
 
 def test_k11_verify_rejects_absolute_path_inside_stage_evidence(tmp_path: Path) -> None:
