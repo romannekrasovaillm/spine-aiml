@@ -600,6 +600,19 @@ pub(crate) struct DialogSearch {
     pub(crate) dirty: bool,
 }
 
+/// Помечен ли показ интро как «уже виденный» (файл-маркер в `state_dir`).
+pub(crate) fn intro_was_seen(state_dir: &std::path::Path) -> bool {
+    state_dir.join("intro_seen").is_file()
+}
+
+/// Пишет маркер «интро показано» (создавая `state_dir` при первом запуске).
+/// Ошибки записи игнорируем: потеря маркера лишь покажет заставку ещё раз —
+/// безопасный исход.
+pub(crate) fn mark_intro_seen(state_dir: &std::path::Path) {
+    let _ = std::fs::create_dir_all(state_dir);
+    let _ = std::fs::write(state_dir.join("intro_seen"), b"shown\n");
+}
+
 pub(crate) struct App {
     /// Активный экран.
     pub(crate) screen: Screen,
@@ -938,9 +951,23 @@ impl App {
         super::render::draw(f, self);
     }
 
-    /// Запускает стартовую заставку-интро (старт TUI и `/intro`).
+    /// Полная реиграция заставки-интро (команда `/intro`).
     pub(crate) fn start_intro(&mut self) {
-        self.intro = Some(super::intro::Intro::new());
+        self.intro = Some(super::intro::Intro::full(!self.caps.unicode));
+    }
+
+    /// Стартовая заставка при запуске TUI: первый запуск — полная демо-сессия,
+    /// далее — компакт-сплэш (принцип сдержанности: вау не должно стоить
+    /// десять секунд каждый старт). Отметка «уже видел» — `intro_seen`
+    /// в `paths.state_dir` (снимается `--no-animation` выше по стеку).
+    pub(crate) fn maybe_start_intro(&mut self) {
+        let state_dir = &self.tool_ctx.config.paths.state_dir;
+        self.intro = Some(if intro_was_seen(state_dir) {
+            super::intro::Intro::compact(!self.caps.unicode)
+        } else {
+            mark_intro_seen(state_dir);
+            super::intro::Intro::full(!self.caps.unicode)
+        });
     }
 
     /// Нужны ли периодические тики (спиннер ожидания).

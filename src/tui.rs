@@ -90,7 +90,7 @@ pub async fn run_with(cfg: Arc<Config>, overrides: caps::Overrides) -> Result<()
     let mut app = App::build(cfg, caps).await;
     // Стартовая заставка-интро (уважает `--no-animation` / `[tui] animation`).
     if app.caps.animation {
-        app.start_intro();
+        app.maybe_start_intro();
     }
     let (msg_tx, mut msg_rx) = mpsc::channel::<AppMessage>(APP_CHANNEL_CAP);
     app.attach(msg_tx);
