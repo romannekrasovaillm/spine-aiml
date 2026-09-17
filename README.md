@@ -166,7 +166,8 @@ BMAD, Spec Kit, OpenSpec и др.):
 
 #### Модели и ризонинг
 
-- **DeepSeek V4** (flash/pro), **GLM-5.2** (+ дешёвые 4.7/air/flash), **Kimi K3**
+- **DeepSeek V4** (flash/pro), **GLM-5.3/5.2** (5.3 и 5.3-Flash — окно 1M
+  токенов, вывод до 128K; + дешёвые 4.7/air/flash), **Kimi K3**
   (coding-поверхность) — переключение на лету: `/model` (пикер в TUI) или
   `arch-ml run --model`. Ключи — только из окружения или файла (`api_key_file`).
 - **Любой OpenAI-совместимый провайдер** через `[models.<name>]` в конфиге
@@ -175,7 +176,9 @@ BMAD, Spec Kit, OpenSpec и др.):
 - **Переключатель ризонинга** `/think on|off|auto` (и `arch-ml run --think`):
   карты `thinking_on`/`thinking_off` в конфиге модели; CoT (`reasoning_content`)
   хранится и эхом возвращается в API (контракт DeepSeek thinking+tools);
-  индикатор 🧠 в статус-баре.
+  индикатор 🧠 в статус-баре. У семейства `glm-5.3*` thinking не отключается —
+  вместо off ставится `reasoning_effort=low` (допустимы low/high/max, дефолт —
+  max; явный `disabled` отвечает HTTP 1210).
 - **Зрение и управление компьютером**: `screenshot`/`read_image` передают кадр
   модели (нативная мультимодальность `deepseek-flash`), `screen_size`/`window_list`
   дают размер экрана и окна; воздействие — `computer_*` (мышь, клавиатура) и
@@ -540,7 +543,7 @@ arch-ml init                      # конфиг + ассеты в ~/.arch-ml и
 
 # API-ключи — только через окружение (в конфиг пишутся лишь ИМЕНА переменных):
 export DEEPSEEK_API_KEY=...    # deepseek (v4-flash, по умолчанию), deepseek-pro (v4-pro)
-export ZHIPU_API_KEY=...       # glm (glm-5.2 + дешёвые 4.7/air/flash)
+export ZHIPU_API_KEY=...       # glm (glm-5.3/5.2 + дешёвые 4.7/air/flash)
 export KIMI_API_KEY=...        # kimi (k3, coding-поверхность) или файл ~/.kimi_api_key
 
 arch-ml                           # интерактивный TUI (одно слово)
@@ -698,7 +701,8 @@ BMAD, Spec Kit, OpenSpec, and more):
 
 **Models & reasoning**
 
-- DeepSeek V4 (flash/pro), GLM-5.2 (+ budget 4.7/air/flash), Kimi K3 (coding
+- DeepSeek V4 (flash/pro), GLM-5.3/5.2 (5.3 + 5.3-Flash — 1M-token context,
+  up to 128K output; + budget 4.7/air/flash), Kimi K3 (coding
   surface) — switch mid-session via `/model` (TUI picker) or `arch-ml run --model`.
   Keys come from the environment or a key file (`api_key_file`) — never stored.
 - **Any OpenAI-compatible provider** via `[models.<name>]` in the config
@@ -707,7 +711,9 @@ BMAD, Spec Kit, OpenSpec, and more):
 - **Reasoning toggle** `/think on|off|auto` (and `arch-ml run --think`): per-model
   `thinking_on`/`thinking_off` maps merged into the request body; chain-of-thought
   (`reasoning_content`) is stored and echoed back (DeepSeek thinking+tools
-  contract); 🧠 indicator in the status bar.
+  contract); 🧠 indicator in the status bar. The `glm-5.3*` family can't disable
+  thinking — use `reasoning_effort=low` for the near-off mode (low/high/max,
+  default max; an explicit `disabled` gets HTTP 1210).
 - **Vision and computer control**: `screenshot`/`read_image` feed a frame to the
   model (native `deepseek-flash` multimodality), `screen_size`/`window_list`
   report the display and windows; actuation is `computer_*` (mouse, keyboard)
@@ -1060,7 +1066,7 @@ arch-ml init                      # config + assets into ~/.arch-ml and
 
 # API keys via environment only (config stores *names* of the variables):
 export DEEPSEEK_API_KEY=...    # deepseek (v4-flash, default), deepseek-pro (v4-pro)
-export ZHIPU_API_KEY=...       # glm (glm-5.2 + budget 4.7/air/flash)
+export ZHIPU_API_KEY=...       # glm (glm-5.3/5.2 + budget 4.7/air/flash)
 export KIMI_API_KEY=...        # kimi (k3, coding surface) or file ~/.kimi_api_key
 
 arch-ml                           # interactive TUI (one word)
