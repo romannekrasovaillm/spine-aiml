@@ -164,6 +164,45 @@ BMAD, Spec Kit, OpenSpec и др.):
 
 ### Возможности
 
+#### Чем AI/ML Edition отличается: метахарнесс исследователя
+
+Банковская редакция — харнесс solution-архитектора. AI/ML Edition —
+**метахарнесс AI/ML-исследователя**: он стоит *над* кодовыми харнессами и
+ведёт исследование как инженерную дисциплину, а не как цепочку ноутбуков.
+Четыре опоры:
+
+1. **Доменный пресет `ml-researcher`** (`aiml/presets/ml-researcher/`) —
+   модельная матрица из трёх уровней: внешние API для разработки, локальные
+   open-weights для приватных ходов, доменная модель концептов (Ариадна) как
+   инструмент. Маршрутизация по чувствительности: приватный вход — только на
+   `local-*`, доменный ризонинг/ревью — на фронтир (инвариант ML-02).
+2. **Инварианты контура ML-01…ML-14** (`aiml/presets/ml-researcher/SPINE-ML.md`)
+   — исполняемые fitness-правила, а не проза (гейтятся тем же
+   `arch-ml control check`): приватный периметр датасетов и весов (ML-01),
+   запрет утечек в промпты/логи/трассы (ML-03), ML-факты только из
+   первоисточников, не из весов (ML-05), воспроизводимость прогона — конфиг,
+   версии и seed в артефакте (ML-06), провенанс датасета и чекпоинта (ML-07),
+   pre-flight до аренды GPU (ML-08), бюджет прогона с потолком стоимости
+   (ML-09), честный отчёт «измеренное vs предположенное» (ML-12),
+   обезличивание публикаций (ML-13), изоляция недоверенного кода (ML-14).
+3. **8 доменных плагинов** (`aiml/plugins/`): `ml-architecture`
+   (проектирование нейросетей), `ml-grafting` (LLM-графтинг),
+   `ml-continual-learning`, `ml-rl-environments` (RL-среды оценки знания
+   концептов), `ml-selfplay` (контракт selfplay-эпизода), `aiml-ops`
+   (операционная маршрутизация знания), `laguna-gb10-skills` (лесенка
+   маленьких моделей на GB10 / DGX Spark), `hypothesis-router` (память о
+   намерении, см. п. 4).
+4. **Память о намерении и роутинг гипотез** (ADR-047, `docs/hypotheses.md`):
+   карточки `HYPOTHESIS.md` с состоянием жизненного цикла и триггерами —
+   намерение всплывает по фактам проекта само, без поиска. Скилл отвечает на
+   «как», карточка — на «зачем и когда»; роутинг закреплён fitness-правилами
+   (`aiml/library/fitness/hypothesis-routing.yaml`).
+
+Доменные учебные кейсы: `laguna-compact` (RL-лесенка CPT → SFT → RL на одной
+GPU-карте: стражи ресурса, ревизии корпуса, пилот с одним сидом) и
+`kimi-killer` (состязание длинноконтекстных архитектур: единый контракт
+прогона, механический вердикт, приватный корпус не покидает контур).
+
 #### Модели и ризонинг
 
 - **DeepSeek V4** (flash/pro), **GLM-5.3/5.2** (5.3 и 5.3-Flash — окно 1M
@@ -698,6 +737,44 @@ BMAD, Spec Kit, OpenSpec, and more):
   headless JSON result contracts for coding harnesses and cron tasks.
 
 ### Feature tour
+
+#### What makes the AI/ML Edition different: a researcher's meta-harness
+
+The Banking Edition is a solution-architect harness. The AI/ML Edition is a
+**meta-harness for AI/ML researchers**: it sits *above* coding harnesses and
+runs research as an engineering discipline rather than a chain of notebooks.
+Four pillars:
+
+1. **Domain preset `ml-researcher`** (`aiml/presets/ml-researcher/`) — a
+   three-tier model matrix: external APIs for development, local open-weights
+   for private turns, and the domain concept model (Ariadna) as a tool.
+   Sensitivity routing: private input only to `local-*`, domain
+   reasoning/review to frontier models (invariant ML-02).
+2. **Perimeter invariants ML-01…ML-14** (`aiml/presets/ml-researcher/SPINE-ML.md`)
+   — executable fitness rules, not prose (gated by the same
+   `arch-ml control check`): private perimeter for datasets and weights
+   (ML-01), no leaks into prompts/logs/traces (ML-03), ML facts from primary
+   sources only, never from weights (ML-05), run reproducibility — config,
+   versions and seed in the artifact (ML-06), dataset/checkpoint provenance
+   (ML-07), pre-flight before renting GPUs (ML-08), run budget with a cost
+   ceiling (ML-09), honest reporting — measured vs assumed (ML-12),
+   publication de-identification (ML-13), isolation of untrusted code (ML-14).
+3. **8 domain plugins** (`aiml/plugins/`): `ml-architecture` (network
+   design), `ml-grafting` (LLM grafting), `ml-continual-learning`,
+   `ml-rl-environments` (RL environments for concept-knowledge eval),
+   `ml-selfplay` (selfplay episode contract), `aiml-ops` (operational
+   knowledge routing), `laguna-gb10-skills` (small-model ladder on
+   GB10 / DGX Spark), `hypothesis-router` (intention memory, see 4).
+4. **Intention memory & hypothesis routing** (ADR-047, `docs/hypotheses.md`):
+   `HYPOTHESIS.md` cards with lifecycle state and triggers — an intention
+   surfaces itself from project facts, no searching. A skill answers "how";
+   a card answers "why and when"; routing is pinned by fitness rules
+   (`aiml/library/fitness/hypothesis-routing.yaml`).
+
+Domain training cases: `laguna-compact` (the CPT → SFT → RL ladder on a
+single GPU: resource guards, corpus revisions, single-seed pilot) and
+`kimi-killer` (a bake-off of long-context architectures: one run contract,
+mechanical verdict, the private corpus never leaves the perimeter).
 
 **Models & reasoning**
 
