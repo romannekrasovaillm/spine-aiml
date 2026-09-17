@@ -205,7 +205,7 @@ GPU-карте: стражи ресурса, ревизии корпуса, пи
 
 #### Модели и ризонинг
 
-- **DeepSeek V4** (flash/pro), **GLM-5.3/5.2** (5.3 и 5.3-Flash — окно 1M
+- **DeepSeek V4/V4.1** (flash/pro), **GLM-5.3/5.2** (5.3 и 5.3-Flash — окно 1M
   токенов, вывод до 128K; + дешёвые 4.7/air/flash), **Kimi K3**
   (coding-поверхность) — переключение на лету: `/model` (пикер в TUI) или
   `arch-ml run --model`. Ключи — только из окружения или файла (`api_key_file`).
@@ -778,7 +778,7 @@ mechanical verdict, the private corpus never leaves the perimeter).
 
 **Models & reasoning**
 
-- DeepSeek V4 (flash/pro), GLM-5.3/5.2 (5.3 + 5.3-Flash — 1M-token context,
+- DeepSeek V4/V4.1 (flash/pro), GLM-5.3/5.2 (5.3 + 5.3-Flash — 1M-token context,
   up to 128K output; + budget 4.7/air/flash), Kimi K3 (coding
   surface) — switch mid-session via `/model` (TUI picker) or `arch-ml run --model`.
   Keys come from the environment or a key file (`api_key_file`) — never stored.
