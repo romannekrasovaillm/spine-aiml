@@ -1,0 +1,718 @@
+{
+  "schema": "fleet-node-evidence/1",
+  "stage": "S3x — подготовка SFT-стадии (чек-лист готовности)",
+  "status": "complete",
+  "readiness": "not_ready",
+  "readiness_reason": "6 блокирующих дыр: G0 (состояние SFT рассыпано по 4 неслитым ветвям, номера ADR конфликтуют), G1 (K1/K2-прибор вне ветки), G2 (монитор мерит снятые наборы), G3 (нет карточки набора), G7 (нет замера шага на CPT-чекпойнте v12r), G9 (манифест хеширует первые 1 МБ).",
+  "date": "2026-09-16",
+  "branch": {
+    "name": "arch/laguna-mix-lr-calibration",
+    "head": "e3cceb372354c4a6756bbdbb3215def61caef0a2"
+  },
+  "purpose": "К финишу CPT (runs/full-cpt-20260916-2149, v12r, LRx0.035, 9776 шагов, ETA 7.0 ч) иметь проверенный по фактам набор, конфигурацию, критерии и реестр дыр, чтобы не собирать это на ходу.",
+  "not_done": [
+    "SFT не запускался: обучение не велось",
+    "стенд GB10 не занимался (CPT на нём идёт, см. отдельный факт)",
+    "длительных замеров на RTX 4080 не производилось",
+    "данные не менялись: ни sft_train_v12, ни кэши, ни eval-наборы"
+  ],
+  "artifacts": {
+    "plan": "docs/specs/SFT-STAGE-PLAN.md",
+    "plan_sha256": "42eca59a646fb7c26db213ce68e3f183f722e947109064d8a1095316af460a73",
+    "evidence": "evidence/fleet-sft-prep.json"
+  },
+  "relation_to_prior": {
+    "found": true,
+    "why_orchestrator_saw_nothing": "артефакты прошлого узла закоммичены в ветку arch/laguna-sft-prep (5ba3fc9), которой нет в линии этого узла; отсюда формулировка «прошлый узел не оставил артефактов»",
+    "prior_commit": "5ba3fc9",
+    "prior_branch": "arch/laguna-sft-prep",
+    "prior_files": [
+      "docs/specs/SFT-STAGE-PLAN.md (30870 Б)",
+      "evidence/fleet-sft-prep.json"
+    ],
+    "verdict": "числовые утверждения прежнего артефакта ВОСПРОИЗВЕЛИСЬ полностью (см. verification_ledger); работа не переписана, а перепроверена",
+    "defect_found": "секция «Основание» прежнего плана ссылается на ADR-025 и ADR-027, которых в ветке arch/laguna-sft-prep НЕТ (там 001-024, 030, 031) — обе ссылки висят в воздухе для читателя той ветки",
+    "organizational_conclusion": "узел, коммитящий в собственную ветку, оставляет артефакт, невидимый оркестратору; лечится слиянием линии, а не переделкой работы",
+    "recommendation": "этот план должен ЗАМЕСТИТЬ прежний, а не лежать рядом: три расходящихся описания SFT опаснее одного"
+  },
+  "topology": {
+    "finding": "номер ADR не является глобальным идентификатором: слоты 025/026, 027/029 и 030/031 заполнены разными документами на разных ветвях",
+    "branches": [
+      {
+        "branch": "arch/laguna-mix-lr-calibration",
+        "head": "e3cceb3",
+        "adr": "001-024, 025, 026",
+        "has_k1k2_tools": false,
+        "note": "ветка авторства этого плана"
+      },
+      {
+        "branch": "arch/laguna-eval-set",
+        "head": "949a5b9",
+        "adr": "001-024, 027, 029",
+        "has_k1k2_tools": true,
+        "tools": [
+          "ppl_probe_v3.py",
+          "ppl_probe_k2.py",
+          "check_eval_set_purity.py",
+          "docs/specs/EVAL-SETS.md"
+        ],
+        "evidence": [
+          "s3q-baseline-v3.json",
+          "s3t-baseline-k2.json",
+          "s3v-control-arms-ppl.json",
+          "s3w-domain-by-arms.json"
+        ]
+      },
+      {
+        "branch": "arch/laguna-control-arms",
+        "head": "e7d2d89",
+        "adr": "001-024, 030, 031",
+        "has_k1k2_tools": false,
+        "note": "несёт описание текущего CPT и прогон full-cpt-20260916-2149"
+      },
+      {
+        "branch": "arch/laguna-sft-prep",
+        "head": "5ba3fc9",
+        "adr": "001-024, 030, 031",
+        "has_k1k2_tools": false,
+        "note": "прежний артефакт подготовки SFT"
+      },
+      {
+        "branch": "main",
+        "head": "8778125",
+        "adr": "базовая линия"
+      }
+    ],
+    "consequences": [
+      "мера, которой принимается решение (K1/K2), отсутствует в ветке плана -> H1/H2 нечем измерить (G1)",
+      "описание текущего CPT (ADR-031) отсутствует в ветке плана -> предусловие №1 не проверяемо",
+      "ссылка «ADR-0NN» без указания ветки неоднозначна и не открывается на 2 ветвях из 5"
+    ]
+  },
+  "dataset": {
+    "path_ssot": "/home/user/gb10-shared/datasets/sft_train_v12.jsonl",
+    "path_in_case": "datasets/sft_train_v12.jsonl (симлинк datasets -> /home/user/gb10-shared/datasets, AD-4)",
+    "bytes": 486352008,
+    "lines": 44949,
+    "sha256_full": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+    "sha256_head_1mb": "d05ebca9db58b81711c076192d17a6dac359ece4852c4a670f1ea73263e771ad",
+    "mtime": "2026-08-28 16:50",
+    "bad_json_lines": 0,
+    "tokenizer_cache": {
+      "path": "datasets/tok/sft_train_v12_8192_qwen25.npz",
+      "bytes": 2945778272,
+      "sha256": "aa06a26dc7917d76dc4be0f6edeefa6562bffa7c937cf00bb90bf3e598a66388"
+    },
+    "builder": "gb10-shared/build_sft_v12.sh — чистая конкатенация cat sft_train_v10.1.jsonl sft_train_v11.jsonl (без дедупликации и фильтра пересечения с RL)",
+    "card": null,
+    "card_gap": "G3",
+    "format_shares": {
+      "think": 1.0,
+      "tool_call": 0.9457,
+      "tool_response": 0.9457,
+      "tool_call_in_last_assistant": 0.9137,
+      "multiturn_ge2_user": 0.0319,
+      "avg_messages_per_example": 3.128
+    },
+    "sources": {
+      "teacher_oxalpha_reasoning": 22872,
+      "teacher_oxalpha_multiturn": 7413,
+      "oxalpha_reasoning": 3372,
+      "v4_qwen25-15b_s1337": 2604,
+      "teacher_native_xhigh": 1738,
+      "oxalpha_multiturn": 1436,
+      "v10_base": 1221,
+      "v4_qwen25-15b_s2024": 1134,
+      "teacher_multiturn_xhigh": 858,
+      "v4_qwen25-15b_s42": 654,
+      "v4_qwen25-15b_s777": 342,
+      "v4_qwen25-15b_s31415": 84,
+      "source_missing": 1221
+    },
+    "v4_family_total": 4818,
+    "duplicates": {
+      "unique_normalized": 19011,
+      "extra_rows": 25938,
+      "share": 0.5771,
+      "consequence": "«3 эпохи» = 7.09 прохода по каждому уникальному примеру (3 x 44949 / 19011)"
+    }
+  },
+  "intersections": [
+    {
+      "check": "eval <-> SFT (утечка)",
+      "command": "python3 tools/check_eval_leakage.py --eval datasets/eval_ood_clean.jsonl --train datasets/sft_train_v12.jsonl --json",
+      "result": {
+        "ok": true,
+        "tasks_checked": 192,
+        "slug_in_own_prompt_violations": 0,
+        "train_examples": 44949,
+        "train_texts": 39490,
+        "text_overlap_violations": 0
+      }
+    },
+    {
+      "check": "SFT <-> пул ревизии v2",
+      "command": "python3 tools/check_sft_rl_overlap.py --sft datasets/sft_train_v12.jsonl --rl datasets/rl_tasks_revpool_v2.jsonl --no-evidence --json",
+      "result": {
+        "rl_tasks": 9162,
+        "sft_examples": 44949,
+        "matched_prompts": 0,
+        "verdict": "совпадений нет"
+      }
+    },
+    {
+      "check": "SFT <-> исторический oxalpha (не ревизионный пул)",
+      "command": "python3 tools/check_sft_rl_overlap.py --sft datasets/sft_train_v12.jsonl --rl datasets/rl_tasks_oxalpha.jsonl --no-evidence --json",
+      "result": {
+        "rl_tasks": 28000,
+        "rl_unique_prompts": 27009,
+        "sft_matched_prompts": 39,
+        "rl_matched_tasks": 8,
+        "verdict": "совпадения найдены — исторический замер ADR-007 п.2"
+      }
+    }
+  ],
+  "no_evidence_flag_reason": "флаг --no-evidence выставлен намеренно: по умолчанию инструмент пишет поле в evidence/s1-data-audit.json, а аудиторский след не переписывается (ADR-023 п.9)",
+  "defects_checked": [
+    {
+      "id": "D1",
+      "name": "v2-инверсия микса: 98.6 % base без tool_call",
+      "adr": "ADR-001 (строка 45)",
+      "status": "на историческом файле ВОСПРОИЗВОДИТСЯ, в v12 отсутствует",
+      "evidence": {
+        "sft_train_v2.jsonl": {
+          "lines": 171058,
+          "with_tool_call": 2463,
+          "share": 0.0144,
+          "without_share": 0.9856
+        },
+        "sft_train_v12.jsonl": {
+          "share_tool_call": 0.9457,
+          "share_in_last_assistant": 0.9137
+        }
+      },
+      "residual_risk": "стража на минимальную agentic-долю нет ни в CONSTRAINTS.yaml, ни в tools/ -> G4"
+    },
+    {
+      "id": "D2",
+      "name": "баг маскирования (17.08): pretokenize.py без add_special_tokens",
+      "adr": "ADR-001 (строка 47)",
+      "status": "ЗАКРЫТ",
+      "evidence": {
+        "pretokenize.py:33": "tok.add_special_tokens({\"additional_special_tokens\": SPECIAL_TOKENS}) присутствует",
+        "pretokenize_v9.py:33": "та же строка — ВАЖНО: реальный путь пайплайна (tools/run_pilot.py:104 PRETOKENIZER), прежний артефакт проверял только pretokenize.py",
+        "pretokenize.py.bak_nospecial_20260817": "строки нет; add_special_tokens встречается только как encode(..., add_special_tokens=False)",
+        "guard_C-008": {
+          "ok": true,
+          "occurrences": {
+            "<tool_call>": {
+              "id": 151657,
+              "n": 214320
+            },
+            "</tool_call>": {
+              "id": 151658,
+              "n": 122214
+            },
+            "<tool_response>": {
+              "id": 151667,
+              "n": 120176
+            },
+            "</tool_response>": {
+              "id": 151668,
+              "n": 77122
+            },
+            "<reasoning>": {
+              "id": 151669,
+              "n": 2,
+              "gated": false
+            },
+            "</reasoning>": {
+              "id": 151670,
+              "n": 0,
+              "gated": false
+            }
+          }
+        }
+      },
+      "note": "отсутствие <reasoning>/</reasoning> дефектом не является — политика вхождений ADR-004, уровень 3"
+    },
+    {
+      "id": "D3",
+      "name": "инцидент гигиены: копии sft_train_v12.jsonl в git-индексе (f7deadc)",
+      "adr": "ADR-001 (строка 57)",
+      "status": "НЕ ВОСПРОИЗВОДИТСЯ",
+      "evidence": {
+        "check_symlink_hygiene.sh": {
+          "exit": 0,
+          "verdict": "SYMLINK HYGIENE OK",
+          "symlinks": 8
+        },
+        "git_ls_files": "sft_train_v12.jsonl отсутствует; блобов > 1 МБ в индексе нет"
+      }
+    }
+  ],
+  "defects_new": [
+    {
+      "id": "N1",
+      "defect": "дубликаты 57.71 % (лишних строк 25938)",
+      "where": "данные (см. dataset.duplicates)",
+      "impact": "«3 эпохи» = 7.09 прохода на уникальный пример; шаги и val-loss теряют прямой смысл"
+    },
+    {
+      "id": "N2",
+      "defect": "«held-out 500» обучаются",
+      "where": "laguna_pipeline_v8.py: DataLoader(shuffle=True) итерирует весь датасет; val = input_ids[-500:] того же npz; в коде есть комментарий «вклад хвоста в обучение пренебрежим»",
+      "impact": "val-loss — не сигнал обобщения; дефект НАЗВАННЫЙ, не скрытый"
+    },
+    {
+      "id": "N3",
+      "defect": "нет карточки SFT-набора и полного хеша в карточке",
+      "where": "data/",
+      "impact": "нечем доказать «тот же файл» (AD-2) кроме манифеста -> G3"
+    },
+    {
+      "id": "N4",
+      "defect": "монитор форгеттинга в SFT мерит снятые наборы",
+      "where": "laguna_pipeline_v8.py:1587-1588 (general_eval.txt 24 док., domain_eval.txt 5 док.)",
+      "impact": "внутри стадии мерится не то, чем принимается решение -> G2"
+    },
+    {
+      "id": "N5",
+      "defect": "хеши датасетов в манифесте — первые 1 МБ",
+      "where": "laguna_pipeline_v8.py:1754 (_sha256_head), вызов :1818",
+      "impact": "линедж не доказывает тождество файла (для v12 head != full) -> G9"
+    },
+    {
+      "id": "N6",
+      "defect": "данные — чистая конкатенация без фильтра пересечения с RL",
+      "where": "build_sft_v12.sh",
+      "impact": "для пула ревизии закрыто фильтром пула (0 совпадений), воспроизводимость сборки не защищена"
+    }
+  ],
+  "launch_config": {
+    "input_checkpoint": "checkpoints/checkpoint_final.pt (CPT v12r, LRx0.035), загрузка через _load_ckpt_with_resize",
+    "data": "datasets/sft_train_v12.jsonl",
+    "cache": "datasets/tok/sft_train_v12_8192_qwen25.npz",
+    "max_len": 8192,
+    "batch": 2,
+    "epochs": 3,
+    "steps": 67423,
+    "steps_formula": "sft_epochs * sft_samples // sft_batch = 3 * 44949 // 2",
+    "optimizer": {
+      "name": "AdamW",
+      "lr": 1e-05,
+      "weight_decay": 0.01,
+      "betas": [
+        0.9,
+        0.95
+      ]
+    },
+    "scheduler": {
+      "name": "CosineAnnealingLR",
+      "T_max": "max_steps",
+      "eta_min": 2e-07
+    },
+    "grad_clip": 1.0,
+    "warmup": "min(100, max_steps//10) шагов с замороженной моделью (учатся embed/lm_head), затем полный размороз",
+    "gradient_checkpointing": true,
+    "label_masking": "всё до первого assistant (+2, чтобы не съесть <think>) -> -100; user-блоки -> -100; спаны <tool_response> -> -100; паддинг -> -100",
+    "checkpoints": "каждые 200 шагов + sft_checkpoint_final.pt; резюм с последнего",
+    "probes": "sft_mid на max_steps//2; sft на финише",
+    "forgetting_monitor": "_general_eval_step каждые 50 шагов — наборы ПЕРЕКЛЮЧИТЬ (G2)",
+    "memory_threshold_gb": 50,
+    "calendar_hours": 60.9,
+    "calendar_basis": "evidence/s3-pilot.json -> eta.sft_hours = 60.9 (67423 x 3.251 с/шаг; база — замер S2, evidence/s2-smoke.json)"
+  },
+  "preconditions": [
+    {
+      "n": 1,
+      "what": "CPT валиден и завершён (свой критерий пройден)",
+      "status": "не проверяемо с этой ветки — ADR-031 живёт на arch/laguna-control-arms",
+      "observed": "на 2026-09-16 22:03 MSK прогон full-cpt-20260916-2149 идёт: watcher обновлён 22:02, снято 0/20 чекпойнтов, ETA финиша ≈04:50 MSK"
+    },
+    {
+      "n": 2,
+      "what": "входной чекпойнт несёт resize; init_special_tokens_subtoken выполняется",
+      "status": "подтверждено кодом run_sft"
+    },
+    {
+      "n": 3,
+      "what": "данные и кэш — те самые (полные sha256, wc -l == 44949 == EXPECT_SFT_SAMPLES)",
+      "status": "подтверждено"
+    },
+    {
+      "n": 4,
+      "what": "гейт кейса зелёный (кроме ожидаемого C-014 до S4)",
+      "status": "C-008/C-009/C-011/C-017 прогнаны в этой подготовке и зелёные; C-018/C-020 не гонялись этим узлом"
+    },
+    {
+      "n": 5,
+      "what": "хозяин ресурса (C-018 -> CAN-START, <=1 нагрузки)",
+      "status": "не проверялось этим узлом (стенд занят CPT)"
+    },
+    {
+      "n": 6,
+      "what": "GLM_API_KEY задан (иначе артефакт без судьи не ось AD-1)",
+      "status": "не проверялось"
+    },
+    {
+      "n": 7,
+      "what": "манифест с ПОЛНЫМИ sha256 до запуска",
+      "status": "требует правки (N5/G9)"
+    },
+    {
+      "n": 8,
+      "what": "отсоединённый запуск в tmux, старт подтверждается фактами",
+      "status": "процедура, ADR-023 п.11"
+    }
+  ],
+  "validity_criteria": {
+    "basis_from_branch": "arch/laguna-eval-set (в этой ветке файлов нет — G1)",
+    "hard": [
+      {
+        "id": "H1",
+        "what": "язык K1 (жанр реплея, general_eval_v3.txt, 200 док.) <= 2x базы",
+        "base": 7.50468637420902,
+        "ceiling": 15.009373,
+        "set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e"
+      },
+      {
+        "id": "H2",
+        "what": "язык K2 (вне обучающего распределения, general_eval_k2.txt, 200 док.) <= 2x базы",
+        "base": 6.1599356842437585,
+        "ceiling": 12.319871,
+        "set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983"
+      },
+      {
+        "id": "H3",
+        "what": "домен (domain_eval_v2.txt, 200 док.) — домен сохранён: x базы < 1",
+        "base": 11.134115855539092,
+        "set_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e"
+      },
+      {
+        "id": "H4",
+        "what": "agentic: slug_accuracy > 0 на eval_ood_clean (192 задачи)",
+        "note": "0.0 у исторической инвертированной модели — ровно дефект ADR-001"
+      },
+      {
+        "id": "H5",
+        "what": "нет дегенерации: entropy >= 1.0 (стоп 0.5), clip_frac < 0.2, loss убывает",
+        "source": "AD-1 / S4-PROTOCOL 3.2"
+      },
+      {
+        "id": "H6",
+        "what": "утечки/пересечения повторены на финальном наборе: 0",
+        "source": "C-009, C-017"
+      }
+    ],
+    "soft_record_only": [
+      "доля tool_call в генерациях SFT-чекпойнта — обязана быть записана и сравнена с CPT-чекпойнтом; калиброванного порога нет (G11)",
+      "язык K1/K2 против CPT-чекпойнта: SFT обязан «стоить» немного общего языка — сколько, не откалибровано; фиксируется дельта"
+    ],
+    "forbidden": "вердикт по сводке по окнам запрещён (ADR-022 п.4) — только траектория"
+  },
+  "intermediate_measurements": [
+    {
+      "point": "после CPT-чекпойнта, до SFT",
+      "sets": [
+        "K1",
+        "K2",
+        "domain_eval_v2"
+      ],
+      "why": "нулевая точка: сколько SFT украл/дал"
+    },
+    {
+      "point": "10000 / 20000 шагов",
+      "sets": [
+        "K1",
+        "K2",
+        "domain_eval_v2"
+      ],
+      "why": "ранняя тревога"
+    },
+    {
+      "point": "34000 шагов (≈ точка обрыва прошлого пилота)",
+      "sets": [
+        "K1",
+        "K2",
+        "domain_eval_v2"
+      ],
+      "why": "сравнение с историческим обрывом"
+    },
+    {
+      "point": "50000 шагов",
+      "sets": [
+        "K1",
+        "K2",
+        "domain_eval_v2"
+      ],
+      "why": "контроль третьей четверти (по аналогии с ADR-030)"
+    },
+    {
+      "point": "финал 67423",
+      "sets": [
+        "K1",
+        "K2",
+        "domain_eval_v2",
+        "eval_ood_clean (судья)",
+        "доля tool_call"
+      ],
+      "why": "вердикт стадии"
+    }
+  ],
+  "measurement_instrument_note": "мерить локально на RTX 4080, max_len 1024, ТЕМ ЖЕ прибором, что дал базы (tools/ppl_probe.py — в этой ветке; K1/K2-прибор на arch/laguna-eval-set); короткими прогонами, без монополии карты",
+  "decision_point": [
+    "H1..H6 выполнены -> SFT-чекпойнт становится базисом оси для RL (eval_sft, judge_mean, S4-PROTOCOL 1); не выполнены -> стоп и разбор, RL не запускается",
+    "нарушен H1..H3 -> разбор причины: данные (N1, agentic-доля), маскирование (C-008 на входном CPT-чекпойнте), LR/расписание SFT",
+    "H4 = 0 -> стоп: это исторический сценарий accuracy 0.0 (ADR-001); причина должна быть названа до RL, иначе RL получит вырожденную награду (ADR-017)"
+  ],
+  "gaps": [
+    {
+      "id": "G0",
+      "gap": "состояние SFT-стадии рассыпано по 4 неслитым ветвям; номера ADR конфликтуют между ветвями",
+      "why": "ни одна ветка не содержит и плана, и меры, и описания CPT; ссылка «ADR-0NN» неоднозначна",
+      "closes": "слить arch/laguna-eval-set + arch/laguna-control-arms + arch/laguna-mix-lr-calibration в основную линию",
+      "blocking": true,
+      "new": true
+    },
+    {
+      "id": "G1",
+      "gap": "K1/K2-приборы (ppl_probe_v3.py, ppl_probe_k2.py, check_eval_set_purity.py) и docs/specs/EVAL-SETS.md — только на arch/laguna-eval-set (949a5b9)",
+      "why": "без них H1/H2/H3 нечем измерить",
+      "closes": "то же слияние, ДО финиша CPT",
+      "blocking": true
+    },
+    {
+      "id": "G2",
+      "gap": "монитор _general_eval_step берёт general_eval.txt (v1, 24 док.) и domain_eval.txt (5 док.) + эвристику Δ>15 %",
+      "why": "внутри стадии мерится не то, чем принимается решение (N4)",
+      "closes": "переключить на K1/K2 + domain_eval_v2; критерий — потолок от базы, не Δ%",
+      "blocking": true
+    },
+    {
+      "id": "G3",
+      "gap": "нет карточки SFT-набора (путь, объём, полный sha256, состав, доля tool_call, дубликаты, лицензия)",
+      "why": "AD-2/AD-12: нечем доказать «тот же файл»",
+      "closes": "создать data/sft-card-v12.json из раздела 2 плана + правило file_exists по образцу C-010",
+      "blocking": true,
+      "easy": true
+    },
+    {
+      "id": "G4",
+      "gap": "нет стража на agentic-долю",
+      "why": "инверсия v2 была незамечена, потому что долю никто не проверял",
+      "closes": "behavioural-правило check_sft_agentic_share.py (на v12 >= 0.9; регресс — красный)",
+      "blocking": false,
+      "protects": true
+    },
+    {
+      "id": "G5",
+      "gap": "дубликаты 57.71 % не задокументированы; смысл «3 эпох» искажён (N1)",
+      "why": "шаги и календарь читаются неверно",
+      "closes": "решить: дедуп (новый набор + ADR) ИЛИ задокументировать как намеренный оверсэмплинг и пересчитать эквивалент эпох",
+      "blocking": false,
+      "owner_decision": true
+    },
+    {
+      "id": "G6",
+      "gap": "«held-out 500» обучаются (N2)",
+      "why": "val-loss не сигнал обобщения",
+      "closes": "исключить хвост из лоадера ИЛИ переименовать в «контрольный срез»",
+      "blocking": false
+    },
+    {
+      "id": "G7",
+      "gap": "нет замера времени шага на CPT-чекпойнте v12r (60.9 ч — оценка по замеру S2, не по этому прогону)",
+      "why": "окно стенда (ADR-012) может сместиться",
+      "closes": "короткая проба 200 шагов после финиша CPT, отдельной дельтой",
+      "blocking": true,
+      "blocking_scope": "план, не стенд сейчас"
+    },
+    {
+      "id": "G8",
+      "gap": "S4-PROTOCOL.md 3.3 устарел: базы 127.5 / 11.76, наборы v1",
+      "why": "точка решения посчиталась бы по снятым числам",
+      "closes": "обновить на K1∧K2 + domain_eval_v2",
+      "blocking": false,
+      "blocks_stage": "S4, не SFT"
+    },
+    {
+      "id": "G9",
+      "gap": "манифест хеширует первые 1 МБ (N5)",
+      "why": "линедж не доказывает тождество данных",
+      "closes": "полный sha256 в манифесте (или sidecar) — отдельная дельта",
+      "blocking": true
+    },
+    {
+      "id": "G10",
+      "gap": "пул ревизии v2 в кейсе разошёлся с карточкой (9162 против 9197 строк)",
+      "why": "касается RL, не SFT (0 совпадений)",
+      "closes": "починка — чужая незакрытая дельта",
+      "blocking": false
+    },
+    {
+      "id": "G11",
+      "gap": "порог agentic-доли и допустимый «налог» SFT на язык не откалиброваны",
+      "why": "нельзя ставить число, не повторяя ошибку «решение по необоснованному числу»",
+      "closes": "собрать после первого SFT-чекпойнта -> калибровка на фазе 2",
+      "blocking": false
+    },
+    {
+      "id": "G12",
+      "gap": "лицензионный статус SFT-набора не задекларирован",
+      "why": "AD-8/ADR-005: производные обучающих данных",
+      "closes": "задекларировать в карточке (G3)",
+      "blocking": false
+    }
+  ],
+  "verification_ledger": [
+    {
+      "claim": "объём и хеши v12",
+      "how": "sha256sum / head -c 1048576 | sha256sum / wc -l",
+      "observed": "486352008 Б; 44949 строк; 39f616f1…49a6; head d05ebca9…71ad"
+    },
+    {
+      "claim": "хеш кэша",
+      "how": "sha256sum tok/sft_train_v12_8192_qwen25.npz",
+      "observed": "aa06a26d…6388 (2 945 778 272 Б)"
+    },
+    {
+      "claim": "форма v12",
+      "how": "разбор 44949 строк (json)",
+      "observed": "think 1.0000; tool_call 0.9457; tool_response 0.9457; tc-last 0.9137; мультитёрн 0.0319; ср. 3.128 сообщ."
+    },
+    {
+      "claim": "дубликаты",
+      "how": "нормализация messages + sha256",
+      "observed": "уникальных 19011; лишних 25938 (57.71 %)"
+    },
+    {
+      "claim": "v2-инверсия",
+      "how": "разбор sft_train_v2.jsonl",
+      "observed": "171058 строк; tool_call 2463 = 0.0144 -> 98.56 % без него"
+    },
+    {
+      "claim": "фикс маскирования",
+      "how": "grep add_special_tokens по pretokenize.py / pretokenize_v9.py / *.bak_nospecial_20260817",
+      "observed": "pretokenize.py:33 ✓; pretokenize_v9.py:33 ✓; в .bak только encode(..., add_special_tokens=False)"
+    },
+    {
+      "claim": "C-008",
+      "how": "tools/check_special_tokens.py --dataset …qwen25.npz --json",
+      "observed": "ok: true; вхождения 214320 / 122214 / 120176 / 77122"
+    },
+    {
+      "claim": "C-009",
+      "how": "tools/check_eval_leakage.py --json",
+      "observed": "ok: true; 192 задачи; нарушений 0"
+    },
+    {
+      "claim": "C-017 пул v2",
+      "how": "tools/check_sft_rl_overlap.py --rl revpool_v2 --no-evidence",
+      "observed": "9162 задачи; совпадений 0"
+    },
+    {
+      "claim": "C-017 исторический",
+      "how": "tools/check_sft_rl_overlap.py --rl oxalpha --no-evidence",
+      "observed": "28000 задач; 39 пар / 8 задач"
+    },
+    {
+      "claim": "C-011 / AD-4",
+      "how": "bash tools/check_symlink_hygiene.sh .",
+      "observed": "exit 0; 8 симлинков; копий нет"
+    },
+    {
+      "claim": "индекс git",
+      "how": "git ls-files + размеры блобов",
+      "observed": "sft_train_v12.jsonl не отслеживается; блобов > 1 МБ нет"
+    },
+    {
+      "claim": "конфигурация SFT",
+      "how": "чтение run_sft / build_stages / --sft-epochs / --sft-batch / EXPECT_SFT_SAMPLES",
+      "observed": "см. launch_config; 67423 шага"
+    },
+    {
+      "claim": "календарь",
+      "how": "evidence/s3-pilot.json -> eta",
+      "observed": "sft_hours 60.9 (3.251 с/шаг — замер S2); cpt_hours 7.0"
+    },
+    {
+      "claim": "N4",
+      "how": "laguna_pipeline_v8.py:1587-1588",
+      "observed": "general_eval.txt, domain_eval.txt"
+    },
+    {
+      "claim": "N5",
+      "how": "laguna_pipeline_v8.py:1754 и :1818",
+      "observed": "_sha256_head(..., 1 МБ) в манифесте"
+    },
+    {
+      "claim": "N2",
+      "how": "laguna_pipeline_v8.py run_sft",
+      "observed": "shuffle=True; val = input_ids[-500:]; комментарий о пренебрежимом вкладе"
+    },
+    {
+      "claim": "базы меры",
+      "how": "evidence/s3q-baseline-v3.json, s3t-baseline-k2.json, s3w-domain-by-arms.json (ветка eval-set)",
+      "observed": "K1 7.50468637420902; K2 6.1599356842437585; домен 11.134115855539092"
+    },
+    {
+      "claim": "хеши eval-наборов",
+      "how": "sha256sum по самим файлам в gb10-shared/datasets",
+      "observed": "general_eval_v3 6fa8e00f… MATCH; general_eval_k2 723daeaf… MATCH; domain_eval_v2 7ac83fe3… MATCH"
+    },
+    {
+      "claim": "состояние CPT",
+      "how": "чтение runs/full-cpt-20260916-2149/full_cpt_params.json и full-cpt-ppl-20260916-2149/{state,trend}.json",
+      "observed": "v12r, LRx0.035, seed 42, 9776 шагов, batch 1, ckpt каждые 500; trend ceiling K1/K2 x2, домен x1; снято 0/20"
+    },
+    {
+      "claim": "прежний артефакт",
+      "how": "git show 5ba3fc9 --stat + ls docs/adr/ в дереве laguna-sft-prep",
+      "observed": "план + evidence есть; ADR-025/ADR-027 в той ветке отсутствуют"
+    },
+    {
+      "claim": "самопроверка хешей этого плана",
+      "how": "пересчёт всех 6 процитированных хешей по файлам",
+      "observed": "ALL MATCH"
+    }
+  ],
+  "provenance": {
+    "read_only": true,
+    "data_touched": false,
+    "stand_touched": false,
+    "gpu_used": false,
+    "tools_sha256": {
+      "tools/check_eval_leakage.py": "1633b518450bd055f5af0713f755ffcc626dbadf7bd6d7b5eba07c2eea8c228a",
+      "tools/check_sft_rl_overlap.py": "3bc293b882fca6a74d5da6b69c2fe6c3168e80a2e97fd5f4e159a522b07218b5",
+      "tools/check_special_tokens.py": "61c452af17a9e69c09efd6a3699179a6c29328cd63279ac9c2eca8e45e68561a",
+      "tools/check_symlink_hygiene.sh": "b9c594ace5917f427d6b149765eabca22b6525ecd88ab89d2f008a6e170ca82b",
+      "tools/run_pilot.py": "68a68fe3916415b3672ecee52e7f3239af0d8c6e2a5db028ee2ad889ee4b95b1",
+      "laguna_pipeline_v8.py": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+      "pretokenize_v9.py": "fb47f8f34fd181fb9ea0a2d5ea5ce85b60c64f426f24d55c3be0dcd33821f3fd",
+      "pretokenize.py": "5558619672b1f25385845719c6399b62dc0795a1977724cf2a74487d566ab612",
+      "build_sft_v12.sh": "a0873d2388c374a2d73ecc630c50c732ea83bf91c47fc93fbc812529e35e7ddf"
+    }
+  },
+  "open_questions": [
+    "G5: дедуплицировать набор (новый ADR + новый набор) или задокументировать оверсэмплинг и пересчитать эквивалент эпох?",
+    "G2: переключать монитор форгеттинга на K1/K2 до SFT или это часть слияния G0/G1?",
+    "G11: какой порог agentic-доли считать приёмкой — и чем калибровать, если SFT-чекпойнт будет первый?",
+    "Судьба прежнего артефакта (arch/laguna-sft-prep): заместить этим планом при слиянии или оставить как историю узла?"
+  ],
+  "assumptions": [
+    "CPT-прогон full-cpt-20260916-2149 завершится по бюджету 9776 шагов и пройдёт свой критерий; иначе предусловие №1 не выполнено и SFT не запускается",
+    "3.251 с/шаг (замер S2) переносится на SFT-стадию на CPT-чекпойнте v12r; это допущение, отсюда G7",
+    "калибровка LR на 2000 шагах (S3m/S3o) переносится на бюджет 9776 шагов — допущение ADR-031 п.5, на SFT не влияет",
+    "числа баз K1/K2/домена приняты из evidence ветки arch/laguna-eval-set; сами наборы и их хеши перепроверены по файлам (см. verification_ledger)"
+  ],
+  "reverification": {
+    "performed": true,
+    "method": "все числовые утверждения прежнего артефакта (arch/laguna-sft-prep, 5ba3fc9) и все хеши этого плана пересчитаны по файлам; расхождений нет",
+    "corrections_to_prior": [
+      "прежний план проверял pretokenize.py; реальный путь пайплайна — pretokenize_v9.py (проверен, фикс на месте)",
+      "прежний план цитирует ADR-025/ADR-027, отсутствующие в его собственной ветке",
+      "добавлена секция топологии (G0) — этого не было ни в одном прежнем артефакте"
+    ]
+  }
+}

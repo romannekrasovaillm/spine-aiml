@@ -13,7 +13,11 @@ import os
 import sys
 from collections import Counter
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+for cand in (os.path.join(HERE, "..", "..", "..", "lib"), HERE):
+    if os.path.exists(os.path.join(cand, "evalio.py")):
+        sys.path.insert(0, cand)
+        break
 import evalio  # noqa: E402
 
 

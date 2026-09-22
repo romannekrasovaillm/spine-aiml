@@ -3,7 +3,7 @@ id: AD-4
 type: ad
 title: "Данные и веса — только на сетевом диске, в контуре симлинки"
 status: "PROPOSED"
-affects: [C-011]
+affects: []
 verified_by: [C-011]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

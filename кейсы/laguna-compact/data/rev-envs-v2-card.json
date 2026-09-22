@@ -478,7 +478,55 @@
     "path": "datasets/rl_tasks_revpool_v2.jsonl",
     "lines": 9162,
     "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
-    "link": "runs/rev-pool-v2/rl_pool_filtered.jsonl"
+    "link": "runs/rev-pool-v2/rl_pool_filtered.jsonl",
+    "rebuilt_at": "2026-09-16T08:09:18.768178+03:00",
+    "rebuilt_by_commit": "c0a148038859dd1f1efa17a5875ae7387c2121fb",
+    "s3f_fix_status": "applied",
+    "s3f_fix_note": "S3f-fix (ae692aa) + S3f-fix-2 (c0a1480): лейк-фильтр снял 500 цепочек по прежней проекции, проекция переделана на термины определений концептов-условий, лейк-правило не ослаблено. Числа возврата и консервативного отсева — в `leak_fix` и `chain_projection`; независимый замер факта, разбор плана 9197 → 9162 и способ проверки — в `evidence/s3p-pool-v2-card.json`",
+    "previous_declaration": {
+      "lines": 9197,
+      "sha256": "a5d6496aa3427c59a1ef2bcfcd50981af95d9e8fc81e64f3a95c02695dd9de0e",
+      "at_commit": "35f933d",
+      "recorded_at": "2026-09-16T06:41:32+03:00",
+      "what": "Числа, которые объявляла карточка ревизии S3f (`35f933d`) — вывод её собственной сборки. Файл на сетевом диске перезаписан позже (`2026-09-16 08:09`) ревизией `c0a1480` (S3f-fix-2) и содержит 9162 задачи: метка времени файла предшествует коммиту карточки-факта, то есть на диске лежит вывод не той ревизии, чья карточка была принята",
+      "why_not_rewritten": "Прежнее значение — историческое состояние, а не ошибка в карточке: оно не переписывается, а названо рядом с фактом. Основание — ADR-028 п.1 (факт первичен), п.4/п.5 (история git не переписывается, чужой аудиторский след не правится); разбор — ADR-021, «Уточнение по факту (16.09.2026, S3p)». Нынешнее значение этого поля обязано быть равно `lines`/`sha256` выше — расхождение между ними и есть предмет поля `reconciliation`",
+      "source": "git show 35f933d:кейсы/laguna-compact/data/rev-envs-v2-card.json → pool"
+    },
+    "reconciliation": {
+      "difference_lines": -35,
+      "explained_by": [
+        {
+          "tasks": -30,
+          "reason_code": "prompt_leak",
+          "why": "Цепочки (`chain_reasoning` 22, `formula_chain` 8). После перепроецирования на термины определений концептов-условий (S3f-fix-2) проверяемый набор 30 задач содержит термин определения, встречающийся в промпте буквально, — правило «проверяемый ответ не в промпте» сняло их **консервативно** (копия промпта верификатор при этом не проходит: он требует конъюнкцию терминов обоих концептов). Правило ради этих задач не ослаблено — ADR-021, решение по вопросу 3",
+          "named_in": "runs/rev-pool-v2/exclusions.json → excluded[env=env_types, reason_code=prompt_leak] (30 записей, task_id поимённо)"
+        },
+        {
+          "tasks": -6,
+          "reason_code": "prompt_leak",
+          "why": "`E5_relate`, keyword-ветка: порог терминов определений обоих концептов набирается из самого промпта — дословный пересказ промпта проходит замороженный верификатор, то есть награда достаётся без обучения",
+          "named_in": "runs/rev-pool-v2/exclusions.json → excluded[env=E5_relate, reason_code=prompt_leak] (6 записей, task_id поимённо)"
+        },
+        {
+          "tasks": 1,
+          "reason_code": "duplicate_gold",
+          "why": "Одна из шести задач E5 (`E5_online_lp_llm_routing_to_bid_price_control_llm`) была снята ещё планом как дубль по gold: фильтр снимает её второй раз, но пул теряет на задачу меньше, чем снимает фильтр (`duplicate_gold` 16 → 15)",
+          "named_in": "runs/rev-pool-v2/exclusions.json → counts.by_reason.duplicate_gold"
+        }
+      ],
+      "arithmetic": "9197 − 30 (цепочки, консервативно) − 6 (E5, keyword-лейк) + 1 (уже снята планом как дубль gold) = 9162",
+      "by_task_type_delta": {
+        "find_concept": 0,
+        "explain_relation": -5,
+        "chain_reasoning": -22,
+        "formula_chain": -8
+      },
+      "reconciliation_of_sources": "env_types 700 = 670 в пуле + 30 снятых; E5_relate 216 = 194 + 6 (лейк) + 16 (дубли: gold 15, prompt 1); неучтённых задач — 0",
+      "verified_by": {
+        "independent_recount": "evidence/pool-v2-reconcile-verification.json — пересчёт файла и источников в этой дельте: объём, сквозной sha256 файла (не первых 1 МБ), раскладка по типам и средам, разбор 35 поимённо",
+        "reconciliation": "evidence/s3p-pool-v2-card.json"
+      }
+    }
   },
   "report": "runs/rev-pool-v2/exclusions.json"
 }

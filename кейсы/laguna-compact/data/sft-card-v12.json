@@ -1,0 +1,101 @@
+{
+  "card": "sft-dataset-v12",
+  "artifact": "обучающий набор SFT-стадии фазы 1 (Qwen2.5-0.5B) — messages-чат с ризонингом и вызовами инструмента",
+  "date": "2026-09-17",
+  "constraint": "AD-2 (прогон без манифеста/карточки не является доказательством) + AD-7 (состав данных — версионируемый конфиг, а не правка на ходу); закрывает дыру G3 плана SFT-стадии",
+  "decision": {
+    "adr": "ADR-033 п.1",
+    "what": "набор НЕ дедуплицируется на этой стадии",
+    "why": "сопоставимость с историческим SFT: сравнение стадий имеет смысл только на одном составе данных. Дедупликация — отдельное решение ПОСЛЕ SFT (с пересборкой карточки и повторной проверкой пересечений по ADR-025), чтобы не смешивать «смену данных» и «смену результата»",
+    "consequence": "«3 эпохи» означают ≈7.09 фактических проходов по уникальному примеру; без этого числа любые выводы вида «SFT дал +X» некорректны"
+  },
+  "path": {
+    "ssot": "/home/user/gb10-shared/datasets/sft_train_v12.jsonl",
+    "in_case": "datasets/sft_train_v12.jsonl — симлинк (AD-4)",
+    "builder": "build_sft_v12.sh — чистая конкатенация: cat sft_train_v10.1.jsonl sft_train_v11.jsonl (без дедупликации и без фильтра пересечения с RL — названо в ADR-003)",
+    "tokens_cache": "datasets/tok/sft_train_v12_8192_qwen25.npz"
+  },
+  "size": {
+    "bytes": 486352008,
+    "examples": 44949,
+    "broken_json": 0,
+    "sha256_full": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+    "sha256_head_1mib": "d05ebca9db58b81711c076192d17a6dac359ece4852c4a670f1ea73263e771ad",
+    "hash_note": "полный хеш — тот, которым доказывается тождество файла. Хеш «первые 1 МиБ» приведён СПРАВОЧНО: штатный пайплайн пишет именно его (дефект N5/G9), и по нему тождество НЕ доказывается (числа расходятся). Манифест прогона S3aa несёт полный хеш"
+  },
+  "composition": {
+    "provenance": "SFT-STAGE-PLAN.md §1.2 (пересказ карточки сборки; исполнителем S3aa не перепроверялось по исходникам — перепроверены только суммарные признаки формата и дубликаты)",
+    "by_source": {
+      "teacher_oxalpha_reasoning": 22872,
+      "teacher_oxalpha_multiturn": 7413,
+      "oxalpha_reasoning": 3372,
+      "v4_qwen25-15b_s*": 4818,
+      "teacher_native_xhigh": 1738,
+      "oxalpha_multiturn": 1436,
+      "v10_base": 1221,
+      "teacher_multiturn_xhigh": 858,
+      "source_absent_meta_field": 1221
+    }
+  },
+  "format_shares": {
+    "measured_by_s3aa": {
+      "tool_call_anywhere": 0.9457,
+      "method": "подстрочный поиск '<tool_call>' по строкам файла (полный проход, 2026-09-17)"
+    },
+    "from_plan": {
+      "think_present": 1.0,
+      "tool_call_last_assistant_message": 0.9137,
+      "tool_response": 0.9457,
+      "multiturn_ge2_user": 0.0319,
+      "n_tool_calls_distribution": {"0": 1221, "1": 29573, "2": 12934, "field_absent": 1221}
+    }
+  },
+  "duplicates": {
+    "measured_by_s3aa": true,
+    "method": "полный проход по файлу: для каждой строки берутся messages, нормализуются в [[role, content]], сериализуются с sort_keys и хешируются sha256; считается мощность множества хешей",
+    "examples": 44949,
+    "unique_normalized": 19011,
+    "duplicates_share_pct": 57.71,
+    "extra_rows": 25938,
+    "effective_passes": 7.093,
+    "effective_passes_arithmetic": "3 эпохи × 44949 примеров / 19011 уникальных = 7.093",
+    "provenance": "числа совпали с записанными в ADR-033 п.1 и SFT-STAGE-PLAN §1.2 (57.71 % / 7.09) — пересчёт подтвердил, а не повторил",
+    "why_it_matters": "val-loss и «эпохи» теряют прямой смысл; переобучение на повторах остаётся и может объяснять часть эффекта стадии — принятая цена ради сопоставимости (ADR-033)"
+  },
+  "tokens_cache": {
+    "path": "datasets/tok/sft_train_v12_8192_qwen25.npz",
+    "bytes": 2945778272,
+    "shape": [44949, 8192],
+    "dtype": "int32 + attention_mask",
+    "sha256": "aa06a26dc7917d76dc4be0f6edeefa6562bffa7c937cf00bb90bf3e598a66388",
+    "sha256_checked_by_s3aa": true,
+    "sibling_branches": ["sft_train_v12_8192_qwen3.npz", "sft_train_v12_8192_qwen35.npz"],
+    "known_defect_N2": "хвост 500 сэмплов кэша объявлен «held-out val» (лог `SFT val_loss (held-out 500)`), но DataLoader(shuffle=True) итерирует весь датасет, включая хвост → val-loss не является сигналом обобщения. Дефект названный, не скрытый"
+  },
+  "overlaps": {
+    "provenance": "SFT-STAGE-PLAN §1.4 (стражи кейса, 2026-09-16); исполнителем S3aa не перезапускались",
+    "eval_to_sft": {"tool": "tools/check_eval_leakage.py", "result": "0 нарушений (192 задачи / 44949 примеров)"},
+    "sft_to_pool_v2": {"tool": "tools/check_sft_rl_overlap.py", "result": "0 совпавших промптов (9162 задачи)"},
+    "sft_to_historical_oxalpha": {"tool": "tools/check_sft_rl_overlap.py", "result": "39 совпадений из 28000 — исторический факт ADR-003/ADR-007 п.2, не ревизионный пул"}
+  },
+  "license": {
+    "declared": "наследуется от источников (учителя контура: teacher_*, self-distill v4_*)",
+    "license_status": "internal_only",
+    "license_unresolved": true,
+    "license_note": "отдельного решения о лицензии SFT-набора нет (дыра G12 плана). Внутреннее использование разрешено; публикация производных — по ADR-005/AD-8 (решение владельца + новый ADR)",
+    "adr": "ADR-005, AD-8"
+  },
+  "incident_check": {
+    "adr4_symlink_hygiene": "tools/check_symlink_hygiene.sh — зелёный; набор в git-индексе отсутствует (инцидент f7deadc не воспроизводится)",
+    "masking_bug_20260817": "закрыт и под стражем: pretokenize.py:33 вызывает add_special_tokens; C-008 на кэше v12 — ok: true (6 токенов формата v12 — одиночные id с ненулевыми вхождениями)"
+  },
+  "consumers": {
+    "stage": "SFT (S3aa), прогон sft-20260916-2246, вход — CPT-чекпойнт full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+    "config": "67423 шага = 3 × 44949 / batch 2; max_len 8192; сид 42",
+    "manifest": "/home/user/gb10-shared/sft-20260916-2246/run_manifest.json (полный sha256 набора — вне дефекта N5)"
+  },
+  "open_questions": [
+    "Состав по источникам (§composition) взят из плана и не перепроверялся по исходным v10.1/v11 — перепроверка, если понадобится вывод о вкладе конкретного учителя",
+    "Дедупликация набора — отдельное решение после SFT (ADR-033 п.1); тогда эту карточку придётся пересобрать, а пересечения перепроверить заново"
+  ]
+}

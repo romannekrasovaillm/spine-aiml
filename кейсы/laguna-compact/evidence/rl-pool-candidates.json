@@ -1,0 +1,192 @@
+{
+  "candidates": [
+    {
+      "by_task_type": {
+        "compare_concepts": 5000,
+        "explain_relation": 19992,
+        "multi_hop_search": 3000
+      },
+      "bytes": 12056255,
+      "card": null,
+      "exists": true,
+      "file": "datasets/rl_tasks_revpool_v1.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "совпадений промптов нет",
+      "matched_by_task_type": {},
+      "matched_tasks": 0,
+      "name": "v1 (пул ревизии, закреплён раннерами)",
+      "origin": "пул ревизии ADR-007; имя версии закреплено в раннерах",
+      "overlap_share": 0.0,
+      "pinned_in": [
+        "tools/run_pilot.py:98",
+        "tools/run_pilot.py:99",
+        "tools/run_rl_probe.py:17",
+        "tools/run_rl_probe.py:116",
+        "tools/run_rl_probe.py:117",
+        "tools/run_rl_probe.py:118",
+        "tools/pilot_chain.sh:435",
+        "tools/pilot_chain.sh:669"
+      ],
+      "recorded_overlap": null,
+      "sha256": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_revpool_v1.jsonl",
+      "tasks": 27992
+    },
+    {
+      "by_task_type": {
+        "chain_reasoning": 278,
+        "explain_relation": 394,
+        "find_concept": 8298,
+        "formula_chain": 192
+      },
+      "bytes": 7443712,
+      "card": "evidence/s3p-pool-v2-card.json",
+      "exists": true,
+      "file": "datasets/rl_tasks_revpool_v2.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "совпадений промптов нет",
+      "matched_by_task_type": {},
+      "matched_tasks": 0,
+      "name": "v2 (пул ревизии, лейк снят)",
+      "origin": "пул ревизии v2 (ADR-021); лейк-фильтр S3f-fix; канонический носитель — файл (ADR-049 п.7), карточка приведена к факту дельтой pool-v2-reconcile",
+      "overlap_share": 0.0,
+      "pinned_in": [],
+      "recorded_overlap": null,
+      "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_revpool_v2.jsonl",
+      "tasks": 9162
+    },
+    {
+      "by_task_type": {
+        "chain_reasoning": 1300,
+        "compare_concepts": 1200,
+        "explain_relation": 9000,
+        "formula_chain": 200,
+        "multi_hop_search": 2439,
+        "ood_pair": 200
+      },
+      "bytes": 6285789,
+      "card": "data/ox-merged-card.json",
+      "exists": true,
+      "file": "datasets/rl_tasks_ox_merged.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "пересечение с обучающим набором найдено — фильтр/решение архитектора (AD-7: состав заморожен)",
+      "matched_by_task_type": {
+        "chain_reasoning": 755,
+        "compare_concepts": 179,
+        "explain_relation": 6447,
+        "multi_hop_search": 1200
+      },
+      "matched_tasks": 8581,
+      "name": "ox-merged (RL-задачи + учитель, суффикс merged)",
+      "origin": "НЕИЗВЕСТНО: сборщик merged-файлов не найден ни в репозитории, ни на gb10-shared (карточка ox-merged-datasets, provenance.resolution — разложение по источникам, builder — «неизвестен»)",
+      "overlap_share": 0.5984,
+      "pinned_in": [],
+      "recorded_overlap": {
+        "evidence": "evidence/ox-datasets-audit.json",
+        "rl_matched_tasks": 8581,
+        "rl_tasks": 14339,
+        "sft": "datasets/sft_train_v13_fixed.jsonl",
+        "tolerance": {
+          "allowed_sft_matched_prompts": 0
+        }
+      },
+      "sha256": "7a4b4dd519c9919f2386b18689f870cff02d445e995c3e9eb3a1ab80fdcf5aef",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_ox_merged.jsonl",
+      "tasks": 14339
+    },
+    {
+      "by_task_type": {
+        "compare_concepts": 1200,
+        "explain_relation": 2000,
+        "multi_hop_search": 439
+      },
+      "bytes": 1787905,
+      "card": "data/ox-merged-card.json",
+      "exists": true,
+      "file": "datasets/rl_tasks_ox.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "пересечение с обучающим набором найдено — фильтр/решение архитектора (AD-7: состав заморожен)",
+      "matched_by_task_type": {
+        "compare_concepts": 179,
+        "explain_relation": 21,
+        "multi_hop_search": 83
+      },
+      "matched_tasks": 283,
+      "name": "ox (исходный набор ox-серии)",
+      "origin": "ox-серия (учитель stealth/ox-alpha, генерация 24–26.08.2026), источник merged-файла",
+      "overlap_share": 0.0778,
+      "pinned_in": [],
+      "recorded_overlap": null,
+      "sha256": "a3abdedf75dad39325c0b0f693128842412df2202fe4c26688af3f77176aa36c",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_ox.jsonl",
+      "tasks": 3639
+    },
+    {
+      "by_task_type": {
+        "compare_concepts": 5000,
+        "explain_relation": 20000,
+        "multi_hop_search": 3000
+      },
+      "bytes": 12059143,
+      "card": null,
+      "exists": true,
+      "file": "datasets/rl_tasks_oxalpha.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "пересечение с обучающим набором найдено — фильтр/решение архитектора (AD-7: состав заморожен)",
+      "matched_by_task_type": {
+        "explain_relation": 8
+      },
+      "matched_tasks": 8,
+      "name": "oxalpha (исторический пул разведки)",
+      "origin": "исторический пул контура (до ревизии); на нём шёл прогон v12_qwen25-05b_s42 (28 000 задач)",
+      "overlap_share": 0.0003,
+      "pinned_in": [],
+      "recorded_overlap": null,
+      "sha256": "2512e81e463c3c564aaf03b4c7cbefb6f318350a55bffc1e629d149638861c2d",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_oxalpha.jsonl",
+      "tasks": 28000
+    },
+    {
+      "by_task_type": {
+        "chain_reasoning": 300,
+        "formula_chain": 200,
+        "ood_pair": 200
+      },
+      "bytes": 498446,
+      "card": "data/ox-merged-card.json",
+      "exists": true,
+      "file": "datasets/rl_tasks_env_types.jsonl",
+      "is_symlinked_from_case": true,
+      "leak_status": "совпадений промптов нет",
+      "matched_by_task_type": {},
+      "matched_tasks": 0,
+      "name": "env_types (среды E-серии, 700 задач)",
+      "origin": "задачи с полями max_steps/n_min_steps (среды E-серии); источник merged-файла",
+      "overlap_share": 0.0,
+      "pinned_in": [],
+      "recorded_overlap": null,
+      "sha256": "103f1eee7ca8af8e11aab648848cf67e273e6692113c9306612912c3c09199da",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_env_types.jsonl",
+      "tasks": 700
+    }
+  ],
+  "divergences": [],
+  "limits": [
+    "пересечение считается по дословному совпадению промпта; смысловое совпадение (перефраз) здесь не измеряется — у него другой прибор",
+    "происхождение merged-файлов названо «неизвестно»: сборщик не найден; это факт, а не пробел прибора",
+    "какой пул идёт в RL — решение владельца (AD-2/AD-8); прибор его не принимает и не рекомендует"
+  ],
+  "method": {
+    "hash": "полный sha256 файла (не head-хеш: ADR-011 п.4)",
+    "overlap": "нормализованный prompt RL-задачи ∈ множество нормализованных пользовательских текстов SFT (role=user); нормализация — norm() из tools/check_eval_leakage.py (lower + схлопнутые пробелы), та же, что у гейтов C-009/C-017"
+  },
+  "purpose": "факты о кандидатах в пул RL — вход в вопрос владельцу (docs/specs/RL-POOL-QUESTION.md); прибор ничего не выбирает и не фильтрует (AD-7)",
+  "sft_baseline": {
+    "distinct_user_texts": 17405,
+    "examples": 44105,
+    "path": "datasets/sft_train_v13_fixed.jsonl",
+    "sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01"
+  },
+  "tool": "tools/audit_rl_pool_candidates.py"
+}

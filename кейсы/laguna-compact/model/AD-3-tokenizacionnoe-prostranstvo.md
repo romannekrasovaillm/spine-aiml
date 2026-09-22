@@ -3,7 +3,7 @@ id: AD-3
 type: ad
 title: "Токенизационное пространство — единый контракт"
 status: "PROPOSED"
-affects: [C-008]
+affects: []
 verified_by: [C-008]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

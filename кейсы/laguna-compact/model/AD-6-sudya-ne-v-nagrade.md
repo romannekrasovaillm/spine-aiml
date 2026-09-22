@@ -3,7 +3,7 @@ id: AD-6
 type: ad
 title: "Судья не участвует в награде"
 status: "PROPOSED"
-affects: [C-013]
+affects: []
 verified_by: [C-013]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

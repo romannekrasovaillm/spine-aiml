@@ -1,0 +1,1115 @@
+{
+  "schema": "s3n-ppl-curve/1",
+  "stage": "S3n",
+  "date": "2026-09-16T13:55:57.684463+00:00",
+  "question": "Обвал общего языка у калибровочных рук — ступенька в начале обучения или постепенная деградация? Форма различает версии: данные/токенизация против LR/длительности.",
+  "instrument": {
+    "measure": "tools/ppl_probe.py:measure (методика _ppl_eval S3h)",
+    "runner": "tools/calib_ppl_probe.py (прибор S3m, не переписан)",
+    "load_checkpoint": "laguna_pipeline_v8.py:_load_ckpt_with_resize из копии пайплайна той руки, чей чекпойнт меряется",
+    "base_agreement_check": "прибор отказывает, если состояние base не воспроизвело числа S3h — «тот же прибор» проверено",
+    "max_len": 1024,
+    "batch": 4,
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "base_weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987"
+  },
+  "calib_root": "/home/user/gb10-shared/calib",
+  "baseline_ppl": 11.931923888434497,
+  "ceiling": 23.863847776868994,
+  "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+  "sets": {
+    "v1_general": {
+      "path": "datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "docs_kept": 24,
+      "base_ppl": 11.931923888434497,
+      "tokens": 3682,
+      "role": "ppl_general (та же методика, что дала базу)"
+    },
+    "v1_domain": {
+      "path": "datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "docs_kept": 5,
+      "base_ppl": 9.29019390347789,
+      "tokens": 2604,
+      "role": "ppl_domain_v1 (домен v1, пара к базе 9.29)"
+    },
+    "v2_general": {
+      "path": "datasets/general_eval_v2.txt",
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "docs_kept": 200,
+      "base_ppl": 10.76515409368884,
+      "tokens": 39747,
+      "role": "ppl_general_v2 (прибор ADR-018)"
+    },
+    "v2_domain": {
+      "path": "datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "docs_kept": 200,
+      "base_ppl": 11.134115855539092,
+      "tokens": 125322,
+      "role": "ppl_domain (доменный семпл корпуса v10.1, ADR-018)"
+    }
+  },
+  "matrix": [
+    {
+      "arm": "25-0.35",
+      "step": 0,
+      "source": "base (общая точка старта; не чекпойнт руки)",
+      "state": "base",
+      "ppl_general": 11.931923888434497,
+      "ratio_vs_base": 1.0,
+      "above_ceiling": false,
+      "ppl_domain": 11.134115855539092,
+      "ratio_domain_vs_base": 1.0,
+      "ppl_general_v2": 10.76515409368884,
+      "ppl_domain_v1": 9.29019390347789,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "train": {
+        "lr": 0.0,
+        "lr_step": 0,
+        "loss_mean_pm100": 2.0441438573421817,
+        "loss_n": 101
+      }
+    },
+    {
+      "arm": "25-0.35",
+      "step": 500,
+      "source": "чекпойнт руки",
+      "state": "c500",
+      "ppl_general": 60.149518400975566,
+      "ratio_vs_base": 5.041057834711629,
+      "above_ceiling": true,
+      "ppl_domain": 5.823445076176857,
+      "ratio_domain_vs_base": 0.523027167287806,
+      "ppl_general_v2": 24.35800242273966,
+      "ppl_domain_v1": 6.614113302398967,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 87.2220923830115,
+        "mean": 147.66179029048118,
+        "min": 17.07254643775817,
+        "max": 682.3974633949531,
+        "stdev": 157.8972059809295,
+        "max_over_median": 7.823676831764078
+      },
+      "train": {
+        "lr": 0.000175,
+        "lr_step": 500,
+        "loss_mean_pm100": 2.100445491164478,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.35",
+      "step": 1000,
+      "source": "чекпойнт руки",
+      "state": "c1000",
+      "ppl_general": 74.41984586314344,
+      "ratio_vs_base": 6.237036588481586,
+      "above_ceiling": true,
+      "ppl_domain": 5.492549624291929,
+      "ratio_domain_vs_base": 0.4933081077613765,
+      "ppl_general_v2": 21.8763216477351,
+      "ppl_domain_v1": 6.324580377454743,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 167.30417741953983,
+        "mean": 314.41381960620737,
+        "min": 16.05166082544157,
+        "max": 1333.1954263462083,
+        "stdev": 355.63430217999957,
+        "max_over_median": 7.968691797832547
+      },
+      "train": {
+        "lr": 0.000175,
+        "lr_step": 1000,
+        "loss_mean_pm100": 1.9940854340643432,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.35",
+      "step": 1500,
+      "source": "чекпойнт руки",
+      "state": "c1500",
+      "ppl_general": 68.32688050319372,
+      "ratio_vs_base": 5.726392586984429,
+      "above_ceiling": true,
+      "ppl_domain": 4.82933083561908,
+      "ratio_domain_vs_base": 0.4337417445873392,
+      "ppl_general_v2": 16.756803550881717,
+      "ppl_domain_v1": 5.543005356175126,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 185.20662440356926,
+        "mean": 416.8774535666859,
+        "min": 10.270196279370142,
+        "max": 1564.308959069324,
+        "stdev": 483.94284226547717,
+        "max_over_median": 8.446290536890627
+      },
+      "train": {
+        "lr": 0.00010992479399127078,
+        "lr_step": 1500,
+        "loss_mean_pm100": 1.8097863446420699,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.35",
+      "step": 2000,
+      "source": "чекпойнт руки",
+      "state": "cfinal",
+      "ppl_general": 56.77497343598341,
+      "ratio_vs_base": 4.758241333655746,
+      "above_ceiling": true,
+      "ppl_domain": 4.3489838785484505,
+      "ratio_domain_vs_base": 0.3905998406137369,
+      "ppl_general_v2": 14.263007827967728,
+      "ppl_domain_v1": 4.850528362483078,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 140.8996380928525,
+        "mean": 336.5710189106322,
+        "min": 8.505475046951227,
+        "max": 1360.9432181239513,
+        "stdev": 398.2545430862992,
+        "max_over_median": 9.658954675434249
+      },
+      "train": {
+        "lr": 1.7500479771949008e-05,
+        "lr_step": 1999,
+        "loss_mean_pm100": 1.6536951637268067,
+        "loss_n": 100
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "step": 0,
+      "source": "base (общая точка старта; не чекпойнт руки)",
+      "state": "base",
+      "ppl_general": 11.931923888434497,
+      "ratio_vs_base": 1.0,
+      "above_ceiling": false,
+      "ppl_domain": 11.134115855539092,
+      "ratio_domain_vs_base": 1.0,
+      "ppl_general_v2": 10.76515409368884,
+      "ppl_domain_v1": 9.29019390347789,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "train": {
+        "lr": 0.0,
+        "lr_step": 0,
+        "loss_mean_pm100": 2.227749053794559,
+        "loss_n": 101
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "step": 500,
+      "source": "внешний замер: runs/calib-ppl-20260916-0820/smoke.json (чекпойнт утрачен)",
+      "state": "c500",
+      "reproducible": false,
+      "ppl_general": 204.44178711987345,
+      "ratio_vs_base": 17.134017031238105,
+      "above_ceiling": true,
+      "ppl_domain": null,
+      "ratio_domain_vs_base": null,
+      "ppl_general_v2": null,
+      "ppl_domain_v1": 10.140387483567405,
+      "tokens_general": null,
+      "general_doc_ppl": null,
+      "note": "чекпойнт утрачен (D2). Прибор тот же: в том же отчёте состояние base воспроизвело числа S3h с расхождением 0.00e+00. Наборы v2 в том прогоне не снимались — поля пусты, а не «равны нулю»",
+      "train": {
+        "lr": 0.00035,
+        "lr_step": 500,
+        "loss_mean_pm100": 2.5214294669640003,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "step": 1000,
+      "source": "чекпойнт руки",
+      "state": "c1000",
+      "ppl_general": 199.83191055473634,
+      "ratio_vs_base": 16.747668894236877,
+      "above_ceiling": true,
+      "ppl_domain": 7.287333325736772,
+      "ratio_domain_vs_base": 0.6545048947116362,
+      "ppl_general_v2": 33.171930201827465,
+      "ppl_domain_v1": 8.545719268655036,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 721.0540209809243,
+        "mean": 2023.4712821286237,
+        "min": 24.669742767494597,
+        "max": 11123.011053361604,
+        "stdev": 2656.7727699343636,
+        "max_over_median": 15.426043999074887
+      },
+      "train": {
+        "lr": 0.00035,
+        "lr_step": 1000,
+        "loss_mean_pm100": 2.354166983371943,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "step": 1500,
+      "source": "чекпойнт руки",
+      "state": "c1500",
+      "ppl_general": 149.38257079310023,
+      "ratio_vs_base": 12.519571209961821,
+      "above_ceiling": true,
+      "ppl_domain": 6.100764838865706,
+      "ratio_domain_vs_base": 0.5479343773695913,
+      "ppl_general_v2": 24.97643732329715,
+      "ppl_domain_v1": 7.3685538855986525,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 582.6782116317485,
+        "mean": 1490.0766913725035,
+        "min": 15.3384730476513,
+        "max": 6323.234119262809,
+        "stdev": 1770.333286893375,
+        "max_over_median": 10.85201744811265
+      },
+      "train": {
+        "lr": 0.00021984958798254155,
+        "lr_step": 1500,
+        "loss_mean_pm100": 2.090070715591089,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "step": 2000,
+      "source": "чекпойнт руки",
+      "state": "cfinal",
+      "ppl_general": 113.07658930044082,
+      "ratio_vs_base": 9.476811146109045,
+      "above_ceiling": true,
+      "ppl_domain": 5.142101861551874,
+      "ratio_domain_vs_base": 0.46183297607719237,
+      "ppl_general_v2": 19.286408879054786,
+      "ppl_domain_v1": 5.899026932489226,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 415.61055284710017,
+        "mean": 1060.0338941190412,
+        "min": 10.990157409017387,
+        "max": 4327.09886297905,
+        "stdev": 1242.012093422764,
+        "max_over_median": 10.41142683537912
+      },
+      "train": {
+        "lr": 3.5000959543898016e-05,
+        "lr_step": 1999,
+        "loss_mean_pm100": 1.850966581106186,
+        "loss_n": 100
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "step": 0,
+      "source": "base (общая точка старта; не чекпойнт руки)",
+      "state": "base",
+      "ppl_general": 11.931923888434497,
+      "ratio_vs_base": 1.0,
+      "above_ceiling": false,
+      "ppl_domain": 11.134115855539092,
+      "ratio_domain_vs_base": 1.0,
+      "ppl_general_v2": 10.76515409368884,
+      "ppl_domain_v1": 9.29019390347789,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "train": {
+        "lr": 0.0,
+        "lr_step": 0,
+        "loss_mean_pm100": 2.215001114524237,
+        "loss_n": 101
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "step": 500,
+      "source": "чекпойнт руки",
+      "state": "c500",
+      "ppl_general": 52.624055255187415,
+      "ratio_vs_base": 4.410357939526871,
+      "above_ceiling": true,
+      "ppl_domain": 5.985416180159118,
+      "ratio_domain_vs_base": 0.5375744475643698,
+      "ppl_general_v2": 19.07873625861408,
+      "ppl_domain_v1": 6.387175396164822,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 65.3962572723336,
+        "mean": 141.6274582034472,
+        "min": 15.360109018497312,
+        "max": 529.3292973632906,
+        "stdev": 144.7338114857363,
+        "max_over_median": 8.09418335913281
+      },
+      "train": {
+        "lr": 0.000175,
+        "lr_step": 500,
+        "loss_mean_pm100": 2.3615537057468545,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "step": 1000,
+      "source": "чекпойнт руки",
+      "state": "c1000",
+      "ppl_general": 81.21172908242151,
+      "ratio_vs_base": 6.806256044018123,
+      "above_ceiling": true,
+      "ppl_domain": 6.0262463068539915,
+      "ratio_domain_vs_base": 0.5412415664649299,
+      "ppl_general_v2": 15.558514491135757,
+      "ppl_domain_v1": 7.132615693257288,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 221.6182646300701,
+        "mean": 611.2044873712426,
+        "min": 11.061753786166536,
+        "max": 2451.801273488344,
+        "stdev": 746.4229773449123,
+        "max_over_median": 11.063173324549503
+      },
+      "train": {
+        "lr": 0.000175,
+        "lr_step": 1000,
+        "loss_mean_pm100": 2.1785788506417725,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "step": 1500,
+      "source": "чекпойнт руки",
+      "state": "c1500",
+      "ppl_general": 71.59241670597578,
+      "ratio_vs_base": 6.000073196525301,
+      "above_ceiling": true,
+      "ppl_domain": 5.008099778734944,
+      "ratio_domain_vs_base": 0.4497977067701764,
+      "ppl_general_v2": 12.741231925652173,
+      "ppl_domain_v1": 5.622942155653829,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 287.93218945934404,
+        "mean": 580.6966524733131,
+        "min": 9.872158018789806,
+        "max": 2610.0324153706974,
+        "stdev": 689.5243603432612,
+        "max_over_median": 9.064746877629787
+      },
+      "train": {
+        "lr": 0.00010992479399127078,
+        "lr_step": 1500,
+        "loss_mean_pm100": 1.954532211099691,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "step": 2000,
+      "source": "чекпойнт руки",
+      "state": "cfinal",
+      "ppl_general": 55.27144883890439,
+      "ratio_vs_base": 4.632232769476387,
+      "above_ceiling": true,
+      "ppl_domain": 4.479908334927121,
+      "ratio_domain_vs_base": 0.4023586958364924,
+      "ppl_general_v2": 10.654009680399357,
+      "ppl_domain_v1": 4.967359547674651,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 190.01754711793282,
+        "mean": 409.6268232726083,
+        "min": 7.814863514082884,
+        "max": 1187.3955394677496,
+        "stdev": 448.19465641410613,
+        "max_over_median": 6.248873103970774
+      },
+      "train": {
+        "lr": 1.7500479771949008e-05,
+        "lr_step": 1999,
+        "loss_mean_pm100": 1.8476316690444947,
+        "loss_n": 100
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "step": 0,
+      "source": "base (общая точка старта; не чекпойнт руки)",
+      "state": "base",
+      "ppl_general": 11.931923888434497,
+      "ratio_vs_base": 1.0,
+      "above_ceiling": false,
+      "ppl_domain": 11.134115855539092,
+      "ratio_domain_vs_base": 1.0,
+      "ppl_general_v2": 10.76515409368884,
+      "ppl_domain_v1": 9.29019390347789,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "train": {
+        "lr": 0.0,
+        "lr_step": 0,
+        "loss_mean_pm100": 2.4514782652996554,
+        "loss_n": 101
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "step": 500,
+      "source": "чекпойнт руки",
+      "state": "c500",
+      "ppl_general": 179.81641321368735,
+      "ratio_vs_base": 15.070194454389853,
+      "above_ceiling": true,
+      "ppl_domain": 8.760060593012984,
+      "ratio_domain_vs_base": 0.7867764900842986,
+      "ppl_general_v2": 29.3548866570761,
+      "ppl_domain_v1": 10.261900446414554,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 537.8962506771642,
+        "mean": 1713.4074747184206,
+        "min": 22.402567141774743,
+        "max": 8226.485240976961,
+        "stdev": 2150.1930649524147,
+        "max_over_median": 15.293814059162038
+      },
+      "train": {
+        "lr": 0.00035,
+        "lr_step": 500,
+        "loss_mean_pm100": 2.7597398141130287,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "step": 1000,
+      "source": "чекпойнт руки",
+      "state": "c1000",
+      "ppl_general": 165.13198026646702,
+      "ratio_vs_base": 13.839510024575997,
+      "above_ceiling": true,
+      "ppl_domain": 8.592595309393399,
+      "ratio_domain_vs_base": 0.771735755301907,
+      "ppl_general_v2": 22.684418977758863,
+      "ppl_domain_v1": 11.006766880978452,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 799.4156720935259,
+        "mean": 1979.2816557746562,
+        "min": 15.697505510123685,
+        "max": 8635.659781749899,
+        "stdev": 2357.2052012348568,
+        "max_over_median": 10.802464954351793
+      },
+      "train": {
+        "lr": 0.00035,
+        "lr_step": 1000,
+        "loss_mean_pm100": 2.5023256249688752,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "step": 1500,
+      "source": "чекпойнт руки",
+      "state": "c1500",
+      "ppl_general": 131.13956917073952,
+      "ratio_vs_base": 10.990647476208919,
+      "above_ceiling": true,
+      "ppl_domain": 6.439866355215141,
+      "ratio_domain_vs_base": 0.5783904567520181,
+      "ppl_general_v2": 17.274415018009318,
+      "ppl_domain_v1": 7.559093594633222,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 706.6175145775022,
+        "mean": 1561.2658608864883,
+        "min": 12.950158913115413,
+        "max": 7297.997136360104,
+        "stdev": 1915.7296690176695,
+        "max_over_median": 10.32807280572955
+      },
+      "train": {
+        "lr": 0.00021984958798254155,
+        "lr_step": 1500,
+        "loss_mean_pm100": 2.216939316460149,
+        "loss_n": 201
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "step": 2000,
+      "source": "чекпойнт руки",
+      "state": "cfinal",
+      "ppl_general": 102.08283892292631,
+      "ratio_vs_base": 8.555438324734393,
+      "above_ceiling": true,
+      "ppl_domain": 5.405920610323565,
+      "ratio_domain_vs_base": 0.48552760546623763,
+      "ppl_general_v2": 13.312923452307714,
+      "ppl_domain_v1": 6.204108412656972,
+      "tokens_general": 3682,
+      "general_doc_ppl": {
+        "n": 24,
+        "median": 591.356809231029,
+        "mean": 1283.7723890544385,
+        "min": 9.806465429752993,
+        "max": 5229.218983214124,
+        "stdev": 1509.7664968097392,
+        "max_over_median": 8.842747562193356
+      },
+      "train": {
+        "lr": 3.5000959543898016e-05,
+        "lr_step": 1999,
+        "loss_mean_pm100": 2.0388976347446444,
+        "loss_n": 100
+      }
+    }
+  ],
+  "curves": {
+    "25-0.35": {
+      "kind": "step",
+      "shape": "ступенька: обвал завершён на интервале (0, 500] — норма на старте, обвал уже в первой сохранённой точке, разброс ×1.31",
+      "n_points": 4,
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "ppl_min": 56.77497343598341,
+      "ppl_max": 74.41984586314344,
+      "span_ratio": 1.3107860974528767,
+      "monotone_down": false,
+      "monotone_up": false,
+      "all_above_ceiling": true,
+      "first_crossing_step": 500,
+      "crossed_at_first_measured": true,
+      "anchor": {
+        "step": 0,
+        "ppl": 11.931923888434497,
+        "above_ceiling": false
+      },
+      "transition_bracket": [
+        0,
+        500
+      ]
+    },
+    "25-0.7": {
+      "kind": "step",
+      "shape": "ступенька: обвал завершён на интервале (0, 500] — норма на старте, обвал уже в первой сохранённой точке, разброс ×1.81",
+      "n_points": 4,
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "ppl_min": 113.07658930044082,
+      "ppl_max": 204.44178711987345,
+      "span_ratio": 1.8079939303499708,
+      "monotone_down": true,
+      "monotone_up": false,
+      "all_above_ceiling": true,
+      "first_crossing_step": 500,
+      "crossed_at_first_measured": true,
+      "anchor": {
+        "step": 0,
+        "ppl": 11.931923888434497,
+        "above_ceiling": false
+      },
+      "transition_bracket": [
+        0,
+        500
+      ]
+    },
+    "50-0.35": {
+      "kind": "step",
+      "shape": "ступенька: обвал завершён на интервале (0, 500] — норма на старте, обвал уже в первой сохранённой точке, разброс ×1.54",
+      "n_points": 4,
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "ppl_min": 52.624055255187415,
+      "ppl_max": 81.21172908242151,
+      "span_ratio": 1.5432434594522448,
+      "monotone_down": false,
+      "monotone_up": false,
+      "all_above_ceiling": true,
+      "first_crossing_step": 500,
+      "crossed_at_first_measured": true,
+      "anchor": {
+        "step": 0,
+        "ppl": 11.931923888434497,
+        "above_ceiling": false
+      },
+      "transition_bracket": [
+        0,
+        500
+      ]
+    },
+    "50-0.7": {
+      "kind": "step",
+      "shape": "ступенька: обвал завершён на интервале (0, 500] — норма на старте, обвал уже в первой сохранённой точке, разброс ×1.76",
+      "n_points": 4,
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "ppl_min": 102.08283892292631,
+      "ppl_max": 179.81641321368735,
+      "span_ratio": 1.7614754361352623,
+      "monotone_down": true,
+      "monotone_up": false,
+      "all_above_ceiling": true,
+      "first_crossing_step": 500,
+      "crossed_at_first_measured": true,
+      "anchor": {
+        "step": 0,
+        "ppl": 11.931923888434497,
+        "above_ceiling": false
+      },
+      "transition_bracket": [
+        0,
+        500
+      ]
+    }
+  },
+  "first_crossing_step": 500,
+  "first_crossing_note": "первый ИЗМЕРЕННЫЙ шаг, где ppl_general > потолка; переход произошёл в интервале (0, 500] — между стартом и первым сохранённым чекпойнтом промежуточных замеров нет",
+  "curve_shape": "ступенька (обвал завершён до первой сохранённой точки)",
+  "instrument_check": {
+    "base_v1": 11.931923888434497,
+    "ceiling_v1": 23.863847776868994,
+    "base_v2": 10.76515409368884,
+    "ceiling_v2": 21.53030818737768,
+    "per_arm": {
+      "25-0.35": {
+        "v1_max": 74.41984586314344,
+        "v1_ratio_max": 6.237036588481586,
+        "v1_crossed": true,
+        "v2_max": 24.35800242273966,
+        "v2_ratio_max": 2.2626710412830726,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.3249237032593462
+      },
+      "25-0.7": {
+        "v1_max": 204.44178711987345,
+        "v1_ratio_max": 17.134017031238105,
+        "v1_crossed": true,
+        "v2_max": 33.171930201827465,
+        "v2_ratio_max": 3.0814171272545723,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.7915590163601653
+      },
+      "50-0.35": {
+        "v1_max": 81.21172908242151,
+        "v1_ratio_max": 6.806256044018123,
+        "v1_crossed": true,
+        "v2_max": 19.07873625861408,
+        "v2_ratio_max": 1.7722678275268855,
+        "v2_crossed": false,
+        "v2_final_ratio": 0.9896755390287777
+      },
+      "50-0.7": {
+        "v1_max": 179.81641321368735,
+        "v1_ratio_max": 15.070194454389853,
+        "v1_crossed": true,
+        "v2_max": 29.3548866570761,
+        "v2_ratio_max": 2.7268431460991014,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.2366681736690164
+      }
+    }
+  },
+  "factor_effects": {
+    "per_arm": {
+      "25-0.35": {
+        "replay": 25,
+        "lr": 0.35,
+        "v1_max": 74.41984586314344,
+        "v1_ratio_max": 6.237036588481586,
+        "v1_crossed": true,
+        "v2_max": 24.35800242273966,
+        "v2_ratio_max": 2.2626710412830726,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.3249237032593462
+      },
+      "25-0.7": {
+        "replay": 25,
+        "lr": 0.7,
+        "v1_max": 204.44178711987345,
+        "v1_ratio_max": 17.134017031238105,
+        "v1_crossed": true,
+        "v2_max": 33.171930201827465,
+        "v2_ratio_max": 3.0814171272545723,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.7915590163601653
+      },
+      "50-0.35": {
+        "replay": 50,
+        "lr": 0.35,
+        "v1_max": 81.21172908242151,
+        "v1_ratio_max": 6.806256044018123,
+        "v1_crossed": true,
+        "v2_max": 19.07873625861408,
+        "v2_ratio_max": 1.7722678275268855,
+        "v2_crossed": false,
+        "v2_final_ratio": 0.9896755390287777
+      },
+      "50-0.7": {
+        "replay": 50,
+        "lr": 0.7,
+        "v1_max": 179.81641321368735,
+        "v1_ratio_max": 15.070194454389853,
+        "v1_crossed": true,
+        "v2_max": 29.3548866570761,
+        "v2_ratio_max": 2.7268431460991014,
+        "v2_crossed": true,
+        "v2_final_ratio": 1.2366681736690164
+      }
+    },
+    "lr_effect_v1": 2.4690246851769144,
+    "replay_effect_v1": 0.9360489627198227,
+    "lr_effect_v2": 1.43949151702185,
+    "replay_effect_v2": 0.841885618600698
+  },
+  "verdict": {
+    "supported": [
+      "потолок пробит НЕ ПОЗЖЕ первой сохранённой точки во всех четырёх руках (первые точки: 25-0.35→500, 25-0.7→500, 50-0.35→500, 50-0.7→500) — значит переход случился в ОДНОМ и том же интервале [0, 500] у всех, а не «на шаге X у одной руки»",
+      "искать причину следует среди того, что одинаково для всех четырёх рук и действует в первые 500 шагов: состав и токенизация корпуса (в том числе строки спецтокенов и их инициализация), режим внимания (flex) и постановка задачи CPT — всё это сетка не варьирует",
+      "глубину обвала задаёт ПИК LR, а не доля replay. Удвоение LR (0.35→0.7) углубляет обвал в ×2.47 (v1) и ×1.44 (v2) — это +147 %/+44 %. Удвоение доли replay (25→50 %) меняет глубину в ×0.94 и ×0.84, то есть на 6 %/16 %, и в сторону уменьшения: 25 % replay обваливает общий язык чуть сильнее, чем 50 %",
+      "обвал не мгновенный: у рук ['25-0.35', '50-0.35'] PPL ещё ПОДНИМАЕТСЯ после первой точки до максимума — то есть переход занимает первые сотни шагов, а не происходит на одном шаге",
+      "доменное качество к финалу ЛУЧШЕ, чем в первой точке, у всех рук (максимальный отыгрыш 3.35 PPL против базы 11.13) — обучение идёт в цель, а не «ломается»: общий язык вытесняется, а не портится случайным шумом",
+      "вердикт «обвал общего языка» держится НЕ одинаково на двух приборах: на v1 (24 документа) потолок 2× пробит всеми четырьмя руками, на v2 (200 документов) — только руками ['25-0.35', '25-0.7', '50-0.7']; у рук ['50-0.35'] общего языка на v2 потолок не пробит вовсе (максимум ×1.77 от базы v2)"
+    ],
+    "excluded": [
+      "«обвал объясняется долей replay (домена в миксе)»: при 25 % и 50 % переход уложился в один и тот же интервал [0, 500] — доля домена меняет глубину, но не факт и не момент перехода",
+      "«длительность обучения / накопление»: обвал случился до первой точки (500-й шаг из 2000), то есть в первые ~25 % прогона — на длительность он не опирается"
+    ],
+    "limits": [
+      "величина LR определяет ГЛУБИНУ, но на приборе v1 не определяет ФАКТ: потолок 2× пробит и половинным LR. На приборе v2, наоборот, половинный LR потолок не пробивает — приборы расходятся, и «виноват ли LR» одним профилем не закрывается",
+      "форма «ступеньки» установлена на приборе v1 (тем, по которому считался потолок ADR-022); на приборе v2 глубина обвала у мягких рук (пик LR 0.35) потолок 2× не пробивает — то есть v1 для этих рук глубину завышает, и вопрос «обвал или нет» на них решается выбором набора, а не моделью",
+      "сетка чекпойнтов — 500 шагов; промежуточных замеров между 0 и первой точкой нет (GEN-EVAL в калибровочных прогонах выключен: CPT_GEN_EVAL_EVERY=0), поэтому «ступенька» локализована интервалом, а не шагом: чем именно вызван переход внутри (0, первой точки], эта сетка не различает"
+    ]
+  },
+  "missing_points": [
+    {
+      "arm": "25-0.7",
+      "step": 500,
+      "reason": "штатная ретенция пайплайна (glob checkpoint_[0-9]*.pt, держим 2 последних по mtime) удалила точку на шаге 1500; факт зафиксирован в pipeline_patch.json руки и в S3m (D2)"
+    }
+  ],
+  "checkpoints": [
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "sha256": "55877ac6a36e5adfc4365e29f4ce7e95f11d116cb1b34b78dd479a8f85d3424a"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "sha256": "d4bedb351e908bdcbc255af0afdb43a7ae039f1d21e85e339cd48b3cec99bbc5"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "sha256": "ed5f520ec844e319616930cfd9bb95afe9248cd10f4ff77f30110b6bb47b3a7e"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "sha256": "1f9f29f19d262e7be0dad0c3663d93138cf3a39a068157a2716f7f39605294ad"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1000.pt",
+      "sha256": "8bc59417e52ed6577a57e8a1abb8e58ff508b5f9e46bd90273a55d8106218fc3"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1500.pt",
+      "sha256": "22f5c3395b4e3465194a8293a51190125292f531ed3634dfb17ef92ba599aa9d"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "sha256": "237fd02afbdd479c83ee40abebdb614288eea25a4dc6cb849accdb054755efd2"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "sha256": "57321f2af44b5bf20025ae6daf34a7eaa036d37abefa7ef2f3d49cd6ca04ee34"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "sha256": "190b1e81c48eb29864e74d964d4eb8a47d8f5c40d510c2f8faf6d0684a407d2d"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "sha256": "82930e02da7b01ec661971f89c436060e1a044cdcd0a36e417aeacd47f75f56b"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "sha256": "c1866d6f77b78d44a80cf64bdd46f335eaac9d5268e51babb2694fb0aa3981fa"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "sha256": "b93b757c93e0c5372c3b4e5bcf1fe503fd22bb4b992ce36a9b4fb5f92e5cd037"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "sha256": "3dad65626a3a6b3441f6853e53673b2f55150e3a85fe65a1932c4affa3c2bd3b"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "sha256": "5c9b519b4d0128aadb42ca24e79c677293876bfa52d06bd454f4b1d735471783"
+    },
+    {
+      "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "sha256": "b1f650d6fdc5716f7601c631bb647ab2f8384fb17c7af0fe3c224c41d5bdbabf"
+    }
+  ],
+  "checks": [
+    {
+      "name": "base_vs_s3h[25-0.35]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "base_restored[25-0.35]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "probe_exit[25-0.35]",
+      "verdict": "ok",
+      "detail": "код возврата прибора: 0"
+    },
+    {
+      "name": "base_vs_s3h[25-0.7]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "base_restored[25-0.7]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "probe_exit[25-0.7]",
+      "verdict": "ok",
+      "detail": "код возврата прибора: 0"
+    },
+    {
+      "name": "base_vs_s3h[50-0.35]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "base_restored[50-0.35]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "probe_exit[50-0.35]",
+      "verdict": "ok",
+      "detail": "код возврата прибора: 0"
+    },
+    {
+      "name": "base_vs_s3h[50-0.7]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "base_restored[50-0.7]",
+      "verdict": "ok",
+      "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_general: 10.765154 против 10.765154 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "probe_exit[50-0.7]",
+      "verdict": "ok",
+      "detail": "код возврата прибора: 0"
+    }
+  ],
+  "per_arm_status": {
+    "25-0.35": {
+      "measured": true,
+      "probe_exit": 0,
+      "points": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "25-0.7": {
+      "measured": true,
+      "probe_exit": 0,
+      "points": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "50-0.35": {
+      "measured": true,
+      "probe_exit": 0,
+      "points": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "50-0.7": {
+      "measured": true,
+      "probe_exit": 0,
+      "points": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    }
+  },
+  "complete": true,
+  "incomplete_arms": [],
+  "artifacts": [
+    {
+      "path": "evidence/s3n-ppl-curve.json",
+      "role": "evidence профиля (этот файл)",
+      "sha256": null,
+      "note": "хеш не приводится: файл пишется этим же вызовом"
+    },
+    {
+      "path": "tools/s3n_ppl_curve.py",
+      "role": "инструмент профиля",
+      "sha256": "1dd7be5d01998b5dbfabb022290317a900dd024dabb4b516e16bddffa85ac428"
+    },
+    {
+      "path": "docs/specs/S3N-PPL-CURVE.md",
+      "role": "разбор",
+      "sha256": "d8553bf77ead44ba853ea091a4a562d61ad8109d9ab3dbfc0830e1d9b87dec7b"
+    },
+    {
+      "path": "runs/s3n-ppl-20260916/25-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "b3bcc03fa9f4d0876cc880b60e72fda1494affa2ebad821be0ec44f9883d71be"
+    },
+    {
+      "path": "runs/s3n-ppl-20260916/25-0.7.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "28c757d421f0eca3b286f67c88da9954887d8fd877f98842e4896f66092d6aee"
+    },
+    {
+      "path": "runs/s3n-ppl-20260916/50-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "91a849f47d6c31dbe1994b3b11f51310c83ff3cd44d3674a0c1ac373d7b9596d"
+    },
+    {
+      "path": "runs/s3n-ppl-20260916/50-0.7.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "517a724cfa1bec8c597cba891eeea473f45f37abb627a973f499cb518ac0baea"
+    }
+  ],
+  "open_questions": [
+    "Порог 2× ADR-022 посчитан от базы v1 (11.93). Приборы расходятся: на v1 потолок пробит всеми четырьмя руками, на v2 — тремя. Пересчитывать порог от базы v2 (21.53) или ввести отдельные пороги под каждый прибор?",
+    "Переход локализован интервалом (0, 500]. Нужна ли перегонка для точки внутри интервала (чекпойнты каждые 50 шагов на одной мягкой руке), или достаточно того, что переход раньше 500?",
+    "Строки спецтокенов: во всех замерах `resized_embeddings: false`, то есть resize в пробе не срабатывал. Проверять ли гипотезу спецтокенов отдельным замером (init_special_tokens_subtoken против нулевой инициализации)?",
+    "Рука 50-0.35 на приборе v2 показала общего языка на уровне базы (×0.99 на финале): считать ли её годной по общему языку и разбирать только домен, или расхождение приборов само по себе — повод не принимать решение до разрешения?"
+  ],
+  "leak_check_ref": "evidence/fleet-eval-purity-matrix.json",
+  "leak_check_refs": [
+    {
+      "set": "v1_general",
+      "report": "evidence/fleet-eval-purity-matrix.json",
+      "verdict": "исторический опорный (strict, снят с решающей роли — ADR-027 п.3)"
+    },
+    {
+      "set": "v1_domain",
+      "report": "evidence/s3w-purity-v1domain.json",
+      "verdict": "overlap (5 док, историческая шкала)"
+    },
+    {
+      "set": "v2_general",
+      "report": "evidence/s3t-purity-v2.json",
+      "verdict": "overlap (снят с употребления — ADR-027 п.5)"
+    },
+    {
+      "set": "v2_domain",
+      "report": "evidence/s3w-purity-v2domain.json",
+      "verdict": "overlap"
+    }
+  ],
+  "leak_check_note": "Поле добавлено 2026-09-20 (правило C-020 / ADR-025 п.2 введено после сборки этого evidence): приведены ссылки на существующие отчёты чистоты наборов. Ни одно измеренное значение, вердикт или дата не изменялись (канонизация ссылки, ADR-046 п.9)."
+}

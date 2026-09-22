@@ -1,0 +1,705 @@
+{
+  "schema": "s3aa-sft-launch/1",
+  "stage": "S3aa",
+  "date": "2026-09-17T02:40:40+00:00",
+  "status": "partial",
+  "status_basis": "частично: SFT-стадия запущена автономно и идёт (факты старта ниже); стадия длинная (67423 шага, порядок 50-60 ч), поэтому дельта закрывается забором результата, а не ожиданием (ADR-023 п.11). Готовы предусловия (хеши сверены числом), монитор переведён на K1/K2/домен в конфиге прогона, сторож точек и agentic-база запущены.",
+  "task": "S3aa — запуск SFT-стадии (следующая ступень лесенки) после пройденного CPT (ADR-032)",
+  "decision": {
+    "adr": [
+      "ADR-033 (дубликаты не дедуплицируем; критерий agentic-доли; монитор на действующие наборы)",
+      "ADR-032 п.3 (переход к SFT)",
+      "ADR-016 (план отката и протокол вмешательства)",
+      "ADR-023 п.11 (долгоживущий прогон: подтверждён старт, ожидания нет)",
+      "ADR-012 (арбитраж ресурса GB10)"
+    ],
+    "not_changed": "микс/данные стадии не дедуплицированы; конфигурация стадии (шаги, LR, расписание, батч, сид) взята из SFT-STAGE-PLAN §3.1 и кода контура — не менялась"
+  },
+  "artifacts": [
+    "runs/sft-20260916-2246/HANDOFF.md",
+    "runs/sft-20260916-2246/chain_command.txt",
+    "runs/sft-20260916-2246/full_sft_params.json",
+    "runs/sft-20260916-2246/stages.tsv",
+    "runs/sft-20260916-2246/pipeline_patch.json",
+    "runs/sft-20260916-2246/ship.json",
+    "runs/sft-20260916-2246/run_manifest.json",
+    "tools/patch_pipeline_sft.py",
+    "tools/launch_sft_stage.py",
+    "evidence/s3aa-sft-launch.json"
+  ],
+  "preconditions": {
+    "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+    "dataset_sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+    "dataset_examples": 44949,
+    "checkpoint": {
+      "path": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "recorded_in": "full-cpt-20260916-2149/var/status/cpt (4-е поле строки записи стадии)",
+      "matches_recorded": true,
+      "delivered_to_run_dir_as": "/workspace/shared/sft-20260916-2246/checkpoints/checkpoint_final.pt",
+      "delivery": "copy (hardlink невозможен: [Errno 1] Operation not permitted: '/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt' -> '/home/user/gb10-shared/sft-20260916-2246/checkpoints/checkpoint_final.pt')",
+      "loaded_confirmed_by_log": "Loaded CPT ckpt (logs/sft.log) — предусловие R3 ADR-016 п.3"
+    },
+    "dataset": {
+      "path": "datasets/sft_train_v12.jsonl",
+      "sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "sha256_source": "пересчитан по полному файлу (не «первые 1 МиБ» — дефект N5 закрыт для этого прогона)",
+      "examples": 44949,
+      "tok_cache": "datasets/tok/sft_train_v12_8192_qwen25.npz",
+      "card": "SFT-STAGE-PLAN.md §1 (карточка набора; отдельного data/sft-card-v12.json в ветке нет — дыра G3)"
+    },
+    "duplicates_share": 57.71,
+    "effective_passes": 7.093,
+    "duplicates_checked": {
+      "how": "пересчёт по файлу: нормализованные messages, sha256, число уникальных",
+      "examples": 44949,
+      "unique": 19011,
+      "duplicates_share_pct": 57.71,
+      "effective_passes": 7.093,
+      "note": "ADR-033 п.1: не дедуплицируем ради сопоставимости; «3 эпохи» = ≈7.09 прохода по уникальному примеру"
+    },
+    "manifest": {
+      "file": "sft-20260916-2246/run_manifest.json",
+      "dataset_sha256": "aa06a26dc7917d76dc4be0f6edeefa6562bffa7c937cf00bb90bf3e598a66388",
+      "pipeline_version": "laguna_pipeline_sft.py@0f37e034ab54",
+      "run_version": "tools/launch_sft_stage.py@8da2d859ce4d",
+      "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+      "seed": 42,
+      "stages": [
+        {
+          "name": "sft",
+          "status": "running"
+        }
+      ],
+      "pipeline_complete": false,
+      "note": "записан НА СТАРТЕ стадии (штатная цепочка пишет манифест только по её завершении — иначе 50 ч прогона шли бы без AD-2)"
+    },
+    "rollback": {
+      "protocol": "ADR-016 п.2 — штатная остановка, не убийство процесса",
+      "mechanism": "маркер sft-20260916-2246/var/STOPPED → цепочка пишет стадию stopped и делает docker stop -t 120",
+      "preserved": [
+        "все чекпойнты sft_checkpoint_*.pt",
+        "логи",
+        "loss_trace.jsonl",
+        "general_eval_history.jsonl",
+        "отчёты точек PPL"
+      ],
+      "return_to_cpt": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "cpt_artifacts_untouched": "стадия пишет только имена sft_*; имя checkpoint_final.pt пишет исключительно run_cpt (laguna_pipeline_v8.py:796), который в этой цепочке не вызывается — в каталоге прогона этот файл только читается (строка 805)"
+    },
+    "stand_check": {
+      "command": "bash tools/check_resource_owner.sh --stage sft  →  bash pilot_chain.sh ... --check-only",
+      "verdict": "CAN-START",
+      "threshold_gb": 50,
+      "mem_available_gb": 78.1,
+      "n_training_loads": 0,
+      "owner": "REVISION-WINDOW.lock (флаг паузы лесенки НЕ снимался — ADR-012 п.4)",
+      "where": "на стенде (spark-44c3), локальное определение — без ssh-петли"
+    }
+  },
+  "config": {
+    "steps": 67423,
+    "epochs": 3,
+    "batch": 2,
+    "lr": 1e-05,
+    "lr_min": 2e-07,
+    "schedule": "CosineAnnealingLR(T_max=max_steps, eta_min=2e-7)",
+    "optimizer": "AdamW(lr=1e-5, weight_decay=0.01, betas=(0.9,0.95))",
+    "clip_grad_norm": 1.0,
+    "warmup_steps": 100,
+    "warmup_note": "100 шагов учится только embed/lm_head, затем полный размороз",
+    "lr_source": "run_sft: peak_lr=1e-5 задан в коде; --peak_lr_scale на SFT не влияет",
+    "seed": 42,
+    "max_len": 8192,
+    "max_samples": 50000,
+    "model": "Qwen/Qwen2.5-0.5B",
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "ckpt_every": 200,
+    "pipeline_sha256": "0f37e034ab5410064c8caaed901027055ae965526a2bec0488a0a76f831f1b09",
+    "pipeline_file": "sft-20260916-2246/laguna_pipeline_sft.py",
+    "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+    "pipeline_patch_applied": [
+      "монитор форгеттинга → K1/K2/домен (ADR-033 п.3, дыра G2)",
+      "loss_trace по шагам в SFT (ADR-022 п.4, ADR-023 п.11)",
+      "точки замера sft_probe_{step}.pt каждые SFT_PROBE_CKPT_EVERY=500 (keep_last=24)"
+    ],
+    "pipeline_patch_anchors": {
+      "monitor": "def _general_eval_step(model, tokenizer, step, ckpt_dir):",
+      "trace": "ema = loss.item() if ema is None else 0.98 * ema + 0.02 * loss.item()",
+      "ckpt": "save_checkpoint_atomic(model, optimizer, Path(args.ckpt_dir)/f\"sft_checkpoint_{step}.pt\")",
+      "helpers": "if __name__ == \"__main__\":"
+    }
+  },
+  "monitor": {
+    "read": true,
+    "file": "/home/user/gb10-shared/sft-20260916-2246/laguna_pipeline_sft.py",
+    "sha256": "0f37e034ab5410064c8caaed901027055ae965526a2bec0488a0a76f831f1b09",
+    "sets": [
+      {
+        "component": "K1",
+        "path": "/workspace/shared/datasets/general_eval_v3.txt",
+        "base": 7.50468637420902,
+        "rule": "ceiling"
+      },
+      {
+        "component": "K2",
+        "path": "/workspace/shared/datasets/general_eval_k2.txt",
+        "base": 6.1599356842437585,
+        "rule": "ceiling"
+      },
+      {
+        "component": "DOMAIN",
+        "path": "/workspace/shared/datasets/domain_eval_v2.txt",
+        "base": 11.134115855539092,
+        "rule": "learned"
+      }
+    ],
+    "ceiling_scale": 2.0,
+    "reference_only": [
+      {
+        "name": "v1_general",
+        "path": "/workspace/shared/datasets/general_eval.txt"
+      },
+      {
+        "name": "domain_legacy",
+        "path": "/workspace/shared/datasets/domain_eval.txt"
+      }
+    ],
+    "probe_keep_last": 24,
+    "trace_hook": true,
+    "probe_ckpt_hook": true
+  },
+  "monitor_observed": {
+    "points": 16,
+    "last": {
+      "step": 750,
+      "K1": 7.505463461291894,
+      "K1_ratio": 1.0001035469097743,
+      "K2": 6.666178860977536,
+      "K2_ratio": 1.0821831919493374,
+      "DOMAIN": 3.9445217048355214,
+      "DOMAIN_ratio": 0.354273456106815,
+      "verdict": "K1 ×1.0001 ; K2 ×1.0822 ; DOMAIN ×0.3543",
+      "ref_v1_general": 12.403137622715024,
+      "ref_domain_legacy": 4.055955193822467
+    },
+    "file": "sft-20260916-2246/general_eval_history.jsonl",
+    "trajectory": [
+      {
+        "step": 0,
+        "K1": 0.9867859562570426,
+        "K2": 1.069350349356992,
+        "DOMAIN": 0.3464081694832501
+      },
+      {
+        "step": 50,
+        "K1": 0.9872162179957829,
+        "K2": 1.0699203809694051,
+        "DOMAIN": 0.3485299264918688
+      },
+      {
+        "step": 100,
+        "K1": 0.9881251679996752,
+        "K2": 1.0700070473808803,
+        "DOMAIN": 0.3491727051826257
+      },
+      {
+        "step": 150,
+        "K1": 0.988805827740778,
+        "K2": 1.0710575423073347,
+        "DOMAIN": 0.3497847645563916
+      },
+      {
+        "step": 200,
+        "K1": 0.9901145963677025,
+        "K2": 1.0724235591465174,
+        "DOMAIN": 0.35064677281762485
+      },
+      {
+        "step": 250,
+        "K1": 0.9916164056854648,
+        "K2": 1.0739213743831622,
+        "DOMAIN": 0.35132585242368414
+      },
+      {
+        "step": 300,
+        "K1": 0.9928987440770535,
+        "K2": 1.0761947165789618,
+        "DOMAIN": 0.35235681848596584
+      },
+      {
+        "step": 350,
+        "K1": 0.9948201769694751,
+        "K2": 1.0769223776443186,
+        "DOMAIN": 0.3532898848214125
+      },
+      {
+        "step": 400,
+        "K1": 0.994903037002059,
+        "K2": 1.0779711679833168,
+        "DOMAIN": 0.3533623942001121
+      },
+      {
+        "step": 450,
+        "K1": 0.996473272552969,
+        "K2": 1.0791713935830094,
+        "DOMAIN": 0.35347943603611676
+      },
+      {
+        "step": 500,
+        "K1": 0.9972168631915179,
+        "K2": 1.0799709490555762,
+        "DOMAIN": 0.35366793834778404
+      },
+      {
+        "step": 550,
+        "K1": 0.9970483377534276,
+        "K2": 1.0791830501041086,
+        "DOMAIN": 0.3526965398802089
+      },
+      {
+        "step": 600,
+        "K1": 0.9974575510850991,
+        "K2": 1.0775928040478178,
+        "DOMAIN": 0.35328205954669606
+      },
+      {
+        "step": 650,
+        "K1": 0.9970436074148378,
+        "K2": 1.0778926761507062,
+        "DOMAIN": 0.35317290987649713
+      },
+      {
+        "step": 700,
+        "K1": 0.9983222224630445,
+        "K2": 1.0811056611213103,
+        "DOMAIN": 0.3539540411526012
+      },
+      {
+        "step": 750,
+        "K1": 1.0001035469097743,
+        "K2": 1.0821831919493374,
+        "DOMAIN": 0.354273456106815
+      }
+    ],
+    "drift_note": "мягкий дрейф вверх по всем трём компонентам; потолок 2× и «домен < 1» не затронуты"
+  },
+  "cost": {
+    "monitor": {
+      "read": true,
+      "points": [
+        {
+          "step": 0,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 50,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 100,
+          "monitor_s": 27,
+          "val_loss_s": 6
+        },
+        {
+          "step": 150,
+          "monitor_s": 28,
+          "val_loss_s": 5
+        },
+        {
+          "step": 200,
+          "monitor_s": 27,
+          "val_loss_s": 6
+        },
+        {
+          "step": 250,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 300,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 350,
+          "monitor_s": 28,
+          "val_loss_s": 5
+        },
+        {
+          "step": 400,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 450,
+          "monitor_s": 28,
+          "val_loss_s": 5
+        },
+        {
+          "step": 500,
+          "monitor_s": 28,
+          "val_loss_s": 5
+        },
+        {
+          "step": 550,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        },
+        {
+          "step": 600,
+          "monitor_s": 28,
+          "val_loss_s": 5
+        },
+        {
+          "step": 650,
+          "monitor_s": 27,
+          "val_loss_s": 6
+        },
+        {
+          "step": 700,
+          "monitor_s": 27,
+          "val_loss_s": 6
+        },
+        {
+          "step": 750,
+          "monitor_s": 28,
+          "val_loss_s": 6
+        }
+      ],
+      "monitor_seconds_median": 28,
+      "val_loss_seconds_median": 6,
+      "note": "монитор = 5 наборов (3 решающих по ~200 документов + 2 исторических справочно)"
+    },
+    "rate": {
+      "read": true,
+      "intervals": 764,
+      "normal_step_s": 2.952,
+      "periodic_seconds_per_50_steps": 34,
+      "avg_step_s": 3.632,
+      "calendar_hours": 68.0,
+      "plan_estimate_hours": "58-61 (SFT-STAGE-PLAN §3.1: 3.10-3.25 с/шаг)",
+      "method": "медиана интервалов трейса между шагами; периодическая цена добавлена из лога стадии"
+    },
+    "memory": {
+      "read": true,
+      "file": "sft-20260916-2246/mem_sft.jsonl",
+      "samples": 447,
+      "container_peak_gib": 5.3,
+      "mem_cap": "100g",
+      "mem_available_min_gib": 37.3,
+      "note": "порог AD-8 для SFT (≥50 ГБ свободной unified) проверяется стражем до старта; здесь — факт во время хода"
+    }
+  },
+  "launched": {
+    "run_dir": "/home/user/gb10-shared/sft-20260916-2246",
+    "ctr_run_dir": "/workspace/shared/sft-20260916-2246",
+    "case_dir": "runs/sft-20260916-2246",
+    "tmux_session": "sft-20260916-2246",
+    "tmux": "sft-20260916-2246: 1 windows (created Wed Sep 16 22:48:04 2026)",
+    "container": "laguna-sft-20260916-2246-sft",
+    "chain_command": "bash /home/user/gb10-shared/sft-20260916-2246/pilot_chain.sh --run-dir /home/user/gb10-shared/sft-20260916-2246 --ctr-run-dir /workspace/shared/sft-20260916-2246 --stages-file /home/user/gb10-shared/sft-20260916-2246/stages.tsv --exp-base sft-20260916-2246 --ctr-prefix laguna-sft-20260916-2246 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/sft-20260916-2246/laguna_pipeline_sft.py --pipeline-ctr /workspace/shared/sft-20260916-2246/laguna_pipeline_sft.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/sft_train_v12_8192_qwen25.npz --runner-name tools/launch_sft_stage.py --extra-hyperparam stage_input=cpt:full-cpt-20260916-2149/checkpoints/checkpoint_final.pt --extra-hyperparam cpt_ckpt_sha256=080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086 --extra-hyperparam sft_epochs=3 --extra-hyperparam sft_steps=67423 --extra-hyperparam duplicates_share_pct=57.71 --extra-hyperparam effective_passes=7.093 --extra-hyperparam monitor_sets=K1:general_eval_v3,K2:general_eval_k2,DOMAIN:domain_eval_v2 --extra-hyperparam probe_ckpt_every=500 --extra-hyperparam adr=ADR-033 --guard /home/user/gb10-shared/sft-20260916-2246/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/sft-20260916-2246/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/sft-20260916-2246/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --attn flex --mem-cap 100g --stall-minutes 30",
+    "launch_command": "ssh gb10-fast 'tmux kill-session -t sft-20260916-2246 2>/dev/null; tmux new-session -d -s sft-20260916-2246 \"setsid nohup bash /home/user/gb10-shared/sft-20260916-2246/pilot_chain.sh --run-dir /home/user/gb10-shared/sft-20260916-2246 --ctr-run-dir /workspace/shared/sft-20260916-2246 --stages-file /home/user/gb10-shared/sft-20260916-2246/stages.tsv --exp-base sft-20260916-2246 --ctr-prefix laguna-sft-20260916-2246 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/sft-20260916-2246/laguna_pipeline_sft.py --pipeline-ctr /workspace/shared/sft-20260916-2246/laguna_pipeline_sft.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/sft_train_v12_8192_qwen25.npz --runner-name tools/launch_sft_stage.py --extra-hyperparam stage_input=cpt:full-cpt-20260916-2149/checkpoints/checkpoint_final.pt --extra-hyperparam cpt_ckpt_sha256=080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086 --extra-hyperparam sft_epochs=3 --extra-hyperparam sft_steps=67423 --extra-hyperparam duplicates_share_pct=57.71 --extra-hyperparam effective_passes=7.093 --extra-hyperparam monitor_sets=K1:general_eval_v3,K2:general_eval_k2,DOMAIN:domain_eval_v2 --extra-hyperparam probe_ckpt_every=500 --extra-hyperparam adr=ADR-033 --guard /home/user/gb10-shared/sft-20260916-2246/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/sft-20260916-2246/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/sft-20260916-2246/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --attn flex --mem-cap 100g --stall-minutes 30 >> /home/user/gb10-shared/sft-20260916-2246/chain.log 2>&1 < /dev/null\"'",
+    "mechanism": "tmux + setsid nohup на стенде — цепочка переживает смерть агента (ADR-023 п.11)",
+    "chain_status": "running",
+    "status_row": null,
+    "evidence_of_start": {
+      "tmux": "sft-20260916-2246: 1 windows (created Wed Sep 16 22:48:04 2026)",
+      "docker": "laguna-sft-20260916-2246-sft Up 52 minutes",
+      "loss_trace": {
+        "file": "sft-20260916-2246/logs/loss_trace.jsonl",
+        "lines": 765,
+        "first": {
+          "step": 0,
+          "loss": 1.2763757705688477,
+          "lr": 9.99999999468076e-06,
+          "t": 1789609987.9824646
+        },
+        "last": {
+          "step": 764,
+          "loss": 1.2900972366333008,
+          "lr": 9.996887376657686e-06,
+          "t": 1789612840.173069
+        }
+      },
+      "loaded_cpt_ckpt_in_log": "1",
+      "note": "растущий loss_trace.jsonl и строка Loaded CPT ckpt — факты старта, а не намерение"
+    }
+  },
+  "probe_plan": {
+    "every_steps": 500,
+    "components": [
+      "K1",
+      "K2",
+      "DOMAIN"
+    ],
+    "sets": {
+      "K1": "datasets/general_eval_v3.txt",
+      "K2": "datasets/general_eval_k2.txt",
+      "DOMAIN": "datasets/domain_eval_v2.txt",
+      "reference": "datasets/general_eval.txt (опорно: тождество прибора)"
+    },
+    "tool": "tools/full_cpt_probe.py (прибор tools/calib_ppl_probe.py, методика tools/ppl_probe.py:measure)",
+    "ckpt_naming": "checkpoints/sft_probe_<step>.pt (keep_last=24); финал — checkpoints/sft_checkpoint_final.pt",
+    "points_total": 135,
+    "where": "локальная машина (RTX 4080) — стенд занят обучением (AD-5); обучение на 4080 не запускается",
+    "watcher_command": "setsid nohup python3 tools/full_cpt_probe.py --ts 20260916-2246 --watch --poll 120 --max-hours 65 --session-prefix sft --pipeline-copy laguna_pipeline_sft.py --ckpt-pattern 'sft_probe_{step}.pt' --final-ckpt sft_checkpoint_final.pt --steps 67423 --every 500 >> runs/sft-ppl-20260916-2246/watch.log 2>&1 < /dev/null &",
+    "watcher_state": {
+      "probe_dir": "/home/user/gb10-shared/sft-ppl-20260916-2246",
+      "instrument": {
+        "calib_ppl_probe.py": {
+          "source": "tools/calib_ppl_probe.py",
+          "sha256": "d6082bdeb3185e82be7d75d3141c3349db65ddeae2c22464919166f3a6a116df"
+        },
+        "ppl_probe.py": {
+          "source": "tools/ppl_probe.py",
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+        },
+        "ppl-baseline-v1v2.json": {
+          "source": "evidence/ppl-baseline-v1v2.json",
+          "sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea"
+        }
+      },
+      "points_seen": [
+        "s500"
+      ],
+      "measured": [
+        "s500"
+      ],
+      "measured_count": 1,
+      "attempts": {
+        "s500": 2
+      },
+      "ratios": {
+        "s500": {
+          "K1@s500": 0.9973,
+          "K2@s500": 1.08,
+          "DOMAIN@s500": 0.3536,
+          "K1@base_untouched": 1.0,
+          "K2@base_untouched": 1.0,
+          "DOMAIN@base_untouched": 1.0
+        }
+      },
+      "baseline_ok": true
+    },
+    "watcher_notes": {
+      "read": true,
+      "file": "sft-ppl-20260916-2246/watch.log",
+      "lines": 150,
+      "attempts": 3,
+      "refusals": 1,
+      "last_attempt": "[2026-09-17T02:37:25+00:00] замер s500 (шаг 500, попытка 2): checkpoints/sft_probe_500.pt; свободно на карте 15.3 ГБ",
+      "oom_seen": false,
+      "note": "Провал попытки точки s500 — состязание за локальную карту: вторую пробу (agentic) и сторож PPL в 16 ГБ не поместить вместе. Сторож снял точку со счёта на время второй пробы, чтобы не сжечь бюджет попыток; сам факт хода прибора подтверждён ещё в отказавшей попытке — он воспроизвёл эталонное base v1_general = 11.9319 (число S3h 11.931923888434497)"
+    },
+    "agentic_baseline": {
+      "evidence": "evidence/s3aa-agentic-cpt.json",
+      "run_dir": "runs/passrate-agentic-cpt-20260917-0153",
+      "checkpoint": {
+        "path": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "bytes": 2963141069,
+        "n_tensors": 291,
+        "vocab_in_checkpoint": 151671,
+        "vocab_model": 151671,
+        "vocab_tokenizer": 151671,
+        "resized_on_load": false,
+        "init_special_tokens_subtoken": false,
+        "has_optimizer_state": true,
+        "loader": "transformers AutoModelForCausalLM + laguna_pipeline_v8._load_ckpt_with_resize (семантика контура, не копия)",
+        "load_verification": {
+          "tensors_compared": 291,
+          "tensors_in_checkpoint": 291,
+          "compared_as_resized_prefix": 0,
+          "mismatches": 0,
+          "max_abs_diff": 0.0,
+          "mismatch_keys": [],
+          "note": "max_abs_diff = 0 означает побитовое совпадение загруженных весов с файлом чекпойнта (bf16 → bf16 копия); для словаря, выросшего при resize, сверяется перенесённый префикс строк"
+        }
+      },
+      "checkpoint_state": "CPT — вход SFT (до стадии)",
+      "protocol": {
+        "harness": "transformers (цикл на KV-кэше, логиты только последней позиции)",
+        "system_prompt": "UNIFIED_SYSTEM_PROMPT (laguna_pipeline_v8.py)",
+        "tool": "search_concepts (импорт из пайплайна)",
+        "verifier": "verify_task (импорт из пайплайна), кредит бинарный (AD-11)",
+        "max_turns": 5,
+        "max_new_tokens": 4096,
+        "temperature": 1.0,
+        "top_k": 20,
+        "stop": [
+          "</tool_call>",
+          "<|im_end|>"
+        ],
+        "prefill": "<think>\\n",
+        "toolcall_force": false,
+        "n_attempts": 1,
+        "pass_at_k": false,
+        "seed": 42,
+        "diagnose": 25,
+        "diagnose_seed": 42,
+        "batch": 32,
+        "weights": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "weights_kind": "sft_checkpoint",
+        "tokenizer": "Qwen/Qwen2.5-0.5B",
+        "special_tokens": [
+          "<think>",
+          "</think>",
+          "<tool_call>",
+          "</tool_call>",
+          "<tool_response>",
+          "</tool_response>",
+          "<reasoning>",
+          "</reasoning>"
+        ],
+        "checkpoint_path": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "init_special_tokens_subtoken": false,
+        "rng_note": "поток RNG не совпадает с vLLM RL-прогона: сопоставимы агрегаты, не построчные траектории"
+      },
+      "self_initiated_only": "--no-toolcall-force --no-hint: при toolcall-force вызов вкладывает харнесс, при hint подставляется открывающий тег <tool_call> — в обоих случаях «сам позвал» измерить нельзя",
+      "final": true,
+      "final_note": "итоговые записи пробы (tasks.jsonl)",
+      "measured": {
+        "n": 350,
+        "with_self_initiated_call": 158,
+        "share": 0.4514,
+        "share_pct": 45.1,
+        "mean_turns": 1.59,
+        "final": true
+      },
+      "by_pool": {
+        "v1": {
+          "n": 150,
+          "with_self_initiated_call": 86,
+          "share": 0.5733,
+          "share_pct": 57.3,
+          "mean_turns": 1.76,
+          "final": true
+        },
+        "v2": {
+          "n": 200,
+          "with_self_initiated_call": 72,
+          "share": 0.36,
+          "share_pct": 36.0,
+          "mean_turns": 1.47,
+          "final": true
+        }
+      },
+      "by_type": {
+        "chain_reasoning": {
+          "n": 50,
+          "with_self_initiated_call": 16,
+          "share": 0.32,
+          "share_pct": 32.0,
+          "mean_turns": 1.34,
+          "final": true
+        },
+        "compare_concepts": {
+          "n": 50,
+          "with_self_initiated_call": 32,
+          "share": 0.64,
+          "share_pct": 64.0,
+          "mean_turns": 1.9,
+          "final": true
+        },
+        "explain_relation": {
+          "n": 100,
+          "with_self_initiated_call": 59,
+          "share": 0.59,
+          "share_pct": 59.0,
+          "mean_turns": 1.78,
+          "final": true
+        },
+        "find_concept": {
+          "n": 50,
+          "with_self_initiated_call": 12,
+          "share": 0.24,
+          "share_pct": 24.0,
+          "mean_turns": 1.28,
+          "final": true
+        },
+        "formula_chain": {
+          "n": 50,
+          "with_self_initiated_call": 22,
+          "share": 0.44,
+          "share_pct": 44.0,
+          "mean_turns": 1.64,
+          "final": true
+        },
+        "multi_hop_search": {
+          "n": 50,
+          "with_self_initiated_call": 17,
+          "share": 0.34,
+          "share_pct": 34.0,
+          "mean_turns": 1.42,
+          "final": true
+        }
+      },
+      "adr033_premise": "ADR-033 п.2: «на текущем (CPT) чекпойнте самостоятельных вызовов инструмента — ноль на 700 задач пула»",
+      "premise_held": false,
+      "premise_note": "База снята заново, потому что прежнее «ноль» получено в другой конфигурации: evidence/pool-dead-types.json мерил СФТ-чекпойнт (sft_checkpoint_final.pt sha 5bc15f70…) с toolcall_force=true, где вызов вкладывается харнессом. Эти два числа несопоставимы, и переносить «ноль» на CPT-чекпойнт было нельзя",
+      "consequence": "Порог «сдвиг ≥5 % от нуля» (ADR-033 п.2) в этой редакции неприменим: нулевой базы нет. Целевой уровень критерия (в) придётся назначать от измеренной базы, а не от нуля — это решение архитектора, не исполнителя"
+    }
+  },
+  "how_to_fetch": [
+    "# прогресс стадии (шаг, loss, lr) и статус",
+    "ssh gb10-fast 'tail -3 /home/user/gb10-shared/sft-20260916-2246/logs/loss_trace.jsonl; cat /home/user/gb10-shared/sft-20260916-2246/var/status/sft'",
+    "# живость цепочки",
+    "ssh gb10-fast 'tmux ls; docker ps | grep sft-20260916-2246'",
+    "# монитор форгеттинга (K1/K2/домен, каждые 50 шагов)",
+    "ssh gb10-fast 'tail -3 /home/user/gb10-shared/sft-20260916-2246/general_eval_history.jsonl'",
+    "# тренд точек ADR-030 + прогресс замеров",
+    "python3 tools/full_cpt_probe.py --ts 20260916-2246 --trend --session-prefix sft --pipeline-copy laguna_pipeline_sft.py --ckpt-pattern 'sft_probe_{step}.pt' --final-ckpt sft_checkpoint_final.pt --steps 67423 --every 500",
+    "# остановка (решение владельца) — штатным путём ADR-016 п.2",
+    "ssh gb10-fast 'printf \"остановка владельцем\" > /home/user/gb10-shared/sft-20260916-2246/var/STOPPED'"
+  ],
+  "invariants": {
+    "AD-2": "манифест с полным sha256 датасета (не первые 1 МиБ), версией пайплайна и прогона, образом, сидом; записан на старте",
+    "AD-4": "данные и веса — на gb10-shared; в каталоге прогона копия входного чекпойнта (жёсткая ссылка отклонена NFS: EPERM, источник принадлежит root)",
+    "AD-5": "на GB10 одна тренировочная нагрузка (страж: 0 прочих); замеры PPL — на 4080",
+    "ADR-012": "флаг паузы лесенки REVISION-WINDOW.lock не снимался; арбитраж не нарушен",
+    "ADR-016": "план отката приложен; под живой цепочкой правки в каталоге прогона запрещены",
+    "ADR-033 п.1": "набор НЕ дедуплицирован (сопоставимость с историческим SFT)",
+    "ADR-033 п.3": "монитор — на K1/K2/domain_eval_v2, подтверждено установленной копией пайплайна",
+    "ADR-023 п.11": "старт подтверждён фактами; ожидания завершения нет"
+  },
+  "ship": {
+    "ok": true,
+    "stand_dir": "/home/user/gb10-shared/sft-20260916-2246",
+    "ctr_dir": "/workspace/shared/sft-20260916-2246",
+    "sha256": {
+      "pilot_chain.sh": "ce7bbecf00a7635b8f1b0338f2ba505e3a141402d43b25d6ef638cad61373643",
+      "check_resource_owner.sh": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114",
+      "write_run_manifest.py": "3e41888db53fb2b37799726f888a59f5cf6529bdbd521feae0a4f4464039d688",
+      "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+      "laguna_pipeline_sft.py": "0f37e034ab5410064c8caaed901027055ae965526a2bec0488a0a76f831f1b09",
+      "pipeline_patch.json": "b53961d803217488233b91dc598a2159aaf1d53c2218911abc1ecc071ffef127"
+    },
+    "mismatched": [],
+    "link": {
+      "kind": "copy (hardlink невозможен: [Errno 1] Operation not permitted: '/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt' -> '/home/user/gb10-shared/sft-20260916-2246/checkpoints/checkpoint_final.pt')",
+      "src": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "dst": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/checkpoint_final.pt",
+      "src_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "same_inode": false
+    },
+    "checked_from": "ssh gb10-fast — /home/user/gb10-shared/sft-20260916-2246"
+  },
+  "assumptions": [
+    "Календарь — не оценка, а замер (cost.rate): обычный шаг 2.948 с, монитор 28 с и val-loss 6 с каждые 50 шагов → 3.628 с/шаг → 67.9 ч. Тёплый прогрев (2.70 с/шаг) в оценку НЕ берётся: он обучает только embed/lm_head, и по нему календарь недооценивается. Расхождение с планом (58-61 ч, 3.10-3.25 с/шаг) объясняется тем, что план не учитывал цену монитора на 600+ документах",
+    "`--peak_lr_scale` на SFT не влияет (LR задан в коде run_sft) — флаг не передавался как управляющий",
+    "Сторож точек имеет 10-часовое окно ретенции весов (probe_keep_last=24 × 500 шагов); числа точек сохраняются в отчётах сразу и от ретенции не зависят",
+    "Жёсткая ссылка на входной чекпойнт недоступна на NFS (источник принадлежит root, `link()` → EPERM), поэтому в каталог прогона положена побайтовая копия — тождество доказано хешем, а не именем"
+  ],
+  "open_questions": [
+    "ЦЕНА ПРЕДПИСАНИЯ ADR-033 п.3 (измерена): монитор K1/K2/домен каждые 50 шагов стоит 28 с на вызов (5 наборов, ~630 документов) = 0.56 с/шаг ≈ 10.5 ч на 67423 шага. Фактический календарь стадии — 67.9 ч против плановых 58-61 ч, то есть стадия длиннее плана примерно на 10 ч, и это цена именно монитора (val-loss добавляет ещё 6 с/вызов). Вопрос владельцу: оставить частоту 50 шагов и принять +10 ч, или разрешить 100-200 шагов (тренд ADR-030 от этого не страдает, но раннее предупреждение становится позже)",
+    "Окно стенда (ADR-012): флаг паузы REVISION-WINDOW.lock держится с 14.09.2026 с полем return_by 'after S3 result, <=1 day'; при 67.9 ч SFT поле выглядит устаревшим (оно писано под пилот). Нарушения нет (окно ~10-11 суток), но срок возврата ресурса стоит уточнить",
+    "Дыра G3 плана: карточка набора заведена как `data/sft-card-v12.json` и подстрахована правилами C-020/C-021; состав по источникам взят из плана и по исходникам не перепроверялся",
+    "Дыра G4 плана: стража на минимальную agentic-долю (check_sft_agentic_share.py) в дереве нет — до его появления критерий (в) ADR-033 держится замером, а не правилом",
+    "Инструмент agentic-замера (tools/passrate_probe.py) живёт на ветке arch/laguna-passrate-probe, а не в этой линии (класс дыры G1) — замер воспроизводим по sha256, но из коммита этой ветки не запускается",
+    "Порог agentic-доли и допустимый «налог» SFT на язык не откалиброваны (дыра G11) — целевой уровень назначается по факту первого замера (осознанное исключение, ADR-033 п.2)"
+  ]
+}

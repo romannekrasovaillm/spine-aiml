@@ -713,7 +713,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--domain-alias", default="cpt_corpus_v10.1.txt",
                     help="доменный корпус, названный в ADR-018 (корпус-цель фильтра)")
     ap.add_argument("--sft", default="sft_train_v12.jsonl")
-    ap.add_argument("--rl", default="rl_tasks_revpool_v1.jsonl")
+    ap.add_argument("--rl", default="rl_tasks_revpool_v2.jsonl",
+                    help="набор курикулума RL (ADR-054 п.1: v2; v1 — исторический "
+                         "носитель, стадией не выбирается)")
     ap.add_argument("--pilot-general", default="general_eval.txt",
                     help="существующий набор пилота (не должен измениться)")
     ap.add_argument("--pilot-domain", default="domain_eval.txt",

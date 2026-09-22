@@ -1,0 +1,54 @@
+{
+  "schema": "acceptance-record/1",
+  "date": "2026-09-20",
+  "case": "кейсы/laguna-compact",
+  "what": "Приёмка канона в main (шесть шагов процедуры ADR-024) и пост-мерж починка шага 5",
+  "owner_approve": {
+    "given_by": "владелец (Роман Некрасов)",
+    "when": "2026-09-20",
+    "how": "разрешение на мерж канона выдано явно; дальнейшие шаги — в автономном режиме"
+  },
+  "merges": [
+    {
+      "branch": "arch/laguna-canon-v2",
+      "merge_commit": "74eb638d",
+      "content": "канон: 47 ADR (001…047), 22 правила; ADR-024 = процедура приёмки, микс v12r50 = ADR-047; ADR-023 пп.12–13; ADR-046 пп.1–11",
+      "preflight": {
+        "step1_artifacts_history": "OK: дерево чистое, 47 ADR, история дельты читается",
+        "step2_rules_edition": "сведена pre-merge (672267b): канон 22 правила = надмножество 19 правил main; sha256 CONSTRAINTS канона 69be81cb… против main 0b4c3ed4…",
+        "step3_tree_clean": "OK; исторические evidence завершённых стадий не менялись, кроме s1-data-audit.json — принята РЕДАКЦИЯ ОТКАТА (blob ff58f68c), то есть восстановление факта, а не перезапись"
+      },
+      "flags": [
+        "⚑ инструмент пометил s1-data-audit.json как «изменён исторический evidence»; направление — восстановление редакции до перезаписи c0a1480 (решение зафиксировано в журнале сведения, architect_decisions_2026_09_20 п.2)"
+      ]
+    },
+    {
+      "branch": "arch/laguna-postmerge",
+      "merge_commit": "dee02776",
+      "content": "починка шага 5: C-020/ADR-025 п.2 — двум evidence PPL добавлены leak_check_ref(s) со ссылками на существующие отчёты чистоты",
+      "method": "канонизация ссылки по ADR-046 п.9: ни одно измеренное значение, вердикт или дата не изменены; blob до/после записаны",
+      "blobs": {
+        "evidence/s3n-ppl-curve.json": {"before": "bb31d716", "after": "a6c9c687"},
+        "evidence/s3v-control-arms-ppl.json": {"before": "8443983e", "after": "5c91d740"}
+      }
+    }
+  ],
+  "postmerge_gate": {
+    "first_attempt": "CONSTRAINTS-FAILED: обход репозитория падал на benchmarks/platformv-arch-bench/tasks — Permission denied (os error 13); каталог имел права d--------- (0000), mtime 2026-09-09 22:21",
+    "diagnosis": "каталог отслеживается git (72 файла, режимы 100644), README бенчмарка описывает его как обычные постановки задач — то есть права были локальной аномалией, а не намеренной приватностью",
+    "fix": "chmod 755 benchmarks/platformv-arch-bench/tasks (содержимое не изменялось; права каталогов git не отслеживает)",
+    "second_attempt": "PASS (предупреждения — по банковским скиллам, вне зоны кейса)",
+    "case_scope_gate": "FAIL только по унаследованным: AD-9 (память стенда 32 ГБ < 35 при живом SFT — на приёмке информационен, решение зафиксировано) и AD-1 (нет evidence/result-report-* до точки решения S4)"
+  },
+  "tests": {"run_tool_tests": "PASS=699 FAIL=1 (S3aq: evidence не собран — замер идёт)", "sections": 65},
+  "not_verified": [
+    "вердикт ревьювера: не найден ни для одной из принятых ветвей (помечено инструментом как «не проверено»)",
+    "причина исходных прав 0000 на каталоге бенчмарка не установлена (mtime 09.09.2026); названо, не додумано"
+  ],
+  "state_after": {
+    "main_head": "dee02776",
+    "adr_in_case": 47,
+    "rules": 22,
+    "open_reds": ["AD-9 (средовое)", "AD-1 (норма до S4)", "S3aq-evidence (замер идёт)"]
+  }
+}

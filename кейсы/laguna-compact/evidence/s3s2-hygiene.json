@@ -1,0 +1,208 @@
+{
+  "schema": "s3s-hygiene/1",
+  "node": "S3s-2",
+  "date": "2026-09-16T14:15:09+00:00",
+  "branch": "arch/laguna-control-arms",
+  "question": "В этой ветке в git-индекс закоммичены копии данных (два .npy по 217 МиБ), из-за чего C-011/AD-4 красен; C-012/AD-2 красен по восьми каталогам runs/ без манифеста. Закрыть оба тем же приёмом, что эталон S3r (282d903), не теряя байтов и не переписывая историю.",
+  "scope": "Дерево и индекс кейса laguna-compact. Git-история не переписывалась (filter-branch/rebase -i/force-push не применялись). Стенд GB10 не задействован; tmux ctrl-grid-20260916-1632 не трогался.",
+  "c011": {
+    "rule": "C-011 / AD-4 «данные и веса — только симлинками на gb10-shared»",
+    "check": "bash tools/check_symlink_hygiene.sh .",
+    "before": {
+      "exit": 1,
+      "violations": 4,
+      "real_files_over_50mb": 2,
+      "index_blobs_over_50mb": 2,
+      "symlinks": 14,
+      "detail": "2 настоящих файла-копии по 228 262 016 Б (217 МиБ) в дереве + те же 2 блоба в индексе"
+    },
+    "after": {
+      "exit": 0,
+      "violations": 0,
+      "symlinks": 16,
+      "stdout_tail": "SYMLINK HYGIENE OK: копий данных в дереве кейса нет"
+    },
+    "bytes_removed_from_index": 456524032,
+    "bytes_removed_readable": "435,5 МиБ (456 524 032 Б) — два блоба по 228 262 016 Б ушли из индекса и из дерева",
+    "moved_files": [
+      {
+        "path_in_case": "runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25.npy",
+        "symlink_target": "/home/user/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25.npy",
+        "bytes": 228262016,
+        "sha256_before": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "sha256_after": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "index_mode_before": "100644",
+        "index_mode_after": "120000",
+        "index_blob_after": "07667e7a35dc8f765f8ba6b590a0ead41ca69d87"
+      },
+      {
+        "path_in_case": "runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25_pos.npy",
+        "symlink_target": "/home/user/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25_pos.npy",
+        "bytes": 228262016,
+        "sha256_before": "a8cad5f81609f95c15b02f1722869921d843291a2840a708828356e991d775cd",
+        "sha256_after": "a8cad5f81609f95c15b02f1722869921d843291a2840a708828356e991d775cd",
+        "index_mode_before": "100644",
+        "index_mode_after": "120000",
+        "index_blob_after": "4c98c64c89cb3287b82e4f73b84f2fb1463d94b0"
+      }
+    ],
+    "no_new_copy_made": "В отличие от эталона S3r, копировать байты не потребовалось: S3r уже положил их на сетевой диск. Перед удалением из дерева оба sha256 сверены с копиями на ~/gb10-shared — совпали; удалялись только дубликаты, единственный экземпляр не трогался. Симлинки побайтово совпали с S3r (те же блоб-хеши 07667e7a…/4c98c64c…), то есть обе ветки указывают на один физический экземпляр.",
+    "symlink_form": "Абсолютный путь — как в фактической реализации S3r и как у всех 14 ранее существовавших симлинков кейса. В постановке сказано «относительный путь, как в S3r»; это расхождение постановки с эталоном: S3r сделал абсолютные симлинки. Относительный путь здесь был бы непереносим между worktree (разная глубина вложенности) и разошёлся бы с остальными симлинками кейса.",
+    "data_single_copy_check": "Все три worktree, где лежали копии корпуса (laguna-control-arms, laguna-protocol-diag, laguna-fleet-analysis), теперь несут симлинки на один и тот же каталог ~/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/ — настоящих копий не осталось."
+  },
+  "c012": {
+    "rule": "C-012 / AD-2 «каждый каталог прогона несёт run_manifest.json»",
+    "check": "python3 tools/check_run_manifest.py --runs runs/",
+    "before": {
+      "exit": 1,
+      "dirs_without_manifest": 8,
+      "list": [
+        "calib-25-0.35-20260916-0820",
+        "calib-25-0.7-20260916-0820",
+        "calib-50-0.35-20260916-0820",
+        "calib-50-0.7-20260916-0820",
+        "calib-audit-20260916",
+        "calib-grid-20260916-0820",
+        "calib-ppl-20260916-0820",
+        "replay50-collapse-20260916"
+      ]
+    },
+    "after": {
+      "exit": 0,
+      "violations": 0,
+      "runs": 12,
+      "skipped_not_a_run": 6,
+      "warnings": 5,
+      "stdout_tail": "RUN MANIFESTS OK"
+    },
+    "manifests_written": [
+      {
+        "dir": "runs/calib-25-0.35-20260916-0820",
+        "corpus": "v12r",
+        "replay_share_pct": 25,
+        "peak_lr_scale": 0.35,
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "run_version": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "pipeline_complete": true
+      },
+      {
+        "dir": "runs/calib-25-0.7-20260916-0820",
+        "corpus": "v12r",
+        "replay_share_pct": 25,
+        "peak_lr_scale": 0.7,
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "pipeline_version": "laguna_pipeline_calib.py@ee8341d0f163",
+        "run_version": "tools/run_mix_lr_calib.py@49389b65e452",
+        "pipeline_complete": true
+      },
+      {
+        "dir": "runs/calib-50-0.35-20260916-0820",
+        "corpus": "v12r50",
+        "replay_share_pct": 50,
+        "peak_lr_scale": 0.35,
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "run_version": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "pipeline_complete": true
+      },
+      {
+        "dir": "runs/calib-50-0.7-20260916-0820",
+        "corpus": "v12r50",
+        "replay_share_pct": 50,
+        "peak_lr_scale": 0.7,
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "run_version": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "pipeline_complete": true
+      },
+      {
+        "dir": "runs/replay50-collapse-20260916",
+        "corpus": "v12r50f",
+        "dataset_sha256": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "pipeline_version": "laguna_pipeline_ctrl.py@1571cbd1043d",
+        "run_version": "runs/replay50-collapse-20260916/run_control_train.py@35ef5d3c962b",
+        "pipeline_complete": false,
+        "stages": [
+          {
+            "name": "cpt",
+            "status": "failed"
+          }
+        ],
+        "basis": "cpt=failed по факту упавшего смоука (CTRL_STEPS=5): падение на загрузке весов до первого шага, AttributeError: 'NoneType' object has no attribute 'endswith' (smoke_train.log). Маркер NOT_A_RUN спрятал бы этот прогон от AD-2."
+      }
+    ],
+    "not_a_run_markers": [
+      {
+        "dir": "runs/calib-grid-20260916-0820",
+        "reason": "запись о запуске сетки (grid_launch.json) — прогоны здесь её руки; сверено: arms=[25-0.35, 50-0.7, 50-0.35]"
+      },
+      {
+        "dir": "runs/calib-ppl-20260916-0820",
+        "reason": "сводка PPL-прибора (smoke.json, схема calib-ppl-probe/1) — приборный отчёт, не прогон"
+      },
+      {
+        "dir": "runs/calib-audit-20260916",
+        "reason": "аудит утечек eval (leak_check.json, схема calib-eval-leak-fast/1) — вердикт прибора, не прогон"
+      }
+    ],
+    "method": "Значения не переносились руками: манифесты четырёх рук S3m пересобраны tools/write_run_manifest.py, а входные величины взяты разбором chain_command.txt самого прогона (фактическая команда запуска цепочки) — --dataset, --image, --model, --seed, --max-len, --runner-sha12 и --extra-hyperparam replay_share_pct/peak_lr_scale/corpus. Пути к датасетам сверены отдельно, хеши посчитаны инструментом по факту."
+  },
+  "cross_check_vs_stand": {
+    "what": "Манифесты четырёх рук сверены с независимым носителем — манифестами стенда ~/gb10-shared/calib/<рука>/run_manifest.json",
+    "fields": [
+      "dataset_sha256",
+      "pipeline_sha256",
+      "pipeline_version",
+      "base_model_id",
+      "seed",
+      "image",
+      "run_version",
+      "hyperparameters.corpus"
+    ],
+    "result": "все поля совпали для всех четырёх рук (28 из 28 сверок)"
+  },
+  "divergence_from_s3r": [
+    {
+      "field": "calib-25-0.35 / calib-25-0.7 hyperparameters.corpus",
+      "s3r_value": "v12r50",
+      "this_value": "v12r",
+      "basis": "calib_params.json обеих рук (corpus_label «v12r (75/25…)», cpt_dataset_host …cpt_corpus_v12r_8192_qwen25.npy), chain_command.txt (--extra-hyperparam corpus=v12r), манифест стенда (corpus=v12r) и ADR-047 п.6 («Рука 25 % сетки S3m идёт по существующему кэшу v12r»). Четыре независимых носителя против одного.",
+      "note": "Правка НЕ внесена в ветку arch/laguna-protocol-diag (вне дельты S3s-2). Расхождение зафиксировано здесь и вынесено архитектору: в S3r значение corpus для двух 25-%-рук, по-видимому, перенесено копированием с 50-%-рук."
+    },
+    {
+      "field": "arch_base_version",
+      "s3r_value": "2f85a12 (HEAD ветки arch/laguna-protocol-diag в момент S3r)",
+      "this_value": "a0ed9c9 (HEAD ветки arch/laguna-control-arms в момент S3s-2)",
+      "basis": "Поле заполняется инструментом как git rev-parse --short HEAD корня кейса в момент записи манифеста. Это «коммит, на котором факты манифеста пересчитаны и засвидетельствованы», а не коммит, из которого прогон был произведён: обе записи относятся к прогонам S3m, сделанным раньше. Различие ожидаемо и не означает расхождения фактов о прогоне."
+    }
+  ],
+  "verification": {
+    "commands": [
+      {
+        "cmd": "bash tools/check_symlink_hygiene.sh .",
+        "exit": 0
+      },
+      {
+        "cmd": "python3 tools/check_run_manifest.py --runs runs/",
+        "exit": 0
+      },
+      {
+        "cmd": "git ls-files -s runs/replay50-collapse-20260916/corpus/tok/",
+        "exit": 0,
+        "note": "оба пути в индексе — режим 120000 (симлинк)"
+      },
+      {
+        "cmd": "sha256sum runs/replay50-collapse-20260916/corpus/tok/*.npy",
+        "exit": 0,
+        "note": "хеши через симлинк совпали с хешами до замены (байты не изменились)"
+      }
+    ],
+    "bytes_in_index_after": "крупных (>50 МБ) блобов в индексе не осталось"
+  },
+  "invariants": [
+    "AD-4",
+    "AD-2",
+    "AD-12"
+  ]
+}

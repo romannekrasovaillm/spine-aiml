@@ -54,7 +54,7 @@ struct Cli {
     #[arg(long, global = true, value_name = "dark|light|auto")]
     theme: Option<String>,
 
-    /// Без цвета: смысл несут символы и атрибуты (NO_COLOR тоже работает).
+    /// Без цвета: смысл несут символы и атрибуты (`NO_COLOR` тоже работает).
     #[arg(long, global = true)]
     no_color: bool,
 

@@ -348,11 +348,11 @@ mod tests {
     #[test]
     fn renders_sequence_with_note() {
         let art = render(
-            "sequenceDiagram\nparticipant A as Клиент\nparticipant B as Банк\nA->>B: Запрос\nB-->>A: Ответ\nNote right of B: Проверка",
+            "sequenceDiagram\nparticipant A as Клиент\nparticipant B as Сервис\nA->>B: Запрос\nB-->>A: Ответ\nNote right of B: Проверка",
         )
         .unwrap();
         assert!(art.contains("│ Клиент │"), "нет бокса участника:\n{art}");
-        assert!(art.contains("│ Банк │"), "нет бокса участника:\n{art}");
+        assert!(art.contains("│ Сервис │"), "нет бокса участника:\n{art}");
         assert!(art.contains("Запрос"), "нет метки сообщения:\n{art}");
         assert!(art.contains('▶'), "нет стрелки ->>:\n{art}");
         assert!(art.contains('◀'), "нет стрелки -->> назад:\n{art}");

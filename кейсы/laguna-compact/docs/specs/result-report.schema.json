@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "S4 result report",
+  "description": "Схема отчёта точки решения пилота (фаза 1) — evidence/result-report.json. Формат: docs/specs/S4-PROTOCOL.md §5.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["axis", "single_seed", "n_attempts", "k_of_k", "std", "generation", "rl_health", "verdict", "limits"],
+  "properties": {
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "rl", "sft", "delta", "exceeds_noise"],
+      "properties": {
+        "metric": {"type": "string", "const": "judge_mean"},
+        "rl": {"type": "number"},
+        "sft": {"type": "number"},
+        "delta": {"type": "number"},
+        "exceeds_noise": {"type": "boolean"}
+      }
+    },
+    "single_seed": {"type": "boolean"},
+    "n_attempts": {"type": "integer", "minimum": 1},
+    "k_of_k": {"type": ["number", "null"]},
+    "std": {"type": ["number", "null"]},
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k1", "k2", "domain_v3"],
+      "properties": {
+        "k1": {"$ref": "#/$defs/language_component"},
+        "k2": {"$ref": "#/$defs/language_component"},
+        "domain_v3": {"$ref": "#/$defs/domain_component"}
+      }
+    },
+    "rl_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entropy", "clip_frac", "zero_reward_share", "hit_timeout"],
+      "properties": {
+        "entropy": {"type": "number"},
+        "clip_frac": {"type": "number"},
+        "zero_reward_share": {"type": "number"},
+        "hit_timeout": {"type": "integer"}
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["phase2", "stop", "escalate", "insufficient_evidence"]
+    },
+    "limits": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "language_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ppl", "baseline", "ceiling"],
+      "properties": {
+        "ppl": {"type": "number"},
+        "baseline": {"type": "number"},
+        "ceiling": {"type": "number"}
+      }
+    },
+    "domain_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ppl", "baseline", "relation"],
+      "properties": {
+        "ppl": {"type": "number"},
+        "baseline": {"type": "number"},
+        "relation": {"type": "number"}
+      }
+    }
+  }
+}

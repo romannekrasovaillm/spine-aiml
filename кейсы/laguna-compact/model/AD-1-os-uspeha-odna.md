@@ -3,7 +3,7 @@ id: AD-1
 type: ad
 title: "Ось успеха одна и объявлена до прогона"
 status: "PROPOSED"
-affects: [C-014]
+affects: []
 verified_by: [C-014]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

@@ -1,0 +1,1205 @@
+{
+  "node": "pool-v2-reproducibility",
+  "delta": "pool-v2-reproducibility",
+  "date": "2026-09-20",
+  "status": "complete",
+  "subject": "Пул ревизии v2 воспроизводится КОДОМ: пересборка даёт байт-в-байт тот же файл, что лежит на сетевом диске (sha256 e678eb68…, 9162 строки). Прежнее состояние — карточка сверялась с файлом; теперь доказано порождение.",
+  "prior_state": {
+    "claim_in_case": "README.md (строка «конвертер пула в ветке — ревизия до S3f-fix (`35f933d`)… карточка факта не воспроизводится кодом этой ветки (только сверяется с файлом)», статус «не закрыто»); evidence/pool-v2-reconcile-verification.json (`«Пересобрать пул в этой ветке нельзя»`); evidence/s3z2-canonization.json (канон не воспроизводит карточку: 0 вхождений chain_projection)",
+    "measured": "опровергнуто измерением: редакция bd0b6f03 (S3f-fix-2) присутствует в дереве и в истории канона",
+    "how_closed": "редакция вошла в канон мержем ba31f97 «arch: accept worktree laguna-chain-projection» (16.09.2026): у ba31f97^ файл = ec7eb4be (S3f), у ba31f97 = bd0b6f03 (S3f-fix-2); та же редакция в c0a1480 и в backup/pre-filterrepo-20260917"
+  },
+  "verdict": "воспроизводим",
+  "verdict_basis": "sha256 пересборки == sha256 файла-факта; файлы совпали байт-в-байт (cmp без вывода)",
+  "build_command": {
+    "cwd": "кейсы/laguna-compact (относительные дефолты прибора разрешаются от каталога кейса)",
+    "argv": [
+      "python3",
+      "tools/build_rev_envs.py",
+      "--out",
+      "/tmp/pool-v2-repro-poolv2repro/pool.jsonl",
+      "--card",
+      "/tmp/pool-v2-repro-poolv2repro/card.json",
+      "--report",
+      "/tmp/pool-v2-repro-poolv2repro/report.json",
+      "--link",
+      "/tmp/pool-v2-repro-poolv2repro/link.jsonl"
+    ],
+    "defaults_used": {
+      "--envs-root": "~/library/rl_envs",
+      "--env-types": "datasets/rl_tasks_env_types.jsonl",
+      "--sft": "datasets/sft_train_v12.jsonl",
+      "--eval": "datasets/eval_ood_clean.jsonl",
+      "--v1": "datasets/rl_tasks_revpool_v1.jsonl",
+      "--index": "datasets/concepts_search_index.jsonl"
+    },
+    "flags_not_passed": [
+      "--update-registry (реестр envs.yaml не трогался)",
+      "--force",
+      "--dry-run",
+      "--no-report"
+    ],
+    "why_explicit_paths": "дефолты --out/--card/--report/--link ведут на рабочие артефакты (сетевой диск, data/, runs/rev-pool-v2/): пересборка направлена в отдельный каталог, ни один рабочий файл и симлинк не тронуты",
+    "python": "3.11.8"
+  },
+  "inputs": {
+    "registry_envs_yaml": {
+      "path": "/home/user/library/rl_envs/envs.yaml",
+      "sha256": "626d33a3c4d4923129b64495e1b95e9966a27b1d98fa18485a95dbd884269815",
+      "mtime": "2026-09-16T06:31:30"
+    },
+    "tasks": {
+      "classify.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/classify.jsonl",
+        "sha256": "e13d37d7c9a47c66a616d7e0b57a616e641372c757415560f551c824c8526118",
+        "mtime": "2026-08-01T11:44:28"
+      },
+      "contrast.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/contrast.jsonl",
+        "sha256": "2ec46bc3ccbc3d27d33ca9b1df7c653398248aa8e20a527afc01e7ed9f385de8",
+        "mtime": "2026-07-10T16:24:28"
+      },
+      "define.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/define.jsonl",
+        "sha256": "745d1c53994cdf3ad14f35c3192455cd82d3f2896c81a601438d5ee128cf4bcf",
+        "mtime": "2026-07-10T16:24:28"
+      },
+      "extract.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/extract.jsonl",
+        "sha256": "43bbb5dd08f6938295cc1665cf6b14fe906ba19f397d7cece8863c909d03f1fc",
+        "mtime": "2026-07-10T16:24:28"
+      },
+      "formula.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/formula.jsonl",
+        "sha256": "74275a460df026efe07444eb3c6ce478132ebe7c3d667691da69b309c37a9368",
+        "mtime": "2026-07-11T10:03:01"
+      },
+      "plan_experiment.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/plan_experiment.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mtime": "2026-07-12T09:37:27"
+      },
+      "relate.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/relate.jsonl",
+        "sha256": "c7084edfb6ccd76e33954738215775100737f7f0886bda60d080712868e96e0b",
+        "mtime": "2026-07-10T16:24:28"
+      },
+      "repair.jsonl": {
+        "path": "/home/user/library/rl_envs/tasks/repair.jsonl",
+        "sha256": "82b6c9136e2b09af19366235e8d847c31313e14500328411f1fb2319c2bdf3c9",
+        "mtime": "2026-07-11T10:03:04"
+      }
+    },
+    "env_types": {
+      "path": "datasets/rl_tasks_env_types.jsonl",
+      "sha256": "103f1eee7ca8af8e11aab648848cf67e273e6692113c9306612912c3c09199da",
+      "mtime": "2026-08-24T10:21:36"
+    },
+    "sft": {
+      "path": "datasets/sft_train_v12.jsonl",
+      "sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "mtime": "2026-08-28T16:50:00"
+    },
+    "eval": {
+      "path": "datasets/eval_ood_clean.jsonl",
+      "sha256": "f94fb8556cabf3d5386fec1569dfd5e4e796b15c97dfc935bf7bd8f9879bb1d6",
+      "mtime": "2026-08-03T06:31:45"
+    },
+    "v1": {
+      "path": "datasets/rl_tasks_revpool_v1.jsonl",
+      "sha256": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+      "mtime": "2026-09-14T09:51:35"
+    },
+    "index": {
+      "path": "datasets/concepts_search_index.jsonl",
+      "sha256": "92b86c9b64efe02c4d82506afdeb3fc6952324f701e6452144f492a1272adfeb",
+      "mtime": "2026-08-08T06:21:37"
+    },
+    "tools": {
+      "tools/build_rev_envs.py": {
+        "sha256": "bd0b6f03361aa33290018e1608f2294a22c396d9ce8822ad8755f1592a2484e8"
+      },
+      "tools/check_eval_leakage.py": {
+        "sha256": "de57da2d59303bd144a4986251420d4f2a634741ac06f200677e38471aa3af98"
+      },
+      "tools/check_sft_rl_overlap.py": {
+        "sha256": "3bc293b882fca6a74d5da6b69c2fe6c3168e80a2e97fd5f4e159a522b07218b5"
+      },
+      "tools/probe_pool_v2_reachability.py": {
+        "sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9"
+      }
+    },
+    "frozen_verifier": {
+      "path": "laguna_pipeline_v8.py -> /home/user/gb10-shared/laguna_pipeline_v8.py",
+      "sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+      "role": "судья замера п.5; в сборку пула не входит"
+    }
+  },
+  "inputs_note": "mtime всех входов предшествует сборке 16.09.2026 08:09 — после сборки они не менялись. Хеши sft/eval/v1/env_types в карточке не записаны: их тождество прогону 16.09 доказуемо только через mtime и через сам факт совпадения выхода, а не сверкой объявленного хеша. Реестр и индекс — записаны, и совпали: 626d33a3… и 92b86c9b…",
+  "rebuild": {
+    "path": "/tmp/pool-v2-repro-poolv2repro/pool.jsonl",
+    "lines": 9162,
+    "bytes": 7443712,
+    "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+    "fact": {
+      "path": "/home/user/gb10-shared/datasets/rl_tasks_revpool_v2.jsonl",
+      "lines": 9162,
+      "bytes": 7443712,
+      "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+    },
+    "byte_identical": true
+  },
+  "rebuild_dir_note": "Каталог пересборки — /tmp/pool-v2-repro-poolv2repro (постоянным хранилищем не является): файл пересборки не сохранён намеренно — сохранять его значило бы завести вторую копию пула рядом с фактом (AD-4/SSOT). Воспроизводимость обеспечена командой в build_command и sha256 в этом файле; артефакт пересоздаётся ею за ~14 с.",
+  "comparison": {
+    "line_by_line": "cmp без вывода — файлы тождественны побайтово (не только sha256)",
+    "card": {
+      "script_sections_identical": [
+        "card",
+        "decision",
+        "sources_unchanged",
+        "inputs",
+        "envs",
+        "gold_projection",
+        "filters",
+        "checks",
+        "leak_fix",
+        "chain_projection",
+        "counts",
+        "limits"
+      ],
+      "diff_only_paths": {
+        "pool": {
+          "rebuilt_path": "/tmp/pool-v2-repro-poolv2repro/pool.jsonl",
+          "repo_path": "datasets/rl_tasks_revpool_v2.jsonl"
+        },
+        "report": {
+          "rebuilt": "/tmp/pool-v2-repro-poolv2repro/report.json",
+          "repo": "runs/rev-pool-v2/exclusions.json"
+        }
+      },
+      "repo_only_annotations": [
+        "previous_declaration",
+        "rebuilt_at",
+        "rebuilt_by_commit",
+        "reconciliation",
+        "s3f_fix_note",
+        "s3f_fix_status"
+      ]
+    },
+    "exclusions_report": {
+      "records": 166,
+      "repo_records": 166,
+      "identical_as_ordered_list": true,
+      "only_diff": "pool.path (каталог пересборки) — остальные секции совпали"
+    },
+    "distributions": {
+      "by_task_type": {
+        "chain_reasoning": 278,
+        "explain_relation": 394,
+        "find_concept": 8298,
+        "formula_chain": 192
+      },
+      "by_env_in_pool": {
+        "E2_formula": 1814,
+        "E3_classify": 6484,
+        "E5_relate": 194,
+        "env_types": 670
+      },
+      "by_reason": {
+        "judge_weight": 3,
+        "prompt_leak": 138,
+        "token_too_short": 3,
+        "gold_unprojectable": 1,
+        "env_empty": 1,
+        "ambiguous_prompt": 4,
+        "duplicate_gold": 15,
+        "duplicate_prompt": 1
+      },
+      "filters": {
+        "duplicates": {
+          "excluded": 20,
+          "remaining": 9162
+        },
+        "eval_overlap": {
+          "excluded": 0,
+          "remaining": 9162
+        },
+        "v1_overlap": {
+          "excluded": 0,
+          "remaining": 9162
+        },
+        "sft_overlap": {
+          "excluded": 0,
+          "remaining": 9162
+        }
+      },
+      "candidates": 9182,
+      "kept": 9162
+    },
+    "excluded_envs": [
+      "E1_define",
+      "E4_extract",
+      "E6_contrast",
+      "E7_repair",
+      "E8_plan_experiment"
+    ]
+  },
+  "determinism": {
+    "method": "два read-only прогона (--dry-run --json) с разными PYTHONHASHSEED; sha256 пула считается в памяти",
+    "runs": [
+      {
+        "PYTHONHASHSEED": 0,
+        "lines": 9162,
+        "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+      },
+      {
+        "PYTHONHASHSEED": 1,
+        "lines": 9162,
+        "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+      }
+    ],
+    "note": "порядок пула — порядок источников (pool_text: «порядок источников сохраняется»), а не обход set; различие хеш-сидов на выход не влияет"
+  },
+  "card_provenance": {
+    "built_by_script": [
+      "pool.path",
+      "pool.lines",
+      "pool.sha256",
+      "pool.link"
+    ],
+    "added_later_by_deltas": [
+      "previous_declaration",
+      "rebuilt_at",
+      "rebuilt_by_commit",
+      "reconciliation",
+      "s3f_fix_note",
+      "s3f_fix_status"
+    ],
+    "note": "карточка на диске = вывод сборки + аннотации дельт (S3p/reconcile). Скрипт полей rebuilt_at/rebuilt_by_commit/previous_declaration/reconciliation НЕ пишет: объявленный rebuilt_by_commit=c0a1480 и rebuilt_at=16.09.2026 08:09 — свидетельство дельты, а не вывода прибора"
+  },
+  "adr021_p5": {
+    "asked": "ADR-021, «Отложенные решения», вопрос 5: достижимость эталона через search_concepts проверена ad-hoc (20 задач), в артефакт не входит — вынести в evidence следующей дельты",
+    "original_sample_recoverable": false,
+    "why_not": "ad-hoc прогон не оставил ни списка task_id, ни seed, ни прибора, ни критерия: в evidence, docs и карточке нет ни одного артефакта с 20 задачами достижимости (ADR-021 называет только число). «Те же 20 задач» восстановить нечем",
+    "missing_to_reproduce_original": [
+      "список source_task_id (20 штук)",
+      "прибор замера и его редакция",
+      "критерий достижимости (что считалось успехом)",
+      "seed/способ выборки, если выборка случайна"
+    ],
+    "substitute": {
+      "what": "новая детерминированная выборка тем же прибором; task_id напечатаны поимённо, чтобы следующий прогон шёл по тем же задачам",
+      "tool": "tools/probe_pool_v2_reachability.py",
+      "tool_sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+      "criterion": "эталон достижим, если объединённый вывод search_concepts по запросам, ИЗВЛЕЧЁННЫМ ИЗ ПРОМПТА (прогоны латинских токенов; эталон в построении запроса не участвует), проходит замороженный verify_task — то есть проверяемые строки добываются инструментом и переносятся в ответ. Копия вывода инструмента — верхняя граница хода: verify_task текст <tool_response> не считает",
+      "control": "тот же судья на самом промпте (лейк-инвариант ADR-021 п.3): ожидание 0",
+      "runs": [
+        {
+          "sample": "по типам задач (5 на тип, seed 42)",
+          "command": "python3 tools/probe_pool_v2_reachability.py",
+          "n": 20,
+          "reachable": 18,
+          "prompt_alone_passes": 0,
+          "by_stratum": {
+            "chain_reasoning": {
+              "n": 5,
+              "reachable": 5,
+              "prompt_alone": 0,
+              "gold_in_output": 5
+            },
+            "explain_relation": {
+              "n": 5,
+              "reachable": 5,
+              "prompt_alone": 0,
+              "gold_in_output": 5
+            },
+            "find_concept": {
+              "n": 5,
+              "reachable": 3,
+              "prompt_alone": 0,
+              "gold_in_output": 3
+            },
+            "formula_chain": {
+              "n": 5,
+              "reachable": 5,
+              "prompt_alone": 0,
+              "gold_in_output": 5
+            }
+          },
+          "task_ids": [
+            "line:65",
+            "line:15",
+            "line:152",
+            "line:136",
+            "line:125",
+            "E5_heterogeneous_expert_initialization_to_dynamic_token_level_routing",
+            "line:684",
+            "E5_federated_learning_to_aidrin",
+            "line:653",
+            "line:686",
+            "E2_loss_chasing_metric",
+            "E3_candidate_selection_procedure",
+            "E2_optimal_threshold_cfr",
+            "E2_nash_social_welfare",
+            "E2_predictive_asymmetry",
+            "line:360",
+            "line:364",
+            "line:436",
+            "line:462",
+            "line:308"
+          ],
+          "tasks": [
+            {
+              "task_id": "line:65",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "social_bubble_detour",
+                "llm_as_human_proxy_hypothesis",
+                "llm_hypothesis_generator",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "social_bubble_detour",
+                "llm_as_human_proxy_hypothesis",
+                "llm_hypothesis_generator"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'social_bubble_detour'\nКонец: 'llm_as_human_proxy_hypothesis'\nШаг 1: Найди определение 'social_bubble_"
+            },
+            {
+              "task_id": "line:15",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "cxl_memory_modeling",
+                "batch_scheduler",
+                "memory_model",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "cxl_memory_modeling",
+                "batch_scheduler"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'cxl_memory_modeling'\nКонец: 'batch_scheduler'\nШаг 1: Найди определение 'cxl_memory_modeling'.\nШаг 2: "
+            },
+            {
+              "task_id": "line:152",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "intent_manager",
+                "monitor_tools",
+                "network_planner_agent",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "intent_manager",
+                "monitor_tools"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'intent_manager'\nКонец: 'monitor_tools'\nШаг 1: Найди определение 'intent_manager'.\nШаг 2: Через поиск "
+            },
+            {
+              "task_id": "line:136",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "conflict_in_steering_torques",
+                "silent_automation_failure",
+                "haptic_shared_control",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "conflict_in_steering_torques",
+                "silent_automation_failure",
+                "haptic_shared_control"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'conflict_in_steering_torques'\nКонец: 'silent_automation_failure'\nШаг 1: Найди определение 'conflict_i"
+            },
+            {
+              "task_id": "line:125",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "native_lm",
+                "query_selection_algorithm",
+                "explorer_lm",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "native_lm",
+                "query_selection_algorithm",
+                "explorer_lm"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'native_lm'\nКонец: 'query_selection_algorithm'\nШаг 1: Найди определение 'native_lm'.\nШаг 2: Через поис"
+            },
+            {
+              "task_id": "E5_heterogeneous_expert_initialization_to_dynamic_token_level_routing",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "Heterogeneous Expert Initialization",
+                "Expert Initialization",
+                "Initialization",
+                "Dynamic Token-Level Routing",
+                "Token-Level Routing",
+                "Routing"
+              ],
+              "queries_with_gold": [
+                "Heterogeneous Expert Initialization",
+                "Expert Initialization"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Как связаны Heterogeneous Expert Initialization и Dynamic Token-Level Routing? Опиши отношение и через какие концепции идёт связь."
+            },
+            {
+              "task_id": "line:684",
+              "task_type": "explain_relation",
+              "source_env": "env_types",
+              "queries": [
+                "static_rule_based_tasks_l1",
+                "family",
+                "Benchmark Task Categories",
+                "Task Categories",
+                "Categories",
+                "adaptive_noise_allocates_exploration_dynamically",
+                "Empirical result",
+                "result"
+              ],
+              "queries_with_gold": [
+                "static_rule_based_tasks_l1",
+                "adaptive_noise_allocates_exploration_dynamically"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Объясни связь между концептами из разных областей ML: 'static_rule_based_tasks_l1' (family: Benchmark Task Categories) и 'adaptive_noise_allocates_exploration_d"
+            },
+            {
+              "task_id": "E5_federated_learning_to_aidrin",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "Federated Learning",
+                "Learning",
+                "AI Data Readiness Inspector",
+                "Data Readiness Inspector",
+                "Readiness Inspector",
+                "Inspector",
+                "AIDRIN"
+              ],
+              "queries_with_gold": [
+                "Federated Learning",
+                "AI Data Readiness Inspector",
+                "Data Readiness Inspector",
+                "Readiness Inspector",
+                "AIDRIN"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Как связаны Federated Learning (FL) и AI Data Readiness Inspector (AIDRIN)? Опиши отношение и через какие концепции идёт связь."
+            },
+            {
+              "task_id": "line:653",
+              "task_type": "explain_relation",
+              "source_env": "env_types",
+              "queries": [
+                "knowledge_driven_scenario",
+                "family",
+                "Clinical AI Benchmarks",
+                "AI Benchmarks",
+                "Benchmarks",
+                "fractional_composition_array",
+                "Materials Representation",
+                "Representation"
+              ],
+              "queries_with_gold": [
+                "knowledge_driven_scenario",
+                "fractional_composition_array"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Объясни связь между концептами из разных областей ML: 'knowledge_driven_scenario' (family: Clinical AI Benchmarks) и 'fractional_composition_array' (family: Mat"
+            },
+            {
+              "task_id": "line:686",
+              "task_type": "explain_relation",
+              "source_env": "env_types",
+              "queries": [
+                "qlora_post_pruning_finetuning",
+                "family",
+                "Post-Training Recovery",
+                "Recovery",
+                "ehrqa_benchmark",
+                "Medical QA Benchmarks",
+                "QA Benchmarks",
+                "Benchmarks"
+              ],
+              "queries_with_gold": [
+                "qlora_post_pruning_finetuning",
+                "ehrqa_benchmark"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Объясни связь между концептами из разных областей ML: 'qlora_post_pruning_finetuning' (family: Post-Training Recovery) и 'ehrqa_benchmark' (family: Medical QA B"
+            },
+            {
+              "task_id": "E2_loss_chasing_metric",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Index of Loss Chasing",
+                "of Loss Chasing",
+                "Loss Chasing",
+                "Chasing"
+              ],
+              "queries_with_gold": [
+                "Loss Chasing",
+                "Chasing"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Index of Loss Chasing (ILC) в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E3_candidate_selection_procedure",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "1000",
+                "queries",
+                "documents",
+                "topic-based",
+                "summary-based",
+                "topic-only",
+                "summary-only",
+                "both.",
+                "A/B/C"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nПроцедура отбора 1000 запросов (queries) и для каждого запроса 150 кандидатов (documents) из корпуса задач. Кандидаты отбираются на"
+            },
+            {
+              "task_id": "E2_optimal_threshold_cfr",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Optimal Threshold under Constant Failure Rate",
+                "Threshold under Constant Failure Rate",
+                "under Constant Failure Rate",
+                "Constant Failure Rate",
+                "Failure Rate",
+                "Rate"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Optimal Threshold under Constant Failure Rate в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_nash_social_welfare",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Nash Social Welfare",
+                "Social Welfare",
+                "Welfare"
+              ],
+              "queries_with_gold": [
+                "Nash Social Welfare"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Nash Social Welfare в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_predictive_asymmetry",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Predictive Asymmetry",
+                "Asymmetry"
+              ],
+              "queries_with_gold": [
+                "Predictive Asymmetry"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Predictive Asymmetry в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "line:360",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "star_generalization_glue_x",
+                "sdm_short_context_performance_improvement",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "star_generalization_glue_x",
+                "sdm_short_context_performance_improvement"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'star_generalization_glue_x'\nКонцепт B: 'sdm_short_context_performance_improvement'\nНайди оба определения, выпиши "
+            },
+            {
+              "task_id": "line:364",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "nested_training_strategy",
+                "self_supervised_contrastive_pre_training_for_session_graphs",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "nested_training_strategy",
+                "self_supervised_contrastive_pre_training_for_session_graphs"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'nested_training_strategy'\nКонцепт B: 'self_supervised_contrastive_pre_training_for_session_graphs'\nНайди оба опре"
+            },
+            {
+              "task_id": "line:436",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "spectral_readout_via_hermitian_inner_product",
+                "rollout_contrastive_hard_case_dpo",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "spectral_readout_via_hermitian_inner_product",
+                "rollout_contrastive_hard_case_dpo"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'spectral_readout_via_hermitian_inner_product'\nКонцепт B: 'rollout_contrastive_hard_case_dpo'\nНайди оба определени"
+            },
+            {
+              "task_id": "line:462",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "model_human_filter_pipeline",
+                "group_based_policy_gradient_as_implicit_target_projection",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "model_human_filter_pipeline",
+                "group_based_policy_gradient_as_implicit_target_projection"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'model_human_filter_pipeline'\nКонцепт B: 'group_based_policy_gradient_as_implicit_target_projection'\nНайди оба опр"
+            },
+            {
+              "task_id": "line:308",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "kappa_lora",
+                "hsg_dataset_variants",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "kappa_lora",
+                "hsg_dataset_variants"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'kappa_lora'\nКонцепт B: 'hsg_dataset_variants'\nНайди оба определения, выпиши ключевые формулы/числовые закономерно"
+            }
+          ]
+        },
+        {
+          "sample": "по средам-источникам (5 на среду, seed 42)",
+          "command": "python3 tools/probe_pool_v2_reachability.py --stratify-by source_env",
+          "n": 20,
+          "reachable": 15,
+          "prompt_alone_passes": 0,
+          "by_stratum": {
+            "E2_formula": {
+              "n": 5,
+              "reachable": 5,
+              "prompt_alone": 0,
+              "gold_in_output": 5
+            },
+            "E3_classify": {
+              "n": 5,
+              "reachable": 1,
+              "prompt_alone": 0,
+              "gold_in_output": 1
+            },
+            "E5_relate": {
+              "n": 5,
+              "reachable": 4,
+              "prompt_alone": 0,
+              "gold_in_output": 3
+            },
+            "env_types": {
+              "n": 5,
+              "reachable": 5,
+              "prompt_alone": 0,
+              "gold_in_output": 5
+            }
+          },
+          "task_ids": [
+            "E2_f1_score",
+            "E2_enhancement_factor",
+            "E2_bayesian_inversion_for_attribution",
+            "E2_per_subsystem_paired_effect",
+            "E2_possibilistic_posterior",
+            "E3_mixed_precision_kv_storage",
+            "E3_heterogeneous_rollout_buckets",
+            "E3_scaling_laws_for_model_and_data",
+            "E3_progressive_training_curriculum",
+            "E3_moe_expert_partitioning",
+            "E5_neg_grade_confound_analysis_downstream_demand_signal",
+            "E5_neg_ote_se_equivalence_downstream_demand_signal",
+            "E5_probability_estimation_methods_to_trajectory_related_edge_case_detection",
+            "E5_complexity_based_routing_to_multi_tier_inference",
+            "E5_neg_MMA_dataset_dense_kl",
+            "line:462",
+            "line:38",
+            "line:36",
+            "line:105",
+            "line:242"
+          ],
+          "tasks": [
+            {
+              "task_id": "E2_f1_score",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "F1 Score",
+                "Score"
+              ],
+              "queries_with_gold": [
+                "F1 Score"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу F1 Score в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_enhancement_factor",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Enhancement Factor",
+                "Factor"
+              ],
+              "queries_with_gold": [
+                "Enhancement Factor"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Enhancement Factor в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_bayesian_inversion_for_attribution",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Bayesian Inversion for Attribution",
+                "Inversion for Attribution",
+                "for Attribution",
+                "Attribution"
+              ],
+              "queries_with_gold": [
+                "Bayesian Inversion for Attribution",
+                "Inversion for Attribution",
+                "for Attribution"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Bayesian Inversion for Attribution в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_per_subsystem_paired_effect",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Per-Subsystem Paired Effect",
+                "Paired Effect",
+                "Effect"
+              ],
+              "queries_with_gold": [
+                "Per-Subsystem Paired Effect",
+                "Paired Effect"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Per-Subsystem Paired Effect в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E2_possibilistic_posterior",
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "queries": [
+                "Possibilistic Posterior",
+                "Posterior"
+              ],
+              "queries_with_gold": [
+                "Possibilistic Posterior"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Запиши формулу Possibilistic Posterior в LaTeX и расшифруй каждое обозначение."
+            },
+            {
+              "task_id": "E3_mixed_precision_kv_storage",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "FP16",
+                "INT8",
+                "scale s",
+                "127.",
+                "A/B/C"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nСистемный компонент, который хранит недавние W токенов в FP16, а более старые — в INT8 с симметричной квантизацией на голову и кана"
+            },
+            {
+              "task_id": "E3_heterogeneous_rollout_buckets",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "buckets",
+                "P_rollout",
+                "C-MLFQ.",
+                "A/B/C"
+              ],
+              "queries_with_gold": [
+                "buckets"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nНабор инстансов инференса с разной степенью тензорного параллелизма (TP), которые используются для выполнения запросов на генерацию"
+            },
+            {
+              "task_id": "E3_scaling_laws_for_model_and_data",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "M_ opt",
+                "0.1715",
+                "cdot C",
+                "0.5243",
+                "D_ opt",
+                "5.8316",
+                "0.4757",
+                "non-embedding FLOPs/token",
+                "FLOPs/token",
+                "A/B/C"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nЭмпирические степенные зависимости, определяющие оптимальное распределение вычислительного бюджета C между увеличением масштаба мод"
+            },
+            {
+              "task_id": "E3_progressive_training_curriculum",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "Tempo",
+                "Stage 0",
+                "Modality Alignment",
+                "Alignment",
+                "Stage 1",
+                "Pre-training",
+                "Stage 2",
+                "Broad SFT",
+                "Stage 3",
+                "Long-Context SFT",
+                "SVLM",
+                "A/B/C"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nЧетырехэтапный прогрессивный учебный план для обучения Tempo, обеспечивающий стабильную оптимизацию и экстраполяцию контекста. Этап"
+            },
+            {
+              "task_id": "E3_moe_expert_partitioning",
+              "task_type": "find_concept",
+              "source_env": "E3_classify",
+              "queries": [
+                "CPU-only",
+                "SME-only",
+                "mixed",
+                "thin matrices",
+                "matrices",
+                "mixed.",
+                "A/B/C"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Дано определение концепции:\n\nСтратегия выбора бэкенда (CPU-only, SME-only, mixed) для каждого эксперта в MoE слое в зависимости от количества токенов, назначенн"
+            },
+            {
+              "task_id": "E5_neg_grade_confound_analysis_downstream_demand_signal",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "Grade-Source-Truth Confound Analysis",
+                "Confound Analysis",
+                "Analysis",
+                "Downstream Demand Signal",
+                "Demand Signal",
+                "Signal"
+              ],
+              "queries_with_gold": [
+                "Grade-Source-Truth Confound Analysis",
+                "Confound Analysis",
+                "Downstream Demand Signal",
+                "Demand Signal"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Связаны ли Grade-Source-Truth Confound Analysis и Downstream Demand Signal? Если да — как, если нет — объясни почему."
+            },
+            {
+              "task_id": "E5_neg_ote_se_equivalence_downstream_demand_signal",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "OTE-SE Equivalence",
+                "Equivalence",
+                "One-Time Editing",
+                "Editing",
+                "Sequential Editing Equivalence",
+                "Editing Equivalence",
+                "Downstream Demand Signal",
+                "Demand Signal",
+                "Signal"
+              ],
+              "queries_with_gold": [
+                "OTE-SE Equivalence",
+                "Sequential Editing Equivalence",
+                "Editing Equivalence",
+                "Downstream Demand Signal",
+                "Demand Signal"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Связаны ли OTE-SE Equivalence (One-Time Editing / Sequential Editing Equivalence) и Downstream Demand Signal? Если да — как, если нет — объясни почему."
+            },
+            {
+              "task_id": "E5_probability_estimation_methods_to_trajectory_related_edge_case_detection",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "Probability Estimation Methods for Trajectory Edge Case Detection",
+                "Estimation Methods for Trajectory Edge Case Detection",
+                "Methods for Trajectory Edge Case Detection",
+                "for Trajectory Edge Case Detection",
+                "Trajectory Edge Case Detection",
+                "Edge Case Detection",
+                "Case Detection",
+                "Detection",
+                "Trajectory-Related Edge Case Detection"
+              ],
+              "queries_with_gold": [],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Как связаны Probability Estimation Methods for Trajectory Edge Case Detection и Trajectory-Related Edge Case Detection? Опиши отношение и через какие концепции "
+            },
+            {
+              "task_id": "E5_complexity_based_routing_to_multi_tier_inference",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "Complexity-Based Routing with LLM-as-a-Judge",
+                "Routing with LLM-as-a-Judge",
+                "with LLM-as-a-Judge",
+                "LLM-as-a-Judge",
+                "Three-Tier LLM Inference Architecture",
+                "LLM Inference Architecture",
+                "Inference Architecture",
+                "Architecture"
+              ],
+              "queries_with_gold": [
+                "Complexity-Based Routing with LLM-as-a-Judge"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Как связаны Complexity-Based Routing with LLM-as-a-Judge и Three-Tier LLM Inference Architecture? Опиши отношение и через какие концепции идёт связь."
+            },
+            {
+              "task_id": "E5_neg_MMA_dataset_dense_kl",
+              "task_type": "explain_relation",
+              "source_env": "E5_relate",
+              "queries": [
+                "MMA Dataset",
+                "Dataset",
+                "DenseKL"
+              ],
+              "queries_with_gold": [],
+              "reachable": false,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Связаны ли MMA Dataset и DenseKL? Если да — как, если нет — объясни почему."
+            },
+            {
+              "task_id": "line:462",
+              "task_type": "formula_chain",
+              "source_env": "env_types",
+              "queries": [
+                "model_human_filter_pipeline",
+                "group_based_policy_gradient_as_implicit_target_projection",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "model_human_filter_pipeline",
+                "group_based_policy_gradient_as_implicit_target_projection"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'model_human_filter_pipeline'\nКонцепт B: 'group_based_policy_gradient_as_implicit_target_projection'\nНайди оба опр"
+            },
+            {
+              "task_id": "line:38",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "consensus_recommendation_set",
+                "sharp_concentrating_persona",
+                "within_persona_jaccard",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "consensus_recommendation_set",
+                "sharp_concentrating_persona",
+                "within_persona_jaccard"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'consensus_recommendation_set'\nКонец: 'sharp_concentrating_persona'\nШаг 1: Найди определение 'consensu"
+            },
+            {
+              "task_id": "line:36",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "sequence_similarity_analysis",
+                "inverse_model",
+                "latent_transition",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "sequence_similarity_analysis",
+                "inverse_model",
+                "latent_transition"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'sequence_similarity_analysis'\nКонец: 'inverse_model'\nШаг 1: Найди определение 'sequence_similarity_an"
+            },
+            {
+              "task_id": "line:105",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "multiple_domains_in_benchmarks",
+                "rag_based_hallucination_detection_gap",
+                "trivia_plus_benchmark",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "multiple_domains_in_benchmarks",
+                "rag_based_hallucination_detection_gap"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'multiple_domains_in_benchmarks'\nКонец: 'rag_based_hallucination_detection_gap'\nШаг 1: Найди определен"
+            },
+            {
+              "task_id": "line:242",
+              "task_type": "chain_reasoning",
+              "source_env": "env_types",
+              "queries": [
+                "boundary_condition_offline_mode",
+                "live_dataset_curation",
+                "offline_mode_inference",
+                "slug-"
+              ],
+              "queries_with_gold": [
+                "boundary_condition_offline_mode",
+                "live_dataset_curation"
+              ],
+              "reachable": true,
+              "prompt_alone_passes": false,
+              "prompt_excerpt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'boundary_condition_offline_mode'\nКонец: 'live_dataset_curation'\nШаг 1: Найди определение 'boundary_co"
+            }
+          ]
+        }
+      ],
+      "inputs": {
+        "pool": {
+          "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+        },
+        "index": {
+          "sha256": "92b86c9b64efe02c4d82506afdeb3fc6952324f701e6452144f492a1272adfeb"
+        },
+        "verifier_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d"
+      },
+      "findings": [
+        "Контроль чист: копия промпта не проходит верификатор ни на одной из 40 задач — замер п.5 не пересекается с лейком.",
+        "Цепочки (chain_reasoning, formula_chain) достижимы 10/10: промпт называет slug-и концов, инструмент отдаёт определения, проверяемые термины берутся оттуда.",
+        "E5_relate 4/5 по средам (5/5 по типам): проверяется не slug, а термины определений — инструмент отдаёт именно определения.",
+        "find_concept 3/5: промахи названы поимённо. E2_optimal_threshold_cfr — в индексе ДВА концепта с одним заголовком «Optimal Threshold under Constant Failure Rate» (slug-и optimal_threshold_cfr и optimal_threshold_under_constant_failure_rate); search_concepts по заголовку возвращает второй, эталонный slug из промпта не выводится. E3_candidate_selection_procedure — промпт есть определение концепта без её имени, а search_concepts ищет по slug/заголовку, не по определениям.",
+        "E3_classify 1/5 (стратификация по средам): та же причина — промпт-определение без имени концепта, проверяемая строка (slug) из промпта не выводима. Единственная достижимая (E3_heterogeneous_rollout_buckets) достигнута случайным подстрочным совпадением запроса 'buckets' со slug.",
+        "Наблюдение с областью действия, не вердикт о пуле: E3_classify — 6484 задачи из 9162 (71 %), у 5333 из них (82,2 %) имя концепта в промпте отсутствует (строковая проверка с нормализацией [a-z0-9]). Проба измерила 5 задач этого класса; распространять 1/5 на 6484 нельзя без прогона. Кандидат следующей дельты: сопоставить проекцию E3 (проверяется slug) с её промптом (спрашивается тип/уровень/формальность)."
+      ]
+    },
+    "boundary": "достижимость измерена для 40 задач (20 по типам + 20 по средам); это не оценка доли по пулу. Что нужно для замера «на всех 9162»: прогон прибора по пулу (search_concepts линейно сканирует индекс — 1 c на запрос; полный проход ≈ 8–25 тыс. запросов) либо прогон модели, логирующий запросы"
+  },
+  "conflicts_with_prior_decisions": [
+    "README.md (строка статуса «не закрыто»), evidence/s3z-canonization.json, evidence/s3z2-canonization.json и evidence/pool-v2-reconcile-verification.json утверждают, что канон несёт редакцию конвертера до S3f-fix-2 и карточка кодом не воспроизводится. Измерение это опровергает: в дереве и в истории канона (мерж ba31f97) лежит bd0b6f03 = c0a1480 = backup/pre-filterrepo-20260917, и пересборка совпадает с фактом байт-в-байт. Прежние артефакты НЕ переписаны (ADR-028 п.4: история не переписывается) — расхождение названо здесь."
+  ],
+  "not_verified": [
+    "Тождество входов sft_train_v12/eval_ood_clean/revpool_v1/env_types прогону 16.09 — хеши в карточке не записаны; опора только на mtime и на совпадение выхода.",
+    "Воспроизведение на другой машине/другом окружении: проверено на этой (python 3.11.8), не проверено на чистом окружении.",
+    "Достижимость по всему пулу (9162) — измерены 40 задач; доля по пулу не оценена.",
+    "Тождество ad-hoc прогона п.5 (20 задач) — артефакта нет, восстановить нечем."
+  ],
+  "open_questions": [
+    "Внести ли редакцию прибора в реестр приборов (docs/specs/INSTRUMENT-VERSIONS.md ведёт только ppl_probe.py): у probe_pool_v2_reachability.py объявленный хеш живёт лишь в этом evidence.",
+    "Закрывать ли строку README «не закрыто» про конвертер пула — по измерению она устарела.",
+    "Проекция E3_classify (проверяется slug при промпте-определении): чинить сопоставление промпт↔мера или менять проекцию — решение архитектора."
+  ],
+  "commands_log": [
+    "cd кейсы/laguna-compact && python3 tools/build_rev_envs.py --out /tmp/pool-v2-repro-poolv2repro/pool.jsonl --card /tmp/pool-v2-repro-poolv2repro/card.json --report /tmp/pool-v2-repro-poolv2repro/report.json --link /tmp/pool-v2-repro-poolv2repro/link.jsonl",
+    "PYTHONHASHSEED=0 python3 tools/build_rev_envs.py --dry-run --json (sha256 в памяти: e678eb68…)",
+    "PYTHONHASHSEED=1 python3 tools/build_rev_envs.py --dry-run --json (sha256 в памяти: e678eb68…)",
+    "cmp /tmp/pool-v2-repro-poolv2repro/pool.jsonl /home/user/gb10-shared/datasets/rl_tasks_revpool_v2.jsonl (без вывода = тождество)",
+    "python3 tools/probe_pool_v2_reachability.py (20 задач по типам, seed 42)",
+    "python3 tools/probe_pool_v2_reachability.py --stratify-by source_env (20 задач по средам, seed 42)"
+  ],
+  "untouched": [
+    "/home/user/gb10-shared/datasets/rl_tasks_revpool_v2.jsonl (файл-факт)",
+    "runs/rev-pool-v2/rl_pool_filtered.jsonl (симлинк)",
+    "data/rev-envs-v2-card.json (карточка)",
+    "runs/rev-pool-v2/exclusions.json",
+    "/home/user/library/rl_envs/envs.yaml (реестр: --update-registry не передавался)"
+  ]
+}

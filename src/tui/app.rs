@@ -708,7 +708,7 @@ pub(crate) struct App {
     stream_started: Option<Instant>,
     /// Байты видимого ответа текущего хода (сумма Delta).
     stream_answer_bytes: usize,
-    /// Байты «мыслей» текущего хода (сумма ReasoningDelta).
+    /// Байты «мыслей» текущего хода (сумма `ReasoningDelta`).
     stream_think_bytes: usize,
     /// Живое состояние выполняющихся tool-вызовов: индекс блока → старт и
     /// хвост вывода. Запись умирает вместе с завершением вызова.
@@ -1203,16 +1203,13 @@ impl App {
     /// таймер, пульс heartbeat по mtime журнала).
     fn refresh_fleet(&mut self) {
         let fleet_dir = self.tool_ctx.config.paths.state_dir.join("fleet");
-        let path = match crate::fleet_run::latest_log(&fleet_dir) {
-            Ok(path) => path,
-            Err(_) => {
-                self.panels.fleet = format!(
-                    "Журналов прогонов нет: {}\n\
-                     запуск: arch-ml fleet run --plan <файл-плана>",
-                    fleet_dir.display()
-                );
-                return;
-            }
+        let Ok(path) = crate::fleet_run::latest_log(&fleet_dir) else {
+            self.panels.fleet = format!(
+                "Журналов прогонов нет: {}\n\
+                 запуск: arch-ml fleet run --plan <файл-плана>",
+                fleet_dir.display()
+            );
+            return;
         };
         let dashboard = match crate::fleet_run::render_log(&path) {
             Ok(s) => s,

@@ -7,7 +7,7 @@
 диаграмм → банковская зона): [diagrams/spine-be-architecture.html](diagrams/spine-be-architecture.html)
 (интерактивная; превью-кадр — [diagrams/spine-be-architecture.png](diagrams/spine-be-architecture.png),
 IR — [diagrams/spine-be-architecture.architecture.json](diagrams/spine-be-architecture.architecture.json)).
-Догфуд: IR авторствован самим Spine-BE (headless-прогон `arch-ml run`),
+Догфуд: IR авторствован самим харнессом (headless-прогон `arch-ml run`),
 рендер и приёмка — встроенным Archify (9/9 checks, composition showcase 0/0).
 
 Принципы: тонкий харнесс (никакой магии поверх OpenAI-совместимого

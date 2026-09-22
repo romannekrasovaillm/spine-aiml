@@ -73,7 +73,7 @@ pub const RUBRIC_DISTILLATION_QUALITY: &str =
 pub const RUBRIC_INFERENCE_DEPLOY_QUALITY: &str =
     include_str!("../assets/rubrics/inference_deploy_quality.yaml");
 
-/// Бенчмарк: интеграция платёжного шлюза.
+/// Бенчмарк: интеграция внешнего шлюза (`payment_integration.yaml`).
 pub const BENCH_PAYMENT_INTEGRATION: &str =
     include_str!("../assets/benchmarks/payment_integration.yaml");
 /// Бенчмарк: brownfield-декомпозиция монолита.

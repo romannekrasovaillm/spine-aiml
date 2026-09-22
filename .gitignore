@@ -36,3 +36,7 @@ deploy-kit/arch-be
 
 # Platform V arch-bench: тяжёлые прогоны (ячейки/логи) — в VCS не входят
 benchmarks/platformv-arch-bench/runs/
+
+# Сырые evidence прогонов кейсов живут в релизных архивах, не в дереве
+# (ревью 2026-09-22): кейс kimi-killer — см. кейсы/kimi-killer/evidence/README.md
+кейсы/kimi-killer/evidence/a4-run-wire/

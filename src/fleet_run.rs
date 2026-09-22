@@ -12,6 +12,7 @@
 //! `control.jsonl`, раннер читает его между items. Субпроцессы не делят
 //! память — файл как общий артефакт.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -292,6 +293,7 @@ impl FleetLog {
     /// # Errors
     /// Не удалось создать каталог или записать файл.
     pub fn append(&self, event: &FleetEvent) -> Result<()> {
+        use std::io::Write as _;
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| HarnessError::io(parent, e))?;
         }
@@ -302,7 +304,6 @@ impl FleetLog {
             .append(true)
             .open(&self.path)
             .map_err(|e| HarnessError::io(&self.path, e))?;
-        use std::io::Write as _;
         f.write_all(line.as_bytes())
             .map_err(|e| HarnessError::io(&self.path, e))?;
         Ok(())
@@ -416,6 +417,7 @@ impl ControlChannel {
     /// # Errors
     /// Ошибка записи.
     pub fn send(&self, agent_id: &str, cmd: ControlCommand, payload: Option<&str>) -> Result<()> {
+        use std::io::Write as _;
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| HarnessError::io(parent, e))?;
         }
@@ -433,7 +435,6 @@ impl ControlChannel {
             .append(true)
             .open(&self.path)
             .map_err(|e| HarnessError::io(&self.path, e))?;
-        use std::io::Write as _;
         f.write_all(line.as_bytes())
             .map_err(|e| HarnessError::io(&self.path, e))?;
         Ok(())
@@ -1098,17 +1099,12 @@ pub fn render_outcome(outcome: &FleetRunOutcome) -> String {
         outcome.log_path.display()
     );
     s.push_str("\nНазначения:\n");
+    // Запись в String не может завершиться ошибкой — игноры безопасны.
     for a in &outcome.plan.assignments {
-        s.push_str(&format!(
-            "  {} → {} (score {:.3})\n",
-            a.item_id, a.agent_id, a.score
-        ));
+        let _ = writeln!(s, "  {} → {} (score {:.3})", a.item_id, a.agent_id, a.score);
     }
     if !outcome.plan.unassigned.is_empty() {
-        s.push_str(&format!(
-            "Нераспределено: {}\n",
-            outcome.plan.unassigned.join(", ")
-        ));
+        let _ = writeln!(s, "Нераспределено: {}", outcome.plan.unassigned.join(", "));
     }
     s
 }
@@ -1186,10 +1182,11 @@ pub fn render_log(path: &Path) -> Result<String> {
     let mut nodes_status: std::collections::BTreeMap<String, String> =
         std::collections::BTreeMap::new();
     let mut n_heartbeat = 0usize;
+    // Запись в String не может завершиться ошибкой — игноры безопасны.
     for e in &events {
         match e {
             FleetEvent::RunStarted { package, .. } => {
-                s.push_str(&format!("Пакет: {package}\n"));
+                let _ = writeln!(s, "Пакет: {package}");
             }
             FleetEvent::ItemAssigned {
                 item_id,
@@ -1197,7 +1194,7 @@ pub fn render_log(path: &Path) -> Result<String> {
                 score,
                 ..
             } => {
-                s.push_str(&format!("  {item_id} → {agent_id} (score {score:.3})\n"));
+                let _ = writeln!(s, "  {item_id} → {agent_id} (score {score:.3})");
             }
             FleetEvent::AgentStarted { agent_id, at, .. } => {
                 if !agents.contains(agent_id) {
@@ -1231,9 +1228,10 @@ pub fn render_log(path: &Path) -> Result<String> {
                 n_unassigned,
                 ..
             } => {
-                s.push_str(&format!(
-                    "\nИтог: назначено {n_assigned} / успешно {n_done} / сбой {n_failed} / нераспределено {n_unassigned}\n"
-                ));
+                let _ = writeln!(
+                    s,
+                    "\nИтог: назначено {n_assigned} / успешно {n_done} / сбой {n_failed} / нераспределено {n_unassigned}"
+                );
             }
             FleetEvent::Control { .. } => {}
             FleetEvent::PlanStarted {
@@ -1243,17 +1241,19 @@ pub fn render_log(path: &Path) -> Result<String> {
                 n_waves,
                 ..
             } => {
-                s.push_str(&format!(
-                    "План: {plan_id} (паттерн {pattern}, узлов {n_nodes}, волн {n_waves})\n"
-                ));
+                let _ = writeln!(
+                    s,
+                    "План: {plan_id} (паттерн {pattern}, узлов {n_nodes}, волн {n_waves})"
+                );
             }
             FleetEvent::WaveStarted { wave, nodes, .. } => {
-                s.push_str(&format!(
-                    "\nВолна {}: {} узлов ({})\n",
+                let _ = writeln!(
+                    s,
+                    "\nВолна {}: {} узлов ({})",
                     wave + 1,
                     nodes.len(),
                     nodes.join(", ")
-                ));
+                );
             }
             FleetEvent::NodeQueued { node_id, .. } => {
                 nodes_status.insert(node_id.clone(), "в очереди пула".to_string());
@@ -1287,29 +1287,26 @@ pub fn render_log(path: &Path) -> Result<String> {
                 );
             }
             FleetEvent::RunResumed { completed, .. } => {
-                s.push_str(&format!(
-                    "Возобновление: уже завершено узлов {}\n",
-                    completed.len()
-                ));
+                let _ = writeln!(s, "Возобновление: уже завершено узлов {}", completed.len());
             }
             FleetEvent::RunHalted { reason, .. } => {
-                s.push_str(&format!("\nОстановлен по гейту: {reason}\n"));
+                let _ = writeln!(s, "\nОстановлен по гейту: {reason}");
             }
         }
     }
     if n_heartbeat > 0 {
-        s.push_str(&format!("heartbeats: {n_heartbeat}\n"));
+        let _ = writeln!(s, "heartbeats: {n_heartbeat}");
     }
     s.push_str("\nАгенты:\n");
     for id in agents {
         let st = status.get(&id).map_or("—", String::as_str);
         let at = started.get(&id).map_or("", String::as_str);
-        s.push_str(&format!("  {id:<16} {st}  (старт {at})\n"));
+        let _ = writeln!(s, "  {id:<16} {st}  (старт {at})");
     }
     if !nodes_status.is_empty() {
         s.push_str("\nУзлы плана:\n");
         for (id, st) in &nodes_status {
-            s.push_str(&format!("  {id:<24} {st}\n"));
+            let _ = writeln!(s, "  {id:<24} {st}");
         }
     }
     Ok(s)
@@ -1321,7 +1318,7 @@ pub fn render_log(path: &Path) -> Result<String> {
 pub struct FleetProgress {
     /// Узлов всего (план; без плана — назначенные агенты).
     pub total_nodes: usize,
-    /// Узлов завершено (NodeCompleted).
+    /// Узлов завершено (`NodeCompleted`).
     pub done_nodes: usize,
     /// Агентов всего видели в журнале.
     pub n_agents: usize,
@@ -1329,9 +1326,9 @@ pub struct FleetProgress {
     pub running_agents: usize,
     /// Всего heartbeat-событий.
     pub n_heartbeat: usize,
-    /// Прогон завершён штатно (RunFinished).
+    /// Прогон завершён штатно (`RunFinished`).
     pub finished: bool,
-    /// Прогон остановлен по гейту (RunHalted).
+    /// Прогон остановлен по гейту (`RunHalted`).
     pub halted: bool,
     /// Время старта (первое событие с `at`, формат `%Y-%m-%d %H:%M:%S`).
     pub started_at: Option<chrono::NaiveDateTime>,
@@ -1405,9 +1402,13 @@ pub fn progress_header(
 ) -> String {
     const CELLS: usize = 10;
     let mut parts = Vec::new();
-    if p.total_nodes > 0 {
-        let filled = p.done_nodes.saturating_mul(CELLS) / p.total_nodes;
-        let pct = p.done_nodes.saturating_mul(100) / p.total_nodes;
+    // Деление по checked-форме: узлов ноль — шкалы нет вовсе.
+    if let (Some(filled), Some(pct)) = (
+        p.done_nodes
+            .saturating_mul(CELLS)
+            .checked_div(p.total_nodes),
+        p.done_nodes.saturating_mul(100).checked_div(p.total_nodes),
+    ) {
         parts.push(format!(
             "{}{} {}/{} узлов ({}%)",
             gauge.0.repeat(filled),
@@ -1467,6 +1468,9 @@ fn parse_route(s: &str) -> Option<crate::control::Route> {
 }
 
 /// Парсит work-items из JSON-массива аргумента `items`.
+///
+/// # Errors
+/// `items` — не JSON-массив; у элемента неизвестный `route`.
 pub fn parse_items(value: &Value) -> Result<Vec<WorkItem>> {
     let arr = value
         .as_array()

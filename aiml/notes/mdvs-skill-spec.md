@@ -178,7 +178,6 @@
   glob:
     - "assets/plugins/*/skills/*/SKILL.md"
     - "aiml/plugins/*/skills/*/SKILL.md"
-    - "banking/plugins/*/skills/*/SKILL.md"
   ```
 * **Severity:** `error` (field `severity`; дефолт движка и есть `error`).
 * **Паттерны:** **не задаются через `pattern`** — тип самодостаточный (как
@@ -195,7 +194,6 @@
   glob:
     - "assets/plugins/*/skills/*/SKILL.md"
     - "aiml/plugins/*/skills/*/SKILL.md"
-    - "banking/plugins/*/skills/*/SKILL.md"
   severity: error
   owner: ml-architecture
   trigger: "появление/правка SKILL.md в plugins/*/skills/"

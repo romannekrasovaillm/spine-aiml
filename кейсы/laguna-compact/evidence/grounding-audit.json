@@ -1,0 +1,1721 @@
+{
+ "probe": "S4-pre — граундинг-аудит: из чего строить заземлённую ось RL",
+ "adr": "ADR-049 (Proposed)",
+ "question": "есть ли в контуре предмет для награды по состоянию (G1–G4): насколько текущий пул решается без действий, что может стать средой, что мешает бинаризации, чего стоит шаг и из чего собрать walking skeleton",
+ "tool": "tools/check_grounding.py",
+ "generated_at": "2026-09-20T09:18:33Z",
+ "pool": {
+  "path": "datasets/rl_tasks_revpool_v2.jsonl",
+  "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+  "n_tasks": 9162,
+  "parse_errors": [],
+  "shape": {
+   "by_verifier": {
+    "multi_slug_match": 8768,
+    "keyword_match": 394
+   },
+   "by_task_type": {
+    "find_concept": 8298,
+    "explain_relation": 394,
+    "chain_reasoning": 278,
+    "formula_chain": 192
+   },
+   "by_source_env": {
+    "E3_classify": 6484,
+    "E2_formula": 1814,
+    "env_types": 670,
+    "E5_relate": 194
+   }
+  }
+ },
+ "method": {
+  "a_no_action_proxy": "сравнение слов gold с словами промпта по нормализации",
+  "b_inventory": "пробы окружения выполнением, стенды не пробуются (AD-5/AD-9)",
+  "c_verifiers": "чтение порогов, валидации S3i и кода верификаторов",
+  "d_cost": "формула над замером S3-pre; оценка, не замер",
+  "e_skeleton": "план состава 50 × 3",
+  "read_only": "пул, наборы, среды и стенды не изменяются"
+ },
+ "no_action_proxy": {
+  "is_measurement": false,
+  "what_it_is": "верхняя граница подозрения на no-action-решаемость: восстановимость gold из текста промпта по словам",
+  "what_it_is_not": [
+   "не проба G2 (ADR-049 п.3(i)): та — rollout «текстовый ответ без вызовов», и её здесь никто не делал",
+   "не доказательство решаемости без действий: «слаг собирается из слов промпта» не значит, что модель его соберёт (и наоборот)",
+   "не оценка доли задач, которые агент решит текстом: меряется свойство данных, а не поведение политики"
+  ],
+  "definition": "задача покрыта ⇔ каждое слово gold встречается словом в промпте после нормализации (регистр, ё→е, разделители `-`/`_`/пробел → пробел)",
+  "normalization": {
+   "regex": "[^0-9a-zа-я]+",
+   "translit_cyr2lat": {
+    "ё": "e",
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "ж": "zh",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "kh",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "sch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya"
+   },
+   "translit_lat2cyr": {
+    "a": "а",
+    "b": "б",
+    "v": "в",
+    "g": "г",
+    "d": "д",
+    "e": "е",
+    "z": "з",
+    "i": "и",
+    "k": "к",
+    "l": "л",
+    "m": "м",
+    "n": "н",
+    "o": "о",
+    "p": "п",
+    "r": "р",
+    "s": "с",
+    "t": "т",
+    "u": "у",
+    "f": "ф",
+    "y": "й",
+    "c": "к",
+    "x": "кс",
+    "h": "х",
+    "j": "дж",
+    "w": "в",
+    "q": "к"
+   },
+   "scope": "одна и та же функция для gold и промпта"
+  },
+  "pool": {
+   "file": "datasets/rl_tasks_revpool_v2.jsonl",
+   "n_tasks": 9162,
+   "n_tasks_with_gold": 9162,
+   "n_tasks_without_gold": 0,
+   "n_gold_kind": {
+    "keywords": 394,
+    "slug": 8309,
+    "slug_words": 459
+   }
+  },
+  "totals": {
+   "words_all": {
+    "n": 9162,
+    "covered": 3092,
+    "share": 0.3375
+   },
+   "words_all_translit": {
+    "n": 9162,
+    "covered": 3128,
+    "share": 0.3414
+   },
+   "contiguous": {
+    "n": 9162,
+    "covered": 2748,
+    "share": 0.2999
+   },
+   "literal": {
+    "n": 9162,
+    "covered": 2,
+    "share": 0.0002
+   }
+  },
+  "by_gold_kind": [
+   {
+    "task_type": "slug",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "slug"
+    ],
+    "words_all": {
+     "n": 8309,
+     "covered": 2931,
+     "share": 0.3528
+    },
+    "words_translit": {
+     "n": 8309,
+     "covered": 2967,
+     "share": 0.3571
+    },
+    "contiguous": {
+     "n": 8309,
+     "covered": 2618,
+     "share": 0.3151
+    },
+    "literal": {
+     "n": 8309,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "slug_words",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "slug_words"
+    ],
+    "words_all": {
+     "n": 459,
+     "covered": 0,
+     "share": 0.0
+    },
+    "words_translit": {
+     "n": 459,
+     "covered": 0,
+     "share": 0.0
+    },
+    "contiguous": {
+     "n": 459,
+     "covered": 0,
+     "share": 0.0
+    },
+    "literal": {
+     "n": 459,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "keywords",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "keywords"
+    ],
+    "words_all": {
+     "n": 394,
+     "covered": 161,
+     "share": 0.4086
+    },
+    "words_translit": {
+     "n": 394,
+     "covered": 161,
+     "share": 0.4086
+    },
+    "contiguous": {
+     "n": 394,
+     "covered": 130,
+     "share": 0.3299
+    },
+    "literal": {
+     "n": 394,
+     "covered": 2,
+     "share": 0.0051
+    },
+    "share_median_words": 0.6667
+   }
+  ],
+  "by_group": [
+   {
+    "task_type": "find_concept",
+    "source_env": "E3_classify",
+    "verifier": "multi_slug_match",
+    "gold_kind": [
+     "slug"
+    ],
+    "words_all": {
+     "n": 6484,
+     "covered": 1295,
+     "share": 0.1997
+    },
+    "words_translit": {
+     "n": 6484,
+     "covered": 1331,
+     "share": 0.2053
+    },
+    "contiguous": {
+     "n": 6484,
+     "covered": 1141,
+     "share": 0.176
+    },
+    "literal": {
+     "n": 6484,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": [
+     "slug"
+    ],
+    "words_all": {
+     "n": 1814,
+     "covered": 1636,
+     "share": 0.9019
+    },
+    "words_translit": {
+     "n": 1814,
+     "covered": 1636,
+     "share": 0.9019
+    },
+    "contiguous": {
+     "n": 1814,
+     "covered": 1477,
+     "share": 0.8142
+    },
+    "literal": {
+     "n": 1814,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 1.0
+   },
+   {
+    "task_type": "chain_reasoning",
+    "source_env": "env_types",
+    "verifier": "multi_slug_match",
+    "gold_kind": [
+     "slug",
+     "slug_words"
+    ],
+    "words_all": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "words_translit": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "contiguous": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "literal": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "explain_relation",
+    "source_env": "env_types",
+    "verifier": "keyword_match",
+    "gold_kind": [
+     "keywords"
+    ],
+    "words_all": {
+     "n": 200,
+     "covered": 1,
+     "share": 0.005
+    },
+    "words_translit": {
+     "n": 200,
+     "covered": 1,
+     "share": 0.005
+    },
+    "contiguous": {
+     "n": 200,
+     "covered": 1,
+     "share": 0.005
+    },
+    "literal": {
+     "n": 200,
+     "covered": 1,
+     "share": 0.005
+    },
+    "share_median_words": 0.6667
+   },
+   {
+    "task_type": "explain_relation",
+    "source_env": "E5_relate",
+    "verifier": "keyword_match",
+    "gold_kind": [
+     "keywords"
+    ],
+    "words_all": {
+     "n": 194,
+     "covered": 160,
+     "share": 0.8247
+    },
+    "words_translit": {
+     "n": 194,
+     "covered": 160,
+     "share": 0.8247
+    },
+    "contiguous": {
+     "n": 194,
+     "covered": 129,
+     "share": 0.6649
+    },
+    "literal": {
+     "n": 194,
+     "covered": 1,
+     "share": 0.0052
+    },
+    "share_median_words": 1.0
+   },
+   {
+    "task_type": "formula_chain",
+    "source_env": "env_types",
+    "verifier": "multi_slug_match",
+    "gold_kind": [
+     "slug",
+     "slug_words"
+    ],
+    "words_all": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "words_translit": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "contiguous": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "literal": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   }
+  ],
+  "by_task_type": [
+   {
+    "task_type": "find_concept",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "slug"
+    ],
+    "words_all": {
+     "n": 8298,
+     "covered": 2931,
+     "share": 0.3532
+    },
+    "words_translit": {
+     "n": 8298,
+     "covered": 2967,
+     "share": 0.3576
+    },
+    "contiguous": {
+     "n": 8298,
+     "covered": 2618,
+     "share": 0.3155
+    },
+    "literal": {
+     "n": 8298,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "explain_relation",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "keywords"
+    ],
+    "words_all": {
+     "n": 394,
+     "covered": 161,
+     "share": 0.4086
+    },
+    "words_translit": {
+     "n": 394,
+     "covered": 161,
+     "share": 0.4086
+    },
+    "contiguous": {
+     "n": 394,
+     "covered": 130,
+     "share": 0.3299
+    },
+    "literal": {
+     "n": 394,
+     "covered": 2,
+     "share": 0.0051
+    },
+    "share_median_words": 0.6667
+   },
+   {
+    "task_type": "chain_reasoning",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "slug",
+     "slug_words"
+    ],
+    "words_all": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "words_translit": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "contiguous": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "literal": {
+     "n": 278,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   },
+   {
+    "task_type": "formula_chain",
+    "source_env": "—",
+    "verifier": "—",
+    "gold_kind": [
+     "slug",
+     "slug_words"
+    ],
+    "words_all": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "words_translit": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "contiguous": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "literal": {
+     "n": 192,
+     "covered": 0,
+     "share": 0.0
+    },
+    "share_median_words": 0.0
+   }
+  ],
+  "examples": [
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:1",
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "3d_latent_alignment_loss"
+    ],
+    "prompt": "Запиши формулу 3D Latent Alignment Loss в LaTeX и расшифруй каждое обозначение.",
+    "why": "все слова gold встречаются словами промпта",
+    "share_words": 1.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:1819",
+    "task_type": "find_concept",
+    "source_env": "E3_classify",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "abs_max_scaling"
+    ],
+    "prompt": "Дано определение концепции:\n\nAbs-Max Scaling — оператор групповой стандартизации $N(\\cdot; S)$, который делит каждое значение $s_{prc}$ на group-wide maximum absolute value, оставляя zero point сигнала неизменным.\n\nОпред",
+    "why": "все слова gold встречаются словами промпта",
+    "share_words": 1.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:8299",
+    "task_type": "explain_relation",
+    "source_env": "E5_relate",
+    "verifier": "keyword_match",
+    "gold_kind": "keywords",
+    "gold": [
+     "abductive_hypothesis",
+     "justification"
+    ],
+    "prompt": "Как связаны Abductive Hypothesis и Justification? Опиши отношение и через какие концепции идёт связь.",
+    "why": "все слова gold встречаются словами промпта",
+    "share_words": 1.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:9114",
+    "task_type": "explain_relation",
+    "source_env": "env_types",
+    "verifier": "keyword_match",
+    "gold_kind": "keywords",
+    "gold": [
+     "prompt_strategies_for_idea_generation",
+     "connection_between_remax_and_risk_sensitive_rl",
+     "related"
+    ],
+    "prompt": "Объясни связь между концептами из разных областей ML: 'prompt_strategies_for_idea_generation' (family: LLM Prompting) и 'connection_between_remax_and_risk_sensitive_rl' (family: Related Work). Найди оба определения и опи",
+    "why": "все слова gold встречаются словами промпта",
+    "share_words": 1.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:3",
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "abductive_hypothesis"
+    ],
+    "prompt": "Запиши формулу Abductive Hypothesis в LaTeX и расшифруй каждое обозначение.",
+    "why": "все слова gold встречаются словами промпта",
+    "share_words": 1.0
+   }
+  ],
+  "examples_not_covered": [
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:2",
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "aam_softmax_loss"
+    ],
+    "prompt": "Запиши формулу Additive Angular Margin Softmax Loss в LaTeX и расшифруй каждое обозначение.",
+    "why": "не все слова gold есть в промпте",
+    "share_words": 0.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:14",
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "adjoint_method_for_ndde"
+    ],
+    "prompt": "Запиши формулу Adjoint Method for Neural Delay Differential Equations в LaTeX и расшифруй каждое обозначение.",
+    "why": "не все слова gold есть в промпте",
+    "share_words": 0.0
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:15",
+    "task_type": "find_concept",
+    "source_env": "E2_formula",
+    "verifier": "multi_slug_match",
+    "gold_kind": "slug",
+    "gold": [
+     "adjusted_jl_relationship"
+    ],
+    "prompt": "Запиши формулу Adjusted Johnson-Lindenstrauss Relationship for Optimized Vectors в LaTeX и расшифруй каждое обозначение.",
+    "why": "не все слова gold есть в промпте",
+    "share_words": 0.0
+   }
+  ],
+  "caveats": [
+   "смысл метрики разный по группам: у `env_types` gold — русские слова из карточки (не слаги), у `keyword_match` — `keywords`, у остальных — слаги; одно число «покрыто N %» через группы складывать нельзя",
+   "у 222 задач gold содержит однобуквенные слова: они находятся в промпте почти всегда, поэтому покрытие может быть завышено (измеренный вклад — единицы слагов из тысяч)",
+   "покрытие слага не равно утечке ответа: у `find_concept` ответ — не слаг, а определение; слаг здесь — то, чем меряет награду верификатор пула"
+  ]
+ },
+ "actions_in_pool": {
+  "n_tasks": 9162,
+  "fields": {
+   "chain_roles": 470,
+   "expected_relation": 394,
+   "expected_slugs": 8768,
+   "keywords": 394,
+   "max_steps": 470,
+   "n_min_steps": 470,
+   "prompt": 9162,
+   "rerouted_from": 200,
+   "reward": 9162,
+   "source_env": 9162,
+   "source_task_id": 9162,
+   "task_type": 9162,
+   "verifier": 9162
+  },
+  "fields_unknown": [],
+  "action_field_present": false,
+  "n_tasks_with_structural_marker": 0,
+  "structural_marker_examples": [],
+  "lexical": {
+   "tool_call": {
+    "in_prompts": 1,
+    "in_all_pool_text": 20,
+    "n_tasks": 10
+   },
+   "action": {
+    "in_prompts": 308,
+    "in_all_pool_text": 599,
+    "n_tasks": 304
+   }
+  },
+  "lexical_examples_are_concept_names": [
+   {
+    "line": 1682,
+    "source_task_id": "E2_tool_call_efficiency",
+    "prompt": "Запиши формулу Tool Call Efficiency в LaTeX и расшифруй каждое обозначение."
+   },
+   {
+    "line": 3149,
+    "source_task_id": "E3_tool_calling",
+    "prompt": "Дано определение концепции:\n\nTool calling — это механизм, позволяющий LLM-модели генерировать структурированны"
+   },
+   {
+    "line": 3904,
+    "source_task_id": "E3_pdp_pep_agent_tool_calls",
+    "prompt": "Дано определение концепции:\n\nA PDP/PEP (Policy Decision Point / Policy Enforcement Point) for agent tool calls"
+   }
+  ],
+  "cross_check_adr049": {
+   "adr_claim": "в задачах нет инструментов/действий; 310 вхождений слова «action» — названия концептов",
+   "adr_word_action_occurrences": 310,
+   "our_word_action_in_prompts": 308,
+   "delta": 2,
+   "agree": true,
+   "note": "число вхождений слова сходится с замером ADR-049 (расхождение — конвенция счёта: здесь регистронезависимая подстрока по полю `prompt`), и ни одно вхождение не является разметкой вызова: структурных признаков нет"
+  },
+  "read": "действий в задачах нет: ни разметки вызова, ни полей инструментов; вхождения слов «action»/«tool_call» — имена концептов"
+ },
+ "gold_in_metadata": {
+  "checked": "source_task_id против gold",
+  "n_with_gold": 9162,
+  "n_gold_in_source_task_id": 8492,
+  "share": 0.9269,
+  "examples": [
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:1",
+    "source_task_id": "e2_3d_latent_alignment_loss",
+    "gold": [
+     "3d_latent_alignment_loss"
+    ]
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:2",
+    "source_task_id": "e2_aam_softmax_loss",
+    "gold": [
+     "aam_softmax_loss"
+    ]
+   },
+   {
+    "where": "datasets/rl_tasks_revpool_v2.jsonl:3",
+    "source_task_id": "e2_abductive_hypothesis",
+    "gold": [
+     "abductive_hypothesis"
+    ]
+   }
+  ],
+  "note": "ответ лежит в поле `source_task_id` **той же записи**: в текст промпта он не подставляется (`prompt` — отдельное поле), но среда, отдающая агенту задачу целиком, отдаст вместе с ней и ответ; при построении наблюдения поле обязано быть отброшено — это и есть проба (ii) ADR-049 в части «утечка в среду»"
+ },
+ "groundable_inventory": [
+  {
+   "id": "fs_artifact",
+   "what": "файловая система: артефакт, записанный rollout в песочницу",
+   "role": "среда",
+   "probe": {
+    "checked": true,
+    "case_root": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact",
+    "writable": true,
+    "tmp_writable": true
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "успех — наличие и содержимое файла, а не текст ответа"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без действия файла нет: no-action даёт 0 по построению"
+    },
+    "G3": {
+     "fit": "partial",
+     "why": "верификатор читает файл, но если агент пишет туда же, куда смотрит верификатор, это класс взлома «запись в источник проверки» (ADR-049 п.1, G3)"
+    },
+    "G4": {
+     "fit": "partial",
+     "why": "нужен свежий каталог на rollout и откат; детерминизм достижим, изоляция — см. `isolation`"
+    }
+   },
+   "gaps": [
+    "нет реализации песочницы: каталог, права, откат и таймаут придётся вводить",
+    "граница «куда агент пишет / откуда читает верификатор» должна быть разведена монтированием или вторым процессом, иначе G3 не выполняется"
+   ],
+   "verdict": "пригодно с оговоркой"
+  },
+  {
+   "id": "git_repo",
+   "what": "git-репозиторий кейса и worktree (коммит, индекс, содержимое по sha)",
+   "role": "среда",
+   "probe": {
+    "checked": true,
+    "toplevel": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms",
+    "git_dir": "/home/user/spine-aiml/.git/worktrees/laguna-control-arms",
+    "is_linked_worktree": false,
+    "n_worktrees": 2
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "состояние — коммит/индекс/дерево: `git cat-file`, `git status --porcelain` дают бинарный ответ"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без действия состояние не меняется"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "проверка состояния репозитория извне рабочего каталога агента — сильнее, чем чтение текста"
+    },
+    "G4": {
+     "fit": "partial",
+     "why": "свежий `git worktree add`/`clone --local` от пиннутого sha детерминирован; цена на rollout не измерена"
+    }
+   },
+   "gaps": [
+    "кейс и worktree — живые рабочие каталоги с незакоммиченными файлами: rollout нельзя пускать в них напрямую (нужна копия)",
+    "цена per-rollout копии репозитория не измерена"
+   ],
+   "verdict": "пригодно с оговоркой"
+  },
+  {
+   "id": "shell",
+   "what": "shell: команда как действие, код возврата как состояние",
+   "role": "инструмент",
+   "probe": {
+    "checked": true,
+    "bash": "GNU bash, версия 5.2.21(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2022 Free",
+    "echo_rc": 0,
+    "tools": {
+     "timeout": "/usr/bin/timeout",
+     "setsid": "/usr/bin/setsid",
+     "ulimit": null,
+     "env": "/usr/bin/env",
+     "nice": "/usr/bin/nice"
+    }
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "код возврата и stdout — наблюдаемое состояние исполнения"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без запуска команды код возврата не появляется"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "код возврата читает внешний процесс, а не ответ модели"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "shell без песочницы не изолирован: сеть, файлы и процессы видны целиком; `timeout` есть, но это не изоляция"
+    }
+   },
+   "gaps": [
+    "нет jail: cwd/env/ulimit/timeout — это ограничение, а не изоляция",
+    "нужен явный список разрешённых команд или отказ от shell в пользу узкого инструмента с фиксированным контрактом"
+   ],
+   "verdict": "пригодно с оговоркой"
+  },
+  {
+   "id": "isolation",
+   "what": "изоляция rollout (G4): пространства имён, контейнер или jail",
+   "role": "ограничение",
+   "probe": {
+    "checked": true,
+    "method": "реальные запуски bwrap/unshare с коротким таймаутом; стенд не задействован",
+    "bwrap": {
+     "bwrap": "/usr/bin/bwrap"
+    },
+    "unshare": {
+     "unshare": "/usr/bin/unshare"
+    },
+    "firejail": {
+     "firejail": null
+    },
+    "nsjail": {
+     "nsjail": null
+    },
+    "docker_binary": {
+     "docker": "/usr/bin/docker"
+    },
+    "docker_socket": true,
+    "in_docker_group": true,
+    "user_namespaces_max": "191494",
+    "cap_effective_hex": "0000000000000000",
+    "attempts": {
+     "bwrap_ro_bind_unshare_net": {
+      "rc": 1,
+      "stdout": "",
+      "stderr": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+     },
+     "bwrap_ro_bind_tmpfs": {
+      "rc": 1,
+      "stdout": "",
+      "stderr": "bwrap: setting up uid map: Permission denied"
+     },
+     "unshare_n": {
+      "rc": 1,
+      "stdout": "",
+      "stderr": "unshare: unshare failed: Операция не позволена"
+     },
+     "unshare_Ur": {
+      "rc": 1,
+      "stdout": "",
+      "stderr": "unshare: write failed /proc/self/uid_map: Операция не позволена"
+     }
+    },
+    "result": "изоляция пространствами имён в этой оболочке недоступна: bwrap/unshare падают (карта uid, netns; CapEff без единого бита)",
+    "caveat": "проба снята **в оболочке этого хоста**, а RL-стадия идёт на стенде GB10 внутри контейнера pytorch: права там другие, и результат пробы на контейнер стадии не переносится",
+    "gaps": [
+     "нет проверенного механизма per-rollout изоляции на хосте; кандидаты — контейнер на rollout (демон и группа docker есть, запуск не проверялся, чтобы не занимать машину) или изоляция на уровне процесса (cwd, env, timeout)",
+     "без сетевого пространства имён «нет внешней сети» — политика, а не механизм: её надо либо обеспечить иначе, либо назвать честно"
+    ]
+   },
+   "g": {
+    "G1": {
+     "fit": "n/a",
+     "why": "не про награду"
+    },
+    "G2": {
+     "fit": "n/a",
+     "why": "не про награду"
+    },
+    "G3": {
+     "fit": "n/a",
+     "why": "не про награду"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "проба показала: bwrap и unshare в этой оболочке падают (uid_map/netns, CapEff=0); контейнерный путь есть (демон и группа docker), но не проверялся запуском"
+    }
+   },
+   "gaps": [
+    "нет проверенного механизма per-rollout изоляции на хосте; кандидаты — контейнер на rollout (демон и группа docker есть, запуск не проверялся, чтобы не занимать машину) или изоляция на уровне процесса (cwd, env, timeout)",
+    "без сетевого пространства имён «нет внешней сети» — политика, а не механизм: её надо либо обеспечить иначе, либо назвать честно",
+    "результат снят на хосте-4080; на стенде GB10 права другие — пробу надо повторить внутри контейнера стадии"
+   ],
+   "verdict": "требует проверки"
+  },
+  {
+   "id": "http_mock",
+   "what": "локальный HTTP-мок: запрос как действие, журнал сервера как состояние",
+   "role": "среда",
+   "probe": {
+    "module": {
+     "rc": 0,
+     "stdout": "ok",
+     "stderr": ""
+    },
+    "loopback_bind": {
+     "ok": true,
+     "port": 42843
+    },
+    "checked": true,
+    "method": "bind(127.0.0.1, 0) + импорт http.server; внешняя сеть не трогается"
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "состояние — запись на стороне сервера, а не текст ответа"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без запроса журнал пуст"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "журнал ведёт сервер; агент в него не пишет — класс «запись в источник проверки» закрыт по построению"
+    },
+    "G4": {
+     "fit": "partial",
+     "why": "порт на rollout (эфирный или из сида), обработчик детерминирован, таймаут обязателен; сетевой изоляции нет"
+    }
+   },
+   "gaps": [
+    "мока нет: его надо написать (обработчик, журнал, контракт ошибок)",
+    "без netns агент видит и внешнюю сеть: либо запрет на уровне инструмента, либо честная запись ограничения"
+   ],
+   "verdict": "пригодно с оговоркой"
+  },
+  {
+   "id": "state_db",
+   "what": "файлы состояния / БД (sqlite) как проверяемое состояние",
+   "role": "среда",
+   "probe": {
+    "module_version": "3.45.2",
+    "create_read_ok": true,
+    "row": "v",
+    "db_bytes": 12288,
+    "checked": true,
+    "method": "sqlite3 в mktemp-каталоге: создать, записать, прочитать, убрать"
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "строка в таблице — наблюдаемое состояние"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без действия строки нет"
+    },
+    "G3": {
+     "fit": "partial",
+     "why": "верификатор читает БД; если агент открывает тот же файл на запись, различие «сделал инструментом» и «написал текстом в файл» теряется"
+    },
+    "G4": {
+     "fit": "yes",
+     "why": "свежая БД на rollout, схема из фикстуры, откат — удаление файла"
+    }
+   },
+   "gaps": [
+    "нужен запрет обхода инструмента: писать в БД должен инструмент, а не агент напрямую — иначе награда снова за текст"
+   ],
+   "verdict": "пригодно с оговоркой"
+  },
+  {
+   "id": "case_tools",
+   "what": "инструменты кейса `tools/*.py` как инструменты агента",
+   "role": "инструмент",
+   "probe": {
+    "checked": true,
+    "method": "инспекция каталога: имена и размеры; ни один инструмент кейса не запускается (запуск = работа на кейсе и стенде)",
+    "n_py": 54,
+    "split_rule": "AD-10: гейт ссылается только на check_*; раннеры и билдеры — руками",
+    "tool_tests": {
+     "checked": true,
+     "method": "инспекция файла (наличие, размер); запуск здесь намеренно не делается",
+     "path": "tools/tests/run_tool_tests.sh",
+     "exists": true,
+     "bytes": 520718,
+     "runnable_as_reward": false,
+     "why": "это настоящий детерминированный проверяльщик состояния (код возврата = состояние), но он идёт минуты и рекурсивно вызывает себя, если его вызывать из аудита: годится как внешний верификатор, не как шаг rollout"
+    },
+    "suitability": "готовых «инструментов агента» в контуре нет: `tools/*` — стражи, раннеры и сборщики дельт; как инструменты rollout они требуют стенда, больших данных и прав записи в кейс (нарушение AD-4)"
+   },
+   "g": {
+    "G1": {
+     "fit": "partial",
+     "why": "у `check_*` состояние — код возврата и отчёт, это награда по состоянию"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без запуска отчёта нет"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "верификатор — сам инструмент; его вердикт не переписывается текстом ответа"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "стражи читают кейс и ходят на стенд; права записи и время работы несовместимы с шагом rollout"
+    }
+   },
+   "gaps": [
+    "это не «инструменты агента», а стражи дельты: как среда они требуют живого кейса, стенда и минут времени",
+    "годный кандидат — один узкий детерминированный инструмент с фиксированным контрактом, написанный под rollout, а не взятый из `tools/`"
+   ],
+   "verdict": "непригодно"
+  },
+  {
+   "id": "tool_tests",
+   "what": "`tools/tests/run_tool_tests.sh` как внешний верификатор состояния",
+   "role": "инструмент",
+   "probe": {
+    "checked": true,
+    "method": "инспекция файла (наличие, размер); запуск здесь намеренно не делается",
+    "path": "tools/tests/run_tool_tests.sh",
+    "exists": true,
+    "bytes": 520718,
+    "runnable_as_reward": false,
+    "why": "это настоящий детерминированный проверяльщик состояния (код возврата = состояние), но он идёт минуты и рекурсивно вызывает себя, если его вызывать из аудита: годится как внешний верификатор, не как шаг rollout"
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "состояние — код возврата набора тестов"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без действия набор не прогоняется"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "вердикт выносит внешний процесс"
+    },
+    "G4": {
+     "fit": "partial",
+     "why": "детерминирован, но идёт минуты — на шаг rollout не влезает"
+    }
+   },
+   "gaps": [
+    "дорогой: годится на внешний eval, не на награду внутри шага"
+   ],
+   "verdict": "пригодно с оговоркой — не для шага"
+  },
+  {
+   "id": "envs_bank",
+   "what": "текстовые «среды» E1–E8 (`~/library/rl_envs`)",
+   "role": "источник данных",
+   "probe": {
+    "checked": true,
+    "root": "/home/user/library/rl_envs",
+    "task_files": [
+     "classify.jsonl",
+     "contrast.jsonl",
+     "define.jsonl",
+     "extract.jsonl",
+     "formula.jsonl",
+     "plan_experiment.jsonl",
+     "relate.jsonl",
+     "repair.jsonl"
+    ],
+    "n_task_files": 8,
+    "n_tasks_lines": {
+     "classify.jsonl": 6568,
+     "contrast.jsonl": 100,
+     "define.jsonl": 414,
+     "extract.jsonl": 45,
+     "formula.jsonl": 1839,
+     "plan_experiment.jsonl": 0,
+     "relate.jsonl": 216,
+     "repair.jsonl": 100
+    },
+    "verifier_files": [
+     "common.py",
+     "v_contrast.py",
+     "v_define.py",
+     "v_extract.py",
+     "v_plan.py",
+     "v_relate.py"
+    ],
+    "verifier_sha256": {
+     "common.py": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+     "v_contrast.py": "4171df64c0c5a23a31e8845c99e3599115d68dc196788b845a75c0e5c7e09b16",
+     "v_define.py": "60b1365c236f483ea2add19252ef79eac5264bf45e02ccf9448c74b04f512c22",
+     "v_extract.py": "e8142fd922d59adb972ad4ce14c13b56156f11037114a8d0341e56a2d0adc22b",
+     "v_plan.py": "486af5f2d925f55453816c16c70f9e12023a803bd7e6d4a860b6e5ef5c69e316",
+     "v_relate.py": "cd9acef9e11034959f7369f457636d0398f8413c9fe9e881ae21e1b21df6b031"
+    },
+    "read_only_verified": true,
+    "changed_files": [],
+    "note": "каталог читается только; sha256 всех файлов до и после совпадают — аудит ничего в средах не изменил"
+   },
+   "g": {
+    "G1": {
+     "fit": "no",
+     "why": "верификаторы читают текст ответа (`verify(answer, gold)`)"
+    },
+    "G2": {
+     "fit": "no",
+     "why": "проба S3i: негатив «пустой ответ» даёт 1.0 у E1/E3/E5 — награда достижима без содержания"
+    },
+    "G3": {
+     "fit": "no",
+     "why": "не бинарны: 7/7 unsafe, пороги `null`, E2 градуирован (`min(1.0, overlap*1.5)`), E6 — 0.7/0.3"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "это файлы задач, а не исполняемая среда: изолировать нечего"
+    }
+   },
+   "gaps": [
+    "источник пула, а не среда; для заземлённой оси годится только как курикулум (ADR-049 п.2)"
+   ],
+   "verdict": "непригодно как среда"
+  },
+  {
+   "id": "stand_4080",
+   "what": "учебный стенд 4080 (локальная RTX 4080 SUPER 16 ГБ)",
+   "role": "внешний ресурс",
+   "probe": {
+    "checked": false,
+    "reason": "не пробовался: AD-5 — одна GPU-нагрузка за раз, на стенде идут чужие прогоны; проба «занять и отпустить» стоила бы чужого шага"
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "артефакт реального прогона (чекпойнт, метрика)"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "без запуска артефакта нет"
+    },
+    "G3": {
+     "fit": "yes",
+     "why": "верификатор читает артефакт на диске"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "разделяемый, недетерминированный по времени, 16 ГБ и занят; на шаг rollout не годится"
+    }
+   },
+   "gaps": [
+    "место внешнего замера, не награды: цена шага в тысячах раз выше нужной для 8 rollout"
+   ],
+   "verdict": "непригодно как награда"
+  },
+  {
+   "id": "stand_gb10",
+   "what": "стенд GB10 — место самой RL-стадии (контейнер pytorch)",
+   "role": "внешний ресурс",
+   "probe": {
+    "checked": false,
+    "reason": "не пробовался: идёт чужая стадия SFT (`sft-20260919-0810`) и проба S3aq; AD-5/AD-9 — хозяин ресурса объявлен, аудит в него не лезет"
+   },
+   "g": {
+    "G1": {
+     "fit": "yes",
+     "why": "состояние — файлы/процессы внутри контейнера стадии"
+    },
+    "G2": {
+     "fit": "yes",
+     "why": "—"
+    },
+    "G3": {
+     "fit": "partial",
+     "why": "верификатор должен жить **вне** контейнера агента, иначе агент пишет в источник проверки"
+    },
+    "G4": {
+     "fit": "no",
+     "why": "контейнер стадии — общий для всех rollout шага; свежесть на rollout не обеспечена"
+    }
+   },
+   "gaps": [
+    "главный неизвестный: устройство песочницы на стенде (пробы сняты на хосте)",
+    "цена per-rollout sandbox не измерена — она и есть главный член оценки (d)"
+   ],
+   "verdict": "требует проверки"
+  }
+ ],
+ "verifier_binarization": {
+  "source": {
+   "thresholds": "data/verifier-thresholds.json",
+   "validation": "evidence/verifier-validation.json",
+   "thresholds_sha256": "5bf6c5655718a9d5b07270e9b576938697fffda0adafd4d0b1712dcee2138e3a",
+   "validation_sha256": "217cc6f71cdf456c2cf87768c41f532e6fd5da9cf7c80b46645162e1fcb310de"
+  },
+  "registry": {
+   "available": true,
+   "task_count": {
+    "E1_define": 414,
+    "E2_formula": 1839,
+    "E3_classify": 6568,
+    "E4_extract": 45,
+    "E5_relate": 216,
+    "E6_contrast": 100,
+    "E7_repair": 100,
+    "E8_plan_experiment": 0
+   },
+   "rows": [
+    {
+     "env": "E1_define",
+     "registry": 414,
+     "actual": 414,
+     "matches": true
+    },
+    {
+     "env": "E2_formula",
+     "registry": 1839,
+     "actual": 1839,
+     "matches": true
+    },
+    {
+     "env": "E3_classify",
+     "registry": 6568,
+     "actual": 6568,
+     "matches": true
+    },
+    {
+     "env": "E4_extract",
+     "registry": 45,
+     "actual": 45,
+     "matches": true
+    },
+    {
+     "env": "E5_relate",
+     "registry": 216,
+     "actual": 216,
+     "matches": true
+    },
+    {
+     "env": "E6_contrast",
+     "registry": 100,
+     "actual": 100,
+     "matches": true
+    },
+    {
+     "env": "E7_repair",
+     "registry": 100,
+     "actual": 100,
+     "matches": true
+    },
+    {
+     "env": "E8_plan_experiment",
+     "registry": 0,
+     "actual": 0,
+     "matches": true
+    }
+   ],
+   "stale": [],
+   "absent": []
+  },
+  "n_environments": 7,
+  "n_thresholds_null": 7,
+  "n_unsafe": 7,
+  "n_excluded_in_thresholds": 7,
+  "pool_verifiers": {
+   "multi_slug_match": {
+    "what": "все `expected_slugs` встречаются в тексте ответа",
+    "binary": "бинарно (все/не все) при пороге — но порог в награду не подключён",
+    "state_based": false,
+    "why": "проверяет текст ответа, а не состояние; восстановимость gold из промпта (пункт a) делает награду достижимой перечислением терминов"
+   },
+   "keyword_match": {
+    "what": "`keywords` встречаются в тексте ответа",
+    "binary": "бинаризуемо тем же порогом",
+    "state_based": false,
+    "why": "то же: текст вместо состояния; у `E5_relate` keywords лежат в промпте"
+   }
+  },
+  "by_env": [
+   {
+    "env": "E1_define",
+    "verifier": "verifiers/v_define.py::verify_define",
+    "verifier_sha256": "60b1365c236f483ea2add19252ef79eac5264bf45e02ccf9448c74b04f512c22",
+    "code": "verifiers/v_define.py::verify_define — min(overlap, 1.0) по множествам слов",
+    "proposed_threshold": null,
+    "positive_min": 1.0,
+    "negative_max": 1.0,
+    "binary_now": false,
+    "state_based_possible": true,
+    "why": "градуирован по построению (доля пересечения слов); порядок и структура не различаются, перемешанный эталон даёт столько же, сколько эталон",
+    "to_state": "награда по состоянию возможна: артефакт определения, записанный в файл, проверяется схемой/полями, а не пересечением слов",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0)"
+   },
+   {
+    "env": "E2_formula",
+    "verifier": "verifiers/common.py::verify_formula",
+    "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+    "code": "verifiers/common.py::verify_formula — min(1.0, overlap*1.5) + 0.8/0.3 за раздел",
+    "proposed_threshold": null,
+    "positive_min": 0.4,
+    "negative_max": 0.9,
+    "binary_now": false,
+    "state_based_possible": true,
+    "why": "два градуированных компонента; полнота шкалы недостижима (лучший позитив 0.9); наличие раздела «Обозначения» проверяется по присутствию, не по содержанию",
+    "to_state": "формула может быть проверена исполнением: подстановка в вычисление и сравнение числа — это код возврата, а не текст",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 0.9 равен или выше минимума позитива 0.4 (ломает: shuffled_lines=0.9); максимум шкалы недостижим: лучший позитив 0.9; доля позитивов < 1.0: 1.0"
+   },
+   {
+    "env": "E3_classify",
+    "verifier": "verifiers/common.py::verify_classify",
+    "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+    "code": "verifiers/common.py::verify_classify — поиск подстрок type/level/formality",
+    "proposed_threshold": null,
+    "positive_min": 1.0,
+    "negative_max": 1.0,
+    "binary_now": false,
+    "state_based_possible": true,
+    "why": "подстрока «A» находится почти в любом тексте; обрезка и перемешивание строк дают 1.0; среднее трёх компонентов — градуированность",
+    "to_state": "классификация — это запись полей в артефакт: три поля в файле, сверка трёх значений → 0/1",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: other_task=1.0, shuffled_lines=1.0, truncated_20pct=1.0)"
+   },
+   {
+    "env": "E5_relate",
+    "verifier": "verifiers/v_relate.py::verify_relate",
+    "verifier_sha256": "cd9acef9e11034959f7369f457636d0398f8413c9fe9e881ae21e1b21df6b031",
+    "code": "verifiers/v_relate.py::verify_relate — оба слага встречаются в ответе",
+    "proposed_threshold": null,
+    "positive_min": 1.0,
+    "negative_max": 1.0,
+    "binary_now": true,
+    "state_based_possible": true,
+    "why": "формально бинарен (1.0/0.0), но константен на пустом ответе: читает ключи `source`/`target`, а банк несёт `from`/`to`, пустая строка — подстрока всего",
+    "to_state": "связь может быть состоянием: обход по графу из артефакта, проверка пары (from, to) в файле отношений",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: empty=1.0, other_task=1.0, truncated_20pct=1.0)"
+   },
+   {
+    "env": "E7_repair",
+    "verifier": "verifiers/common.py::verify_repair",
+    "verifier_sha256": "074e09d46715e94d091082b294c5adc3723e31fd24f085b1c6696b264395288f",
+    "code": "verifiers/common.py::verify_repair — доля исправленных полей frontmatter",
+    "proposed_threshold": null,
+    "positive_min": 1.0,
+    "negative_max": 1.0,
+    "binary_now": false,
+    "state_based_possible": true,
+    "why": "доля по построению (fixes_found/total) + штраф за новые ошибки",
+    "to_state": "починка — это diff: верификатор сравнивает файл с эталоном, награда = «файл совпал» (0/1)",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 1.0 равен или выше минимума позитива 1.0 (ломает: shuffled_lines=1.0, truncated_20pct=1.0)"
+   },
+   {
+    "env": "E6_contrast",
+    "verifier": "verifiers/v_contrast.py::verify_contrast",
+    "verifier_sha256": "4171df64c0c5a23a31e8845c99e3599115d68dc196788b845a75c0e5c7e09b16",
+    "code": "verifiers/v_contrast.py::verify_contrast — 0.7/0.3 по слову «отличие»",
+    "proposed_threshold": null,
+    "positive_min": 0.3,
+    "negative_max": 0.7,
+    "binary_now": false,
+    "state_based_possible": false,
+    "why": "два значения по наличию одного слова; 36 эталонов из 100 слова не содержат — позитив равен негативу пустого ответа",
+    "to_state": "состояния у «объясни различие» нет: содержательность сравнения артефактом не выражается — либо порог-слово (не G1), либо среда с внешним судьёй (запрещён AD-6)",
+    "s3i_verdict": "unsafe",
+    "excluded_reason": "нет зазора: максимум негатива 0.7 равен или выше минимума позитива 0.3 (ломает: other_task=0.7, truncated_20pct=0.7); максимум шкалы недостижим: лучший позитив 0.7; доля позитивов < 1.0: 1.0"
+   }
+  ],
+  "blockers": [
+   {
+    "blocker": "пороги `null`",
+    "detail": "7 из 7 сред: «в награду не подключается до решения владельца» (ADR-021 п.1)"
+   },
+   {
+    "blocker": "градуированность",
+    "detail": "`min(overlap,1.0)` (E1), `min(1.0, overlap*1.5)` (E2), среднее компонентов (E3, E7), 0.7/0.3 (E6) — против AD-11 (кредит бинарный)"
+   },
+   {
+    "blocker": "текст вместо состояния",
+    "detail": "все верификаторы принимают `answer` — текст ответа; даже бинарный E5 не выполняет G1/G3, потому что проверяет написанное, а не сделанное"
+   },
+   {
+    "blocker": "несовпадение ключей",
+    "detail": "E5 читает `source`/`target`, банк несёт `from`/`to` → проверка константна (1.0 на пустом ответе)"
+   }
+  ],
+  "read": "из существующих проверок в состояние переводимы E1, E2, E3, E5, E7 — как проверки **артефакта** (файл/вычисление), а не текста ответа; E6 в состояние не переводится без судьи (запрещён AD-6). Бинаризация сама по себе G1 не даёт: нужен предмет проверки «состояние»"
+ },
+ "cost_estimate": {
+  "is_measurement": false,
+  "label": "оценка, не замер",
+  "base": {
+   "source": "evidence/s3-rl-probe.json",
+   "source_sha256": "a79d238ceaeea0f87e6b8206532b0379d51212436a5f458eceacbd5f70182e40",
+   "stage": "S3-pre",
+   "step_seconds_mean": 123.87,
+   "step_seconds_median": 123.61,
+   "steps_measured": 99,
+   "generation_share_pct": 71.4,
+   "train_residual_share_pct": 27.7,
+   "rollouts_per_step": 8,
+   "rollouts_from": {
+    "tasks_per_step": 4,
+    "group_size": 2
+   },
+   "known_budget_hours_three_seeds": {
+    "lower_direct_500_steps": 36.8,
+    "upper_extrapolated": 51.66,
+    "bounds_named": "среднее между границами не считается: это два разных поведения политики, а не две оценки одной величины"
+   },
+   "note": "база снята на историческом чекпойнте и текстовом пуле v1: это порядок цены, а не цифра стадии (так её и называет S3-pre)"
+  },
+  "formula": "t_шага = t_базы + R·t_sandbox + R·A·t_действия + 0.714·t_базы·(g−1), где R — rollout на шаг (4 задачи × группа 2 = 8), A — действий на rollout, g — рост длины генерации",
+  "assumptions": {
+   "R_rollouts_per_step": 8,
+   "R_source": "замер S3-pre (`groups_from_log`), не допущение",
+   "A_actions_per_rollout": [
+    2,
+    15
+   ],
+   "A_source": "объявленный бюджет пула: n_min_steps min=2, max_steps max=15 (задачи env_types)",
+   "token_growth_g": "допущение: 1.05–1.20 (jail) / 1.20–1.40 (контейнер)",
+   "unchanged": [
+    "t_базы складывается как в замере: генерация 71.4 % и обучение 27.7 % не пересчитываются",
+    "линейность по шагам (как в S3-pre) — термотроттлинг не учтён",
+    "цена верификатора состояния принята нулевой: проверка файла/кода возврата дешевле шума таймера; на контейнере это неверно"
+   ]
+  },
+  "scenarios": {
+   "process_jail": {
+    "what": "свежий каталог + timeout + ограниченный env, без контейнера",
+    "t_sandbox_per_rollout_s": [
+     0.05,
+     0.2
+    ],
+    "t_action_s": [
+     0.02,
+     0.1
+    ],
+    "token_growth": [
+     1.05,
+     1.2
+    ],
+    "why": "запуск процесса и запись файла стоят миллисекунды; рост траектории умеренный",
+    "step_seconds": [
+     129.01,
+     155.16
+    ],
+    "ratio_to_base": [
+     1.042,
+     1.253
+    ],
+    "seed_hours_500_steps": [
+     17.92,
+     21.55
+    ],
+    "three_seeds_hours": [
+     53.76,
+     64.65
+    ],
+    "terms_seconds": {
+     "base_step": 123.87,
+     "sandbox": [
+      0.4,
+      1.6
+     ],
+     "actions": [
+      0.32,
+      12.0
+     ],
+     "longer_generation": [
+      4.42,
+      17.69
+     ]
+    }
+   },
+   "container_per_rollout": {
+    "what": "контейнер на rollout (docker/сторидж стенда)",
+    "t_sandbox_per_rollout_s": [
+     0.8,
+     3.0
+    ],
+    "t_action_s": [
+     0.1,
+     0.25
+    ],
+    "token_growth": [
+     1.2,
+     1.4
+    ],
+    "why": "подъём контейнера, монтирование и уборка — секунды; длиннее траектория и больше служебных токенов",
+    "step_seconds": [
+     149.56,
+     213.25
+    ],
+    "ratio_to_base": [
+     1.207,
+     1.722
+    ],
+    "seed_hours_500_steps": [
+     20.77,
+     29.62
+    ],
+    "three_seeds_hours": [
+     62.32,
+     88.85
+    ],
+    "terms_seconds": {
+     "base_step": 123.87,
+     "sandbox": [
+      6.4,
+      24.0
+     ],
+     "actions": [
+      1.6,
+      30.0
+     ],
+     "longer_generation": [
+      17.69,
+      35.38
+     ]
+    }
+   }
+  },
+  "against_adr049": {
+   "adr_expectation": "×1.5–2 к базовому шагу (ADR-049, Consequences/Negative; база здесь 123.87 с)",
+   "measured_ratios": {
+    "process_jail": [
+     1.042,
+     1.253
+    ],
+    "container_per_rollout": [
+     1.207,
+     1.722
+    ]
+   },
+   "reading": "нижняя граница ожидания ADR (×1.5) достигается только у сценария с контейнером на rollout и только на верхнем крае допущений (×1.207–×1.722); верхняя (×2) не достигается нигде. Jail даёт ×1.042–×1.253: при лёгкой песочнице ADR цену завышает",
+   "why_it_matters": "цена шага почти целиком определяется **реализацией песочницы**, а не числом действий; значит решение о G4 есть решение о цене стадии"
+  },
+  "budget_three_seeds_hours": {
+   "text_baseline_measured": [
+    36.8,
+    51.66
+   ],
+   "basis": "среднее между границами не считается: это два разных поведения политики, а не две оценки одной величины",
+   "grounded_estimate": {
+    "process_jail": [
+     53.76,
+     64.65
+    ],
+    "container_per_rollout": [
+     62.32,
+     88.85
+    ]
+   },
+   "delta_hours_vs_measured_range": {
+    "process_jail": [
+     16.96,
+     12.99
+    ],
+    "container_per_rollout": [
+     25.52,
+     37.19
+    ]
+   },
+   "unit": "часы, 500 шагов × 3 сида, конфигурация S3-pre"
+  },
+  "not_measured": [
+   "цена per-rollout sandbox на стенде (нет пробы — идут чужие стадии; AD-5/AD-9)",
+   "цена верификатора состояния",
+   "рост длины траектории на реальных заземлённых задачах (самих задач ещё нет)"
+  ]
+ },
+ "walking_skeleton": {
+  "is_data": false,
+  "label": "план состава; задачи скелета — отдельная дельта (пул и наборы не менялись)",
+  "size": {
+   "n_tasks": 50,
+   "n_tools": 3,
+   "tools": [
+    "shell",
+    "filesystem",
+    "http_mock"
+   ]
+  },
+  "why_50": "ADR-049 п.4: доказать, что награда по состоянию работает, и измерить цену шага; 50 — размер, на котором отказ среды виден до массовой генерации, а не после",
+  "groups": [
+   {
+    "tool": "shell",
+    "n_tasks": 18,
+    "state": "код возврата команды + артефакт, который команда создала",
+    "task_shapes": [
+     "вычислить значение по данным, лежащим в песочнице, и записать его в файл",
+     "преобразовать файл (отсортировать/отфильтровать) и оставить результат",
+     "найти в выдаче команды признак и записать его в отчёт"
+    ],
+    "success_binary": "0/1: файл существует И его содержимое равно ожидаемому (сравнение внешним процессом), код возврата роли не играет сам по себе — иначе «echo готово» даёт награду",
+    "no_action_probe": "текстовый ответ без вызовов: файла нет → 0. Плюс вырожденная проба «действие есть, но пустое» (`true`): файла тоже нет → 0",
+    "leak_check": "ожидаемое значение не выводится из текста задачи (проверка тем же нормализатором, что пункт a)"
+   },
+   {
+    "tool": "filesystem",
+    "n_tasks": 16,
+    "state": "дерево файлов / индекс git / содержимое по sha",
+    "task_shapes": [
+     "создать структуру каталогов и файл в ней по спецификации",
+     "поправить файл так, чтобы выполнялось свойство (схема, поле, ссылка)",
+     "подготовить коммит: изменить файл и поставить его в индекс"
+    ],
+    "success_binary": "0/1: верификатор читает дерево/индекс и сверяет с эталоном",
+    "no_action_probe": "текстовый ответ без вызовов: дерево не изменилось → 0",
+    "leak_check": "эталонное содержимое не должно лежать в песочнице до действия: иначе задача решается копированием, а не работой"
+   },
+   {
+    "tool": "http_mock",
+    "n_tasks": 16,
+    "state": "журнал запросов на стороне мока (тело, метод, порядок)",
+    "task_shapes": [
+     "получить ресурс у мока и сохранить производное значение",
+     "отправить на мок полезную нагрузку, удовлетворяющую объявленному контракту",
+     "довести сценарий до состояния, которое мок признаёт завершённым"
+    ],
+    "success_binary": "0/1: мок записал требуемый запрос (проверка по своему журналу)",
+    "no_action_probe": "текстовый ответ без вызовов: журнал пуст → 0. Отдельно проверяется класс взлома «написать в файл журнала»: файл мока агенту недоступен",
+    "leak_check": "ответ мока не содержит gold; контракт объявлен, но не решает задачу"
+   }
+  ],
+  "preconditions": [
+   {
+    "probe": "G2 (ADR-049 п.3(i)): доля задач с успехом без действий",
+    "how": "rollout «текстовый ответ без вызовов» на всех 50; критерий приёмки — 0",
+    "instrument": "пункт (a) этого аудита даёт только proxy —пробу делает rollout"
+   },
+   {
+    "probe": "утечка gold (ADR-049 п.3(ii))",
+    "how": "нормализатор пункта (a) по промпту и по наблюдению среды; метаданные (`source_task_id`) в наблюдение не пускаются",
+    "instrument": "tools/check_grounding.py (раздел no_action_proxy и gold_in_metadata)"
+   },
+   {
+    "probe": "воспроизводимость среды (ADR-049 п.3(iii))",
+    "how": "два rollout с одним сидом дают то же состояние: sha состояния до и после",
+    "instrument": "в контуре нет — писать в скелете"
+   },
+   {
+    "probe": "вырождение второго вида (ADR-049 п.6): среда не пропускает действия",
+    "how": "доля rollout с нулём успешных действий; стоп-условие объявляется до стадии",
+    "instrument": "в контуре нет — писать в скелете"
+   }
+  ],
+  "open_design": [
+   "где живёт верификатор состояния относительно песочницы агента (G3)",
+   "чем обеспечена изоляция: см. раздел inventory/id=isolation (проба провалилась)",
+   "как считается шаг: одно действие = один вызов инструмента или один ход модели"
+  ]
+ },
+ "verdict": {
+  "pool_is_grounded": false,
+  "why": "в задачах пула нет полей действия; вся награда — совпадение слов в тексте ответа (`multi_slug_match`/`keyword_match`)",
+  "no_action_proxy_share": 0.3375,
+  "no_action_proxy_is_measurement": false,
+  "g1_g4": {
+   "G1": "не выполняется: предмет награды — текст ответа",
+   "G2": "не выполняется: доля задач, решаемых без действий, не измерена (proxy даёт верхнюю границу подозрения)",
+   "G3": "не выполняется: верификаторы не бинарны (пороги `null`, 7/7 unsafe) и проверяют текст, а не состояние",
+   "G4": "не выполняется и не обеспечено: проба изоляции на хосте провалилась"
+  },
+  "gate_applied": false,
+  "gate_note": "механический страж ADR-049 п.5 не подключён к CONSTRAINTS.yaml: заземлённого пула ещё нет, а правило на текущем пуле краснело бы на пустом месте. Режим стража готов: `--expect-grounded`",
+  "axis_ready": false
+ },
+ "summary": {
+  "pool": "9162 задач, gold у 9162 (keywords=394, slug=8309, slug_words=459)",
+  "no_action_proxy": "proxy (не замер): полностью восстановим gold из промпта 3092 из 9162 = 33.75%; с транслитерацией 34.14%; строгое чтение 29.99%; буквальная подстрока 0.02%",
+  "inventory": "предметов: 11; пригодных как среда: 6",
+  "verifiers": "порогов нет у 7 сред; unsafe у 7; переводимы в состояние: E1, E2, E3, E5, E7",
+  "cost": "оценка (не замер): process_jail — шаг 129.01–155.16 с, 3 сида 53.76–64.65 ч; container_per_rollout — шаг 149.56–213.25 с, 3 сида 62.32–88.85 ч",
+  "skeleton": "50 задач × 3 инструмента",
+  "reading": "граундинга в контуре нет; строить его можно (файлы, git, shell, мок, БД — пригодны), но G3 и G4 требуют работы: верификатор состояния вне песочницы агента и проверенная изоляция"
+ },
+ "audit_sha1": "b50f86e5526a4930ff4f37798019ad55349aeec4",
+ "invariants": {
+  "ok": true,
+  "findings": []
+ }
+}

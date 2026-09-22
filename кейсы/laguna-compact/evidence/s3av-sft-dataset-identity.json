@@ -1,0 +1,122 @@
+{
+  "schema": "s3av-sft-dataset-identity/1",
+  "node": "S3av",
+  "date": "2026-09-21T16:10:00+03:00",
+  "branch": "main",
+  "question": "училась ли SFT-стадия на том наборе, который объявлен, и чем это доказывается механически",
+  "author_note": "Запись о дефекте и о починке, а не отчёт прибора: каждое число получено командой, названной рядом с ним, и воспроизводится ею. Числа не пересказаны из чужого отчёта. Обучение не запускалось, GPU-нагрузок не было; остановленный прогон sft-20260919-0810 и рука sft-lr2e6-20260921-1453 читались ТОЛЬКО чтением (логи, манифесты, командные строки), ничего в них не менялось. Замороженные копии пайплайна в каталогах прогонов не правились (это артефакты прогонов), общий laguna_pipeline_v8.py на сетевом диске не правился — правка стадии вносится патчем копии (ADR-036 п.3).",
+  "file_referenced_before": {
+    "path": "evidence/s3av-sft-dataset-identity.json",
+    "status": "до этой дельты файла не существовало",
+    "how_verified": "git log --all --oneline -- '*s3av*' → пусто; git ls-tree по всем 30 ветвям → ни одного пути с 's3av'; find по рабочему дереву и по /home/user/gb10-shared → пусто",
+    "note": "Ссылка на этот путь встречалась как «уже задокументировано» — проверить не удалось: носителя не было ни в одной ветви. Создан этой дельтой; расхождение по историческим прогонам не переписывается (ADR-023 п.9, ADR-028 п.4), а описывается здесь."
+  },
+  "defect": {
+    "class": "декларация и факт расходятся молча: манифест есть, конформен — и описывает другую сущность (ровно то, от чего защищает AD-2; C-012 по такому прогону зелёный)",
+    "synopsis": "цепочка несла вход SFT литералом `--sft_data /workspace/shared/datasets/sft_train_v12.jsonl`, а объявленный набор (`--dataset` = v13_fixed) попадал только в манифест; копия пайплайна стадии выводила имя val-тензора вторым литералом `sft_train_v12_8192_*`; манифест писал хеши наборов по первым 1 МиБ.",
+    "witness_run": {
+      "run_dir": "/home/user/gb10-shared/sft-20260919-0810",
+      "read_only": true,
+      "declared": {
+        "source": "chain_command.txt (записанная команда цепочки) и var-манифест стадии",
+        "dataset": "/home/user/gb10-shared/datasets/tok/sft_train_v13_fixed_8192_qwen25.npz",
+        "sft_dataset": "datasets/sft_train_v13_fixed.jsonl",
+        "sft_dataset_sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+        "sft_steps": 66157
+      },
+      "actual": {
+        "source": "logs/sft.log стадии",
+        "lines": [
+          {"line": 42, "text": "05:04:51 [INFO] SFT: 44949 samples (pre-tok sft_train_v12_8192_qwen25.npz)"},
+          {"line": 54, "text": "05:09:50 [INFO] SFT val: 500 held-out сэмплов из sft_train_v12_8192_qwen25.npz"}
+        ],
+        "jsonl": "sft_train_v12.jsonl",
+        "jsonl_samples": 44949,
+        "tensor": "sft_train_v12_8192_qwen25.npz",
+        "val_tensor": "sft_train_v12_8192_qwen25.npz"
+      },
+      "no_sft_data_flag": {
+        "fact": "в записанной командной строке цепочки флага набора SFT нет вовсе — `--sft_data` брался из литерала в `pipeline_args`",
+        "how_verified": "tr ' ' '\\n' < chain_command.txt | grep -n sft → строка набора SFT в вызове пайплайна отсутствует; рядом стоят только --dataset и --extra-hyperparam sft_dataset*"
+      },
+      "blindness_demonstrated": {
+        "field": "checkpoints/run_manifest.json → datasets",
+        "value_for_v12_jsonl": "d05ebca9db58b81711c076192d17a6dac359ece4852c4a670f1ea73263e771ad",
+        "what_that_is": "sha256 ПЕРВЫХ 1 МиБ sft_train_v12.jsonl (`head -c 1048576 datasets/sft_train_v12.jsonl | sha256sum`) — усечённый хеш в форме, неотличимой от полного; рядом объявлен v13",
+        "counterexample": "head-1MiB(v13_fixed) = 127fd5e6f321fdcf3e5b43aa801017e7c93f6bde6b7c6ad8cacb8c2926b74df8 — то есть по записи манифеста два набора различимы только потому, что различие попало в первый мегабайт; за ним хеш был бы слеп",
+        "also": "у того же поля значение для /workspace/shared/datasets/cpt_corpus_v12r.txt — null (файла в контейнере нет), и это молча принималось"
+      },
+      "arithmetic": {
+        "declared_schedule": "66157 шагов × batch 2 = 132314 сэмплов = 3.000 эпох по v13_fixed (44105)",
+        "actual_schedule": "то же число шагов по v12 (44949) = 2.944 эпох — «три эпохи» объявленного набора не то же самое, что три эпохи прочитанного",
+        "timing": "jsonl v13_fixed дописан 2026-09-19 08:17 (mtime), стадия открыла набор в 05:04:51 UTC = 08:04:51 MSK — объявленного набора в готовом виде тогда ещё не было (сверено с именами файлов в логе)"
+      },
+      "code_loci": [
+        {"file": "tools/pilot_chain.sh", "line": 492, "rev": "git show main:...", "text": "printf -- ' --sft_data /workspace/shared/datasets/sft_train_v12.jsonl'", "why": "литерал вместо параметра — корень дефекта"},
+        {"file": "tools/pilot_chain.sh", "line": 321, "rev": "git show main:...", "text": "--dataset-extra \"sft=$SHARED/datasets/sft_train_v12.jsonl\"", "why": "объявление тоже литералом, отдельно от входа стадии — двум литералам ничто не мешало разойтись"},
+        {"file": "laguna_pipeline_v8.py", "line": 875, "text": "_npz = Path(args.sft_data).parent / \"tok\" / f\"sft_train_v12_8192_{tok_tag_for(args.model_name)}.npz\"", "why": "второй литерал: val-тензор считался по v12 при любом объявленном наборе"},
+        {"file": "laguna_pipeline_v8.py", "line": 1818, "text": "\"datasets\": {d: _sha256_head(d) for d in (args.cpt_data, args.sft_data, args.rl_data, args.eval_data)}", "why": "хеши наборов по первым 1 МиБ — класс слепоты AD-2/G9"}
+      ],
+      "hashes_used_for_verification": {
+        "sft_train_v12.jsonl": {"sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6", "samples": 44949, "bytes": 486352008},
+        "sft_train_v13_fixed.jsonl": {"sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01", "samples": 44105, "bytes": 473807562},
+        "tok/sft_train_v12_8192_qwen25.npz": {"sha256": "aa06a26dc7917d76dc4be0f6edeefa6562bffa7c937cf00bb90bf3e598a66388", "bytes": 2945778272},
+        "tok/sft_train_v13_fixed_8192_qwen25.npz": {"sha256": "dc3d4838d15b83c3f1abefb549473e1efd1dc822000a675e34f548f759b94d75", "bytes": 2890465888},
+        "how_verified": "sha256sum datasets/sft_train_v1*.jsonl datasets/tok/sft_train_v1*_8192_qwen25.npz; wc -l datasets/sft_train_v1*.jsonl; ls -la"
+      }
+    }
+  },
+  "fix": {
+    "principle": "вход стадии — параметр, объявление и факт — из одного значения; свидетельство факта пишет стадия, а сверку делает механический страж",
+    "changes": [
+      {"file": "tools/pilot_chain.sh", "what": "флаги `--sft-data` (контейнерный путь) и `--sft-data-sha256`; `pipeline_args` берёт `--sft_data` из параметра; хостовый путь для `--dataset-extra sft=` выводится той же подстановкой, что и монтирование ($SHARED:$CTR_SHARED); непереводимый путь — отказ exit 2; объявленный хеш сверяется с файлом на стенде до старта (ADR-028 п.1)", "header": "п.7 шапки"},
+      {"file": "tools/patch_pipeline_sft.py", "what": "пять новых правок копии стадии: загрузчик называет фактически открытый тензор атрибутами (npz_path/source_path/samples_total), val берёт тензор ОТТУДА ЖЕ (литерала v12 больше нет), новый параметр `--sft_data_sha256`, блок `sft_input` в манифесте стадии (пути, ПОЛНЫЕ sha256 jsonl и тензора, число примеров), полные хеши вместо `_sha256_head` + `datasets_hash_scope: full`; расхождение объявленного хеша с прочитанным — SystemExit до первого шага", "why_patch": "ADR-036 п.3: правка стадии вносится патчем копии, общий пайплайн контура не трогается"},
+      {"file": "tools/launch_sft_stage.py", "what": "`--sft-data`/`--sft-data-sha256` берутся из того же `DATASETS[dataset]`, что и объявление `sft_dataset`/`sft_dataset_sha256`; добавлен `sft_dataset_samples` — вторая ось сверки"},
+      {"file": "tools/run_pilot.py", "what": "один источник `SFT_DATA_JSONL`/`SFT_DATA_SHA256` на вход стадии, объявление манифеста и проверку числа примеров"}
+    ],
+    "not_touched": [
+      "замороженные копии `runs/*/laguna_pipeline_sft.py` и `runs/*/pilot_chain.sh` — артефакты прогонов",
+      "общий `/home/user/gb10-shared/laguna_pipeline_v8.py` — не правился (ADR-036 п.3); поэтому `_sha256_head` в нём остаётся, и это НАЗВАННАЯ граница: в базовом пайплайне поле `datasets` по-прежнему усечённое, полнота обеспечена в копии стадии, где идентичность и решается",
+      "манифесты и логи прошлых прогонов, `datasets/sft_train_v12.jsonl`, `datasets/sft_train_v13_fixed.jsonl`, тензорные кэши — не пересобирались и не менялись",
+      "остановленный прогон `sft-20260919-0810` и рука `sft-lr2e6-20260921-1453` — только чтение"
+    ],
+    "identity_of_the_arm_started_before_the_fix": {
+      "run": "sft-lr2e6-20260921-1453",
+      "status": "идентичность НЕ доказана и находкой не выставляется: копия пайплайна этой стадии не умеет писать `sft_input` (прогон старше правила). Страж называет её поимённо — пропуск видимый, а не молчаливый (ADR-023 п.12)",
+      "not_fixed_here": "править её манифест значило бы дописывать доказательство задним числом (ADR-023 п.9)"
+    }
+  },
+  "guard": {
+    "rule": "C-030",
+    "tool": "tools/check_dataset_identity.py",
+    "command": "python3 tools/check_dataset_identity.py --unreachable-not-verified",
+    "compares": [
+      "объявление: манифест прогона — datasets_extra семейства sft* и/или hyperparameters.sft_dataset[/_sha256/_samples]",
+      "факт: манифест стадии — блок sft_input (путь jsonl и тензора, ПОЛНЫЕ sha256, число примеров)"
+    ],
+    "teeth": {
+      "how": "мутанты собираются в фикстурах под префиксом дельты в общем /tmp; обучение не запускается; проверено в секции 33 `tools/tests/run_tool_tests.sh`",
+      "cases": [
+        {"mutant": "объявлен v13_fixed — загружен v12 (тот самый прогон)", "verdict": "красный, exit 1", "rules": ["declared-actual-mismatch", "samples-mismatch", "tensor-mismatch"]},
+        {"mutant": "манифест без полного sha (hash_scope=head)", "verdict": "красный, exit 1", "rules": ["hash-not-full"]},
+        {"mutant": "стадия исполнена, блока sft_input нет", "verdict": "красный, exit 1", "rules": ["no-input-identity"]},
+        {"mutant": "запись подделана под факт (sha в записи заменён)", "verdict": "красный, exit 1 при --verify-disk", "rules": ["disk-sha-mismatch"]},
+        {"mutant": "честный манифест (объявлен v13 — прочитан v13)", "verdict": "зелёный, exit 0", "rules": []},
+        {"mutant": "исторические прогоны кейса", "verdict": "зелёный, exit 0 — legacy-not-checked поимённо", "rules": []},
+        {"mutant": "прогон без корневого манифеста, но с полным блоком sft_input (остановленная стадия)", "verdict": "зелёный, exit 0 — сверка с объявлением названа НЕ выполненной; с усечённым хешем — красный", "rules": ["hash-not-full"]},
+        {"probe": "вход стадии — параметр: в вызове контейнера стоит --sft_data из --sft-data, литерала v12 нет", "verdict": "зелёный"},
+        {"probe": "пайплайн без флага --sft_data_sha256 (базовый контура): флаг НЕ передаётся, граница названа в логе", "verdict": "зелёный — стадия не падает в argparse"},
+        {"probe": "пайплайн с флагом: объявленный хеш уходит в стадию (64 hex)", "verdict": "зелёный"},
+        {"probe": "непереводимый путь --sft-data и расхождение объявленного хеша с файлом", "verdict": "красный, exit 2 — стадия не стартует"}
+      ],
+      "counts": {"section": "33", "passed": 22, "failed": 0},
+      "run": "bash tools/tests/run_tool_tests.sh (секция 33)"
+    },
+    "note_on_capability_gate": "флаг объявленного хеша передаётся только тому пайплайну, который его знает (проверка по самому файлу, хостовому и контейнерному); иначе базовый пайплайн уронил бы стадию в argparse. Найдено при сборке тестов: первая редакция передавала флаг всем стадиям."
+  },
+  "open": [
+    "Прогоны, начатые до этой дельты, идентичности не предъявляют и предъявить не могут (блока в контуре не было). Их расхождение с объявлением для SFT-стадии 19.09 документировано выше; переписывать их манифесты запрещено (ADR-023 п.9).",
+    "Поле `datasets` базового пайплайна остаётся усечённым (1 МиБ): починка внесена в копию стадии. Полнота хешей остальных входов (cpt_data, rl_data, eval_data) стражем не проверяется — проверяется вход SFT, где дефект и жил; это названная граница, а не покрытие.",
+    "Сверка с диском (`--verify-disk`) в правиле не включена по умолчанию: она читает сотни мегабайт, а запись и факт делают разные участники, поэтому сравниваются записи. Режим доступен вручную и покрыт тестами."
+  ]
+}

@@ -1,0 +1,2865 @@
+{
+  "schema": "grounded-skeleton-evidence/1",
+  "generated_at": "2026-09-20T09:57:19.179392+00:00",
+  "tool": "tools/grounded_runner.py",
+  "status": "ok",
+  "status_note": "",
+  "host": {
+    "platform": "Linux-6.8.0-139-generic-x86_64-with-glibc2.39",
+    "kernel": "6.8.0-139-generic",
+    "stand": "локальная 4080 (CPU-only; GPU не задействован)",
+    "docker": "29.6.1",
+    "image": "alpine:3.20",
+    "image_digest": "alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc",
+    "run_dir": "/home/user/.cache/arch-ml/grounded-skeleton/20260920-125719",
+    "run_dir_kept": true
+  },
+  "mode": {
+    "run": true,
+    "no_action": true,
+    "empty_action": true,
+    "repeat": 2,
+    "mock_seed": 20260920
+  },
+  "set": {
+    "dir": "data/grounded-skeleton",
+    "n_tasks": 5,
+    "tools": [
+      "filesystem",
+      "http_mock",
+      "shell"
+    ],
+    "card": "data/grounded-skeleton/card.json",
+    "sha256_full": "e43c67394910c5f89910c8098db96bc007fe770f7535617a2b58af63e3e04e23"
+  },
+  "tasks": [
+    {
+      "id": "gs-fs-01",
+      "tool": "filesystem",
+      "network": "none",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "new_paths": [
+            "app",
+            "app/config",
+            "app/config/service.json"
+          ],
+          "verify_s": 0.0298,
+          "score": 1,
+          "reason": "service.json собран верно из трёх источников",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {
+            "got": {
+              "name": "ingest-api",
+              "port": 8443,
+              "flags": [
+                "strict",
+                "verbose",
+                "dry-run"
+              ]
+            }
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0811
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0007,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0302,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0315
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0006,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.048,
+          "action_exit_code": 0,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0296,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0788
+        }
+      },
+      "repeats": [
+        {
+          "mode": "run",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "new_paths": [
+            "app",
+            "app/config",
+            "app/config/service.json"
+          ],
+          "verify_s": 0.0298,
+          "score": 1,
+          "reason": "service.json собран верно из трёх источников",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {
+            "got": {
+              "name": "ingest-api",
+              "port": 8443,
+              "flags": [
+                "strict",
+                "verbose",
+                "dry-run"
+              ]
+            }
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0811
+        },
+        {
+          "mode": "run",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0007,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0528,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "new_paths": [
+            "app",
+            "app/config",
+            "app/config/service.json"
+          ],
+          "verify_s": 0.0303,
+          "score": 1,
+          "reason": "service.json собран верно из трёх источников",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {
+            "got": {
+              "name": "ingest-api",
+              "port": 8443,
+              "flags": [
+                "strict",
+                "verbose",
+                "dry-run"
+              ]
+            }
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0847
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0007,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0302,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0315
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0005,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0002,
+          "action_exit_code": null,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0324,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0337
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0006,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.048,
+          "action_exit_code": 0,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0296,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0788
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0005,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0449,
+          "action_exit_code": 0,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0307,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0766
+        }
+      ],
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-fs-01",
+        "tool": "filesystem",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work/src лежат три файла-источника: name.txt (одна строка — имя сервиса), port.txt (одна строка — целое число) и flags.txt (по одному флагу в строке, порядок значим). Собери из них файл app/config/service.json — строгий JSON-объект ровно с тремя ключами: \"name\" (строка), \"port\" (число, не строка) и \"flags\" (массив строк в исходном порядке). Лишних ключей быть не должно. Работай из каталога /work.",
+        "initial_state": "каталог /work/src с тремя файлами-источниками (name.txt, port.txt, flags.txt); каталога app/ нет, файла service.json нет",
+        "goal_action": "прочитать три источника и собрать из них строгий JSON в app/config/service.json",
+        "success_criterion": "app/config/service.json существует, разбирается строгим JSON-парсером, множество ключей ровно {name, port, flags}, типы совпадают (port — число), значения равны прочитанным верификатором из исходных файлов задачи, порядок flags сохранён",
+        "no_action_probe": "текстовый ответ без вызовов: файла нет → 0; отдельно проверяется, что текстовый ответ, в котором JSON приведён дословно, даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): файла нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:src/name.txt",
+          "pristine:src/port.txt",
+          "pristine:src/flags.txt",
+          "snapshot:app/config/service.json"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "cat"
+        ],
+        "leak_check": "собранного JSON в песочнице нет до действия: в src лежат только значения-источники, копировать нечего"
+      },
+      "residue_absent": true,
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "ef6143d2e7de5669a117499c4d1f80f8ace195e7a5eb0d5acb062d23b218a33e",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "frozen_outside_container": true
+        },
+        "G4": {
+          "pass": true,
+          "container": "gs-20260920-125719-offline",
+          "image": "alpine:3.20",
+          "network_profile": "none",
+          "isolation_probes": {
+            "uid": "1000",
+            "nonroot": true,
+            "rootfs_readonly": true,
+            "host_paths_hidden": true,
+            "bind_mount_writable": true,
+            "journal_invisible": true,
+            "verifier_files_invisible": true,
+            "network_closed": true,
+            "network_profile": "none"
+          },
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      }
+    },
+    {
+      "id": "gs-fs-02",
+      "tool": "filesystem",
+      "network": "none",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0008,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0601,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0013,
+          "symlink_escape": [],
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "new_paths": [
+            "sorted",
+            "sorted/north",
+            "sorted/north/alpha.log",
+            "sorted/north/gamma.log",
+            "sorted/south",
+            "sorted/south/beta.log",
+            "sorted/south/eps.log",
+            "sorted/west",
+            "sorted/west/delta.log",
+            "sorted/west/zeta.log"
+          ],
+          "verify_s": 0.0342,
+          "score": 1,
+          "reason": "дерево совпало с эталонной раскладкой (6 файлов), inbox пуст",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "files": 6
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0964
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0012,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0007,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0373,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0393
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0012,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.049,
+          "action_exit_code": 0,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0348,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0859
+        }
+      },
+      "repeats": [
+        {
+          "mode": "run",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0008,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0601,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0013,
+          "symlink_escape": [],
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "new_paths": [
+            "sorted",
+            "sorted/north",
+            "sorted/north/alpha.log",
+            "sorted/north/gamma.log",
+            "sorted/south",
+            "sorted/south/beta.log",
+            "sorted/south/eps.log",
+            "sorted/west",
+            "sorted/west/delta.log",
+            "sorted/west/zeta.log"
+          ],
+          "verify_s": 0.0342,
+          "score": 1,
+          "reason": "дерево совпало с эталонной раскладкой (6 файлов), inbox пуст",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "files": 6
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0964
+        },
+        {
+          "mode": "run",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.001,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0577,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0011,
+          "symlink_escape": [],
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "new_paths": [
+            "sorted",
+            "sorted/north",
+            "sorted/north/alpha.log",
+            "sorted/north/gamma.log",
+            "sorted/south",
+            "sorted/south/beta.log",
+            "sorted/south/eps.log",
+            "sorted/west",
+            "sorted/west/delta.log",
+            "sorted/west/zeta.log"
+          ],
+          "verify_s": 0.0335,
+          "score": 1,
+          "reason": "дерево совпало с эталонной раскладкой (6 файлов), inbox пуст",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "files": 6
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0933
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0012,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0007,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0373,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0393
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0008,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0008,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0341,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0358
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0012,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.049,
+          "action_exit_code": 0,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0348,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0859
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0009,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0503,
+          "action_exit_code": 0,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.034,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0861
+        }
+      ],
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-fs-02",
+        "tool": "filesystem",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work/inbox лежат файлы журналов. В первой строке каждого файла указан адресат в виде `tenant: <имя>`. Разложи файлы по адресатам: каждый файл должен оказаться в /work/sorted/<имя>/<исходное имя файла>, содержимое файлов менять нельзя. После работы каталог /work/inbox должен быть пуст, и в /work не должно остаться ничего, кроме каталогов sorted и inbox. Работай из каталога /work.",
+        "initial_state": "каталог /work/inbox с шестью файлами журналов (alpha.log, beta.log, gamma.log, delta.log, eps.log, zeta.log), у каждого в первой строке `tenant: <имя>`; каталога sorted/ нет",
+        "goal_action": "прочитать первую строку каждого файла, определить адресата и переместить файл в sorted/<адресат>/",
+        "success_criterion": "дерево /work в точности равно ожидаемому: inbox пуст, каждый исходный файл лежит в sorted/<адресат>/<имя> и его содержимое (sha256) совпадает с исходным, других файлов нет",
+        "no_action_probe": "текстовый ответ без вызовов: дерево не изменилось → 0; отдельно проверяется, что текстовый ответ с перечислением ожидаемой раскладки даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): дерево не изменилось → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:inbox/*",
+          "snapshot:sorted/**",
+          "snapshot:inbox"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "head",
+          "awk",
+          "mkdir",
+          "mv"
+        ],
+        "leak_check": "эталонной раскладки в песочнице нет: она выводится только из содержимого файлов; копирование вместо перемещения ловится требованием пустого inbox и точным равенством дерева"
+      },
+      "residue_absent": true,
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "8297152b5761a5969c9b34aa8c38e7e8bd173fbfb6294b00a65a43d9ee64d68a",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "frozen_outside_container": true
+        },
+        "G4": {
+          "pass": true,
+          "container": "gs-20260920-125719-offline",
+          "image": "alpine:3.20",
+          "network_profile": "none",
+          "isolation_probes": {
+            "uid": "1000",
+            "nonroot": true,
+            "rootfs_readonly": true,
+            "host_paths_hidden": true,
+            "bind_mount_writable": true,
+            "journal_invisible": true,
+            "verifier_files_invisible": true,
+            "network_closed": true,
+            "network_profile": "none"
+          },
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      }
+    },
+    {
+      "id": "gs-http-01",
+      "tool": "http_mock",
+      "network": "mock",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.055,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "new_paths": [
+            "out",
+            "out/items.json",
+            "out/report.json"
+          ],
+          "verify_s": 0.0563,
+          "score": 1,
+          "reason": "сервер принял отчёт {'items_count': 10, 'total_qty': 362} — совпал с независимым пересчётом по генератору выборки",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 3,
+            "posts": 1,
+            "gets": 1,
+            "journal_rotated": true,
+            "receipt_seq": 2
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1121
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0521,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0529
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0003,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0528,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1032
+        }
+      },
+      "repeats": [
+        {
+          "mode": "run",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.055,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "new_paths": [
+            "out",
+            "out/items.json",
+            "out/report.json"
+          ],
+          "verify_s": 0.0563,
+          "score": 1,
+          "reason": "сервер принял отчёт {'items_count': 10, 'total_qty': 362} — совпал с независимым пересчётом по генератору выборки",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 3,
+            "posts": 1,
+            "gets": 1,
+            "journal_rotated": true,
+            "receipt_seq": 2
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1121
+        },
+        {
+          "mode": "run",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 1,
+          "seed_s": 0.0004,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0562,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "new_paths": [
+            "out",
+            "out/items.json",
+            "out/report.json"
+          ],
+          "verify_s": 0.0525,
+          "score": 1,
+          "reason": "сервер принял отчёт {'items_count': 10, 'total_qty': 362} — совпал с независимым пересчётом по генератору выборки",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 3,
+            "posts": 1,
+            "gets": 1,
+            "journal_rotated": true,
+            "receipt_seq": 2
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1097
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0521,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0529
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 1,
+          "seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0521,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0526
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 0,
+          "seed_s": 0.0003,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0528,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1032
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "container": "gs-20260920-125719-net",
+          "container_start_s": 0.18255959700036328,
+          "repeat": 1,
+          "seed_s": 0.0003,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0503,
+          "action_exit_code": 0,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0674,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1183
+        }
+      ],
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-http-01",
+        "tool": "http_mock",
+        "network": "mock",
+        "workdir": "/work",
+        "prompt": "В переменной окружения MOCK_BASE лежит адрес HTTP-мока. Мок отдаёт выборку предметов: GET $MOCK_BASE/v1/items → {\"items\": [{\"id\": ..., \"qty\": <целое>}, ...], \"count\": <целое>}. Прими отчёт о выборке: POST $MOCK_BASE/v1/report с телом-объектом JSON ровно с двумя полями — \"items_count\" (число предметов в выборке) и \"total_qty\" (сумма qty по всем предметам). Мок принимает отчёт только при верных числах и отвечает {\"accepted\": true, ...}. Доведи сценарий до принятого отчёта. Работай из каталога /work.",
+        "initial_state": "каталог /work пуст; мок доступен по MOCK_BASE, его выборка определяется генератором сервера и в песочнице не лежит",
+        "goal_action": "получить выборку у мока, вычислить items_count и total_qty, отправить отчёт POST /v1/report",
+        "success_criterion": "в журнале СЕРВЕРА есть запись POST /v1/report с accepted=true, и числа в её теле совпадают с независимым пересчётом верификатора по тому же генератору выборки (журнал ведёт мок, агент к нему доступа не имеет)",
+        "no_action_probe": "текстовый ответ без вызовов: в журнале нет принятого отчёта → 0; отдельно проверяется, что текстовый ответ с точными числами (подставленными верификатором) даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): принятого отчёта нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "journal:POST /v1/report",
+          "generator:gen_items(seed)"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "wget",
+          "grep",
+          "awk"
+        ],
+        "leak_check": "ответ мока содержит выборку, но не её сумму; контракт в промпте объявлен, однако чисел не даёт — они выводятся только из ответа мока"
+      },
+      "residue_absent": true,
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "fe7bcfb05a3481d90ef2838b8762cc5485623bf9a932a2ce2d8d67f4cc755fbf",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "frozen_outside_container": true,
+          "journal_written_by_server": true,
+          "journal_outside_container": true
+        },
+        "G4": {
+          "pass": true,
+          "container": "gs-20260920-125719-net",
+          "image": "alpine:3.20",
+          "network_profile": "bridge+mock",
+          "isolation_probes": {
+            "uid": "1000",
+            "nonroot": true,
+            "rootfs_readonly": true,
+            "host_paths_hidden": true,
+            "bind_mount_writable": true,
+            "journal_invisible": true,
+            "verifier_files_invisible": true,
+            "mock_reachable": true,
+            "network_profile": "bridge+mock"
+          },
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false,
+          "mock_response_has_gold": false,
+          "mock_contract_stated_in_prompt": true
+        }
+      }
+    },
+    {
+      "id": "gs-shell-01",
+      "tool": "shell",
+      "network": "none",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0505,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "18675",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "new_paths": [
+            "out",
+            "out/total.txt"
+          ],
+          "verify_s": 0.0298,
+          "score": 1,
+          "reason": "сумма 18675 совпала с независимым пересчётом по исходным данным",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0813
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0317,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0325
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0004,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0313,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.082
+        }
+      },
+      "repeats": [
+        {
+          "mode": "run",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0005,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0505,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "18675",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "new_paths": [
+            "out",
+            "out/total.txt"
+          ],
+          "verify_s": 0.0298,
+          "score": 1,
+          "reason": "сумма 18675 совпала с независимым пересчётом по исходным данным",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0813
+        },
+        {
+          "mode": "run",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.051,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "18675",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "new_paths": [
+            "out",
+            "out/total.txt"
+          ],
+          "verify_s": 0.0316,
+          "score": 1,
+          "reason": "сумма 18675 совпала с независимым пересчётом по исходным данным",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.0836
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0317,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0325
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0003,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0305,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0312
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0499,
+          "action_exit_code": 0,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0004,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0313,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.082
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0003,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0466,
+          "action_exit_code": 0,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0004,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0299,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0772
+        }
+      ],
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-shell-01",
+        "tool": "shell",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work лежит файл in/series.csv (заголовок `label,value`, далее строки показаний). Собери сумму значений столбца value по всем строкам данных и положи её в файл out/total.txt — ровно одно целое число. Каталог out/ создай сам. Работай из каталога /work.",
+        "initial_state": "каталог /work с единственным файлом in/series.csv (41 строка: заголовок + 40 показаний); каталога out/ нет",
+        "goal_action": "прочитать данные, вычислить сумму столбца value и записать её в out/total.txt",
+        "success_criterion": "out/total.txt существует, содержит ровно один целый токен, и этот токен равен сумме столбца value, вычисленной верификатором независимо по исходному (неизменённому) in/series.csv",
+        "no_action_probe": "текстовый ответ без вызовов инструментов: файл out/total.txt не создан → 0; отдельно проверяется, что текстовый ответ с ТОЧНЫМ значением суммы (подставленным верификатором) даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): файла нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:in/series.csv",
+          "snapshot:out/total.txt"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "awk"
+        ],
+        "leak_check": "ожидаемое число в промпте и в seed отсутствует — оно выводится только из данных"
+      },
+      "residue_absent": true,
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "b4f4251bbc9a63d276e2b8dde0b9853b6beedda1d976256caaca69ec6b854b44",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "frozen_outside_container": true
+        },
+        "G4": {
+          "pass": true,
+          "container": "gs-20260920-125719-offline",
+          "image": "alpine:3.20",
+          "network_profile": "none",
+          "isolation_probes": {
+            "uid": "1000",
+            "nonroot": true,
+            "rootfs_readonly": true,
+            "host_paths_hidden": true,
+            "bind_mount_writable": true,
+            "journal_invisible": true,
+            "verifier_files_invisible": true,
+            "network_closed": true,
+            "network_profile": "none"
+          },
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      }
+    },
+    {
+      "id": "gs-shell-02",
+      "tool": "shell",
+      "network": "none",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0006,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0535,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "1430",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0008,
+          "symlink_escape": [],
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "new_paths": [
+            "out",
+            "out/aggregate.txt"
+          ],
+          "verify_s": 0.2284,
+          "score": 1,
+          "reason": "скрипт верен: на удержанных данных 1430 совпало с независимым пересчётом",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 1430
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.2833
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0009,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0007,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2053,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.207
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0512,
+          "action_exit_code": 0,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2202,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.2728
+        }
+      },
+      "repeats": [
+        {
+          "mode": "run",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0006,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0535,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "1430",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0008,
+          "symlink_escape": [],
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "new_paths": [
+            "out",
+            "out/aggregate.txt"
+          ],
+          "verify_s": 0.2284,
+          "score": 1,
+          "reason": "скрипт верен: на удержанных данных 1430 совпало с независимым пересчётом",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 1430
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.2833
+        },
+        {
+          "mode": "run",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0507,
+          "action_exit_code": 0,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "1430",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "new_paths": [
+            "out",
+            "out/aggregate.txt"
+          ],
+          "verify_s": 0.219,
+          "score": 1,
+          "reason": "скрипт верен: на удержанных данных 1430 совпало с независимым пересчётом",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 1430
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.2714
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0009,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0007,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2053,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.207
+        },
+        {
+          "mode": "no-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0009,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "action_exit_code": null,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2119,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.2135
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 0,
+          "seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0512,
+          "action_exit_code": 0,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2202,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.2728
+        },
+        {
+          "mode": "empty-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "container": "gs-20260920-125719-offline",
+          "container_start_s": 0.11266600300223217,
+          "repeat": 1,
+          "seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.049,
+          "action_exit_code": 0,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.1994,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.2498
+        }
+      ],
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-shell-02",
+        "tool": "shell",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work лежит скрипт bin/aggregate.sh: он должен собирать сумму столбца value по всем файлам data/*.csv в один файл out/aggregate.txt (ровно одно целое число, ничего кроме него). Сейчас скрипт считает не то. Почини bin/aggregate.sh так, чтобы при запуске из каталога /work (`sh bin/aggregate.sh`) он завершался успешно и давал верную сумму на ЛЮБОМ наборе файлов data/*.csv с той же схемой (`label,value`), а не только на лежащем сейчас.",
+        "initial_state": "каталог /work: bin/aggregate.sh (дефектный: суммирует столбец label вместо value) и data/a.csv, data/b.csv со схемой `label,value`",
+        "goal_action": "исправить bin/aggregate.sh так, чтобы он давал верную сумму столбца value",
+        "success_criterion": "предъявленный bin/aggregate.sh запускается верификатором в чистом контейнере (--network none, CWD=/work) на ДРУГОМ наборе data/*.csv, которого агент не видел: код возврата 0 И out/aggregate.txt равен сумме столбца value, вычисленной верификатором независимо по этому же набору",
+        "no_action_probe": "текстовый ответ без вызовов: предъявлен исходный (дефектный) скрипт → 0; отдельно проверяется, что текстовый ответ с точным ожидаемым числом даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): скрипт не изменён → 0",
+        "seed_dir": "seed",
+        "holdout_dir": "holdout",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "snapshot:bin/aggregate.sh",
+          "holdout:data/*.csv",
+          "reexec:/work/out/aggregate.txt"
+        ],
+        "timeout_s": 90,
+        "requires": [
+          "sh",
+          "awk",
+          "docker"
+        ],
+        "leak_check": "ожидаемое число не в промпте и не в seed: оно выводится только из данных; сверка идёт на удержанном наборе, поэтому зашитое значение не проходит"
+      },
+      "residue_absent": true,
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "d46f4cffddde0fdee98fb48ef58582d9506a19f8b84c0244602ac203c6f2f8b5",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "frozen_outside_container": true
+        },
+        "G4": {
+          "pass": true,
+          "container": "gs-20260920-125719-offline",
+          "image": "alpine:3.20",
+          "network_profile": "none",
+          "isolation_probes": {
+            "uid": "1000",
+            "nonroot": true,
+            "rootfs_readonly": true,
+            "host_paths_hidden": true,
+            "bind_mount_writable": true,
+            "journal_invisible": true,
+            "verifier_files_invisible": true,
+            "network_closed": true,
+            "network_profile": "none"
+          },
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      }
+    }
+  ],
+  "gates": {
+    "G1": {
+      "name": "награда по состоянию, не по тексту ответа",
+      "pass": true
+    },
+    "G2": {
+      "name": "no-action = 0 (успех недостижим без действий)",
+      "pass": true
+    },
+    "G3": {
+      "name": "бинарный внешний верификатор, читает не то, что писал агент",
+      "pass": true
+    },
+    "G4": {
+      "name": "изоляция контейнером + откат состояния",
+      "pass": true
+    }
+  },
+  "no_action": {
+    "share": 0.0,
+    "expected": 0.0,
+    "per_task": {
+      "gs-fs-01": 0,
+      "gs-fs-02": 0,
+      "gs-http-01": 0,
+      "gs-shell-01": 0,
+      "gs-shell-02": 0
+    },
+    "per_task_empty_action": {
+      "gs-fs-01": 0,
+      "gs-fs-02": 0,
+      "gs-http-01": 0,
+      "gs-shell-01": 0,
+      "gs-shell-02": 0
+    },
+    "text_answer_carried_expected": {
+      "gs-fs-01": true,
+      "gs-fs-02": true,
+      "gs-http-01": true,
+      "gs-shell-01": true,
+      "gs-shell-02": true
+    }
+  },
+  "isolation": {
+    "gs-20260920-125719-net": {
+      "uid": "1000",
+      "nonroot": true,
+      "rootfs_readonly": true,
+      "host_paths_hidden": true,
+      "bind_mount_writable": true,
+      "journal_invisible": true,
+      "verifier_files_invisible": true,
+      "mock_reachable": true,
+      "network_profile": "bridge+mock"
+    },
+    "gs-20260920-125719-offline": {
+      "uid": "1000",
+      "nonroot": true,
+      "rootfs_readonly": true,
+      "host_paths_hidden": true,
+      "bind_mount_writable": true,
+      "journal_invisible": true,
+      "verifier_files_invisible": true,
+      "network_closed": true,
+      "network_profile": "none"
+    }
+  },
+  "rollback": {
+    "gs-fs-01": {
+      "seed_matches_pristine": true,
+      "residue_absent": true,
+      "state_after_run_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb"
+    },
+    "gs-fs-02": {
+      "seed_matches_pristine": true,
+      "residue_absent": true,
+      "state_after_run_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b"
+    },
+    "gs-http-01": {
+      "seed_matches_pristine": true,
+      "residue_absent": true,
+      "state_after_run_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536"
+    },
+    "gs-shell-01": {
+      "seed_matches_pristine": true,
+      "residue_absent": true,
+      "state_after_run_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559"
+    },
+    "gs-shell-02": {
+      "seed_matches_pristine": true,
+      "residue_absent": true,
+      "state_after_run_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211"
+    }
+  },
+  "reproducibility": {
+    "repeat": 2,
+    "state_digests": {
+      "gs-fs-01": {
+        "run": [
+          "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb"
+        ],
+        "no-action": [
+          "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9"
+        ],
+        "empty-action": [
+          "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9"
+        ]
+      },
+      "gs-fs-02": {
+        "run": [
+          "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b"
+        ],
+        "no-action": [
+          "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1"
+        ],
+        "empty-action": [
+          "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1"
+        ]
+      },
+      "gs-http-01": {
+        "run": [
+          "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536"
+        ],
+        "no-action": [
+          "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3"
+        ],
+        "empty-action": [
+          "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3"
+        ]
+      },
+      "gs-shell-01": {
+        "run": [
+          "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559"
+        ],
+        "no-action": [
+          "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c"
+        ],
+        "empty-action": [
+          "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c"
+        ]
+      },
+      "gs-shell-02": {
+        "run": [
+          "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211"
+        ],
+        "no-action": [
+          "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141"
+        ],
+        "empty-action": [
+          "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141"
+        ]
+      }
+    },
+    "stable": {
+      "gs-fs-01": true,
+      "gs-fs-02": true,
+      "gs-http-01": true,
+      "gs-shell-01": true,
+      "gs-shell-02": true
+    },
+    "note": "два прогона одного режима с одним сидом обязаны дать одно состояние (ADR-049 п.3(iii)); при --repeat 1 проба не выполняется"
+  },
+  "cost": {
+    "reading": "песочница+состояние 0.1339 с против оценённых 0.8–3.0 с: ниже оценки; действие 0.0345 с против оценённых 0.1–0.25 с: ниже оценки; пересчёт шага по формуле аудита на измеренных слагаемых даёт ×1.156–1.328 против оценённых ×1.207–1.722; без батч-оптимизации (контейнер на rollout) песочница стоила бы 0.2015 с — тоже ниже оценки",
+    "is_measurement": true,
+    "what_is_measured": "подъём контейнера (амортизованный на батч), откат состояния, действие, снимок и верификация — то есть цена СРЕДЫ на rollout",
+    "measured": {
+      "containers": [
+        {
+          "name": "gs-20260920-125719-net",
+          "network": "mock",
+          "n_tasks": 1,
+          "start_s": 0.1826
+        },
+        {
+          "name": "gs-20260920-125719-offline",
+          "network": "none",
+          "n_tasks": 4,
+          "start_s": 0.1127
+        }
+      ],
+      "t_sandbox_per_rollout_s": 0.1339,
+      "t_sandbox_per_rollout_if_not_batched_s": 0.2015,
+      "t_action_per_rollout_s": 0.0345,
+      "rollout_overhead_s": 0.1093,
+      "per_task": [
+        {
+          "task": "gs-fs-01",
+          "mode": "run",
+          "seed_s": 0.0005,
+          "action_s": 0.0499,
+          "snapshot_s": 0.0009,
+          "verify_s": 0.0298,
+          "total_s": 0.0811
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "no-action",
+          "seed_s": 0.0007,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0302,
+          "total_s": 0.0315
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "empty-action",
+          "seed_s": 0.0006,
+          "action_s": 0.048,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.0296,
+          "total_s": 0.0788
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "run",
+          "seed_s": 0.0008,
+          "action_s": 0.0601,
+          "snapshot_s": 0.0013,
+          "verify_s": 0.0342,
+          "total_s": 0.0964
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "no-action",
+          "seed_s": 0.0012,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0007,
+          "verify_s": 0.0373,
+          "total_s": 0.0393
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "empty-action",
+          "seed_s": 0.0012,
+          "action_s": 0.049,
+          "snapshot_s": 0.0009,
+          "verify_s": 0.0348,
+          "total_s": 0.0859
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "run",
+          "seed_s": 0.0002,
+          "action_s": 0.055,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.0563,
+          "total_s": 0.1121
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "no-action",
+          "seed_s": 0.0005,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0521,
+          "total_s": 0.0529
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "empty-action",
+          "seed_s": 0.0003,
+          "action_s": 0.0499,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0528,
+          "total_s": 0.1032
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "run",
+          "seed_s": 0.0005,
+          "action_s": 0.0505,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0298,
+          "total_s": 0.0813
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "no-action",
+          "seed_s": 0.0004,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0317,
+          "total_s": 0.0325
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "empty-action",
+          "seed_s": 0.0004,
+          "action_s": 0.0499,
+          "snapshot_s": 0.0004,
+          "verify_s": 0.0313,
+          "total_s": 0.082
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "run",
+          "seed_s": 0.0006,
+          "action_s": 0.0535,
+          "snapshot_s": 0.0008,
+          "verify_s": 0.2284,
+          "total_s": 0.2833
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "no-action",
+          "seed_s": 0.0009,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0007,
+          "verify_s": 0.2053,
+          "total_s": 0.207
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "empty-action",
+          "seed_s": 0.0008,
+          "action_s": 0.0512,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.2202,
+          "total_s": 0.2728
+        }
+      ]
+    },
+    "audit_estimate": {
+      "source": "evidence/grounding-audit.json → cost_estimate.scenarios.container_per_rollout",
+      "base_step_s": 123.87,
+      "rollouts_per_step": 8,
+      "t_sandbox_per_rollout_s": [
+        0.8,
+        3.0
+      ],
+      "t_action_s": [
+        0.1,
+        0.25
+      ],
+      "ratio_to_base": [
+        1.207,
+        1.722
+      ],
+      "generation_growth_s": [
+        17.69,
+        35.38
+      ],
+      "actions_per_rollout": [
+        2,
+        15
+      ]
+    },
+    "comparison": {
+      "sandbox_within_estimate": false,
+      "sandbox_within_estimate_if_not_batched": false,
+      "action_within_estimate": false,
+      "step_seconds_recomputed": [
+        143.18,
+        160.87,
+        146.77,
+        164.46
+      ],
+      "ratio_to_base_recomputed": [
+        1.156,
+        1.299,
+        1.185,
+        1.328
+      ],
+      "audit_ratio_to_base": [
+        1.207,
+        1.722
+      ]
+    },
+    "assumptions": {
+      "inherited": [
+        "рост длины генерации (17.69–35.38 с) не измеряется здесь — взят из аудита",
+        "линейность по шагам и отсутствие термотроттлинга — как в замере S3-pre",
+        "число действий на rollout A ∈ {2, 15} — бюджет пула env_types, не замер скелета"
+      ],
+      "measured_not_assumed": [
+        "цена верификатора состояния в формуле аудита принята нулевой; здесь она измерена и входит в t_sandbox",
+        "подъём контейнера измерен, а не взят из диапазона 0.8–3.0 с"
+      ],
+      "reading": "сравнение идёт по слагаемым песочницы и действия; «шаг» — пересчёт формулы аудита на измеренных слагаемых, а не замер шага RL",
+      "scope": "задачи скелета короткие (одна-две команды на действие), поэтому t_action — нижняя граница цены действия в пуле стадии; сценарий же песочницы измерен прямо"
+    }
+  },
+  "verdict": {
+    "g1_g4": {
+      "G1": "выполняется",
+      "G2": "выполняется",
+      "G3": "выполняется",
+      "G4": "выполняется"
+    },
+    "skeleton_ready": true,
+    "not_measured_here": [
+      "способность модели решать задачи (полоса p* по ADR-049 п.12) — нужен rollout политики",
+      "воспроизводимость изоляции на стенде GB10 внутри контейнера стадии (ADR-049 п.10: проба с 4080 не переносится)",
+      "цена шага RL целиком (генерация и обучение) — здесь измерена только цена среды"
+    ]
+  },
+  "limits": [
+    "пробы no-action и empty-action исполняет раннер, а не модель: они проверяют контур награды, а не политику",
+    "батч-контейнер живёт на локальной 4080; цифры цены не переносятся на GB10 без повторной пробы (ADR-049 п.10)",
+    "состязательный текстовый ответ пробы no-action подставляет раннер из expected_public верификатора — это имитация худшего случая, а не поведение модели"
+  ],
+  "invariants": {
+    "ok": true,
+    "findings": []
+  }
+}

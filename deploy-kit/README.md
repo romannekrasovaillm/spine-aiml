@@ -1,14 +1,14 @@
 # deploy-kit — развёртывание arch-ml с нуля
 
-Комплект «под ключ» для развёртывания харнесса **Spine Banking Edition**
-(бинарь `arch-ml`) на чистой машине и подключения его к китайским LLM
+Комплект «под ключ» для развёртывания харнесса **Spine AI/ML Edition**
+(бинарь `arch-ml`) на чистой машине и подключения его к LLM
 (DeepSeek, Z.AI GLM, Kimi) или к локальной/self-hosted модели.
 
 ## Состав комплекта
 
 | Файл | Назначение |
 |---|---|
-| `arch-ml` | Бинарь харнесса (Linux x86-64; версия бинаря 0.1.3, комплект v0.1.3, сборка 2026-09-08 из ветки `spine-be`) |
+| — | Сам бинарь в комплект не входит: берите `arch-ml-linux-x86_64` из последнего GitHub Release либо собирайте из исходников (`cargo build --release`) |
 | `ИНСТРУКЦИЯ_ЧЕЛОВЕК.md` | Пошаговая инструкция для человека: установка, ключи, модели, контекстные папки, грабли |
 | `ИНСТРУКЦИЯ_АГЕНТ.md` | Сжатый контракт для ИИ-агента, выполняющего развёртывание |
 | `config.starter.toml` | Готовый минимальный конфиг: DeepSeek + GLM + Kimi + локальная модель |
@@ -26,9 +26,11 @@
 - **Бенчмарки** (6 + golden): payment_integration, event_driven_design,
   legacy_decomposition, gigachat_sla_resilience, pangolin_replication,
   meta_agent_realtime.
-- **Плагины и скиллы**: 7 плагинов, 52 скилла (arch-core, arch-governance,
+- **Плагины и скиллы**: 9 плагинов, 61 скилл (arch-core, arch-governance,
   arch-office, patterns-integration, patterns-resilience, aws-agentic-ai,
-  spine-be-docs и др.) — разворачиваются в `~/.arch-ml/plugins/`.
+  aws-builders-library, rust, spine-aiml-docs) — разворачиваются в
+  `~/.arch-ml/plugins/`; 8 доменных AI/ML-плагинов лежат в репозитории
+  (`aiml/plugins/`) и подключаются через `[plugins].dirs`.
 - **Дефолтные модели**: deepseek, deepseek-pro, glm, glm-4.7, glm-air,
   glm-flash, glm-5.3-flash, kimi, gigachat* — работают сразу после
   установки ключа в окружение, конфиг для них править не нужно.

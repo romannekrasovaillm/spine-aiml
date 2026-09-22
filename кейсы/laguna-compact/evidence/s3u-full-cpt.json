@@ -1,0 +1,285 @@
+{
+  "schema": "s3u-full-cpt/1",
+  "stage": "S3u",
+  "date": "2026-09-16T16:58:45+00:00",
+  "status": "partial",
+  "status_basis": "частично: цепочка полного CPT запущена автономно и идёт (факты старта ниже), но стадия не завершена — 9776 шагов ≈ 7.0 ч; замеры K1/K2 идут по точкам каждые 500 шагов сторожем на локальной машине. Дельта закрывается забором результата (команда ниже), а не ожиданием",
+  "task": "S3u — полный CPT на замороженном ADR-003 миксе v12r при пике LR ×0.35 (ADR-029 п.2)",
+  "decision": {
+    "adr": "ADR-029",
+    "what": "стоп-сигнал ADR-022 отозван; стадия продолжается на замороженном миксе v12r (домен 75 % / replay 25 %) при peak_lr_scale 0.35 — конфигурация 25-0.35",
+    "why": "конъюнкция компонент K1 ∧ K2 пройдена (K1 ×1.520, K2 ×1.745); LR×0.7 исключён (провал обеих компонент)",
+    "not_changed": "микс, LR, сид, протокол — зафиксированы решением, дельтой не менялись"
+  },
+  "stand_check": {
+    "command": "bash tools/check_resource_owner.sh --stage cpt",
+    "exit": 0,
+    "verdict": "CAN-START",
+    "output_tail": [
+      "[ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+      "[ok  ] память    доступно 49.3 ГБ из 121.7 ГБ (порог 35)",
+      "[ok  ] нагрузки  тренировочных нагрузок: 1 (опознание: exp_name)",
+      "",
+      "ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 49.3 ГБ ≥ порога 35 ГБ; тренировочных нагрузок 1 ≤ 1",
+      "AD-9 OK: хозяин ресурса объявлен, бюджет стадии CPT соблюдён."
+    ]
+  },
+  "run": {
+    "dir": "/home/user/gb10-shared/full-cpt-20260916-1933",
+    "ctr_dir": "/workspace/shared/full-cpt-20260916-1933",
+    "case_dir": "runs/full-cpt-20260916-1933",
+    "command": "bash /home/user/gb10-shared/full-cpt-20260916-1933/pilot_chain.sh --run-dir /home/user/gb10-shared/full-cpt-20260916-1933 --ctr-run-dir /workspace/shared/full-cpt-20260916-1933 --stages-file /home/user/gb10-shared/full-cpt-20260916-1933/stages.tsv --exp-base full-cpt-20260916-1933 --ctr-prefix laguna-full-cpt-20260916-1933 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/full-cpt-20260916-1933/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/full-cpt-20260916-1933/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_full_cpt.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.35 --extra-hyperparam corpus=v12r --extra-hyperparam cpt_steps=9776 --guard /home/user/gb10-shared/full-cpt-20260916-1933/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/full-cpt-20260916-1933/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/full-cpt-20260916-1933/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 b90b2caa7c4c --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.35 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 30",
+    "session": "full-cpt-20260916-1933",
+    "mixin": "v12r (75/25, заморожен ADR-003)",
+    "peak_lr_scale": 0.35,
+    "replay_share_pct": 25,
+    "steps": 9776,
+    "steps_source": "ADR-008: «CPT на корпусе v12r: 9776 чанков / batch 1 = 9776 шагов × 2.569 с = 7.0 ч на сид» (бюджет стадии); то же значение — в runs/pilot-compact-s42-20260914-1626/pilot_run.json, stages[cpt].steps",
+    "steps_check": {
+      "ok": true,
+      "cache": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "shape": [
+        9776,
+        8192
+      ],
+      "chunks": 9776,
+      "steps": 9776,
+      "why": "форма совпала с числом шагов: один проход по корпусу"
+    },
+    "seed": 42,
+    "model": "Qwen/Qwen2.5-0.5B",
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+    "ckpt_every": 500,
+    "pipeline": {
+      "file": "laguna_pipeline_calib.py",
+      "sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "same_as_calib_arms": true
+    },
+    "launched_at": "2026-09-16T19:35:18+03:00",
+    "launch_mechanism": "tmux-сессия на стенде + setsid nohup (переживает смерть агента)",
+    "evidence_of_start": {
+      "session": "full-cpt-20260916-1933",
+      "tmux": "full-cpt-20260916-1933: 1 windows (created Wed Sep 16 13:35:18 2026)",
+      "containers": [
+        "laguna-full-cpt-20260916-1933-cpt\tUp 23 minutes"
+      ],
+      "log_bytes": 2891,
+      "status_row": null,
+      "loss_trace_lines": 567,
+      "last_step": 566,
+      "seconds": 2.5
+    }
+  },
+  "ship": {
+    "ok": true,
+    "files": 9,
+    "mismatched": [],
+    "checked_from": "ssh gb10-fast — /home/user/gb10-shared/full-cpt-20260916-1933 (хостовый путь того же файла; в контейнере он же /workspace/shared/full-cpt-20260916-1933)",
+    "detail": "все файлы доставлены, sha256 совпал со стороны стенда"
+  },
+  "checkpoints": {
+    "listing_tail": [
+      "итого 2893716",
+      "drwxrwxr-x 2 roman roman       4096 сен 16 13:56 .",
+      "drwxrwxr-x 6 roman roman       4096 сен 16 13:36 ..",
+      "-rw-r--r-- 1 root  root  2963145733 сен 16 13:56 calib_checkpoint_500.pt",
+      "-rw-r--r-- 1 root  root         892 сен 16 13:35 run_manifest.json"
+    ]
+  },
+  "loss_trace": {
+    "file": "/home/user/gb10-shared/full-cpt-20260916-1933/logs/loss_trace.jsonl",
+    "lines": 568,
+    "last_step": 567,
+    "last_loss": 1.8046369552612305,
+    "last_lr": 0.000175,
+    "note": "судить по траектории (ADR-022 п.4), а не по сводке по окнам"
+  },
+  "probe_plan": {
+    "every_steps": 500,
+    "components": [
+      "K1",
+      "K2"
+    ],
+    "sets": {
+      "K1": "datasets/general_eval_v3.txt",
+      "K2": "datasets/general_eval_k2.txt",
+      "reference": "datasets/general_eval.txt (опорно: тождество прибора)"
+    },
+    "tool": "tools/calib_ppl_probe.py (методика tools/ppl_probe.py:measure)",
+    "instrument_sha256": {
+      "ppl_probe.py": {
+        "path": "tools/ppl_probe.py",
+        "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+      },
+      "calib_ppl_probe.py": {
+        "path": "tools/calib_ppl_probe.py",
+        "sha256": "d6082bdeb3185e82be7d75d3141c3349db65ddeae2c22464919166f3a6a116df"
+      }
+    },
+    "where": "локальная машина (RTX 4080) — стенд занят обучением (AD-5); обучение на 4080 не запускается",
+    "watcher": {
+      "state": {
+        "probe_dir": "/home/user/gb10-shared/full-cpt-ppl-20260916-1933",
+        "sets": [
+          "v1_general",
+          "v3_general",
+          "k2_general"
+        ],
+        "components": {
+          "K1": "v3_general",
+          "K2": "k2_general"
+        },
+        "every_steps": 500,
+        "measured": [
+          "s500"
+        ],
+        "measured_count": 1,
+        "ratios": {
+          "s500": {
+            "K1@s500": 2.4488,
+            "K2@s500": 2.5898,
+            "K1@base_untouched": 1.0,
+            "K2@base_untouched": 1.0
+          }
+        },
+        "baseline_ok": true
+      },
+      "command": "setsid nohup python3 tools/full_cpt_probe.py --ts 20260916-1933 --watch --poll 120 --max-hours 11 >> runs/full-cpt-ppl-20260916-1933/watch.log 2>&1 < /dev/null &",
+      "log": "runs/full-cpt-ppl-20260916-1933/watch.log"
+    },
+    "points": [
+      {
+        "name": "s500",
+        "step": 500,
+        "ckpt": "checkpoints/calib_checkpoint_500.pt"
+      },
+      {
+        "name": "s1000",
+        "step": 1000,
+        "ckpt": "checkpoints/calib_checkpoint_1000.pt"
+      },
+      {
+        "name": "s1500",
+        "step": 1500,
+        "ckpt": "checkpoints/calib_checkpoint_1500.pt"
+      },
+      {
+        "name": "s2000",
+        "step": 2000,
+        "ckpt": "checkpoints/calib_checkpoint_2000.pt"
+      },
+      {
+        "name": "s2500",
+        "step": 2500,
+        "ckpt": "checkpoints/calib_checkpoint_2500.pt"
+      },
+      {
+        "name": "s3000",
+        "step": 3000,
+        "ckpt": "checkpoints/calib_checkpoint_3000.pt"
+      },
+      {
+        "name": "s3500",
+        "step": 3500,
+        "ckpt": "checkpoints/calib_checkpoint_3500.pt"
+      },
+      {
+        "name": "s4000",
+        "step": 4000,
+        "ckpt": "checkpoints/calib_checkpoint_4000.pt"
+      },
+      {
+        "name": "s4500",
+        "step": 4500,
+        "ckpt": "checkpoints/calib_checkpoint_4500.pt"
+      },
+      {
+        "name": "s5000",
+        "step": 5000,
+        "ckpt": "checkpoints/calib_checkpoint_5000.pt"
+      },
+      {
+        "name": "s5500",
+        "step": 5500,
+        "ckpt": "checkpoints/calib_checkpoint_5500.pt"
+      },
+      {
+        "name": "s6000",
+        "step": 6000,
+        "ckpt": "checkpoints/calib_checkpoint_6000.pt"
+      },
+      {
+        "name": "s6500",
+        "step": 6500,
+        "ckpt": "checkpoints/calib_checkpoint_6500.pt"
+      },
+      {
+        "name": "s7000",
+        "step": 7000,
+        "ckpt": "checkpoints/calib_checkpoint_7000.pt"
+      },
+      {
+        "name": "s7500",
+        "step": 7500,
+        "ckpt": "checkpoints/calib_checkpoint_7500.pt"
+      },
+      {
+        "name": "s8000",
+        "step": 8000,
+        "ckpt": "checkpoints/calib_checkpoint_8000.pt"
+      },
+      {
+        "name": "s8500",
+        "step": 8500,
+        "ckpt": "checkpoints/calib_checkpoint_8500.pt"
+      },
+      {
+        "name": "s9000",
+        "step": 9000,
+        "ckpt": "checkpoints/calib_checkpoint_9000.pt"
+      },
+      {
+        "name": "s9500",
+        "step": 9500,
+        "ckpt": "checkpoints/calib_checkpoint_9500.pt"
+      },
+      {
+        "name": "s9776",
+        "step": 9776,
+        "ckpt": "checkpoints/checkpoint_final.pt"
+      }
+    ]
+  },
+  "how_to_fetch": [
+    "прогресс стадии: ssh gb10-fast 'tail -3 /home/user/gb10-shared/full-cpt-20260916-1933/logs/loss_trace.jsonl; cat /home/user/gb10-shared/full-cpt-20260916-1933/var/status/cpt'",
+    "живость цепочки: ssh gb10-fast 'tmux ls; docker ps | grep full-cpt-20260916-1933'",
+    "цепочка целиком (руками): bash /home/user/gb10-shared/full-cpt-20260916-1933/pilot_chain.sh --run-dir /home/user/gb10-shared/full-cpt-20260916-1933 --ctr-run-dir /workspace/shared/full-cpt-20260916-1933 --stages-file /home/user/gb10-shared/full-cpt-20260916-1933/stages.tsv --exp-base full-cpt-20260916-1933 --ctr-prefix laguna-full-cpt-20260916-1933 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/full-cpt-20260916-1933/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/full-cpt-20260916-1933/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_full_cpt.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.35 --extra-hyperparam corpus=v12r --extra-hyperparam cpt_steps=9776 --guard /home/user/gb10-shared/full-cpt-20260916-1933/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/full-cpt-20260916-1933/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/full-cpt-20260916-1933/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 b90b2caa7c4c --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.35 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 30",
+    "замеры K1/K2: журнал runs/full-cpt-ppl-20260916-1933/state.json; отчёты — /home/user/gb10-shared/full-cpt-ppl-20260916-1933/<точка>.json",
+    "забрать манифест и логи в кейс: ssh gb10-fast 'cat /home/user/gb10-shared/full-cpt-20260916-1933/run_manifest.json' > runs/full-cpt-20260916-1933/run_manifest.json",
+    "судить стадию по конъюнкции (ADR-029 п.4): на каждой точке K1/K2 ≤ 2× своей базы (K1 15.009373, K2 12.319871) — числа точек в отчётах сторожа"
+  ],
+  "artifacts": [
+    "runs/full-cpt-20260916-1933/ (манифест AD-2, параметры, строка запуска, ship.json, копия пайплайна)",
+    "/home/user/gb10-shared/full-cpt-20260916-1933/ (чекпойнты и логи — на сетевом диске, AD-4)",
+    "runs/full-cpt-ppl-20260916-1933/ (журнал и зеркала отчётов замеров)"
+  ],
+  "invariants": {
+    "AD-2": "run_manifest.json с хешем датасета (полный файл), версией пайплайна, образом, сидом — на первом шаге",
+    "AD-4": "данные и веса — на gb10-shared; в каталоге прогона только копии текстов и симлинк datasets у пробы",
+    "AD-5": "на GB10 одна тренировочная нагрузка; замеры PPL идут на локальной карте, обучение на 4080 не запускается",
+    "ADR-027": "компоненты меры не смешиваются: K1 и K2 считаются и публикуются раздельно",
+    "ADR-029": "конфигурация v12r + LR×0.35; микс, LR, сид не менялись",
+    "ADR-023 п.11": "долгоживущий прогон: подтверждён старт, ожидания завершения нет"
+  },
+  "assumptions": [
+    "«Прибор и наборы — с сетевого диска, копий не делать» прочитано так: прибор (tools/ppl_probe.py + tools/calib_ppl_probe.py, ревизия sha256 5a2c3f72… — та же, что дала числа S3q/S3t) и эталон S3h доставляются в каталог пробы на gb10-shared, наборы читаются оттуда же через симлинк datasets → /home/user/gb10-shared/datasets; копий данных и весов не делается вовсе (AD-4). Доставка прибора — та же практика, что у `run_mix_lr_calib.py --probe` (прибор обязан лежать там, откуда его видит исполнитель замера), и хеш доставленного сверяется с хешем в кейсе.",
+    "Число шагов взято из бюджета ADR-008 (9776 = один проход по корпусу) и подтверждено формой кэша корпуса и конфигурацией пилота; «полный CPT 7–10 тыс. шагов» из ADR-029 этому не противоречит.",
+    "Замеры идут на локальной карте (4080), а не в контейнере стенда: TASK прямо резервирует 4080 под замеры PPL, а замер в контейнере спорил бы с обучением за память (AD-5)."
+  ],
+  "open_questions": [
+    "Порог для ПРОМЕЖУТОЧНОЙ точки не назван числом. ADR-022 п.3б ставит потолок 2× «к концу стадии», а ADR-029 п.4 делает критерием конъюнкцию K1 ∧ K2 на точках и в конце. Первая же точка (шаг 500) даёт K1 ×2.449 и K2 ×2.590 базы — выше обоих потолков, и это ожидаемая форма, а не сигнал: у руки C1 (S3v) профиль — ступенька с откатом (×1.85/×2.03 на шаге 500 → ×1.245/×1.399 к шагу 2000), у пилота обвал локализован в (0, 500]. Вопрос архитектору: останавливать ли стадию по промежуточной точке выше потолка, или потолок проверяется только на конце и на восстановлении траектории.",
+    "Поведение языка на длине (9776 шагов) не измерено: конъюнкция проверена на 2000 шагах калибровки (ADR-029, «Отрицательные последствия»). Точки замера — ранний сигнал, но порог «когда останавливать стадию» на длинном прогоне не назван числом.",
+    "Точки замера снимаются на локальной карте, которая делится с другими дельтами контура: при чужой нагрузке замер откладывается (сторож ждёт свободной памяти). Момент замера поэтому не совпадает с моментом сохранения чекпойнта — на числа это не влияет (меряется состояние чекпойнта, а не момент), но время в журнале это покажет."
+  ]
+}

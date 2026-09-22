@@ -1263,11 +1263,11 @@ mod tests {
     fn parses_c4_context_elements_and_relations() {
         let ast = parse_c4(
             "C4Context\n\
-             Person(user, \"Пользователь\", \"Клиент банка\")\n\
+             Person(user, \"Исследователь\", \"ML-инженер\")\n\
              System_Ext(mail, \"E-mail\", \"Exchange\")\n\
-             System(banking, \"Internet Banking\")\n\
-             Rel(user, banking, \"Использует\")\n\
-             BiRel(banking, mail, \"Шлёт письма\")\n",
+             System(training, \"Training Platform\")\n\
+             Rel(user, training, \"Использует\")\n\
+             BiRel(training, mail, \"Шлёт письма\")\n",
         )
         .unwrap();
         assert_eq!(ast.elements.len(), 3);
@@ -1278,7 +1278,7 @@ mod tests {
         assert!(!ast.relations[0].bidir);
         assert!(ast.relations[1].bidir);
         let flow = ast.to_flow();
-        assert_eq!(flow.nodes[0].label, "«person»\nПользователь");
+        assert_eq!(flow.nodes[0].label, "«person»\nИсследователь");
         assert_eq!(flow.nodes[1].label, "«system, external»\nE-mail");
         assert!(flow.edges[1].plain, "BiRel — линия без стрелки");
     }

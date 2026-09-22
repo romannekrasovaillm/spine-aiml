@@ -1,0 +1,239 @@
+{
+  "schema": "s3s-hygiene/1",
+  "node": "S3s-1",
+  "date": "2026-09-16T14:15:37+00:00",
+  "question": "В этой ветке (arch/laguna-fleet-analysis) в git-индекс закоммичены копии данных (тяжёлые .npy в runs/replay50-collapse-20260916/corpus/tok/), из-за чего C-011 (AD-4) красный; C-012 (AD-2) красный на восьми каталогах runs/ без манифеста. Закрыть оба, повторив подход S3r соседней ветки.",
+  "reference_implementation": {
+    "branch": "arch/laguna-protocol-diag",
+    "commit": "282d903",
+    "node": "S3r",
+    "evidence": "evidence/s3r-hygiene.json",
+    "what_was_reused": [
+      "Тот же инструмент кейса tools/write_run_manifest.py (не свой формат и не рукописный JSON).",
+      "То же место на сетевом диске и та же цель симлинков: ~/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/.",
+      "Тот же признак «каталог-непрогон» файлом-маркером NOT_A_RUN (первая строка — причина).",
+      "То же суждение по replay50-collapse-20260916: НЕ помечен NOT_A_RUN (маркер спрятал бы упавший CPT-прогон от AD-2), вместо этого манифест с cpt=failed и pipeline_complete=false.",
+      "Та же сверка хешей: значения не переписывались из чужих манифестов, а пересчитаны инструментом."
+    ]
+  },
+  "scope": "Дерево и индекс кейса laguna-compact в ветке arch/laguna-fleet-analysis. Git-история не переписывалась (filter-branch / rebase -i / force-push не применялись). Стенд GB10 и RTX 4080 не задействованы.",
+  "c011": {
+    "rule": "C-011 / AD-4 «данные и веса — только симлинками на gb10-shared»",
+    "check": "bash tools/check_symlink_hygiene.sh .",
+    "before_exit": 1,
+    "before": {
+      "violations": 4,
+      "real_files_over_50mb": 2,
+      "index_blobs_over_50mb": 2,
+      "symlinks": 14,
+      "detail": "2 настоящих файла-копии по 228 262 016 Б (217 МиБ) в дереве + те же 2 блоба в git-индексе",
+      "index_blobs": [
+        "1a3de70e8d07d27ebc737390180be5ab4bd2dc88 — 228262016 Б — runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25.npy",
+        "3435aaf4ea73d822e99ff0cd0e470b1107c37ca3 — 228262016 Б — runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25_pos.npy"
+      ]
+    },
+    "after_exit": 0,
+    "after": {
+      "violations": 0,
+      "symlinks": 16,
+      "verdict_line": "SYMLINK HYGIENE OK: копий данных в дереве кейса нет"
+    },
+    "bytes_removed_from_index": 456524032,
+    "bytes_removed_readable": "435,5 МиБ (456 524 032 Б) — два блоба по 228 262 016 Б ушли из индекса и из дерева",
+    "data_already_on_shared_disk": true,
+    "copy_performed_by_this_node": false,
+    "moved_files": [
+      {
+        "path_in_case": "runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25.npy",
+        "symlink_target": "/home/user/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25.npy",
+        "bytes": 228262016,
+        "sha256_before": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "sha256_after": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "sha256_shared_target": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "index_mode_before": "100644",
+        "index_mode_after": "120000",
+        "index_blob_before": "1a3de70e8d07d27ebc737390180be5ab4bd2dc88",
+        "index_blob_after": "07667e7a35dc8f765f8ba6b590a0ead41ca69d87"
+      },
+      {
+        "path_in_case": "runs/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25_pos.npy",
+        "symlink_target": "/home/user/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/cpt_corpus_v12r50f_8192_qwen25_pos.npy",
+        "bytes": 228262016,
+        "sha256_before": "a8cad5f81609f95c15b02f1722869921d843291a2840a708828356e991d775cd",
+        "sha256_after": "a8cad5f81609f95c15b02f1722869921d843291a2840a708828356e991d775cd",
+        "sha256_shared_target": "a8cad5f81609f95c15b02f1722869921d843291a2840a708828356e991d775cd",
+        "index_mode_before": "100644",
+        "index_mode_after": "120000",
+        "index_blob_before": "3435aaf4ea73d822e99ff0cd0e470b1107c37ca3",
+        "index_blob_after": "4c98c64c89cb3287b82e4f73b84f2fb1463d94b0"
+      }
+    ],
+    "symlink_identity_with_reference": "Хеши блобов симлинков совпали с S3r побайтово (07667e7a… и 4c98c64c…) — цель симлинка та же строка, что в arch/laguna-protocol-diag; две копии одной ветки разошлись бы, если бы путь был другим.",
+    "sha256_discipline": "Порядок, требуемый задачей («сохранить на сетевой диск ДО удаления из дерева, сверив sha256 до и после»), соблюдён по существу: байты уже лежали на ~/gb10-shared (их положил S3r соседней ветки — тот же хост и тот же сетевой диск), поэтому копирование не выполнялось; перед удалением копий дерева sha256 файла в дереве и файла на сетевом диске сверены и совпали для обоих файлов, после замены на симлинки sha256 перечитан через симлинк и снова совпал. Единственный экземпляр данных не удалялся.",
+    "destination_rationale": [
+      "Место на сетевом диске не выбиралось этим узлом: оно взято у S3r 1:1 (~/gb10-shared/calib/replay50-collapse-20260916/corpus/tok/), чтобы копии корпуса в ветках не разъехались.",
+      "Канонический ~/gb10-shared/datasets/tok/ принадлежит root (drwxr-xr-x root root) и недоступен на запись без sudo — тот же барьер, что зафиксирован в S3r.",
+      "Байты на сетевом диске не менялись: sha256 до и после совпали для обоих файлов; данные в ~/gb10-shared не удалялись и не перемещались."
+    ]
+  },
+  "c012": {
+    "rule": "C-012 / AD-2 «каждый каталог прогона несёт run_manifest.json»",
+    "check": "python3 tools/check_run_manifest.py --runs runs/",
+    "before_exit": 1,
+    "before": {
+      "dirs_without_manifest": 8,
+      "list": [
+        "calib-25-0.35-20260916-0820",
+        "calib-25-0.7-20260916-0820",
+        "calib-50-0.35-20260916-0820",
+        "calib-50-0.7-20260916-0820",
+        "calib-audit-20260916",
+        "calib-grid-20260916-0820",
+        "calib-ppl-20260916-0820",
+        "replay50-collapse-20260916"
+      ]
+    },
+    "after_exit": 0,
+    "after": {
+      "violations": 0,
+      "runs": 9,
+      "skipped_not_a_run": 6,
+      "warnings": 2,
+      "verdict_line": "RUN MANIFESTS OK"
+    },
+    "dirs_with_manifest": 5,
+    "dirs_marked_not_a_run": 3,
+    "manifests_written": [
+      {
+        "dir": "runs/calib-25-0.35-20260916-0820",
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "pipeline_complete": true,
+        "basis": "аргументы взяты из calib_params.json самой руки; хеши пересчитаны tools/write_run_manifest.py и совпали с манифестом стенда ~/gb10-shared/calib/calib-25-0.35-20260916-0820/run_manifest.json"
+      },
+      {
+        "dir": "runs/calib-25-0.7-20260916-0820",
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "pipeline_version": "laguna_pipeline_calib.py@ee8341d0f163",
+        "pipeline_complete": true,
+        "basis": "то же; хеши совпали с манифестом стенда"
+      },
+      {
+        "dir": "runs/calib-50-0.35-20260916-0820",
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "pipeline_complete": true,
+        "basis": "то же; хеши совпали с манифестом стенда"
+      },
+      {
+        "dir": "runs/calib-50-0.7-20260916-0820",
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+        "pipeline_complete": true,
+        "basis": "то же; хеши совпали с манифестом стенда"
+      },
+      {
+        "dir": "runs/replay50-collapse-20260916",
+        "dataset_sha256": "2bef5ff726bac8c5e739db207710ec9cfc92092fca2f65f861505d7be77d0c00",
+        "pipeline_version": "laguna_pipeline_ctrl.py@1571cbd1043d",
+        "pipeline_complete": false,
+        "basis": "каталог несёт анатомию прогона (копия пайплайна + patch, каталог чекпойнтов с манифестом пайплайна, симлинки весов базы, сид 42); стадия cpt помечена failed по факту упавшего смоука (smoke_train.log: AttributeError: 'NoneType' object has no attribute 'endswith' на загрузке весов)"
+      }
+    ],
+    "not_a_run_markers": [
+      {
+        "dir": "runs/calib-grid-20260916-0820",
+        "reason": "запись о запуске сетки (grid_launch.json) — прогоны здесь её руки"
+      },
+      {
+        "dir": "runs/calib-ppl-20260916-0820",
+        "reason": "сводка PPL-прибора (smoke.json, схема calib-ppl-probe/1) — отчёт прибора, не обучение"
+      },
+      {
+        "dir": "runs/calib-audit-20260916",
+        "reason": "аудит утечек eval (leak_check.json, схема calib-eval-leak-fast/1) — отчёт прибора, не обучение"
+      }
+    ],
+    "judgement_rules_applied": [
+      "Каталог признан прогоном, если несёт анатомию прогона: копию пайплайна/патча, каталог чекпойнтов, сид, стадии. Иначе — не прогон.",
+      "replay50-collapse-20260916 НЕ помечен NOT_A_RUN намеренно: маркер спрятал бы от AD-2 упавший CPT-прогон, а это ровно тот случай, против которого написана шапка стража («маркер не должен прятать прогон за маркером»). Вместо этого манифест несёт cpt=failed и pipeline_complete=false — страж печатает предупреждение, гейт по прогону не закрывается.",
+      "dataset_sha256 в нём пиннит .npy, который пайплайн фактически читает, а не 1173-байтный .txt-носитель имени (иначе это была бы ровно та подмена, которую AD-2 запрещает).",
+      "Хеши не переписывались из чужих манифестов: все значения пересчитаны инструментом кейса и независимо сверены — (а) с манифестами стенда ~/gb10-shared/calib/<рука>/run_manifest.json для четырёх калибровочных рук, (б) прямым sha256 файлов кейса (datasets/tok/cpt_corpus_v12r_8192_qwen25.npy, datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy, datasets/sft_train_v12.jsonl, datasets/rl_tasks_revpool_v1.jsonl, datasets/eval_ood_clean.jsonl)."
+    ]
+  },
+  "independent_verification": {
+    "method": "Манифесты сгенерированы инструментом в этой ветке, затем поля сверены с манифестами S3r соседней ветки (282d903) машинно, с исключением created_at / arch_base_version.",
+    "result": [
+      "runs/replay50-collapse-20260916/run_manifest.json — все пиннящие поля совпали с S3r до последнего символа.",
+      "runs/calib-50-0.35-20260916-0820/run_manifest.json — совпало полностью.",
+      "runs/calib-50-0.7-20260916-0820/run_manifest.json — совпало полностью.",
+      "runs/calib-25-0.35-20260916-0820/run_manifest.json — расходится ОДНО поле: hyperparameters.corpus (см. divergences_from_reference).",
+      "runs/calib-25-0.7-20260916-0820/run_manifest.json — то же расхождение.",
+      "sha256 датасетов и пайплайнов, посчитанные инструментом в этой ветке, совпали со значениями манифестов стенда — то есть с манифестами, записанными на стенде 08:14–14:03, до обеих гигиенических дельт."
+    ]
+  },
+  "divergences_from_reference": [
+    {
+      "field": "hyperparameters.corpus в манифестах рук calib-25-0.35 и calib-25-0.7",
+      "reference_value": "v12r50",
+      "value_written_here": "v12r",
+      "why": "Значение взято из calib_params.json самой руки, как того требует AD-2 («фактические гиперпараметры, а не пересказ»). У обеих 25-рук calib_params.json говорит corpus_label «v12r (75/25, существующий кэш контура — не пересобирался)» и cpt_dataset_host .../cpt_corpus_v12r_8192_qwen25.npy, а тем же манифестом выше пиннится dataset_path datasets/tok/cpt_corpus_v12r_8192_qwen25.npy. То есть значение «v12r50» в манифестах S3r противоречило dataset_path в том же файле; у 50-рук, которые действительно учились на v12r50, оно верно и здесь оставлено как есть.",
+      "verification": "Проверено по всем четырём рукам: corpus_label и cpt_dataset_host каждой руки прочитаны из её calib_params.json; sha256 файла, на который указывает cpt_dataset_host, совпал с dataset_sha256 соответствующего манифеста.",
+      "for_architect": "Если «corpus» в манифесте задуман как метка семейства микса S3m (а не как имя фактического корпуса), то значения S3r верны по замыслу, а здесь — по факту. Решение за архитектором; расхождение названо, а не спрятано."
+    },
+    {
+      "field": "arch_base_version во всех пяти манифестах",
+      "reference_value": "2f85a12",
+      "value_written_here": "342eb9e",
+      "why": "Инструмент пишет в это поле коммит кейса на момент записи (git rev-parse --short HEAD). Ветка arch/laguna-protocol-diag на момент S3r стояла на 2f85a12 (S3n); в этой ветке HEAD — 342eb9e. Коммит 2f85a12 в этой ветке ОТСУТСТВУЕТ (git merge-base --is-ancestor 2f85a12 HEAD → не предок: ветки разошлись после 2f717c1/S3m), поэтому переносить это значение сюда значило бы пиннить коммит, которого в истории ветки нет.",
+      "note": "Поле зависит от момента записи, а не от прогона: манифест стенда ~/gb10-shared/calib/calib-25-0.35-20260916-0820/run_manifest.json имеет arch_base_version null и hyperparameters.arch_base_version \"\" — на стенде кейс не был git-деревом."
+    },
+    {
+      "field": "текст маркера runs/calib-ppl-20260916-0820/NOT_A_RUN",
+      "reference_text_referenced": "runs/s3n-ppl-20260916/",
+      "why": "Каталог runs/s3n-ppl-20260916/ существует только в ветке arch/laguna-protocol-diag (приходит коммитом 282d903), в этой ветке его нет. Ссылка на несуществующий здесь каталог была бы ложной. Вместо неё маркер ссылается на локальный однотипный приборный отчёт runs/calib-audit-20260916/ (тоже NOT_A_RUN). Остальные два маркера перенесены по существу без изменений: их утверждения (состав каталогов, имена рук в grid_launch.json, стенд-каталог сетки) проверены по файлам этой ветки и совпали."
+    }
+  ],
+  "fitness": {
+    "command": "не запускался",
+    "why": "Задача узкая: критерий приёмки — зелёные tools/check_symlink_hygiene.sh (C-011) и tools/check_run_manifest.py (C-012). Оба достигнуты. Полный fitness-чек (`arch-ml control check .`) включает C-014 (AD-1, отчёт результата), который красный по определению — фаза 1 не завершена, и к этой дельте не относится."
+  },
+  "tests": {
+    "command": "bash tools/tests/run_tool_tests.sh",
+    "result": "PASS=366 FAIL=1 (exit 1)",
+    "failures": [
+      {
+        "name": "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался)",
+        "expected_exit": 0,
+        "actual_exit": 1,
+        "mine": false,
+        "why_not_mine": [
+          "Вход теста — внешнее состояние: datasets/rl_tasks_revpool_v2.jsonl (симлинк на ~/gb10-shared/datasets/, вне репозитория) и карточка data/rev-envs-v2-card.json + инструмент tools/build_rev_envs.py.",
+          "По всем этим входам git status пуст: дельта S3s-1 их не касалась (проверено: git status --short -- data/ tools/build_rev_envs.py datasets → 0 строк).",
+          "Расхождение фактическое и внешнее: карточка заявляет 9197 строк и sha256 a5d6496a…, а файл пула на сетевом диске перезаписан 2026-09-16 08:09 и содержит 9162 строки, sha256 e678eb68….",
+          "Следовательно при HEAD результат теста тот же — падение предсуществующее и то же самое, что зафиксировал S3r в соседней ветке (там PASS=375 FAIL=1 с этой же строкой). Разница в числе PASS (366 против 375) — девять тестов группы S3n, которых в этой ветке нет: их приносит коммит 282d903 соседней ветки.",
+          "Не чинилось намеренно: это чужая рассинхронизация на сетевом диске (карточка S3f против пересобранного пула), а не предмет гигиены S3s-1."
+        ]
+      }
+    ],
+    "passes_note": "Остальные 366 проверок зелены, включая 16c (AD-2/AD-4 в стражах) и группу 16f (сетка калибровки) — то есть новые манифесты и маркеры тесты стражей не сломали."
+  },
+  "invariants_respected": {
+    "AD-4": "В дереве и индексе не осталось ни одной копии данных: 2 файла-копии заменены симлинками на ~/gb10-shared, байты сверены sha256 до, во время и после. Единственный экземпляр данных не удалялся: копирование не требовалось, байты уже лежали на сетевом диске.",
+    "AD-2": "9 каталогов прогонов несут конформный манифест с пересчитанными (а не пересказанными) значениями; 3 каталога-непрогона объявлены маркером NOT_A_RUN с причиной; противоречий «маркер + манифест» нет.",
+    "AD-12": "Доказательства — evidence/s3s-hygiene.json (before/after, байты, sha256, расхождения); артефакты — runs/*/run_manifest.json и runs/*/NOT_A_RUN; финальный git-коммит.",
+    "git-история": "Не переписана: ни filter-branch, ни rebase -i, ни force-push. Два блоба по 228 262 016 Б остаются в истории (коммит 342eb9e) — объём истории целью не был и не уменьшился; это названо, а не спрятано.",
+    "данные ~/gb10-shared": "Существующие данные не удалялись, не перемещались и не перезаписывались; этот узел на сетевой диск ничего не писал.",
+    "стенд GB10 / RTX 4080": "Не задействованы: ни docker, ни тренировки, ни GPU-нагрузки, ни tmux-сессии. Работа только с файлами дерева, индекса и сетевого диска.",
+    "фоновые ожидания": "Отсутствуют — все команды выполнены синхронно в рамках узла."
+  },
+  "open_questions": [
+    "hyperparameters.corpus у 25-рук: значение S3r «v12r50» противоречит dataset_path того же манифеста (cpt_corpus_v12r_…). Здесь записано фактическое «v12r». Если архитектор считает «corpus» меткой семейства микса, а не именем корпуса, — вернуть «v12r50» во всех четырёх руках одним решением, чтобы ветки не несли разные значения одного поля.",
+    "arch_base_version у пяти манифестов различается между ветками (2f85a12 против 342eb9e) и оба значения зависят от момента записи, а не от прогона. Коммит 2f85a12 в этой ветке отсутствует. Оставляем как есть или вводим правило «arch_base_version = коммит, породивший прогон» (тогда для S3m-рук это 2f717c1, и его надо будет проставлять осознанно, а не брать HEAD)?",
+    "История git по-прежнему содержит 2 блоба по 217 МиБ (коммит 342eb9e в этой ветке; ранее — во всех ветках, куда попал этот коммит). Задача запрещает переписывание истории и не ставит целью уменьшение объёма — оставить как есть или планировать отдельное решение (ADR) о чистке истории?",
+    "Третье рабочее дерево arch/laguna-control-arms несёт те же копии побайтово и остаётся красным по C-011 в своём дереве — чинить его отдельным узлом или в этой же серии S3s?",
+    "evidence/calib-protocol-audit.json утверждает «копий корпусов и чекпойнтов не создавалось», тогда как его же коммит 342eb9e внёс эти копии в индекс этой ветки. Чужой evidence-файл не правился (аудиторский след другого узла не переписывается). Амендмент — за архитектором.",
+    "Оставлен ли смысл у train/checkpoints/run_manifest.json внутри runs/replay50-collapse-20260916/ (манифест пайплайна, не AD-2: абсолютные пути в datasets, нет образа и pipeline_complete)? Не удалён, чтобы не терять артефакт.",
+    "runs/calib-ppl-20260916-0820/NOT_A_RUN в этой ветке ссылается на runs/calib-audit-20260916/ вместо runs/s3n-ppl-20260916/ из S3r (последнего здесь нет). При слиянии веток текст маркера разойдётся — свести к одному варианту?"
+  ]
+}

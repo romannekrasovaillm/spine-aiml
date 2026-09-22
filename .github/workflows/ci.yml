@@ -116,12 +116,31 @@ jobs:
       - run: ./target/debug/arch-ml adr registry . --strict
       - name: personal paths scan
         # AD-7: персональные пути не живут в репозитории; допустимы только
-        # плейсхолдеры /home/user/ (сцены скриншотов) и /home/.../ (доки).
-        # Сам workflow исключён: в нём литерально записана эта команда.
+        # плейсхолдеры /home/user (сцены скриншотов) и /home/.../ (доки).
+        # Ловим также ~/Загрузки|~/Downloads|~/Desktop и macOS /Users/.
+        # Исключены: сам workflow (в нём записана команда) и CHANGELOG.md
+        # (описывает правила скана в записях релизов).
         run: |
-          leaks=$(git grep -nI "/home/" -- . ":(exclude).github/workflows/ci.yml" | grep -vE "/home/(user/|\.\.\.)" || true)
+          leaks=$(git grep -nIE "/home/|~/(Загрузки|Downloads|Desktop)|/Users/" -- . ":(exclude).github/workflows/ci.yml" ":(exclude).github/workflows/sdk.yml" ":(exclude)CHANGELOG.md" | grep -vE "/home/(user\b|\.\.\.)" || true)
           if [ -n "$leaks" ]; then echo "$leaks"; exit 1; fi
           echo "personal paths: чисто"
+      - name: identity guard (AI/ML Edition)
+        # Публикационная идентичность (ревью 2026-09-22): термины банковской
+        # редакции запрещены вне allowlist ниже. Allowlist — легитимные места:
+        # история форка (NOTICE/AGENTS/ADR/CHANGELOG), домен кейсов (кейсы/),
+        # контрактные имена SDK (sdk/), сгенерированные диаграммы (diagrams/),
+        # закрытая зона форка (banking/, experiments/ — в публичный снапшот
+        # не входят), сам workflow.
+        run: |
+          hits=$(git grep -nIE "Banking Edition|Spine-BE([^_A-Za-z]|$)|[Бб]анковск(ая|ий) редакц" -- . \
+            ":(exclude).github/workflows/ci.yml" ":(exclude).github/workflows/sdk.yml" \
+            ":(exclude)NOTICE.md" ":(exclude)CHANGELOG.md" ":(exclude)AGENTS.md" \
+            ":(exclude)AGENTS-READERS.md" ":(exclude)LICENSE.banking" \
+            ":(exclude)ARCHITECTURE-SPINE-BE.md" ":(exclude)banking/**" \
+            ":(exclude)кейсы/**" ":(exclude)docs/adr/**" ":(exclude)docs/diagrams/**" \
+            ":(exclude)experiments/**" ":(exclude)sdk/**" || true)
+          if [ -n "$hits" ]; then echo "$hits"; exit 1; fi
+          echo "identity guard: чисто"
 
   eval-suite:
     # Continuous evals конфигурации харнесса (docs/evals.md): встроенный сьют

@@ -1,0 +1,1035 @@
+{
+  "schema": "replay50-collapse/1",
+  "stage": "A2 (план laguna-compact-analysis)",
+  "date": "2026-09-16T13:59:15.034674+00:00",
+  "question": "Почему руки 50 % replay дали распад и зацикливание — дефект сборки корпуса или свойство микса; закрывать ли направление «replay 50 %»",
+  "sources": {
+    "corpus_compare": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/corpus_compare.json",
+    "probe_control": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/probe_control.json",
+    "arm_probes": {
+      "25-0.35": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/logs/probes_cpt.json",
+      "25-0.7": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/logs/probes_cpt.json",
+      "50-0.35": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/logs/probes_cpt.json",
+      "50-0.7": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/logs/probes_cpt.json"
+    },
+    "arm_loss_traces": {
+      "25-0.35": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/logs/loss_trace.jsonl",
+      "25-0.7": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/logs/loss_trace.jsonl",
+      "50-0.35": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/logs/loss_trace.jsonl",
+      "50-0.7": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/logs/loss_trace.jsonl"
+    },
+    "mix_build_report": "/home/user/gb10-shared/calib/mix-v12r50-build.json",
+    "ppl_smoke": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/calib-ppl-20260916-0820/smoke.json"
+  },
+  "artifacts": [
+    "evidence/replay50-collapse.json",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/corpus_compare.json",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/analyze_corpora.py",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/build_evidence.py",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/probe_control.py",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/runs/replay50-collapse-20260916/probe_control.json",
+    "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50/кейсы/laguna-compact/docs/specs/REPLAY50-ANALYSIS.md"
+  ],
+  "build_provenance": {
+    "tool": {
+      "path": "tools/build_mix_v12r50.py",
+      "sha256": "d90ee32523632dc708fc4d699349dad5cead1eeb6f6ad506894fb4f271259354",
+      "argv": [
+        "--datasets-dir",
+        "/workspace/shared/datasets",
+        "--report",
+        "/workspace/shared/calib/mix-v12r50-build.json"
+      ]
+    },
+    "recipe": {
+      "chunk_len": 8192,
+      "seed": 42,
+      "shuffle": "numpy RandomState(seed).shuffle по оси чанков",
+      "domain_sep": "'\\n---\\n'",
+      "replay_sep": "'\\n\\n'",
+      "min_doc_chars": 50,
+      "chunking": "нехвостовые блоки max_len, хвост отброшен"
+    },
+    "fidelity_check": {
+      "what": "пересборка v12r тем же кодом (7332 домен + 2444 реплей, seed 42) побайтово сравнена с существующими кэшами; отдельно сверена доменная чанковка с кэшем v10.1",
+      "domain_chunks_equal": true,
+      "tokens_equal": true,
+      "pos_equal": true,
+      "reference": {
+        "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f"
+      },
+      "reference_pos": {
+        "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy",
+        "sha256": "ec0c199a892ebc36e31a34e31db2b2a330604dc2a9cea256a6998a2dc9434ff8"
+      },
+      "reference_domain": {
+        "path": "/workspace/shared/datasets/tok/cpt_corpus_v10.1_8192_qwen25.npy",
+        "sha256": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+      }
+    },
+    "claim_verified": true,
+    "what_it_means": "процедура сборки v12r50 побайтово воспроизводит существующий кэш v12r тем же кодом: чанковка, разделители документов, фильтр min_chars и шафл — ОДНИ И ТЕ ЖЕ. Дефект процедуры проявился бы в обоих миксах и не мог бы их различить.",
+    "sources": {
+      "domain": {
+        "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+        "bytes": 299141131,
+        "docs": 168528,
+        "tokens": 60066303,
+        "chunks_available": 7332
+      },
+      "replay": {
+        "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+        "bytes": 136766843,
+        "docs": 157269,
+        "tokens": 28617440,
+        "chunks_available": 3493
+      }
+    },
+    "mix": {
+      "out_stem": "cpt_corpus_v12r50",
+      "domain_chunks": 3493,
+      "replay_chunks": 3493,
+      "chunks": 6986,
+      "chunk_len": 8192,
+      "tokens": 57229312,
+      "mix_domain_ratio": 0.5,
+      "mix_replay_ratio": 0.5,
+      "seed": 42,
+      "prefix_of_v12r": {
+        "domain": "первые 3493 чанков того же доменного потока, что v12r (там 7332)",
+        "replay": "первые 3493 чанков того же реплей-потока, что v12r (там 2444)"
+      },
+      "arithmetic": "3493 × 8192 = 28614656 домен; 3493 × 8192 = 28614656 реплей; сумма 57229312"
+    }
+  },
+  "corpus_comparison": {
+    "shapes": {
+      "v12r": [
+        9776,
+        8192
+      ],
+      "v12r50": [
+        6986,
+        8192
+      ]
+    },
+    "recipe_identity": {
+      "what": "оба микса — конкатенация [домен; реплей] + RandomState(42).shuffle по оси 0; чанковка, разделители документов и фильтр min_chars одни и те же",
+      "evidence": "mix-v12r50-build.json:fidelity_check — пересборка v12r тем же кодом побайтово совпала с существующим кэшем v12r (tokens_equal=true, pos_equal=true)"
+    },
+    "label_model_check": {
+      "v12r50_domain_is_head_of_v12r_domain": true,
+      "v12r50_replay_is_prefix_of_v12r_replay_stream": true,
+      "v12r_domain_chunk_count": 7332,
+      "v12r_replay_chunk_count": 2444,
+      "v12r50_domain_chunk_count": 3493,
+      "v12r50_replay_chunk_count": 3493,
+      "replay_stream_order_is_identical_between_mixes": true
+    },
+    "stream_coverage": {
+      "domain": {
+        "stream_tokens": 60066303,
+        "stream_chunks_available": 7332,
+        "v12r_domain_chunks": 7332,
+        "v12r50_domain_chunks": 3493,
+        "v12r_domain_token_share": 1.0,
+        "v12r50_domain_token_share": 0.4764,
+        "note": "v12r50 берёт ПЕРВЫЕ 3493 чанка доменного потока — это голова потока, а не случайная подвыборка; хвост (3839 чанков) в него не входит"
+      },
+      "replay": {
+        "stream_tokens": 28617440,
+        "stream_chunks_available": 3493,
+        "v12r_replay_chunks": 2444,
+        "v12r50_replay_chunks": 3493,
+        "v12r_replay_token_share": 0.6996,
+        "v12r50_replay_token_share": 0.9999,
+        "note": "реплей-источник конечен: 3493 чанка — это ВЕСЬ поток, поэтому v12r50 использует реплей целиком, а v12r — только его первые 2444"
+      },
+      "mix": {
+        "v12r": {
+          "chunks": 9776,
+          "tokens": 80084992,
+          "replay_share": 0.25
+        },
+        "v12r50": {
+          "chunks": 6986,
+          "tokens": 57229312,
+          "replay_share": 0.5
+        }
+      }
+    },
+    "order": {
+      "v12r": {
+        "source_switches": 3698,
+        "source_switches_share": 0.3783,
+        "expected_switches_uniform_shuffle": 3665.6,
+        "max_same_source_run": 32,
+        "expected_max_run_uniform_shuffle": 31.9,
+        "domain_share": 0.75,
+        "adjacent_source_pairs": 3,
+        "adjacent_source_pairs_share": 0.000307
+      },
+      "v12r50": {
+        "source_switches": 3475,
+        "source_switches_share": 0.4975,
+        "expected_switches_uniform_shuffle": 3492.5,
+        "max_same_source_run": 12,
+        "expected_max_run_uniform_shuffle": 12.8,
+        "domain_share": 0.5,
+        "adjacent_source_pairs": 3,
+        "adjacent_source_pairs_share": 0.000429
+      },
+      "note": "у обоих миксов один и тот же шафл по оси чанков: порядок перемешан, блочной укладки (весь домен, затем весь реплей) нет ни в одном"
+    },
+    "duplicates": {
+      "v12r_domain_all": {
+        "chunks": 7332,
+        "unique": 7332,
+        "exact_dup_chunks": 0
+      },
+      "v12r_replay_all": {
+        "chunks": 2444,
+        "unique": 2444,
+        "exact_dup_chunks": 0
+      },
+      "v12r50_domain_head": {
+        "chunks": 3493,
+        "unique": 3493,
+        "exact_dup_chunks": 0
+      },
+      "v12r50_replay_all": {
+        "chunks": 3493,
+        "unique": 3493,
+        "exact_dup_chunks": 0
+      },
+      "domain_tail_only_in_v12r": {
+        "chunks": 3839,
+        "unique": 3839,
+        "exact_dup_chunks": 0
+      },
+      "replay_new_only_in_v12r50": {
+        "chunks": 1049,
+        "unique": 1049,
+        "exact_dup_chunks": 0
+      },
+      "intersection_v12r50_with_v12r": 5937,
+      "intersection_expected": 5937,
+      "intersection_note": "v12r50 целиком лежит внутри v12r по материалу: 3493 доменных (голова потока) + 2444 реплейных (общая часть) = 5937 чанков; новый материал v12r50 — только 1049 реплей-чанков, которых в v12r не было",
+      "new_material_only_in_v12r50": 1049
+    },
+    "pos_metrics": {
+      "v12r_domain_all": {
+        "chunks": 7332,
+        "starts_on_doc_boundary_share": 0.0029,
+        "starts_mid_document_share": 0.9971,
+        "doc_starts_per_chunk_mean": 22.99,
+        "doc_starts_per_chunk_max": 49,
+        "chunks_with_at_least_one_doc_start_share": 1.0,
+        "max_pos_seen": 4252
+      },
+      "v12r_replay_all": {
+        "chunks": 2444,
+        "starts_on_doc_boundary_share": 0.0061,
+        "starts_mid_document_share": 0.9939,
+        "doc_starts_per_chunk_mean": 42.35,
+        "doc_starts_per_chunk_max": 127,
+        "chunks_with_at_least_one_doc_start_share": 1.0,
+        "max_pos_seen": 8379
+      },
+      "v12r50_domain_head": {
+        "chunks": 3493,
+        "starts_on_doc_boundary_share": 0.0037,
+        "starts_mid_document_share": 0.9963,
+        "doc_starts_per_chunk_mean": 33.38,
+        "doc_starts_per_chunk_max": 49,
+        "chunks_with_at_least_one_doc_start_share": 1.0,
+        "max_pos_seen": 3781
+      },
+      "v12r50_replay_all": {
+        "chunks": 3493,
+        "starts_on_doc_boundary_share": 0.0069,
+        "starts_mid_document_share": 0.9931,
+        "doc_starts_per_chunk_mean": 45.02,
+        "doc_starts_per_chunk_max": 127,
+        "chunks_with_at_least_one_doc_start_share": 1.0,
+        "max_pos_seen": 8379
+      }
+    },
+    "text_metrics": {
+      "v12r_domain_all": {
+        "chunks": 7332,
+        "chunk_share_with": {
+          "empty_parens": 0.0223,
+          "double_space_hole": 0.3989,
+          "category_tail": 0.0015,
+          "wiki_link": 0.5988,
+          "wiki_template": 0.0024,
+          "wiki_ref": 0.0014,
+          "stress_mark": 0.0155,
+          "md_header": 0.9872,
+          "concept_card": 0.6062
+        },
+        "start_mid_sentence_share": 0.7691,
+        "end_mid_sentence_share": 0.9595,
+        "cyrillic_share_chars": 0.4039,
+        "chars_median": 28858.4829,
+        "chars_p10": 25942,
+        "chars_p90": 27332,
+        "chars_per_token": 3.5344
+      },
+      "v12r_replay_all": {
+        "chunks": 2444,
+        "chunk_share_with": {
+          "empty_parens": 0.4583,
+          "double_space_hole": 0.4705,
+          "category_tail": 0.2484,
+          "wiki_link": 0.0045,
+          "wiki_template": 0.0078,
+          "wiki_ref": 0.0078,
+          "stress_mark": 0.5483,
+          "md_header": 0.0006,
+          "concept_card": 0.0
+        },
+        "start_mid_sentence_share": 0.7779,
+        "end_mid_sentence_share": 0.9513,
+        "cyrillic_share_chars": 0.7817,
+        "chars_median": 20897.2422,
+        "chars_p10": 20563,
+        "chars_p90": 23889,
+        "chars_per_token": 2.5729
+      },
+      "v12r50_domain_head": {
+        "chunks": 3493,
+        "chunk_share_with": {
+          "empty_parens": 0.0306,
+          "double_space_hole": 0.0078,
+          "category_tail": 0.0013,
+          "wiki_link": 0.9879,
+          "wiki_template": 0.0021,
+          "wiki_ref": 0.0016,
+          "stress_mark": 0.0021,
+          "md_header": 0.9991,
+          "concept_card": 0.9991
+        },
+        "start_mid_sentence_share": 0.7659,
+        "end_mid_sentence_share": 0.9668,
+        "cyrillic_share_chars": 0.4896,
+        "chars_median": 26582.6754,
+        "chars_p10": 25942,
+        "chars_p90": 27332,
+        "chars_per_token": 3.2517
+      },
+      "v12r50_replay_all": {
+        "chunks": 3493,
+        "chunk_share_with": {
+          "empty_parens": 0.4993,
+          "double_space_hole": 0.5059,
+          "category_tail": 0.1777,
+          "wiki_link": 0.0044,
+          "wiki_template": 0.0091,
+          "wiki_ref": 0.0077,
+          "stress_mark": 0.593,
+          "md_header": 0.003,
+          "concept_card": 0.0
+        },
+        "start_mid_sentence_share": 0.7857,
+        "end_mid_sentence_share": 0.9545,
+        "cyrillic_share_chars": 0.785,
+        "chars_median": 21318.8074,
+        "chars_p10": 20563,
+        "chars_p90": 23889,
+        "chars_per_token": 2.6163
+      },
+      "domain_tail_only_in_v12r": {
+        "chunks": 3839,
+        "chunk_share_with": {
+          "empty_parens": 0.0144,
+          "double_space_hole": 0.7546,
+          "category_tail": 0.0006,
+          "wiki_link": 0.2443,
+          "wiki_template": 0.0015,
+          "wiki_ref": 0.0,
+          "stress_mark": 0.0278,
+          "md_header": 0.9771,
+          "concept_card": 0.2492
+        },
+        "start_mid_sentence_share": 0.7721,
+        "end_mid_sentence_share": 0.9528,
+        "cyrillic_share_chars": 0.3257,
+        "chars_median": 31012.6953,
+        "chars_p10": 25766,
+        "chars_p90": 27461,
+        "chars_per_token": 3.7912
+      },
+      "replay_new_only_in_v12r50": {
+        "chunks": 1049,
+        "chunk_share_with": {
+          "empty_parens": 0.5948,
+          "double_space_hole": 0.5881,
+          "category_tail": 0.0133,
+          "wiki_link": 0.0048,
+          "wiki_template": 0.0124,
+          "wiki_ref": 0.0076,
+          "stress_mark": 0.6978,
+          "md_header": 0.0086,
+          "concept_card": 0.0
+        },
+        "start_mid_sentence_share": 0.8037,
+        "end_mid_sentence_share": 0.9619,
+        "cyrillic_share_chars": 0.7929,
+        "chars_median": 22292.2202,
+        "chars_p10": 20214,
+        "chars_p90": 24474,
+        "chars_per_token": 2.7172
+      }
+    },
+    "token_metrics": {
+      "v12r_domain_all": {
+        "tokens": 60063744,
+        "special_token_ids": 88538,
+        "special_token_share": 0.00147407,
+        "entropy_bits_sampled": 10.871,
+        "top10_token_mass": 0.1258
+      },
+      "v12r_replay_all": {
+        "tokens": 20021248,
+        "special_token_ids": 0,
+        "special_token_share": 0.0,
+        "entropy_bits_sampled": 9.69,
+        "top10_token_mass": 0.1419
+      },
+      "v12r50_domain_head": {
+        "tokens": 28614656,
+        "special_token_ids": 284,
+        "special_token_share": 9.92e-06,
+        "entropy_bits_sampled": 10.389,
+        "top10_token_mass": 0.1482
+      },
+      "v12r50_replay_all": {
+        "tokens": 28614656,
+        "special_token_ids": 0,
+        "special_token_share": 0.0,
+        "entropy_bits_sampled": 9.781,
+        "top10_token_mass": 0.1359
+      },
+      "domain_tail_only_in_v12r": {
+        "tokens": 31449088,
+        "special_token_ids": 88254,
+        "special_token_share": 0.00280625,
+        "entropy_bits_sampled": 11.069,
+        "top10_token_mass": 0.1098
+      },
+      "replay_new_only_in_v12r50": {
+        "tokens": 8593408,
+        "special_token_ids": 0,
+        "special_token_share": 0.0,
+        "entropy_bits_sampled": 9.944,
+        "top10_token_mass": 0.1255
+      }
+    },
+    "source_markup_per_Mchars": {
+      "domain": {
+        "chars": 214479322,
+        "per_Mchars": {
+          "empty_parens": 1.72,
+          "double_space_hole": 0.14,
+          "category_tail": 0.03,
+          "wiki_link": 82.23,
+          "wiki_template": 0.13,
+          "wiki_ref": 0.02,
+          "stress_mark": 0.81,
+          "md_header": 2932.01,
+          "concept_card": 233.36
+        },
+        "note": "на 1M символов источника; источник читается целиком и только для чтения"
+      },
+      "replay": {
+        "chars": 76063000,
+        "per_Mchars": {
+          "empty_parens": 93.11,
+          "double_space_hole": 116.69,
+          "category_tail": 42.5,
+          "wiki_link": 0.24,
+          "wiki_template": 0.55,
+          "wiki_ref": 0.37,
+          "stress_mark": 115.97,
+          "md_header": 1.03,
+          "concept_card": 0.0
+        },
+        "note": "на 1M символов источника; источник читается целиком и только для чтения"
+      }
+    },
+    "sources": {
+      "domain": {
+        "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+        "bytes": 299141131,
+        "raw_parts": 175588,
+        "docs_kept": 168528,
+        "docs_dropped_short": 7060,
+        "doc_chars_median": 288,
+        "doc_chars_p90": 2981,
+        "duplicate_docs": 1586,
+        "duplicate_doc_share": 0.0094,
+        "chars_in_duplicate_docs_share": 0.0164
+      },
+      "replay": {
+        "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+        "bytes": 136766843,
+        "raw_parts": 200940,
+        "docs_kept": 157269,
+        "docs_dropped_short": 43671,
+        "doc_chars_median": 338,
+        "doc_chars_p90": 948,
+        "duplicate_docs": 264,
+        "duplicate_doc_share": 0.0017,
+        "chars_in_duplicate_docs_share": 0.0006
+      }
+    }
+  },
+  "loss_trajectories": {
+    "25-0.35": {
+      "steps": 2000,
+      "loss_first_third_mean": 2.1055,
+      "loss_last_third_mean": 1.7227,
+      "loss_delta_last_minus_first": -0.3828,
+      "loss_min": 1.021,
+      "loss_max": 3.795,
+      "loss_step0": 2.0989,
+      "loss_last_step": 2.2834,
+      "lr_step1": 3.5e-06,
+      "lr_peak_observed": 0.000175,
+      "lr_last": 1.7500479771949008e-05,
+      "schedule": "WSD: warmup 100, stable 1000 (max_steps//2), cosine-decay 900 до 10 % пика; пик достигается на шаге 100 и держится до 1100",
+      "tokens_seen": 16384000
+    },
+    "25-0.7": {
+      "steps": 2000,
+      "loss_first_third_mean": 2.5244,
+      "loss_last_third_mean": 1.9662,
+      "loss_delta_last_minus_first": -0.5582,
+      "loss_min": 1.2087,
+      "loss_max": 4.7553,
+      "loss_step0": 2.0989,
+      "loss_last_step": 2.5012,
+      "lr_step1": 7e-06,
+      "lr_peak_observed": 0.00035,
+      "lr_last": 3.5000959543898016e-05,
+      "schedule": "WSD: warmup 100, stable 1000 (max_steps//2), cosine-decay 900 до 10 % пика; пик достигается на шаге 100 и держится до 1100",
+      "tokens_seen": 16384000
+    },
+    "50-0.35": {
+      "steps": 2000,
+      "loss_first_third_mean": 2.3515,
+      "loss_last_third_mean": 1.9388,
+      "loss_delta_last_minus_first": -0.4127,
+      "loss_min": 1.3166,
+      "loss_max": 3.8578,
+      "loss_step0": 2.0047,
+      "loss_last_step": 1.4977,
+      "lr_step1": 3.5e-06,
+      "lr_peak_observed": 0.000175,
+      "lr_last": 1.7500479771949008e-05,
+      "schedule": "WSD: warmup 100, stable 1000 (max_steps//2), cosine-decay 900 до 10 % пика; пик достигается на шаге 100 и держится до 1100",
+      "tokens_seen": 16384000
+    },
+    "50-0.7": {
+      "steps": 2000,
+      "loss_first_third_mean": 2.7594,
+      "loss_last_third_mean": 2.172,
+      "loss_delta_last_minus_first": -0.5873,
+      "loss_min": 1.4744,
+      "loss_max": 4.7515,
+      "loss_step0": 2.0047,
+      "loss_last_step": 1.6754,
+      "lr_step1": 7e-06,
+      "lr_peak_observed": 0.00035,
+      "lr_last": 3.5000959543898016e-05,
+      "schedule": "WSD: warmup 100, stable 1000 (max_steps//2), cosine-decay 900 до 10 % пика; пик достигается на шаге 100 и держится до 1100",
+      "tokens_seen": 16384000
+    }
+  },
+  "loss_trajectories_summary": {
+    "all_arms_loss_decreases": true,
+    "what_it_means": "критерий ADR-022 п.3(a) («loss убывает по траектории») выполнен во ВСЕХ четырёх руках — и в тех, чьи пробы распались. Критерий не различает обучение и деградацию на коротком горизонте: он видит сходимость к другому режиму как сходимость.",
+    "steps_are_chunks": "1 шаг = 1 чанк 8192 токена (cpt_batch=1; laguna_pipeline_calib.py:735 — «cpt_steps = TOTAL_CPT_CHUNKS»)"
+  },
+  "probe_control": {
+    "device": "cpu",
+    "protocol": {
+      "prompts": [
+        "domain_tool",
+        "domain_knowledge",
+        "general_language",
+        "general_reasoning",
+        "instruction"
+      ],
+      "decoding": "greedy",
+      "max_new_tokens": 384,
+      "system_prompt": "копия run_probes из laguna_pipeline_calib.py"
+    },
+    "model_provenance": {
+      "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "special_tokens": [
+        "<think>",
+        "</think>",
+        "<tool_call>",
+        "</tool_call>",
+        "<tool_response>",
+        "</tool_response>",
+        "<reasoning>",
+        "</reasoning>"
+      ],
+      "vocab_before": 151665,
+      "vocab_after": 151671
+    },
+    "summary": {
+      "base": {
+        "domain_tool": {
+          "uniq4": 0.087,
+          "max4gram_rep": 13,
+          "max_repeat_of_char_block": 6,
+          "cyrillic_share": 0.89,
+          "words": 129,
+          "has_think": false
+        },
+        "domain_knowledge": {
+          "uniq4": 0.222,
+          "max4gram_rep": 7,
+          "max_repeat_of_char_block": 8,
+          "cyrillic_share": 0.807,
+          "words": 170,
+          "has_think": false
+        },
+        "general_language": {
+          "uniq4": 0.283,
+          "max4gram_rep": 7,
+          "max_repeat_of_char_block": 8,
+          "cyrillic_share": 1.0,
+          "words": 155,
+          "has_think": false
+        },
+        "general_reasoning": {
+          "uniq4": 0.947,
+          "max4gram_rep": 2,
+          "max_repeat_of_char_block": 1,
+          "cyrillic_share": 0.89,
+          "words": 22,
+          "has_think": false
+        },
+        "instruction": {
+          "uniq4": 1.0,
+          "max4gram_rep": 1,
+          "max_repeat_of_char_block": 1,
+          "cyrillic_share": 0.852,
+          "words": 14,
+          "has_think": false
+        }
+      },
+      "instruct": {
+        "domain_tool": {
+          "uniq4": 1.0,
+          "max4gram_rep": 1,
+          "max_repeat_of_char_block": 1,
+          "cyrillic_share": 0.732,
+          "words": 22,
+          "has_think": false
+        },
+        "domain_knowledge": {
+          "uniq4": 0.812,
+          "max4gram_rep": 5,
+          "max_repeat_of_char_block": 5,
+          "cyrillic_share": 0.97,
+          "words": 195,
+          "has_think": false
+        },
+        "general_language": {
+          "uniq4": 0.994,
+          "max4gram_rep": 2,
+          "max_repeat_of_char_block": 3,
+          "cyrillic_share": 1.0,
+          "words": 169,
+          "has_think": false
+        },
+        "general_reasoning": {
+          "uniq4": null,
+          "max4gram_rep": null,
+          "max_repeat_of_char_block": 1,
+          "cyrillic_share": 0.667,
+          "words": 4,
+          "has_think": false
+        },
+        "instruction": {
+          "uniq4": 1.0,
+          "max4gram_rep": 1,
+          "max_repeat_of_char_block": 2,
+          "cyrillic_share": 0.981,
+          "words": 49,
+          "has_think": false
+        }
+      }
+    },
+    "responses": {
+      "base": {
+        "domain_tool": "Найди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкреплением.acco\nacco\nНайди концепты про обучение языковых моделей агентов с подкрепл",
+        "domain_knowledge": "WSD-расписание learning rate используется для оптимизации параметров обучения в WSD-расписании. Это позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.鲕\n鲕\n## WSD-расписание learning rate\n\n**WSD-расписание learning rate** — это оптимизация параметров обучения в WSD-расписании, которая позволяет улучшить качество модели и предсказания в реальных данных.",
+        "general_language": "Для приготовления домашнего хлеба на закваске, вам нужно взять 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли. Взять 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли и перемешайте их. Добавьте 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли и перемешайте их еще раз. Добавьте 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли и перемешайте их еще раз. Добавьте 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли и перемешайте их еще раз. Добавьте 100 г молока, 50 г сливок, 100 г сахара, 100 г сухого масла и 100 г сухого соли и перемешайте их еще раз. Добавьте 100 г молока, 50 г сливок, 100 г сахара",
+        "general_reasoning": "Маши отдала 3 яблока, а потом нашла ещё 2. Таким образом, Маши у нас 5 яблок. Ответ: Маши у нас 5 яблок.<|endoftext|>",
+        "instruction": "Читать книги и статьи помогает нам в жизни, в том числе и в работе.<|endoftext|>"
+      },
+      "instruct": {
+        "domain_tool": "Slug-и концептов: machine_learning_agent_with_feedback\n\nКонцепт: Модель обучения агентов с подкреплением, которая использует обратную связь для обновления состояния модели в зависимости от полученных feedback.<|im_end|>",
+        "domain_knowledge": "WSD-расписание learning rate (LRS) - это метод обучения, который используется для оптимизации параметров модели. Этот метод позволяет быстро изменять веса модели, чтобы минимизировать ошибки и улучшать качество модели. \n\nОсновные преимущества использования LRS:\n\n1. Простота: Лучше всего понятно и легко поддерживать.\n2. Устойчивость: Метод работает хорошо даже при малых изменениях в качестве модели.\n3. Регулярность: Позволяет регулярно обновлять модель и улучшать её качество.\n\nВот несколько примеров использования LRS:\n\n1. **Данные изображения**: Если вам нужна модель классификации изображений, LRS может быть полезным, так как она позволяет быстро изменять веса модели, чтобы улучшить качество классификации.\n   \n2. **Аналитические модели**: Если вы хотите использовать аналитические модели, такие как машинное обучение для прогнозирования, то LRS может быть полезной структурой обучения, которая позволяет быстро изменять веса модели, чтобы улучшить точность прогнозирования.\n\n3. **Предиктивные модели**: Если вы хотите использовать предиктивные модели, такие как модели регрессии или временных рядов, то LRS может быть полезным, так как она позволяет быстро изменять веса модели, чтобы улучшить точность прогнозирования.\n\n4. **Системы управления**: Если вы хотите использовать систему управления, таких как управление производственной мощностью или управление транспортом, то LRS может быть полезным, так как она позволяет быстро изменять веса модели, чтобы улучшить эффективность системы управления.\n\nВ целом, L",
+        "general_language": "Конечно! Приготовление домашнего хлеба на закваске - это интересный и вкусный способ сделать его. Вот простой рецепт:\n\n### Ингредиенты:\n- 100 г сухого сахара (обычно используется сахарная пудра)\n- 2 стакана воды\n- 50 г муки\n- 1 чайная ложка активного овощного масла (или 1 чайная ложка активного растительного масла)\n\n### Рецепт:\n\n1. **Смешиваем сахар и воду**: В большой кастрюле или блендере разбираем сахар и воду до тех пор, пока не образуется слоёй. Это нужно для того, чтобы сахар был полностью растворён в воде.\n\n2. **Добавляем муку**: Затем добавляем муку в смесь. Если вам нужен более твердый хлеб, можно добавить немного воды или сахара.\n\n3. **Приправляем**: Добавляем активное овощное масло или активное растительное масло. Это поможет сохранить свежесть и вкус хлеба.\n\n4. **Тщательно перемешиваем**: Над смесью搅拌, чтобы все ингредиенты были хорошо перемешаны. Это важно для получения однородной массы.\n\n5. **Окружим хлебом**: Смешанный хлеб выложите на противень или форму, чтобы он не остался в воздухе.\n\n6. **Запекаем**: Выкладываем хлеб на противень и запекаем в духовке до готовности. Обратите внимание, что",
+        "general_reasoning": "У Маши 5 яблок.<|im_end|>",
+        "instruction": "Чтение - это способ общения с миром через язык, который позволяет нам вдохновляться, развивать мышление и улучшать свои навыки. Он также помогает нам осознавать себя и окружающих, а также открывает новые области знаний и интересов. Важно помнить, что чтение не только для развития личности, но и для укрепления здоровья.<|im_end|>"
+      }
+    }
+  },
+  "arm_probes_as_filed": {
+    "25-0.35": {
+      "domain_tool": {
+        "words": 265,
+        "uniq4": 0.954,
+        "max4gram_rep": 2,
+        "max_repeat_of_char_block": 6,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.0
+      },
+      "domain_knowledge": {
+        "words": 243,
+        "uniq4": 0.946,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 5,
+        "has_think": true,
+        "has_tool_call": true,
+        "cyrillic_share": 0.16
+      },
+      "general_language": {
+        "words": 13,
+        "uniq4": 1.0,
+        "max4gram_rep": 1,
+        "max_repeat_of_char_block": 19,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.0
+      },
+      "general_reasoning": {
+        "words": 273,
+        "uniq4": 0.915,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 7,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.0
+      },
+      "instruction": {
+        "words": 211,
+        "uniq4": 0.947,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 4,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.043
+      }
+    },
+    "25-0.7": {
+      "domain_tool": {
+        "words": 282,
+        "uniq4": 0.925,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 5,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.0
+      },
+      "domain_knowledge": {
+        "words": 268,
+        "uniq4": 0.913,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 6,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.052
+      },
+      "general_language": {
+        "words": 207,
+        "uniq4": 0.877,
+        "max4gram_rep": 3,
+        "max_repeat_of_char_block": 5,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.063
+      },
+      "general_reasoning": {
+        "words": 238,
+        "uniq4": 0.868,
+        "max4gram_rep": 4,
+        "max_repeat_of_char_block": 7,
+        "has_think": true,
+        "has_tool_call": true,
+        "cyrillic_share": 0.0
+      },
+      "instruction": {
+        "words": 208,
+        "uniq4": 0.951,
+        "max4gram_rep": 2,
+        "max_repeat_of_char_block": 4,
+        "has_think": true,
+        "has_tool_call": false,
+        "cyrillic_share": 0.047
+      }
+    },
+    "50-0.35": {
+      "domain_tool": {
+        "words": 181,
+        "uniq4": 0.112,
+        "max4gram_rep": 22,
+        "max_repeat_of_char_block": 6,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      },
+      "domain_knowledge": {
+        "words": 166,
+        "uniq4": 0.092,
+        "max4gram_rep": 26,
+        "max_repeat_of_char_block": 14,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 0.996
+      },
+      "general_language": {
+        "words": 128,
+        "uniq4": 0.056,
+        "max4gram_rep": 31,
+        "max_repeat_of_char_block": 9,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      },
+      "general_reasoning": {
+        "words": 191,
+        "uniq4": 0.074,
+        "max4gram_rep": 59,
+        "max_repeat_of_char_block": 60,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      },
+      "instruction": {
+        "words": 195,
+        "uniq4": 0.135,
+        "max4gram_rep": 22,
+        "max_repeat_of_char_block": 7,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      }
+    },
+    "50-0.7": {
+      "domain_tool": {
+        "words": 88,
+        "uniq4": 0.729,
+        "max4gram_rep": 6,
+        "max_repeat_of_char_block": 11,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 0.293
+      },
+      "domain_knowledge": {
+        "words": 93,
+        "uniq4": 0.856,
+        "max4gram_rep": 10,
+        "max_repeat_of_char_block": 8,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 0.12
+      },
+      "general_language": {
+        "words": 79,
+        "uniq4": 0.105,
+        "max4gram_rep": 35,
+        "max_repeat_of_char_block": 37,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      },
+      "general_reasoning": {
+        "words": 77,
+        "uniq4": 0.014,
+        "max4gram_rep": 74,
+        "max_repeat_of_char_block": 77,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      },
+      "instruction": {
+        "words": 128,
+        "uniq4": 0.024,
+        "max4gram_rep": 42,
+        "max_repeat_of_char_block": 11,
+        "has_think": false,
+        "has_tool_call": false,
+        "cyrillic_share": 1.0
+      }
+    }
+  },
+  "premise_check": {
+    "claim_as_written": "руки 25 % — связны и язык цел; руки 50 % — распад",
+    "per_arm": {
+      "25-0.35": {
+        "probes_with_think": 5,
+        "probes_with_tool_call": 1,
+        "mean_cyrillic_share": 0.041,
+        "min_uniq4": 0.915,
+        "median_max4gram_rep": 3
+      },
+      "25-0.7": {
+        "probes_with_think": 5,
+        "probes_with_tool_call": 1,
+        "mean_cyrillic_share": 0.032,
+        "min_uniq4": 0.868,
+        "median_max4gram_rep": 3
+      },
+      "50-0.35": {
+        "probes_with_think": 0,
+        "probes_with_tool_call": 0,
+        "mean_cyrillic_share": 0.999,
+        "min_uniq4": 0.056,
+        "median_max4gram_rep": 26
+      },
+      "50-0.7": {
+        "probes_with_think": 0,
+        "probes_with_tool_call": 0,
+        "mean_cyrillic_share": 0.683,
+        "min_uniq4": 0.014,
+        "median_max4gram_rep": 35
+      }
+    },
+    "findings": [
+      "Руки 25 % отвечают на русские промпты ПО-АНГЛИЙСКИ (доля кириллицы 0.00–0.16): русский язык выхода потерян — это и есть форгеттинг, только измеренный по языку ответа, а не по PPL.",
+      "Руки 25 % сохраняют режим чата (<think> в 5 из 5 проб), руки 50 % — нет (0 из 5). Разница не в «связности», а в том, КАКОЙ режим уцелел.",
+      "Рука 25-0.35 на general_language выдала не текст, а зацикливание идентификатора (hypothesis_1_hypothesis_2_…_hypothesis_38_hypothesis_4…), то есть распад есть и в 25 %, но словесные 4-граммы его не видят: цикл идёт внутри одного «слова».",
+      "PPL-смоук сетки (runs/calib-ppl-20260916-0820/smoke.json) даёт для 25-0.7 на шаге 500 ppl_general 204.4 против базы 11.93 — ×17 на 4.1M токенов, раньше конца пилота. К шагу 2000 в руке 25 % язык уже разрушен."
+    ],
+    "verdict": "посылка НЕ подтверждается: распад есть в обеих долях, различается его форма (язык и режим), а не наличие"
+  },
+  "ppl_smoke_grid": {
+    "instrument": {
+      "measure": "tools/ppl_probe.py:measure (методика _ppl_eval S3h)",
+      "load_checkpoint": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "pipeline": "runs/calib-25-0.7-20260916-0820/laguna_pipeline_calib.py",
+      "pipeline_sha256": "ee8341d0f1630e2daf701401323d96408a82ee02f0d852e84e36c420255645fd",
+      "base_weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+      "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+      "max_len": 1024,
+      "batch": 4,
+      "dtype": "bfloat16",
+      "device": "cuda"
+    },
+    "states": {
+      "base": {
+        "ppl_general_v1": 11.931923888434497,
+        "ppl_domain_v1": 9.29019390347789,
+        "load": {
+          "kind": "base"
+        },
+        "ratio_to_base_general": 1.0
+      },
+      "smoke25-0.7-c500": {
+        "ppl_general_v1": 204.44178711987345,
+        "ppl_domain_v1": 10.140387483567405,
+        "load": {
+          "kind": "ckpt",
+          "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_500.pt",
+          "resized_embeddings": false,
+          "optimizer_present": true
+        },
+        "ratio_to_base_general": 17.13
+      }
+    },
+    "measured_states": [
+      "base",
+      "smoke25-0.7-c500"
+    ],
+    "pending_states": [],
+    "what_it_means": "полная сетка PPL по чекпойнтам — пре-регистрированный решающий прибор (probe_plan в run_mix_lr_calib.py); здесь только смоук из двух состояний. Он уже показывает, что 25 % replay не защищает язык: ×17 к шагу 500.",
+    "reproducibility": {
+      "step500_state_of_25_0.7": "удалён ретенцией — число не воспроизводится",
+      "step500_states_available_now": [
+        "calib-25-0.35/checkpoints/calib_checkpoint_500.pt",
+        "calib-50-0.35/checkpoints/calib_checkpoint_500.pt",
+        "calib-50-0.7/checkpoints/calib_checkpoint_500.pt"
+      ],
+      "consequence": "шаг 500 домерим по трём рукам из четырёх; у 25-0.7 — только записанное число"
+    }
+  },
+  "control_run": {
+    "arm": "не выполнялась — снята владельцем из объёма узла (бюджет и очередь GPU)",
+    "setup_as_specified": [
+      "(а) 2000 шагов на v12r50 с явной фильтрацией вики-разметки",
+      "(б) 2000 шагов на v12r с искусственно поднятой долей general до 50 %"
+    ],
+    "result": "not_run",
+    "why_a_would_be_uninformative": "измерено: в РЕПЛЕЙ-источнике вики-разметки почти нет — 18 вхождений «[[», 42 «{{», 28 «<ref» на 136.8 МБ / 76.1M символов / 200 940 документов. Фильтровать нечего: контроль (а) не изменил бы корпус и не мог бы ничего различить. То, что читалось как «вики-разметка» в доменном корпусе (98.8 % чанков со «[[»), — это LaTeX-матрицы ([[P, 0], [0, I_r]]), маркеры цитирования [[m]] и собственная нотация домена [[slug]], а не мусор вики-очистки.",
+    "what_would_be_informative": [
+      "2000 шагов на миксе 50/50, где доменная часть — СЛУЧАЙНАЯ подвыборка всего доменного потока (3493 из 7332), а не его голова: отделяет «долю replay» от «выбор префикса» (см. selection_gap)",
+      "2000 шагов на v12r50 при attn=standard (без flex): flex включён во ВСЕХ четырёх руках и во всём пилоте, поэтому сетка не может различить дефект окружения и свойство микса (это п.1 ADR-022, он не закрыт)",
+      "замер PPL полной сетки (base + 16 чекпойнтов + вакуумная база) — пре-регистрирован, идёт отдельным узлом/инструментом"
+    ]
+  },
+  "selection_gap": {
+    "what": "v12r50 берёт ПЕРВЫЕ 3493 чанка доменного потока (47.6 %), v12r — весь поток (7332). Доменный поток упорядочен по типу материала, поэтому голова и хвост — разный текст, а не одна и та же смесь.",
+    "measured": {
+      "concept_card_share_head": 0.9991,
+      "concept_card_share_tail": 0.2492,
+      "double_space_hole_share_head": 0.0078,
+      "double_space_hole_share_tail": 0.7546,
+      "tool_call_native_tokens_head": 27,
+      "tool_call_native_tokens_tail": 73871,
+      "added_special_tokens_head": 284,
+      "added_special_tokens_tail": 88254,
+      "doc_starts_per_chunk_head": 33.38,
+      "doc_starts_per_chunk_tail": 13.52,
+      "note": "хвост домена (только в v12r) содержит ~74k <tool_call>/</tool_call> и ~88k добавленных спецтокенов (<think>, <tool_response>) — это агентный/SFT-подобный материал. В голове (в v12r50) их ~300. Разница по плотности: добавленные спецтокены 9.9e-6 → 2.8e-3 (×283), с нативными <tool_call> 1.1e-5 → 5.2e-3 (×474). Плотность начал документов (33.4 против 13.5 на чанк) показывает, что дело не только в разметке: хвост собран из документов ~2.5× длиннее — это другой материал, а не та же смесь с другим числом."
+    },
+    "consequence": "миксы различаются не одной переменной, а как минимум тремя: (1) доля replay 25→50 %, (2) состав домена «весь поток» → «голова», (3) плотность формата чата/инструментов в обучающем потоке (~250×). Пункты (2) и (3) — следствие выбора префикса, и (3) в карточке сборки НЕ назван: там названо только «доменный пул вдвое меньше → меньше разнообразия».",
+    "collinearity_caveat": "на четырёх руках эти факторы коллинеарны по построению, поэтому приписать различие в поведении пробам 50 % именно плотности формата нельзя — можно только утверждать, что манипуляция была не одномерной."
+  },
+  "replay_source_ceiling": {
+    "what": "реплей-источник general_replay_ru.txt даёт ровно 3493 чанка по 8192 токена (28 617 440 токенов) — это ВЕСЬ поток, и v12r50 берёт его целиком, а v12r — первые 2444 (70 %).",
+    "consequence": "«50 % replay при полном доменном пуле» требует 7332 реплей-чанков, то есть в 2.1 раза больше реплей-текста, чем есть в текущем файле. Поэтому доля 50 % ДОСТИЖИМА только уменьшением домена — то есть цена 50 % по построению есть тот самый связанный сдвиг, который и мешает интерпретации. Направление «replay 50 %» сейчас не собирается без искажения."
+  },
+  "verdict": {
+    "cause": "ни «дефект сборки», ни «свойство микса» в чистом виде — наблюдаемое объясняется третьим: НЕОДНОМЕРНОСТЬЮ манипуляции плюс неразличённым дефектом окружения",
+    "cause_detail": [
+      "Дефект ПРОЦЕДУРЫ сборки отвергнут: v12r50 собран тем же кодом, что побайтово воспроизводит v12r (fidelity_check: домен, токены и pos совпали). Границы чанков и предобработка у миксов идентичны — 99.6 % чанков начинаются на середине документа в ОБОИХ.",
+      "Остаточные артефакты очистки (пустые скобки «( )» в 46–50 % реплей-чанков, «:Категория:», знаки ударения) приходят из ИСТОЧНИКА и одинаковы в общей части обоих миксов — различить ими миксы нельзя.",
+      "Дефект ВЫБОРА есть: домен v12r50 — голова потока, а не подвыборка; хвост (агентная разметка) выпал. Это названо в карточке лишь частично.",
+      "Свойство микса не доказано: руки 25 % тоже распались (английский выход, циклы, PPL ×17 к шагу 500), причём обе руки 25 % и обе 50 % ведут себя одинаково внутри своей доли. Различие идёт по доле, а не по LR — но доля здесь не отделена от выбора префикса и от flex-режима."
+    ],
+    "close_replay50": false,
+    "close_replay50_reasoning": "Закрывать нечем: гипотеза «50 % хуже 25 %» не проверена — обе доли провалились на 2000 шагах, а 25 % провалились ещё раньше (к шагу 500). Закрытие направления на этих данных было бы закрытием по неразличённому эксперименту. Но и продолжать как есть нельзя: при текущем реплей-источнике 50 % достижимо только ценой сдвига домена, поэтому следующий шаг — не «ещё одна рука 50 %», а разведение факторов.",
+    "confidence": "средняя",
+    "confidence_limited_by": [
+      "контрольная рука снята владельцем: причинность по доле replay не измерена, только по наблюдаемым пробам и траекториям loss",
+      "полная сетка PPL (решающий прибор) есть только смоуком из двух состояний",
+      "на 4 руках доля replay, выбор префикса домена и плотность агентной разметки коллинеарны — разделить их этим планом нельзя",
+      "flex-режим включён во всех руках и в пилоте (п.1 ADR-022 не закрыт), и он же меняет картину генерации: обучение шло с блочной маской из position_ids, а пробы и GEN-EVAL идут штатным SDPA без position_ids"
+    ]
+  },
+  "open_questions": [
+    "Развести факторы: рука 50/50 со СЛУЧАЙНОЙ доменной подвыборкой (3493 из 7332) против v12r50 (голова) — при равном числе шагов и том же LR.",
+    "Закрыть п.1 ADR-022: те же 2000 шагов при attn=standard. Пока flex не исключён, ни один вывод о миксе не является выводом о миксе.",
+    "Собрать реплей сверх 3493 чанков (переизвлечь из дампа) — иначе «50 % при полном домене» недостижимо по построению.",
+    "Пробы читать не «на глаз»: нужен детерминированный признак (доля кириллицы в ответе на русский промпт, uniq4, наличие <think>) — иначе распад внутри слова неотличим от связного текста, как это и произошло с 25-0.35.",
+    "Критерий валидности стадии: loss убывает во всех четырёх руках при катастрофе на пробах — нужен критерий на PPL/пробах, а не на loss."
+  ],
+  "status": "complete",
+  "scope_change": "контрольные руки CPT из п.2 спеки сняты владельцем (бюджет и очередь GPU). Узел отвечает на вопрос данными и вердиктом, а причинность по доле replay оставляет в open_questions — с названной ценой этого решения: «close_replay50 = false» здесь означает «закрывать нечем», а не «50 % невиновны»."
+}

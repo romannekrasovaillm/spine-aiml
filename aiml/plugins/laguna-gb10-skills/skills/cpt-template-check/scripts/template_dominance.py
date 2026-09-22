@@ -8,8 +8,8 @@
 Метрики: input attribution (any/both), доминирующие n-граммы в началах
 ответов, leak rate, language drift (доля кириллицы/латиницы), при наличии
 корпуса — частота тех же n-грамм/сущностей в нём.
-Зависимости: только стандартная библиотека. Загрузчик eval-файлов берётся
-из соседнего скилла ood-stage-eval (evalio.py) либо из копии рядом.
+Зависимости: только стандартная библиотека. Загрузчик eval-файлов — общий
+модуль плагина `lib/evalio.py` (либо копия рядом со скриптом).
 """
 import argparse
 import json
@@ -19,7 +19,7 @@ import sys
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-for cand in (HERE, os.path.join(HERE, "..", "..", "ood-stage-eval", "scripts")):
+for cand in (os.path.join(HERE, "..", "..", "..", "lib"), HERE):
     if os.path.exists(os.path.join(cand, "evalio.py")):
         sys.path.insert(0, cand)
         break

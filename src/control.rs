@@ -45,7 +45,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant, SystemTime};
 
 use async_trait::async_trait;
@@ -1128,6 +1128,13 @@ pub(crate) struct AddressIndex {
     pub rules: BTreeSet<String>,
 }
 
+/// Заголовок инварианта в spine: `### AD-<n>` / `### AD-BE<n>` (константный
+/// паттерн — ленивая компиляция один раз; `.expect` — внутренний дефект
+/// кода, ловится тестами на старте).
+static AD_HEADING_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^\s{0,3}#{1,6}\s+AD-(BE)?(\d+)\b").expect("константный regex заголовков AD")
+});
+
 /// Строит индекс резолвируемых узлов репозитория (spine + ADR + правила).
 pub(crate) fn build_address_index(root: &Path) -> Result<AddressIndex> {
     let mut idx = AddressIndex::default();
@@ -1142,12 +1149,10 @@ pub(crate) fn build_address_index(root: &Path) -> Result<AddressIndex> {
             continue;
         }
         let text = std::fs::read_to_string(&p).map_err(|e| HarnessError::io(&p, e))?;
-        if let Ok(re) = Regex::new(r"(?m)^\s{0,3}#{1,6}\s+AD-(BE)?(\d+)\b") {
-            for caps in re.captures_iter(&text) {
-                let be = caps.get(1).map_or("", |m| m.as_str());
-                let n = caps.get(2).map_or("", |m| m.as_str());
-                idx.spine.insert(format!("AD-{be}{n}"));
-            }
+        for caps in AD_HEADING_RE.captures_iter(&text) {
+            let be = caps.get(1).map_or("", |m| m.as_str());
+            let n = caps.get(2).map_or("", |m| m.as_str());
+            idx.spine.insert(format!("AD-{be}{n}"));
         }
     }
     let report = crate::adr_registry::build_registry(root)?;
@@ -1196,18 +1201,21 @@ fn classify_address(raw: &str) -> (AddressKind, String, Option<String>) {
     (AddressKind::Rule, raw.to_string(), None)
 }
 
-/// Извлекает адреса из текста (обе формы: `trace:` и inline `[…]`).
-pub(crate) fn extract_addresses(text: &str) -> Vec<Address> {
-    let Some(re) = Regex::new(
+/// Адрес инварианта в тексте дистиллята: `spine:AD-(BE)<n>`, `ADR-<n>[:frag]`
+/// или `rule:<id>` (константный паттерн — ленивая компиляция один раз;
+/// `.expect` — внутренний дефект кода, ловится тестами на старте).
+static ADDRESS_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
         r"(?m)(?:spine:AD-(?:BE)?\d+|ADR-\d{1,4}(?::[A-Za-z0-9][A-Za-z0-9_-]*)?|rule:[A-Za-z][A-Za-z0-9_-]*)",
     )
-    .ok()
-    else {
-        return Vec::new();
-    };
+    .expect("константный regex адресов инвариантов")
+});
+
+/// Извлекает адреса из текста (обе формы: `trace:` и inline `[…]`).
+pub(crate) fn extract_addresses(text: &str) -> Vec<Address> {
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut out = Vec::new();
-    for m in re.find_iter(text) {
+    for m in ADDRESS_RE.find_iter(text) {
         let raw = m.as_str().to_string();
         if !seen.insert(raw.clone()) {
             continue;
@@ -2822,7 +2830,7 @@ fn run_rule(
             for (rel, abs) in &files {
                 let bytes = std::fs::read(abs).map_err(|e| HarnessError::io(abs, e))?;
                 let content = String::from_utf8_lossy(&bytes);
-                for (module, line) in extract_imports(rel, &content)? {
+                for (module, line) in extract_imports(rel, &content) {
                     // Относительные импорты TS/JS (`./…`) не выражаются в
                     // координатах модулей — их разрешает `context_boundary`.
                     if module.starts_with('.') {
@@ -3519,6 +3527,42 @@ fn module_prefix_match(module: &str, entry: &str) -> bool {
 /// Извлечённый импорт: модуль в координатах `/` и номер строки (1-based).
 type ImportEdge = (String, usize);
 
+// Паттерны импортов по языкам: константные — компилируются лениво один раз.
+// `.expect` допустим: ошибка компиляции константного паттерна — внутренний
+// дефект кода, ловится тестами на старте.
+
+/// Rust: `use crate::…` и инлайн-пути `crate::…::`.
+static IMPORT_RS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\bcrate::([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)")
+        .expect("константный regex импортов Rust")
+});
+/// Python: `import a.b`.
+static IMPORT_PY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*import\s+([A-Za-z_][\w.]*)").expect("константный regex импортов Python")
+});
+/// Python: `from a.b import …`.
+static IMPORT_PY_FROM: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*from\s+([A-Za-z_][\w.]*)\s+import\b")
+        .expect("константный regex from-импортов Python")
+});
+/// Java/Kotlin: `import a.b.C;` (включая `import static …`).
+static IMPORT_JAVA: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*import\s+(?:static\s+)?([A-Za-z_][\w.]*)\s*;")
+        .expect("константный regex импортов Java/Kotlin")
+});
+/// TS/JS: `from '…'`.
+static IMPORT_JS_FROM: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"\bfrom\s+['"]([^'"]+)['"]"#).expect("константный regex from-импортов TS/JS")
+});
+/// TS/JS: `import '…'` (side-effect import).
+static IMPORT_JS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"^\s*import\s+['"]([^'"]+)['"]"#).expect("константный regex импортов TS/JS")
+});
+/// TS/JS: `require('…')`.
+static IMPORT_JS_REQUIRE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"\brequire\(\s*['"]([^'"]+)['"]\s*\)"#).expect("константный regex require TS/JS")
+});
+
 /// Извлекает импорты из исходного файла по его расширению (ADR-029).
 ///
 /// Поддерживаемые формы:
@@ -3535,11 +3579,7 @@ type ImportEdge = (String, usize);
 /// документированно приблизительна (ложное срабатывание возможно на
 /// `crate::…` внутри строки). Для файлов неподдерживаемых расширений
 /// возвращается пустой список.
-///
-/// # Errors
-/// Внутренний regex не компилируется (инвариант кода; практически
-/// недостижимо — паттерны константны).
-fn extract_imports(rel: &str, content: &str) -> Result<Vec<ImportEdge>> {
+fn extract_imports(rel: &str, content: &str) -> Vec<ImportEdge> {
     let ext = Path::new(rel)
         .extension()
         .and_then(|e| e.to_str())
@@ -3547,11 +3587,7 @@ fn extract_imports(rel: &str, content: &str) -> Result<Vec<ImportEdge>> {
     let comment_prefix = match ext {
         "rs" | "java" | "kt" | "ts" | "tsx" | "js" | "jsx" | "mjs" => "//",
         "py" => "#",
-        _ => return Ok(Vec::new()),
-    };
-    let compile = |pat: &str| {
-        Regex::new(pat)
-            .map_err(|e| HarnessError::Control(format!("внутренний regex импортов '{pat}': {e}")))
+        _ => return Vec::new(),
     };
     let mut out = Vec::new();
     for (idx, line) in content.lines().enumerate() {
@@ -3561,46 +3597,39 @@ fn extract_imports(rel: &str, content: &str) -> Result<Vec<ImportEdge>> {
         let lineno = idx + 1;
         match ext {
             "rs" => {
-                let re =
-                    compile(r"\bcrate::([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)")?;
                 out.extend(
-                    re.captures_iter(line)
+                    IMPORT_RS
+                        .captures_iter(line)
                         .map(|c| (c[1].replace("::", "/"), lineno)),
                 );
             }
             "py" => {
-                let re_import = compile(r"^\s*import\s+([A-Za-z_][\w.]*)")?;
-                let re_from = compile(r"^\s*from\s+([A-Za-z_][\w.]*)\s+import\b")?;
                 out.extend(
-                    re_import
+                    IMPORT_PY
                         .captures(line)
                         .into_iter()
-                        .chain(re_from.captures(line))
+                        .chain(IMPORT_PY_FROM.captures(line))
                         .map(|c| (c[1].replace('.', "/"), lineno)),
                 );
             }
             "java" | "kt" => {
-                let re = compile(r"^\s*import\s+(?:static\s+)?([A-Za-z_][\w.]*)\s*;")?;
-                if let Some(c) = re.captures(line) {
+                if let Some(c) = IMPORT_JAVA.captures(line) {
                     out.push((c[1].replace('.', "/"), lineno));
                 }
             }
             _ => {
                 // ts/tsx/js/jsx/mjs: путь сохраняется сырым (включая `./…`).
-                let re_from = compile(r#"\bfrom\s+['"]([^'"]+)['"]"#)?;
-                let re_import = compile(r#"^\s*import\s+['"]([^'"]+)['"]"#)?;
-                let re_require = compile(r#"\brequire\(\s*['"]([^'"]+)['"]\s*\)"#)?;
                 out.extend(
-                    re_from
+                    IMPORT_JS_FROM
                         .captures_iter(line)
-                        .chain(re_import.captures_iter(line))
-                        .chain(re_require.captures_iter(line))
+                        .chain(IMPORT_JS.captures_iter(line))
+                        .chain(IMPORT_JS_REQUIRE.captures_iter(line))
                         .map(|c| (c[1].to_string(), lineno)),
                 );
             }
         }
     }
-    Ok(out)
+    out
 }
 
 /// Проверка `context_boundary` (ADR-030): импорты файлов не пересекают
@@ -3667,7 +3696,7 @@ fn check_context_boundary(
         };
         let bytes = std::fs::read(abs).map_err(|e| HarnessError::io(abs, e))?;
         let content = String::from_utf8_lossy(&bytes);
-        for (module, line) in extract_imports(rel, &content)? {
+        for (module, line) in extract_imports(rel, &content) {
             let Some(target) = resolve_import_owner(repo, &contexts, &bases, rel, &module) else {
                 continue;
             };
@@ -6943,7 +6972,7 @@ mod tests {
     fn skill_contract_flags_missing_trigger() {
         let text = "---\n\
              name: saga-staging\n\
-             description: Поэтапное внедрение саги в платёжный контур.\n\
+             description: Поэтапное внедрение саги в событийный контур.\n\
              ---\n\n\
              # Поэтапное внедрение саги\n\n\
              ## Когда применять\n\
@@ -7024,7 +7053,12 @@ mod tests {
     /// Playbook-текст: паспорт задаётся строкой frontmatter, тело — `steps`
     /// шагов методики (общая обвязка триггера одинакова).
     fn playbook_with(frontmatter: &str, steps: usize) -> String {
-        let steps_text: String = (1..=steps).map(|i| format!("{i}. Шаг {i}.\n")).collect();
+        use std::fmt::Write as _;
+        let mut steps_text = String::new();
+        // Запись в String не может завершиться ошибкой — игнор безопасен.
+        for i in 1..=steps {
+            let _ = writeln!(steps_text, "{i}. Шаг {i}.");
+        }
         format!(
             "---\n{frontmatter}---\n\n\
              # Saga staging\n\n\

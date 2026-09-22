@@ -1,0 +1,562 @@
+{
+  "schema": "sft-decode-diagnosis/1",
+  "tool": "tools/assemble_sft_decode_diagnosis_evidence.py",
+  "tool_sha256": "2c74ecf580040bb9dbf6e5ba09118d693e8e2c0a5ad8d9c2d2a5b208975eca05",
+  "generated_at": "2026-09-20T17:59:02.435783+00:00",
+  "status": "measurement_incomplete",
+  "question": "убегающая длина и незавершённые вызовы — свойство весов или артефакт протокола декодирования (на одном чекпойнте, наборе и бюджете, три режима)",
+  "state": "sft_v13_21500",
+  "budget": 8192,
+  "where": "локальная RTX 4080 SUPER 16GB; стенд GB10 не занят (AD-5); сетевой диск — только чтение",
+  "answer": {
+    "question": "убегающая длина и незавершённые вызовы — свойство весов или артефакт протокола декодирования",
+    "verdict": "insufficient_data",
+    "rule_branch": {
+      "below_threshold": {
+        "V2": false
+      },
+      "significant_drop": {
+        "V2": true
+      },
+      "fired": "third",
+      "why": "есть луч со значимым падением, но ни один не достиг критерия стадии: объявленная таблица правила ветки для этого исхода не имеет, поэтому вердикт — insufficient_data, а не «данных нет». Домерить: луч, который может дойти до критерия (V3), и вариант «только штраф»"
+    },
+    "length_axis": {
+      "V2": {
+        "direction": "усиливается",
+        "control_budget_hit": 0.4423,
+        "budget_hit": 0.7308,
+        "control_median_len": 1027,
+        "median_len": 8192,
+        "median_at_budget": true,
+        "looped_all": 0.6442,
+        "control_looped_all": 0.1731,
+        "allowed_for_conclusions": false
+      }
+    },
+    "length_axis_note": "ось длины — **второе** чтение вопроса, а не вердикт: вердикт выше считается по первичному индикатору (незавершённые вызовы) объявленным правилом. Направление выведено сдвигом доли упёршихся в бюджет с порогом 0.10 п.п.; значимость по длине не считается, потому что бюджет обрезает ряд. У луча с allowed_for_conclusions=false числа оси длины описывают режим, который прибор объявил непригодным для выводов о языке и формате (в нём петля растёт: см. looped_all против control_looped_all), поэтому «усиливается» читается как «не исчезает при снятии запрета», а не как точная величина роста",
+    "alternative_modes_measured": [
+      "V2"
+    ],
+    "partial_evidence": true,
+    "primary_indicator": {
+      "V1": 0.3077,
+      "V2": 0.0673
+    },
+    "primary_indicator_definition": "доля ходов, кончающихся внутри незавершённого tool_call (stop_reason = limit_in_tool_call); критерий стадии ADR-050 п.3 — ≤ 0.05",
+    "secondary_indicators": {
+      "V1": {
+        "budget_hit": 0.4423,
+        "median_len": 1027,
+        "p90_len": 8192,
+        "p90_at_budget": true,
+        "unclosed_think_natural": 0.3793,
+        "looped_all": 0.1731
+      },
+      "V2": {
+        "budget_hit": 0.7308,
+        "median_len": 8192,
+        "p90_len": 8192,
+        "p90_at_budget": true,
+        "unclosed_think_natural": 0.25,
+        "looped_all": 0.6442
+      }
+    },
+    "secondary_definition": {
+      "budget_hit": "доля ходов, упёршихся в бюджет 8192 (stop_reason ≠ turn_end)",
+      "median_len": "медиана длины хода, токены",
+      "p90_len": "p90 длины хода; равен бюджету — распределение обрезано бюджетом",
+      "unclosed_think_natural": "незакрытый <think> среди естественно завершённых (ADR-045 п.5)",
+      "looped_all": "доля зацикленных ходов (max4gram_rep ≥ 8)",
+      "why_not_significant": "значимость по длинам не считается: бюджет обрезает ряд, и разница медиан на обрезанном ряде читалась бы как свойство модели, хотя меряет бюджет"
+    },
+    "per_alternative_mode": {
+      "V2": {
+        "share": 0.0673,
+        "at_or_below_threshold": false,
+        "delta_pp_vs_V1": -0.2404,
+        "mcnemar_p": 4.13e-05,
+        "two_prop_z_p": 8.95e-06,
+        "significant_drop": true
+      }
+    },
+    "rule": "вердикт = f(первичный индикатор по V2 и V3) — по тем из них, что сняты (поле alternative_modes_measured; снят один луч — вердикт помечен partial_evidence=true, и это слабее двух: все альтернативные режимы > 0.05 и ни одного значимого падения → weights_property; хотя бы один ≤ 0.05 и значимое падение vs V1 (порог 0.1 п.п. и p < 0.05 по точному Мак-Немару) → protocol_artifact; иначе insufficient_data). Порог 0.05 — критерий стадии ADR-050 п.3; порог значимости — SIGNIFICANT = 0.1 при n = 104 (assemble_s3aq_evidence.py).",
+    "reading": "числа не дают ни того, ни другого исхода по объявленному правилу — назвать, что домерить",
+    "text": "НЕДОСТАТОЧНО ДАННЫХ: объявленное правило не даёт ни одного из двух исходов — назвать, что домерить. Первичный индикатор (доля ходов с незавершённым tool_call): V1 0.3077, V2 0.0673. V2: Δ -0.2404 п.п., p=4.13e-05 (Мак-Немар), падение значимо. Убегание длины тем же замером: V1: доля упёршихся в бюджет 0.4423, медиана 1027, p90 8192 (= бюджет: распределение обрезано), незакрытых <think> среди дописанных 0.3793; V2: доля упёршихся в бюджет 0.7308, медиана 8192, p90 8192 (= бюджет: распределение обрезано), незакрытых <think> среди дописанных 0.25. Ветка правила: third — есть луч со значимым падением, но ни один не достиг критерия стадии: объявленная таблица правила ветки для этого исхода не имеет, поэтому вердикт — insufficient_data, а не «данных нет». Домерить: луч, который может дойти до критерия (V3), и вариант «только штраф» Контроль ИСТОРИЧЕСКИЙ, не перезамер: живой луч V1 (контроль тождества) оборван — сверено 8 проб из 104, совпало 8; тождество остальных 96 выведено из детерминизма greedy, а не измерено. Роль контроля играет состояние sft_v13_21500 решающего отчёта S3aq — тот же чекпойнт, прибор, набор, бюджет и режим. Сняты не все лучи: измерены V2 из V2 и V3 — вердикт по неполному набору (partial_evidence).",
+    "indicator_definition": "доля ходов, кончающихся внутри незавершённого tool_call (stop_reason = limit_in_tool_call); критерий стадии ADR-050 п.3 — ≤ 0.05"
+  },
+  "mode_metric_table": {
+    "note": "числа перенесены из разбора без пересчёта: у одной величины один носитель (ADR-023 п.10); определения — рядом, потому что «доля чего» здесь содержательно в каждой строке",
+    "n": {
+      "V2": 104,
+      "V1": 104
+    },
+    "rows": {
+      "unfinished_tool_call": {
+        "definition": "доля ходов с stop_reason = limit_in_tool_call (индикатор ADR-050 п.3)",
+        "source": "core+",
+        "values": {
+          "V2": 0.0673,
+          "V1": 0.3077
+        }
+      },
+      "budget_hit": {
+        "definition": "доля ходов, упёршихся в бюджет 8192 (stop_reason ≠ turn_end)",
+        "source": "core",
+        "values": {
+          "V2": 0.7308,
+          "V1": 0.4423
+        }
+      },
+      "median_len": {
+        "definition": "медиана длины хода, токены (ближайший ранг)",
+        "source": "core",
+        "values": {
+          "V2": 8192,
+          "V1": 1027
+        }
+      },
+      "p90_len": {
+        "definition": "p90 длины хода, токены",
+        "source": "core",
+        "values": {
+          "V2": 8192,
+          "V1": 8192
+        }
+      },
+      "p99_len": {
+        "definition": "p99 длины хода, токены",
+        "source": "extra",
+        "values": {
+          "V2": 8192,
+          "V1": 8192
+        }
+      },
+      "unclosed_think_all": {
+        "definition": "доля ходов с незакрытым <think> — по всем ходам",
+        "source": "core",
+        "values": {
+          "V2": 0.2788,
+          "V1": 0.5865
+        }
+      },
+      "unclosed_think_natural": {
+        "definition": "то же среди естественно завершённых ходов (правило ADR-045 п.5)",
+        "source": "core",
+        "values": {
+          "V2": 0.25,
+          "V1": 0.3793
+        }
+      },
+      "looped_all": {
+        "definition": "доля зацикленных ходов (max4gram_rep ≥ 8 — константа прибора)",
+        "source": "core",
+        "values": {
+          "V2": 0.6442,
+          "V1": 0.1731
+        }
+      },
+      "repeat4_all": {
+        "definition": "доля ходов с повторами 4-грамм (max4gram_rep ≥ 2; определена при ≥ 8 словах)",
+        "source": "extra",
+        "values": {
+          "V2": 0.8738,
+          "V1": 0.4286
+        }
+      },
+      "json_valid_with_call": {
+        "definition": "доля JSON-валидных вызовов среди ходов, где вызов есть (регексп пайплайна v8)",
+        "source": "extra",
+        "values": {
+          "V2": 0.8871,
+          "V1": 0.2167
+        }
+      },
+      "tc_looped": {
+        "definition": "доля зацикленных СРЕДИ ходов с незавершённым вызовом",
+        "source": "extra",
+        "values": {
+          "V2": 0.8571,
+          "V1": 0.4375
+        }
+      },
+      "tc_repeat4": {
+        "definition": "доля с повторами 4-грамм среди ходов с незавершённым вызовом",
+        "source": "extra",
+        "values": {
+          "V2": 1.0,
+          "V1": 0.7812
+        }
+      }
+    }
+  },
+  "deltas_vs_v1": {
+    "V2": {
+      "n": {
+        "V1": 104,
+        "mode": 104
+      },
+      "significance": {
+        "threshold_pp": 0.1,
+        "p": 0.05,
+        "n": 104,
+        "paired_test": "McNemar exact (two-sided binomial on discordant pairs)",
+        "unpaired_test": "two-proportion z (pooled)",
+        "threshold_source": "SIGNIFICANT=0.10 в assemble_s3aq_evidence.py (n = 104)"
+      },
+      "rows": [
+        {
+          "metric": "unfinished_tool_call",
+          "V1": 0.3077,
+          "value": 0.0673,
+          "delta_pp": -0.2404,
+          "abs_delta_ge_threshold": true,
+          "mcnemar_exact": {
+            "base_only": 31,
+            "mode_only": 6,
+            "both": 1,
+            "neither": 66,
+            "n_discordant": 37,
+            "p_exact": 4.13e-05
+          },
+          "two_prop_z": {
+            "z": -4.4412,
+            "p": 8.95e-06
+          },
+          "significant": true
+        },
+        {
+          "metric": "budget_hit",
+          "V1": 0.4423,
+          "value": 0.7308,
+          "delta_pp": 0.2885,
+          "abs_delta_ge_threshold": true,
+          "mcnemar_exact": {
+            "base_only": 8,
+            "mode_only": 38,
+            "both": 38,
+            "neither": 20,
+            "n_discordant": 46,
+            "p_exact": 9.25e-06
+          },
+          "two_prop_z": {
+            "z": 4.224,
+            "p": 2.4e-05
+          },
+          "significant": true
+        },
+        {
+          "metric": "unclosed_think_all",
+          "V1": 0.5865,
+          "value": 0.2788,
+          "delta_pp": -0.3077,
+          "abs_delta_ge_threshold": true,
+          "mcnemar_exact": {
+            "base_only": 39,
+            "mode_only": 7,
+            "both": 22,
+            "neither": 36,
+            "n_discordant": 46,
+            "p_exact": 1.83e-06
+          },
+          "two_prop_z": {
+            "z": -4.4784,
+            "p": 7.52e-06
+          },
+          "significant": true
+        },
+        {
+          "metric": "unclosed_think_natural",
+          "V1": 0.3793,
+          "value": 0.25,
+          "delta_pp": -0.1293,
+          "abs_delta_ge_threshold": true,
+          "mcnemar_exact": {
+            "base_only": 11,
+            "mode_only": 6,
+            "both": 1,
+            "neither": 40,
+            "n_discordant": 17,
+            "p_exact": 0.3323
+          },
+          "two_prop_z": {
+            "z": -3.2163,
+            "p": 0.0013
+          },
+          "significant": false
+        },
+        {
+          "metric": "looped_all",
+          "V1": 0.1731,
+          "value": 0.6442,
+          "delta_pp": 0.4711,
+          "abs_delta_ge_threshold": true,
+          "mcnemar_exact": {
+            "base_only": 5,
+            "mode_only": 54,
+            "both": 13,
+            "neither": 32,
+            "n_discordant": 59,
+            "p_exact": 1.91e-11
+          },
+          "two_prop_z": {
+            "z": 6.9114,
+            "p": 4.8e-12
+          },
+          "significant": true
+        },
+        {
+          "metric": "repeat4_all",
+          "V1": 0.4286,
+          "value": 0.8738,
+          "delta_pp": 0.4452,
+          "abs_delta_ge_threshold": true
+        },
+        {
+          "metric": "json_valid_with_call",
+          "V1": 0.2167,
+          "value": 0.8871,
+          "delta_pp": 0.6704,
+          "abs_delta_ge_threshold": true
+        },
+        {
+          "metric": "median_len",
+          "V1": 1027,
+          "value": 8192,
+          "median_delta_tokens": 79.0,
+          "mean_delta_tokens": 2184.0,
+          "sign_test": {
+            "plus": 55,
+            "minus": 11,
+            "zero": 38,
+            "n_nonzero": 66,
+            "p_exact": 3.6e-08
+          },
+          "significant": true
+        },
+        {
+          "metric": "p90_len",
+          "V1": 8192,
+          "value": 8192,
+          "median_delta_tokens": 79.0,
+          "mean_delta_tokens": 2184.0,
+          "sign_test": {
+            "plus": 55,
+            "minus": 11,
+            "zero": 38,
+            "n_nonzero": 66,
+            "p_exact": 3.6e-08
+          },
+          "significant": true
+        },
+        {
+          "metric": "p99_len",
+          "V1": 8192,
+          "value": 8192,
+          "median_delta_tokens": 79.0,
+          "mean_delta_tokens": 2184.0,
+          "sign_test": {
+            "plus": 55,
+            "minus": 11,
+            "zero": 38,
+            "n_nonzero": 66,
+            "p_exact": 3.6e-08
+          },
+          "significant": true
+        }
+      ],
+      "stop_reason": {
+        "V1": {
+          "turn_end": 58,
+          "limit_in_think": 10,
+          "limit_in_tool_call": 32,
+          "limit_in_tool_response": 1,
+          "limit_in_answer": 3
+        },
+        "mode": {
+          "limit_in_answer": 25,
+          "limit_in_tool_response": 22,
+          "turn_end": 28,
+          "limit_in_think": 22,
+          "limit_in_tool_call": 7
+        },
+        "V1_share": {
+          "limit_in_answer": 0.0288,
+          "limit_in_think": 0.0962,
+          "limit_in_tool_call": 0.3077,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.5577
+        },
+        "mode_share": {
+          "limit_in_answer": 0.2404,
+          "limit_in_think": 0.2115,
+          "limit_in_tool_call": 0.0673,
+          "limit_in_tool_response": 0.2115,
+          "turn_end": 0.2692
+        }
+      }
+    }
+  },
+  "control": {
+    "kind": "historical_s3aq_report",
+    "why": "живой луч V1 оборван: отчёта нет, есть журнал прибора — роль контроля играет состояние решающего отчёта S3aq",
+    "source_report": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+    "source_report_sha256": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a",
+    "source_state": "sft_v13_21500",
+    "live_report_absent": "v1_greedy_nogram4.json",
+    "live_log": "runs/sft-decode-diagnosis-20260920/v1_greedy_nogram4.log",
+    "not_a_substitute_for": "побайтовый контроль тождества живого луча V1: он не снят, и это названо, а не замолчано",
+    "partial_identity": {
+      "kind": "partial",
+      "why": "живой луч V1 оборван на первой восьмёрке проб: отчёта v1_greedy_nogram4.json нет, есть журнал прибора — сверять можно только то, что он успел сообщить",
+      "fields_compared": [
+        "tag",
+        "n_new_tokens",
+        "stop_reason",
+        "cyr_think",
+        "looped"
+      ],
+      "compared": 8,
+      "matched": 8,
+      "mismatches": [],
+      "tail_incomplete": false,
+      "n_probes_total": 104,
+      "unmeasured": 96,
+      "identical": true,
+      "strength": "частичный: измерено 8 из 104 проб; побайтовое тождество остальных 96 не измерено",
+      "inference": "тождество остальных проб выводится, а не измерено: при greedy и неизменных чекпойнте, приборе, наборе, бюджете и режиме расхождение ответа невозможно без смены входа",
+      "consequence": "сверенные пробы совпали со входом решающего отчёта",
+      "log_format_check": {
+        "checked": true,
+        "path": "tools/probe_language_split.py",
+        "sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+        "format_present": true,
+        "why": "поля строки журнала найдены в приборе"
+      }
+    }
+  },
+  "runaway_reading": {
+    "available": true,
+    "statement": "Убегание длины НЕ исчезает при смене декодирования — и усиливается (V2: доля упёршихся в бюджет 0.4423 → 0.7308 (усиливается), медиана хода 1027 → 8192 (= бюджет: распределение обрезано), петель 0.1731 → 0.6442). Значит оно свойство весов, а не артефакт протокола декодирования: снятие штатного запрета повторов 4-грамм его не убирает, то есть запрет работает средством подавления, а не причиной.",
+    "per_mode": {
+      "V2": {
+        "direction": "усиливается",
+        "control_budget_hit": 0.4423,
+        "budget_hit": 0.7308,
+        "control_median_len": 1027,
+        "median_len": 8192,
+        "median_at_budget": true,
+        "looped_all": 0.6442,
+        "control_looped_all": 0.1731,
+        "allowed_for_conclusions": false
+      }
+    },
+    "not_the_verdict": "это чтение по оси длины, а не вердикт: вердикт считается объявленным правилом по первичному индикатору (незавершённые вызовы) и лежит в `answer`",
+    "caveats": [
+      "V2 менял ДВА фактора сразу (снятие запрета 4-грамм и repetition_penalty 1.15): чистый вариант «только штраф» при сохранённом запрете не гонялся, поэтому вклад штрафа отдельно не измерен",
+      "V2 несёт allowed_for_conclusions=false: прибор объявляет выводы о языке и формате по такому прогону запрещёнными (без запрета повторов петля растёт механически), поэтому «усиливается» читается как «не исчезает», а не как точная величина роста",
+      "значимость по длине не считается: бюджет 8192 обрезает ряд (p90 = 8192 у обоих режимов), и разница медиан измеряла бы бюджет, а не модель"
+    ]
+  },
+  "identity_control": null,
+  "analysis_status": "measurement_incomplete",
+  "analysis_incomplete": [
+    "режим V3 (v3_sample_t07_p09_rp11.json) не снят — сравнение неполно"
+  ],
+  "definitions": {
+    "core_from_instrument": {
+      "source": "tools/probe_language_split.py → aggregate(probes, budget)",
+      "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+      "why": "определения ядра не переписываются: свод вызывает арифметику прибора на пробах отчёта, поэтому «доля упёршихся в бюджет», «доля незакрытых think», «медиана/p90», «доля петель» — те же величины, что в решающем отчёте, по построению, а не по совпадению текста",
+      "values": {
+        "budget_hit": "stop_reason != turn_end (прибор: truncated_share)",
+        "stop_reason": "turn_end — ход дописан моделью; limit_in_<регион> — обрыв лимитом",
+        "median/p90": "ближайший ранг (nearest-rank), не интерполяция",
+        "unclosed_think_all": "доля генераций с незакрытым <think> по всем ходам",
+        "unclosed_think_natural": "то же по ходам с stop_reason = turn_end — правило ADR-045 п.5 (прибор: aggregate.stop.natural)",
+        "looped": "max4gram_rep ≥ 8 (константа прибора)",
+        "mode_share_tool_call": "доля генераций, содержащих <tool_call>"
+      }
+    },
+    "added_by_this_analysis": {
+      "p99_len": "перцентиль ближайшим рангом (прибор печатает медиану и p90)",
+      "unfinished_tool_call": "stop_reason = limit_in_tool_call — индикатор ADR-050 п.3, критерий стадии ≤ 0.05 (у CPT 0)",
+      "tc_looped / tc_repeat4": "циклы и повторы 4-грамм среди ходов, кончающихся внутри незавершённого вызова (числа 0.4375 и 0.7812 контекста дельты — отсюда)",
+      "repeat4": "max4gram_rep ≥ 2; определена при ≥ 8 словах (probe_control.degenerate_metrics), покрытие печатается рядом",
+      "json_valid": "регексп пайплайна v8 + json.loads; основное чтение — первый ход модели, вариант по всей генерации печатается рядом"
+    },
+    "significance": {
+      "paired": "точный Мак-Немар (двусторонний бином на расхождениях) — пары настоящие",
+      "unpaired": "двухдолевой z (пулированный) — консервативное чтение",
+      "lengths": "знаковый тест на парных разностях длин",
+      "thresholds": {
+        "pp": 0.1,
+        "p": 0.05,
+        "n": 104,
+        "source": "SIGNIFICANT = 0.10 в assemble_s3aq_evidence.py"
+      }
+    }
+  },
+  "not_decided": [
+    "не решает, ЧТО именно чинить в данных: длина, дубликаты (57.57 % при effective_passes 7.07) или то и другое — политика длины в этот замер не входит",
+    "не отделяет вклад дубликатов и эффективных проходов: набор с повторами и набор без них в этот замер не входят, поэтому «убегание от данных» и «убегание от кратности проходов» здесь не разведены",
+    "не отвечает, лечится ли убегание обучением меньшей длительности: замер меняет только инференс, обучение на этих режимах не шло, и вариант «дообучить на коротких целях» не проверялся",
+    "не проверяет вариант «только штраф за повторы»: V2 менял два фактора сразу (снятие запрета 4-грамм и repetition_penalty 1.15), а луч с одним штрафом при сохранённом запрете не гонялся — вклад штрафа отдельно не измерен",
+    "не решает, воспроизводится ли найденный эффект на других шагах обучения: замер стоит на одной точке (21500), траектория по шагам не снята",
+    "не решает, что будет на CPT-финале и на других чекпойнтах: сравнение внутри одного состояния, а не между состояниями",
+    "не даёт вердикт стадии по формату и языку в смысле ADR-045/ADR-041: числа альтернативных режимов для этого непригодны по построению (V2 несёт allowed_for_conclusions=false, V3 — не штатный режим), и пороги не двигаются",
+    "не решает, каким режимом мерить стадию дальше: это смена протокола (ADR-041), и решение принимает архитектор, а не замер",
+    "не решает, тождественны ли веса «своему» протоколу обучения: замер меняет только инференс, обучение на этих режимах не шло"
+  ],
+  "boundaries": [
+    "ADR-041 (единый штатный режим для вердиктов стадии) не меняется: V2/V3 — диагностические лучи, вердикт стадии по ним не выносится",
+    "пороги ADR-045 не двигались; полное чтение остаётся индикатором сатурации прибора",
+    "набор, обучающий тензор, карточки и исторические evidence не правились (ADR-023 п.9)",
+    "обучение не перезапускалось, стадия не трогалась: замер только инференс",
+    "контроль исторический (historical_s3aq_report): живой луч V1 не снят, роль контроля играет состояние решающего отчёта S3aq; тождество подтверждено частично — сверкой проб оборванного прогона, а не побайтово",
+    "V3 (сэмплирование) — справочный луч, и к решению о стадии он не относится по построению: вердикты стадии считаются в штатном greedy-режиме (ADR-041), то есть стохастика в них не входит. Не снят — назван частичным, а не выдан за ноль: «луч не снят» и «луч ничего не изменил» — разные вещи"
+  ],
+  "artifacts": {
+    "analysis": {
+      "path": "runs/sft-decode-diagnosis-20260920/decode_modes_analysis.json",
+      "sha256": "c59b409e637fb8cf351b344fcbfc62810dd0cb94bbac55ae9b3eb4bf43175182"
+    },
+    "run_manifest": {
+      "path": "runs/sft-decode-diagnosis-20260920/run_manifest.json",
+      "sha256": "71c941c7695117d507df9690221266e787945dd21ec5025436665498c6ee71a7"
+    },
+    "probe_record": {
+      "path": "runs/sft-decode-diagnosis-20260920/probe_record.json",
+      "sha256": "371b0616e144e862cd99dd89337edc8da40546235eeae115a98aec94ba1d2e13"
+    },
+    "pin_check": {
+      "path": "runs/sft-decode-diagnosis-20260920/pin_check.json",
+      "sha256": "754a08638264e8e0f533ab6e1f7cb80a3e199dca3527bf6bf36062e208d8eb09"
+    },
+    "reference": {
+      "path": "runs/sft-decode-diagnosis-20260920/reference/provenance.json",
+      "sha256": "4acab2140d531f0071b421ea4e1d29b8f8297d869541cd108a90502ff6831381",
+      "git_commit": "6bdeba90b5cee89c72151b0de42a03e059be7a19",
+      "sha256_report": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a",
+      "in_worktree": false,
+      "note": "решающий отчёт S3aq в дереве этой ветви отсутствует (прогон завершён в ветви arch/laguna-control-arms); взят из git-коммита, провенанс назван"
+    },
+    "mode_reports": {
+      "V2": {
+        "path": "runs/sft-decode-diagnosis-20260920/v2_greedy_rp115.json",
+        "sha256": "08a1c4fddf24a7c38f5f677dbfb151cbf6b08a1b0b458ca48109e5f6aef24a0b",
+        "decoding": "greedy",
+        "allowed_for_conclusions": false
+      },
+      "V1": {
+        "path": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+        "sha256": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a",
+        "decoding": "greedy",
+        "allowed_for_conclusions": true
+      }
+    }
+  },
+  "problems": [
+    "режим V3 не снят — свод неполон по составу"
+  ]
+}

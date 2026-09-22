@@ -1,0 +1,191 @@
+{
+  "schema": "acceptance-record/1",
+  "date": "2026-09-21",
+  "case": "кейсы/laguna-compact",
+  "what": "Приёмка ветви arch/laguna-control-arms в канон (main) по шести шагам процедуры ADR-024; слияние полное линейное (fast-forward), ветвь не тронута",
+  "owner_approve": {
+    "given_by": "владелец (Роман Некрасов)",
+    "when": "2026-09-20",
+    "how": "разрешение на приёмку выдано явно; прогон проверок и запись акта — в автономном режиме"
+  },
+  "merges": [
+    {
+      "branch": "arch/laguna-control-arms",
+      "branch_tip": "d7c837860434050d09072fa3fa66fa04add0581b",
+      "merge_commit": "d7c837860434050d09072fa3fa66fa04add0581b",
+      "method": "fast-forward",
+      "method_note": "main (72b5124) — предок ветви: 16 коммитов впереди, 0 позади. Нового коммита слияния не создано; main передвинут на вершину ветви, дерево main побайтно равно дереву ветви (git diff --quiet arch/laguna-control-arms main → пусто; обе tree = 67d684aa7a190361de8a68d6b2d97aae7a0bdd96). Reflog: «merge arch/laguna-control-arms: Fast-forward».",
+      "from": "72b5124f7d763cbb33c890429f5847c128a654f7",
+      "commits": 16,
+      "files": 76,
+      "insertions": 41491,
+      "deletions": 292,
+      "file_kinds": {"added": 50, "modified": 26, "deleted": 0},
+      "footprint": "только кейсы/laguna-compact/**; ни одного файла вне кейса (src/, Cargo.*, benchmarks/, tests/ не затронуты)",
+      "content": "ADR-049 о граундинге RL (Proposed) с поправкой п.10 (sidecar-мок вместо слушателя на шлюзе); модель model/ADR-049; аудит граундинга (S4-pre); заземлённый walking skeleton (5 задач × 3 инструмента) с доказанным контрактом среды; исправления среды (закрытый egress, лимит шагов в схеме задач, добивание процесса, `-t 0`, предпроверка same-path монтирования); evidence S3aq с вердиктом; правила C-026/C-027/C-028; политика хеша набора (байткод вне канонической карты); приборы в реестре редакций (grounded_runner.py G-1…G-5)",
+      "branch_untouched": "ветвь arch/laguna-control-arms существует и указывает на тот же d7c8378; работы в ней не велось",
+      "pushed": false
+    }
+  ],
+  "preflight": {
+    "step1_tree_and_artifacts": "OK: деревья main и ветви чисты до слияния",
+    "step1_tests_on_branch": {
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "result": "PASS=786 FAIL=0 SKIP=0",
+      "sections": 52,
+      "when": "2026-09-21, прогон на содержимом ветви",
+      "gate_reach": "прогон исполнен в дереве с боевой gitignored-инфраструктурой (симлинк datasets → /home/user/gb10-shared/datasets)"
+    },
+    "step1_gate_on_branch": {
+      "command": "arch-be gate --repo кейсы/laguna-compact --constraints кейсы/laguna-compact/CONSTRAINTS.yaml",
+      "route": "Fast (auto: score 0)",
+      "result": "FAIL — провалено составляющих: 1 (fitness)",
+      "single_finding": "AD-1/C-014 (each_file_must_contain по glob 'evidence/result-report-*.json'): файла нет — правилу нечего проверять. Унаследованная, не порождена ветвью (см. baseline ниже)",
+      "passed_components": ["delta_guard", "rule_weakened", "spine_lint", "trace_check", "model_validate"],
+      "skipped_components": ["decision_quality", "semantic_quality"]
+    },
+    "step1_history_audit": {
+      "method": "пересчёт слияния (git merge-tree 1445892 72b5124) + сверка блобов main ↔ ветвь по каждому из 76 файлов",
+      "conflicts_recomputed": 2,
+      "conflict_files": ["кейсы/laguna-compact/CONSTRAINTS.yaml", "кейсы/laguna-compact/tools/README.md"],
+      "auto_merged": "остальные 200+ файлов, менявшихся с обеих сторон, слиты автоматически — сторона main сохранена по построению git",
+      "deleted_files": 0,
+      "verdict": "исторические evidence НЕ переписаны; расхождений, откатывающих работу main, не найдено",
+      "sft_run_artifacts": {
+        "status": "не тронуты",
+        "dirs": ["runs/sft-20260916-2246", "runs/sft-ppl-20260916-2246", "runs/sft-resume-20260917-1215"],
+        "evidence": "ни одного файла из этих каталогов нет в net-диффе main..ветвь"
+      },
+      "aborted_s3aq_artifacts": {
+        "status": "побайтно идентичны (blob равен в main и ветви)",
+        "files": {
+          "runs/s3aq-budget-8192-20260920/format_wide_8192.aborted.log": "d7b39420bb9e",
+          "runs/s3aq-budget-8192-20260920/chain.log": "683fe7f056c0",
+          "runs/s3aq-budget-8192-20260920/identity_core_cfinal.log": "48a4a7a0382c"
+        }
+      },
+      "s3aq_run_state": {
+        "file": "runs/s3aq-budget-8192-20260920/run_state.json",
+        "what": "переход measurement_incomplete → rules_applicable по ТОМУ ЖЕ прогону (добор завершён)",
+        "why_not_rewrite": "main в этом файле после точки ветвления не менялся (файл — производный снимок состояния прогона, его пишет tools/report_s3aq_run_state.py); исторический неполный снимок остаётся в истории git на 72b5124 и не уничтожен (ADR-028 п.1: факт первичен, история не переписывается)",
+        "deletions": 99,
+        "additions": 145
+      },
+      "other_evidence_modified": {
+        "evidence/instrument-hash-audit.json": "пересобранный снимок (delta: followup-instruments → grounded-instrument-registry; добавлено поле frozen_numbers; список ветвей обновлён, из него ушла arch/fleet-followup-instr). Снимок регенерируем, не перезапись факта",
+        "docs/specs/INSTRUMENT-VERSIONS.md": "+163/−14 — реестр редакций: разделы приборов G-1…G-5 и носители замороженных чисел"
+      }
+    },
+    "step2_rules_edition": {
+      "main_occupied_up_to": "C-025",
+      "reserved_in_main": ["C-021 (занят предложением AD-12)", "C-022 (зарезервирован за стражем agentic-доли, ADR-035 п.5)"],
+      "branch_adds": ["C-026", "C-027", "C-028"],
+      "branch_removes": [],
+      "number_collision": "нет — подтверждено механически (сравнение множеств id)",
+      "existing_rules_text": {
+        "method": "поразрядное сравнение блоков правил C-001…C-025 в main и в ветви",
+        "byte_identical": 22,
+        "changed": ["C-025"],
+        "C-025_change": "изменена ТОЛЬКО строка evidence (550 → 700 символов): в перечень входов добавлен tools/grounded_runner.py G-1…G-5 и «носители и цитаты замороженных чисел (§2.3.3 реестра)», в перечень ловимого — цитата README, разошедшаяся с носителем числа. Поля name/type/command/severity/scope/kind — побайтно идентичны",
+        "cause": "правило C-025 создано самим main для стража реестра приборов; ветвь приносит новый прибор заземления, и его регистрация расширяет вход того же стража. Это расширение охвата, не ослабление",
+        "mechanical_confirmation": "гейт: rule_weakened PASS относительно 72b5124 — «реестр правил не ослаблен»"
+      },
+      "new_rules_metadata": "C-026/C-027/C-028 несут owner (@roman); в main 23 из 23 правил без owner — реестр от этого не ухудшился (25/26 против 23/23)",
+      "adr_numbers": "ADR-049 был ЗАРЕЗЕРВИРОВАН каноном: main's ADR-050 несёт оговорку «номер 049 зарезервирован за решением о граундинге» и depends_on: ADR-049. Коллизии нет — номер занят по решению канона (ADR-046 п.2)"
+    }
+  },
+  "postmerge_gate": {
+    "run_tool_tests": {
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "result": "PASS=786 FAIL=0 SKIP=0",
+      "when": "2026-09-21, прогон на дереве main после слияния",
+      "note": "измерено, не перенесено: прогон исполнен заново на слитом main и дал тот же итог, что предполётный. Это ожидаемо — дерево main побайтно равно дереву ветви (обе tree 67d684aa), поэтому расхождение означало бы влияние среды, а не содержимого"
+    },
+    "repo_wide_gate": {
+      "command": "arch-be gate --repo . --base 72b5124",
+      "constraints": ".arch-handoff/CONSTRAINTS.yaml (реестр рабочего пространства, 82 правила)",
+      "result": "PASS (exit 0)",
+      "components": {
+        "fitness": "PASS — 82 правила, нарушений 4 (error 0, warn 4), пропущено 4 (неизвестные типы)",
+        "delta_guard": "PASS — изменённых 76, защищённых 0",
+        "spine_lint": "PASS — находок 0",
+        "rule_weakened": "SKIP — в базе 72b5124 файла .arch-handoff/CONSTRAINTS.yaml нет (реестр новый)",
+        "trace_check": "SKIP — нет каталога model/ в корне",
+        "model_validate": "SKIP — нет каталога model/ в корне"
+      }
+    },
+    "case_gate": {
+      "command": "arch-be gate --repo кейсы/laguna-compact --constraints кейсы/laguna-compact/CONSTRAINTS.yaml --base 72b5124",
+      "route": "Fast (auto: score 0)",
+      "result": "FAIL — провалено составляющих: 1 (fitness), exit 1",
+      "components": {
+        "fitness": "FAIL — правил 26, нарушений 1 (error 1, warn 0)",
+        "delta_guard": "PASS — изменённых 76, защищённых среди них 0",
+        "rule_weakened": "PASS — реестр правил не ослаблен относительно 72b5124",
+        "spine_lint": "PASS — находок 0 (error 0)",
+        "trace_check": "PASS — сущностей 34, звеньев 7, error 0",
+        "model_validate": "PASS — сущностей 34, находок 0",
+        "decision_quality": "SKIP — не включена в маршрут",
+        "semantic_quality": "SKIP — не включена в маршрут"
+      },
+      "attestation": "sha256:ffda13078f67a6bac1c5454915231431fdf465b066d3b0952f4c0560695b4600"
+    },
+    "standalone_checks": {
+      "spine_lint": {"command": "spine_lint (MCP)", "result": "PASS — нарушений нет"},
+      "trace_check": {"command": "trace_check (MCP)", "result": "PASS — 34 сущности, 26 правил, error 0, warn 0; AD→fitness 12/12 (100%), ADR→CMP 10/10, CMP→fitness 12/12; AD→исполняемое правило 9/12 (75%), сироты AD-1/AD-5/AD-8 — не error, а documentary-правила"},
+      "model_validate": {"command": "model_validate (MCP)", "result": "PASS — 34 сущности, находок 0"},
+      "delta_guard": {"command": "delta_guard (MCP), base=72b5124", "result": "PASS — изменённых 76, защищённых 0, нарушений 0"},
+      "ad9_resource_owner": {"command": "bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified", "result": "exit 0 — МОЖНО СТАРТОВАТЬ: стенд gb10-fast доступен, свободно 62.1 ГБ из 121.7 (порог 35), тренировочных нагрузок 0"}
+    },
+    "merge_induced_findings": {
+      "count": 0,
+      "why": "состав находок до и после слияния сверен механически: baseline (тот же гейт на правиле-наборе main, /tmp/rules_main.yaml) даёт тот же единственный finding — AD-1/C-014. Ни одного нового"
+    }
+  },
+  "reds_resolved_by_merge": {
+    "model_validate": "ДО: FAIL, 33 сущности, 11 error (bad-link-target: ссылки на правила в поле affects у AD-1…AD-10) → ПОСЛЕ: PASS, 34 сущности, 0 находок",
+    "trace_check_ADR_CMP": "ДО: ADR→CMP 9/9 → ПОСЛЕ: 10/10 (появилась связь ADR-049 → CMP-004/CMP-007)",
+    "ad9": "ДО (приёмка 20.09): красное — память стенда 32 ГБ < 35 при живом SFT → ПОСЛЕ: зелёное (SFT-стадия остановлена ADR-050, стенд свободен)"
+  },
+  "open_reds": [
+    {
+      "id": "C-014/AD-1",
+      "severity": "high",
+      "kind": "documentary",
+      "fact": "glob evidence/result-report-*.json не находит ни одного файла — правилу нечего проверять",
+      "why_inherited": "на main до слияния тот же единственный finding; правило ждёт артефакт будущего гейта A5 (отчёт результата с осью, mean±std, k-из-k, n попыток, анти-метриками дегенерации)",
+      "action": "не чинилось: правило не ослаблено (rule_weakened PASS), артефакт появится по существу стадии, а не правкой правила"
+    },
+    {
+      "id": "warn-4 (реестр рабочего пространства)",
+      "severity": "warn",
+      "fact": "репо-гейт: 4 правила-warn + 4 пропущенных правила неизвестных типов (address_trace, managed_hash_current, playbook_graduation, skill_contract) в .arch-handoff/CONSTRAINTS.yaml",
+      "why_inherited": "реестр рабочего пространства, к кейсу laguna-compact не относится; гейт прошёл (PASS)"
+    }
+  ],
+  "not_verified": [
+    "Цена холодного старта образов sidecar'а не измерена: самим артефактом evidence/grounded-portability.json объявлена граница cold-host-image-pull со статусом not_measured. На хосте приёмки образы прогреты (alpine:3.20, python:3.12-alpine лежат локально) — потому живая проба C-028 и проходит за секунды",
+    "Числа цены шага не переносятся между стендами (граница stand-not-interchangeable в grounded-portability.json; ADR-049 п.10): сняты на локальной 4080 и на стенде, названном в host.stand",
+    "Диагностика «только штраф за повторы» не гонялась: ни одного упоминания в артефактах S3aq (runs/s3aq-budget-8192-20260920/*.log, evidence/s3aq-*.json). Режим существует флагом прибора, но в S3aq не исполнялся",
+    "Полоса трудности p* (ADR-049 п.12) механически не проверяется — измеряется только на реальных rollout",
+    "Утрата точек v13@500/5000/9000: ретенция SFT-прогона (PROBE_KEEP_LAST=24) стёрла пробы, перемерять на 8192 нечем — таблица «состояние × бюджет» неполна по построению",
+    "Вердикт независимого ревьювера: не найден (как и на приёмке 20.09) — инструмент помечает эту составляющую как непроверенную",
+    "ADR-049 входит в канон в статусе Proposed, а не Accepted: решение заземления вступает в силу при старте RL-стадии; в рабочем бэклоге кейса строка «ADR-049 → Accepted» остаётся открытой",
+    "Ветви arch/sft-loop-origin, arch/sft-decode-diagnosis, arch/sft-length-policy, arch/rl-env-probe приёмкой не покрыты — принимаются отдельно"
+  ],
+  "state_after": {
+    "main_head": "d7c837860434050d09072fa3fa66fa04add0581b",
+    "main_tree": "67d684aa7a190361de8a68d6b2d97aae7a0bdd96",
+    "rules": 26,
+    "adr_prose_files": {"before": 49, "after": 50},
+    "adr_typed_entities": {"before": 9, "after": 10},
+    "model_entities": 34,
+    "open_reds": ["C-014/AD-1 (ждёт артефакт A5)"]
+  },
+  "environment_notes": [
+    "Стенд gb10-fast не занимался: на нём идёт длительный замер тренда петель (probe_language_split, каталог loop-trend-20260921). Прогоны приёмки стенд не трогали — только чтение стражем AD-9 (nvidia-smi/ps через ssh)",
+    "Локальная RTX 4080 не занималась; обучение не запускалось",
+    "Другие ветви и worktree не трогались; широких pkill по шаблонам не было",
+    "В /tmp остаётся каталог-фикстура /tmp/laguna-s3f-fix-2-wMtDwH от прогона 20.09.2026 — не от прогонов приёмки 21.09, чужим не считается и не удалялся"
+  ]
+}

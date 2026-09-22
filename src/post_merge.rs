@@ -134,12 +134,11 @@ pub async fn pre_merge(repo: &Path, branch: &str) -> PreMergeWarnings {
 /// дерева: сравнивать надо редакции ПРАВИЛ, а не то, что лежит на диске.
 async fn rules_sha(repo: &Path, rev: &str) -> Result<Option<String>> {
     let spec = format!("{rev}:{RULES_FILE}");
-    let blob = match crate::worktree::git_bytes(repo, &["cat-file", "blob", &spec]).await {
-        Ok(bytes) => bytes,
-        // Путь в ревизии отсутствует (git: `fatal: path ... does not exist`)
-        // либо ревизия не читается — обе причины одинаково значат «редакции
-        // правил из этой ревизии взять не удалось».
-        Err(_) => return Ok(None),
+    // Путь в ревизии отсутствует (git: `fatal: path ... does not exist`)
+    // либо ревизия не читается — обе причины одинаково значат «редакции
+    // правил из этой ревизии взять не удалось».
+    let Ok(blob) = crate::worktree::git_bytes(repo, &["cat-file", "blob", &spec]).await else {
+        return Ok(None);
     };
     Ok(Some(crate::managed::Sha256::of_bytes(&blob).as_marker()))
 }
@@ -233,6 +232,10 @@ async fn changed_evidence(repo: &Path, branch: &str) -> Result<Vec<String>> {
 /// явная пометка «проверять нечего»): проверять нечего, но и молчать об этом
 /// нельзя. Правила есть, а прогон не удался (невалидный YAML, пустой
 /// ruleset) — fail-closed: непроверенная основная ветка не есть успех.
+///
+/// # Errors
+/// Blocking-задача прогона правил прервана рантаймом (join-ошибка). Ошибка
+/// самого прогона — не `Err`, а вердикт `failed` (fail-closed).
 pub async fn post_merge_gate(repo: &Path) -> Result<GateVerdict> {
     let Some(ruleset) = crate::control::resolve_ruleset(repo) else {
         return Ok(GateVerdict {

@@ -1,0 +1,22 @@
+{
+  "schema": "grounded-task/2",
+  "id": "gs-shell-02",
+  "tool": "shell",
+  "network": "none",
+  "max_steps": 6,
+  "workdir": "/work",
+  "prompt": "В каталоге /work лежит скрипт bin/aggregate.sh: он должен собирать сумму столбца value по всем файлам data/*.csv в один файл out/aggregate.txt (ровно одно целое число, ничего кроме него). Сейчас скрипт считает не то. Почини bin/aggregate.sh так, чтобы при запуске из каталога /work (`sh bin/aggregate.sh`) он завершался успешно и давал верную сумму на ЛЮБОМ наборе файлов data/*.csv с той же схемой (`label,value`), а не только на лежащем сейчас.",
+  "initial_state": "каталог /work: bin/aggregate.sh (дефектный: суммирует столбец label вместо value) и data/a.csv, data/b.csv со схемой `label,value`",
+  "goal_action": "исправить bin/aggregate.sh так, чтобы он давал верную сумму столбца value",
+  "success_criterion": "предъявленный bin/aggregate.sh запускается верификатором в чистом контейнере (--network none, CWD=/work) на ДРУГОМ наборе data/*.csv, которого агент не видел: код возврата 0 И out/aggregate.txt равен сумме столбца value, вычисленной верификатором независимо по этому же набору",
+  "no_action_probe": "текстовый ответ без вызовов: предъявлен исходный (дефектный) скрипт → 0; отдельно проверяется, что текстовый ответ с точным ожидаемым числом даёт те же 0",
+  "empty_action_probe": "действие без последствий (true): скрипт не изменён → 0",
+  "seed_dir": "seed",
+  "holdout_dir": "holdout",
+  "solution": "solution.sh",
+  "verifier": "verify.py",
+  "verifier_reads": ["snapshot:bin/aggregate.sh", "holdout:data/*.csv", "reexec:/work/out/aggregate.txt"],
+  "timeout_s": 90,
+  "requires": ["sh", "awk", "docker"],
+  "leak_check": "ожидаемое число не в промпте и не в seed: оно выводится только из данных; сверка идёт на удержанном наборе, поэтому зашитое значение не проходит"
+}

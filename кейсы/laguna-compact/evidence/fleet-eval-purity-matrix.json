@@ -1,0 +1,1594 @@
+{
+  "schema": "eval-purity-matrix/1",
+  "stage": "S3x",
+  "date": "2026-09-16T19:31:41.676399+00:00",
+  "adr": [
+    "ADR-025 п.1",
+    "ADR-025 п.2",
+    "ADR-025 п.5",
+    "ADR-027 пп.1/3/4/5",
+    "ADR-031 п.4",
+    "ADR-011 п.4"
+  ],
+  "tool": {
+    "path": "tools/eval_purity_matrix.py",
+    "sha256": "235a3226f2e6dea5929ec2144141e20cf603a90b6102af474b6885c8e61ab8b2",
+    "imports": {
+      "path": "tools/check_eval_set_purity.py",
+      "sha256": "452f50120372b07a5c7a98b8363b88b6414a60efc88c4f6a2af8d60925dcc29a"
+    },
+    "argv": [
+      "--report",
+      "evidence/fleet-eval-purity-matrix.json"
+    ]
+  },
+  "invariant": {
+    "rule": "нуль обязателен: каждый решающий набор не пересекается ни с одним кандидатным CPT-миксом (ADR-025 п.1)",
+    "doc_overlap": "нормализованный текст документа набора (lower + схлопнутые пробелы) как подстрока нормализованного документа источника",
+    "ngram_overlap": "окна по 12 слов внутри документа; окно, склеенное из двух документов, совпадением не считается",
+    "window_size": 12,
+    "semantics_source": "tools/check_eval_set_purity.py — определения импортированы, а не переписаны; свод обязан совпасть с гейтом числом",
+    "checking_full_source": "микс — префикс потока источника: ноль по файлу строже нуля по префиксу",
+    "doc_pairs_semantics": "overlap_docs — число пар (документ источника × документ набора), как в гейте",
+    "per_role_threshold": {
+      "strict": "ноль документов И ноль окон (ADR-025 п.1 буквально)",
+      "docs_only": "ноль документов обязателен, окна называются числом (EVAL-SETS §3.4: набор и обучение — одного семейства карточек)",
+      "expected_overlap": "пересечение ожидаемо: набор снят с решающей роли (ADR-027 п.5), служит обратной проверкой гейта"
+    }
+  },
+  "sets": {
+    "v1_general": {
+      "key": "v1_general",
+      "gate": "strict",
+      "role": "historical_reference",
+      "role_ru": "исторический опорный, не решающий",
+      "adr": "ADR-027 п.3",
+      "genre": "незадокументирован (пришёл с пайплайном 09.08)",
+      "distribution": "unknown",
+      "why": "снят с решающей роли: провенанс не задокументирован, 24 документа не различают эффекты",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "bytes": 19948,
+      "docs": 24,
+      "windows": 1732,
+      "short_docs": 0
+    },
+    "general_eval_v2": {
+      "key": "general_eval_v2",
+      "gate": "expected_overlap",
+      "role": "invalid",
+      "role_ru": "invalid — снят с употребления",
+      "adr": "ADR-027 п.5",
+      "genre": "энциклопедическая статья (Википедия)",
+      "distribution": "in-distribution (обучающий текст)",
+      "why": "200/200 документов — обучающий текст v12r50; в матрице остаётся обратной проверкой гейта",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_v2.txt",
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "bytes": 206001,
+      "docs": 200,
+      "windows": 12876,
+      "short_docs": 0
+    },
+    "v3_general_K1": {
+      "key": "v3_general_K1",
+      "gate": "strict",
+      "role": "deciding_K1",
+      "role_ru": "решающий K1 — в жанре реплея",
+      "adr": "ADR-027 п.1, п.4",
+      "genre": "энциклопедическая статья (Википедия)",
+      "distribution": "in-distribution по жанру, out-of-distribution по документам",
+      "why": "отвечает: защитил ли реплей тот класс текста, ради которого заведён",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_v3.txt",
+      "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "bytes": 1128535,
+      "docs": 200,
+      "windows": 83989,
+      "short_docs": 0
+    },
+    "k2_general": {
+      "key": "k2_general",
+      "gate": "strict",
+      "role": "deciding_K2",
+      "role_ru": "решающий K2 — вне обучающего распределения",
+      "adr": "ADR-027 п.1, п.4",
+      "genre": "официально-аналитическая проза (бюллетени Счётной палаты)",
+      "distribution": "out-of-distribution",
+      "why": "отвечает: сохранила ли модель обобщение за пределами обучения",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_k2.txt",
+      "sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "bytes": 793126,
+      "docs": 200,
+      "windows": 53412,
+      "short_docs": 0
+    },
+    "v1_domain": {
+      "key": "v1_domain",
+      "gate": "docs_only",
+      "role": "historical_scale",
+      "role_ru": "историческая домен-шкала, решающей не является",
+      "adr": "ADR-031 п.4 (ADR-015 — слабый прибор по числу документов)",
+      "genre": "концепт-карта ML/AI",
+      "distribution": "in-distribution (тот же домен и шаблон)",
+      "why": "5 документов: решение принималось бы внутри разброса прибора; хранится для непрерывности с ppl_domain S3n",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "bytes": 12811,
+      "docs": 5,
+      "windows": 1006,
+      "short_docs": 0
+    },
+    "v2_domain": {
+      "key": "v2_domain",
+      "gate": "docs_only",
+      "role": "deciding_domain",
+      "role_ru": "домен-метрика, решающая",
+      "adr": "ADR-031 п.4",
+      "genre": "концепт-карта ML/AI",
+      "distribution": "in-distribution по жанру и шаблону (обобщение внутри домена, не вне)",
+      "why": "200 документов против 5: различимость ×48 — ADR-015 требовал именно этого",
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "bytes": 642134,
+      "docs": 200,
+      "windows": 49962,
+      "short_docs": 0
+    }
+  },
+  "sources": {
+    "replay_ru": {
+      "key": "replay_ru",
+      "sep": "\n\n",
+      "kind": "text",
+      "gates": true,
+      "role": "replay",
+      "what": "реплей общего языка: префикс дампа wikimedia/wikipedia 20231101.ru",
+      "mixes": [
+        "v12r",
+        "v12r50",
+        "ctrl100"
+      ],
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "source_docs": 199913,
+      "seconds": 9.8
+    },
+    "domain_v10.1": {
+      "key": "domain_v10.1",
+      "sep": "\n---\n",
+      "kind": "text",
+      "gates": true,
+      "role": "domain",
+      "what": "доменный корпус: концепт-карты ML/AI (Ariadna v10.1)",
+      "mixes": [
+        "v12r",
+        "v12r50"
+      ],
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+      "source_docs": 172474,
+      "seconds": 27.5
+    },
+    "domain_full": {
+      "key": "domain_full",
+      "sep": "\n---\n",
+      "kind": "text",
+      "gates": false,
+      "role": "domain_historical",
+      "what": "исторический полный доменный корпус (v9/v10): источник обучающего материала ранних прогонов и источник секций, из которых собран доменный набор",
+      "mixes": [],
+      "sha256": "9dfce433b7fd1c262343123d8f8aeed4fe2aa7d4c3f6ede573985575618504e5",
+      "source_docs": 657706,
+      "seconds": 69.2
+    },
+    "sft_v12": {
+      "key": "sft_v12",
+      "sep": null,
+      "kind": "jsonl",
+      "gates": false,
+      "role": "sft",
+      "what": "SFT-стадия (следующий этап лесенки): многоходовая разметка с tool_call. Единица сравнения — строка сообщения, не пример целиком: окно, склеенное из двух сообщений, в обучении не встречалось",
+      "mixes": [],
+      "sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "source_docs": 372917,
+      "seconds": 44.5
+    }
+  },
+  "mixes": {
+    "v12r": {
+      "key": "v12r",
+      "domain_chunks": 7332,
+      "replay_chunks": 2444,
+      "chunk_len": 8192,
+      "manifest": "cpt_corpus_v12r.txt",
+      "note": "заморожен ADR-003; 75/25, домен — весь пул v10.1 (7332 чанка)",
+      "arms_note": "на этом же миксе идёт полный CPT стадии (LR×0.035, ADR-031 п.1): его конфигурация лежит в runs/, а не в calib/, поэтому в arms не попадает",
+      "sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ]
+    },
+    "v12r50": {
+      "key": "v12r50",
+      "domain_chunks": 3493,
+      "replay_chunks": 3493,
+      "chunk_len": 8192,
+      "manifest": "datasets/cpt_corpus_v12r50.txt",
+      "note": "калибровка S3m (ADR-047): равные доли; реплей-источник даёт ровно 3493 чанка",
+      "sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ]
+    },
+    "ctrl100": {
+      "key": "ctrl100",
+      "domain_chunks": 0,
+      "replay_chunks": 3493,
+      "chunk_len": 8192,
+      "manifest": "datasets/cpt_corpus_ctrl100.txt",
+      "note": "контрольная рука C1 (S3o): домена нет вовсе — проверка гипотезы о протоколе",
+      "sources": [
+        "replay_ru"
+      ],
+      "arms": [
+        "C1-100-0.35"
+      ]
+    },
+    "cpt_corpus_v12r50": {
+      "key": "cpt_corpus_v12r50",
+      "domain_chunks": 3493,
+      "replay_chunks": 3493,
+      "chunk_len": 8192,
+      "manifest": "/home/user/gb10-shared/calib/mix-v12r50-build.json",
+      "duplicate_of": "v12r50",
+      "note": "найден гейтом автоматически в calib/ (карточка сборки). Состав тождествен v12r50 — оставлен в своде, чтобы имена миксов совпадали с исторической матрицей §4",
+      "sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ]
+    }
+  },
+  "source_matrix": [
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 200,
+      "overlap_ngram": 12876,
+      "overlap_ngram_occurrences": 12968,
+      "verdict": "expected_overlap"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "overlap_ngram_occurrences": 450,
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 6,
+      "overlap_ngram": 1006,
+      "overlap_ngram_occurrences": 2789,
+      "verdict": "informational"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 64,
+      "overlap_ngram_occurrences": 321,
+      "verdict": "informational"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "source": "replay_ru",
+      "source_role": "replay",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_occurrences": 0,
+      "verdict": "clean"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "source": "domain_v10.1",
+      "source_role": "domain",
+      "source_gates": true,
+      "overlap_docs": 0,
+      "overlap_ngram": 1733,
+      "overlap_ngram_occurrences": 174296,
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "source": "domain_full",
+      "source_role": "domain_historical",
+      "source_gates": false,
+      "overlap_docs": 241,
+      "overlap_ngram": 49962,
+      "overlap_ngram_occurrences": 807799,
+      "verdict": "informational"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "source": "sft_v12",
+      "source_role": "sft",
+      "source_gates": false,
+      "overlap_docs": 0,
+      "overlap_ngram": 667,
+      "overlap_ngram_occurrences": 30848,
+      "verdict": "informational"
+    }
+  ],
+  "mix_matrix": [
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 200,
+      "overlap_ngram": 12876,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 200,
+          "overlap_ngram": 12876
+        }
+      },
+      "verdict": "expected_overlap"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 78
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "mix": "v12r",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "arms": [
+        "25-0.35",
+        "25-0.7",
+        "C2-25-0.035"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 1733,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 1733
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 200,
+      "overlap_ngram": 12876,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 200,
+          "overlap_ngram": 12876
+        }
+      },
+      "verdict": "expected_overlap"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 78
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "mix": "v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 1733,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 1733
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 200,
+      "overlap_ngram": 12876,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 200,
+          "overlap_ngram": 12876
+        }
+      },
+      "verdict": "expected_overlap"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "mix": "ctrl100",
+      "mix_sources": [
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "C1-100-0.35"
+      ],
+      "duplicate_of": null,
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_general",
+      "set_role": "historical_reference",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "general_eval_v2",
+      "set_role": "invalid",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 200,
+      "overlap_ngram": 12876,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 200,
+          "overlap_ngram": 12876
+        }
+      },
+      "verdict": "expected_overlap"
+    },
+    {
+      "set": "v3_general_K1",
+      "set_role": "deciding_K1",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "k2_general",
+      "set_role": "deciding_K2",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "clean"
+    },
+    {
+      "set": "v1_domain",
+      "set_role": "historical_scale",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 78
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    },
+    {
+      "set": "v2_domain",
+      "set_role": "deciding_domain",
+      "mix": "cpt_corpus_v12r50",
+      "mix_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "checked_sources": [
+        "domain_v10.1",
+        "replay_ru"
+      ],
+      "complete": true,
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "arms": [
+        "50-0.35",
+        "50-0.7"
+      ],
+      "duplicate_of": "v12r50",
+      "overlap_docs": 0,
+      "overlap_ngram": 1733,
+      "overlap_ngram_by_source": {
+        "domain_v10.1": {
+          "overlap_docs": 0,
+          "overlap_ngram": 1733
+        },
+        "replay_ru": {
+          "overlap_docs": 0,
+          "overlap_ngram": 0
+        }
+      },
+      "verdict": "windows_named"
+    }
+  ],
+  "cross_check": {
+    "evidence/s3q-purity.json": {
+      "path": "evidence/s3q-purity.json",
+      "set": "v3_general_K1",
+      "set_sha_match": true,
+      "ref_set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "mine_set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "comparisons": [
+        {
+          "mix": "v12r",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "ctrl100",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "cpt_corpus_v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        }
+      ],
+      "status": "совпало"
+    },
+    "evidence/s3t-purity-k2.json": {
+      "path": "evidence/s3t-purity-k2.json",
+      "set": "k2_general",
+      "set_sha_match": true,
+      "ref_set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "mine_set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "comparisons": [
+        {
+          "mix": "v12r",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "ctrl100",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "cpt_corpus_v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        }
+      ],
+      "status": "совпало"
+    },
+    "evidence/s3t-purity-v2.json": {
+      "path": "evidence/s3t-purity-v2.json",
+      "set": "general_eval_v2",
+      "set_sha_match": true,
+      "ref_set_sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "mine_set_sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "comparisons": [
+        {
+          "mix": "v12r",
+          "ref_docs": 200,
+          "mine_docs": 200,
+          "ref_ngram": 12876,
+          "mine_ngram": 12876,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "v12r50",
+          "ref_docs": 200,
+          "mine_docs": 200,
+          "ref_ngram": 12876,
+          "mine_ngram": 12876,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "ctrl100",
+          "ref_docs": 200,
+          "mine_docs": 200,
+          "ref_ngram": 12876,
+          "mine_ngram": 12876,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "cpt_corpus_v12r50",
+          "ref_docs": 200,
+          "mine_docs": 200,
+          "ref_ngram": 12876,
+          "mine_ngram": 12876,
+          "docs_match": true,
+          "ngram_match": true
+        }
+      ],
+      "status": "совпало"
+    },
+    "evidence/s3w-purity-v1domain.json": {
+      "path": "evidence/s3w-purity-v1domain.json",
+      "set": "v1_domain",
+      "set_sha_match": true,
+      "ref_set_sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "mine_set_sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "comparisons": [
+        {
+          "mix": "v12r",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 78,
+          "mine_ngram": 78,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 78,
+          "mine_ngram": 78,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "ctrl100",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "cpt_corpus_v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 78,
+          "mine_ngram": 78,
+          "docs_match": true,
+          "ngram_match": true
+        }
+      ],
+      "status": "совпало"
+    },
+    "evidence/s3w-purity-v2domain.json": {
+      "path": "evidence/s3w-purity-v2domain.json",
+      "set": "v2_domain",
+      "set_sha_match": true,
+      "ref_set_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "mine_set_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "comparisons": [
+        {
+          "mix": "v12r",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 1733,
+          "mine_ngram": 1733,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 1733,
+          "mine_ngram": 1733,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "ctrl100",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 0,
+          "mine_ngram": 0,
+          "docs_match": true,
+          "ngram_match": true
+        },
+        {
+          "mix": "cpt_corpus_v12r50",
+          "ref_docs": 0,
+          "mine_docs": 0,
+          "ref_ngram": 1733,
+          "mine_ngram": 1733,
+          "docs_match": true,
+          "ngram_match": true
+        }
+      ],
+      "status": "совпало"
+    }
+  },
+  "verdict": "clean",
+  "status": "complete",
+  "violations": [],
+  "source_violations": [],
+  "partial": []
+}

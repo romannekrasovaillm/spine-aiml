@@ -1,0 +1,126 @@
+{
+  "schema": "eval-set-purity/1",
+  "stage": "S3q",
+  "date": "2026-09-16T14:44:00.928049+00:00",
+  "adr": [
+    "ADR-025 п.1",
+    "ADR-025 п.2",
+    "ADR-025 п.5"
+  ],
+  "tool": {
+    "path": "tools/check_eval_set_purity.py",
+    "sha256": "452f50120372b07a5c7a98b8363b88b6414a60efc88c4f6a2af8d60925dcc29a",
+    "argv": [
+      "--set",
+      "datasets/general_eval_k2.txt",
+      "--report",
+      "evidence/s3t-purity-k2.json"
+    ]
+  },
+  "set": {
+    "path": "datasets/general_eval_k2.txt",
+    "sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+    "bytes": 793126,
+    "docs": 200
+  },
+  "instrument": {
+    "doc_overlap": "нормализованный текст документа набора (lower + схлопнутые пробелы) как подстрока нормализованного документа корпуса",
+    "ngram_overlap": "окна по 12 слов внутри документа; считается, сколько окон корпуса совпало с окнами набора",
+    "window_size": 12,
+    "corpora_checked_in_full": "проверка идёт по корпусу-источнику целиком, а микс — его префикс: ноль по файлу строже нуля по префиксу (докстринг инструмента)",
+    "set_docs_norm": 200,
+    "set_windows": 53412
+  },
+  "corpora": {
+    "domain": {
+      "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+      "bytes": 299141131,
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+      "source_docs": 172474,
+      "overlap_docs": 0,
+      "overlap_ngram_windows": 0,
+      "overlap_ngram_occurrences": 0,
+      "doc_hits": [],
+      "window_examples": [],
+      "seconds": 33.5
+    },
+    "replay": {
+      "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "source_docs": 199913,
+      "overlap_docs": 0,
+      "overlap_ngram_windows": 0,
+      "overlap_ngram_occurrences": 0,
+      "doc_hits": [],
+      "window_examples": [],
+      "seconds": 9.4
+    }
+  },
+  "overlap_matrix": [
+    {
+      "mix": "v12r",
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card-v12r50.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "ctrl100",
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/ctrl-build-20260916-1623/mix-ctrl100-build.json",
+      "checked_corpora": [
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "cpt_corpus_v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/mix-v12r50-build.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    }
+  ],
+  "verdict": "clean"
+}

@@ -39,6 +39,32 @@
 # совпавшего дерева (у него нет совпавшего предка). Точность правила названа
 # честно: два одновременных прогона с ОДНИМ `--exp_name` не различаются.
 #
+# ── Нагрузка КЕЙСА против ПЛАТФОРМЕННОГО СЕРВИСА (решение архитектора, S3bi) ──
+# Это не новое правило, а исполнение уже написанного: спайн `AD-5`
+# (`model/AD-5-odna-nagruzka-na-gb10.md`) говорит буквально — «нагрузка —
+# тренировочный прогон (дерево процессов с общим `--exp_name`), инференс-серверы
+# и мониторы нагрузкой не считаются, но учитываются в бюджете памяти».
+# На стенде постоянно живут сервисы площадки (`llama-server` роутера и его
+# дочерний сервер, `ollama serve`, `dgx-dashboard-service`, `llm-platform-*`) —
+# они занимают GPU-память и держат CUDA-контекст, но нагрузками кейса НЕ являются.
+# Бюджет памяти они не обходят: он проверяется отдельно и по другому носителю
+# (`tools/check_resource_owner.sh`, порог по стадии) и этой правкой не тронут.
+# Если страж опознаёт их как нагрузку, гейт отказывает **по построению**: правило
+# нельзя сделать зелёным, пока стоит платформа (класс, уже названный в кейсе трижды).
+# Поэтому опознание — по **объявленной метке** (та же, что у AD-9 в
+# `tools/check_resource_owner.sh`: `--exp_name`), а не по факту «на GPU есть процесс»:
+#   · процесс, чья командная строка совпала с `PLATFORM_RE`, — сервис площадки:
+#     не считается нагрузкой, вердикт не красит (ни нарушения, ни предупреждения);
+#   · но и НЕ прячется: печатается отдельной строкой
+#     `платформенных сервисов: N — не предмет правила` со списком, чтобы «сервисов
+#     нет» нельзя было прочитать как «нагрузок нет», и наоборот;
+#   · `PLATFORM_RE` проверяется ПЕРВЫМ: сервис площадки, чья строка совпала и с
+#     `LOAD_RE` (например, путь содержит `sft`/`cpt`), остаётся сервисом, а не
+#     нагрузкой — иначе правило снова красилось бы по построению.
+# Граница названа честно: список сервисов — **объявление** (постоянные имена
+# площадки), а не вывод «всё, что не кейс». Нагрузка без `--exp_name` и без
+# совпавшего сервиса по-прежнему считается нагрузкой по корню дерева.
+#
 # Запуск: bash tools/check_gb10_serialization.sh [--host HOST] [--hosts "H1 H2"] [--timeout S] [--strict]
 
 set -uo pipefail
@@ -57,7 +83,7 @@ while [ $# -gt 0 ]; do
     --hosts)   HOSTS_SPEC="${2:?--hosts требует непустой список}"; shift 2 ;;
     --timeout) TIMEOUT="${2:?--timeout требует секунды}"; shift 2 ;;
     --strict)  STRICT=1; shift ;;
-    -h|--help) sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,62p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "неизвестный флаг: $1" >&2; exit 2 ;;
   esac
 done
@@ -67,6 +93,11 @@ done
 LOAD_RE='laguna_pipeline|run_v[0-9]+_ladder|train_(cpt|sft|rl)|torchrun|deepspeed|accelerate launch|python[0-9.]* +[^ ]*(cpt|sft|_rl)'
 #: Шаблон самого стража и его транспорта — чтобы не считать себя нагрузкой.
 SELF_RE='check_gb10_serialization|ps -eo|nvidia-smi|tmux list-panes'
+#: Платформенные сервисы площадки — ОБЪЯВЛЕННЫЙ список постоянных сервисов стенда
+#: (см. шапку). Проверяется ПЕРВЫМ: совпавшее с ним — сервис, а не нагрузка кейса.
+#: Список узкий и названный: широкое правило («всё, что не кейс») спрятало бы
+#: настоящую чужую нагрузку, и гейт снова стал бы зелёным без результата.
+PLATFORM_RE='llama-server|llm-platform|ollama serve|dgx-dashboard-service'
 
 #: Группировка совпавших процессов по нагрузке: строка 1 — число нагрузок,
 #: строка 2 — режим опознания, далее — процессы с меткой нагрузки.
@@ -213,11 +244,16 @@ echo "стенд: $TARGET ($MODE)"
 [ "$STRICT" = "1" ] && echo "режим: --strict (недоступность стенда — красный вердикт)"
 echo
 
-# ── сенсор 1: тренировочные нагрузки ─────────────────────────────────────────
+# ── сенсор 1: тренировочные нагрузки кейса и платформенные сервисы ───────────
 ps_out="$(run_remote "ps -eo pid,ppid,etime,args --no-headers" 2>/dev/null)"
 if [ -n "$ps_out" ]; then
   sensored=$((sensored + 1))
-  loads="$(printf '%s\n' "$ps_out" | grep -E "$LOAD_RE" | grep -vE "$SELF_RE" || true)"
+  #: Платформенные сервисы площадки: называются отдельной строкой, нарушением не
+  #: считаются и из нагрузок исключаются (см. шапку).
+  platforms="$(printf '%s\n' "$ps_out" | grep -E "$PLATFORM_RE" | grep -vE "$SELF_RE" || true)"
+  n_platforms="$(printf '%s' "$platforms" | grep -c . || true)"
+  loads="$(printf '%s\n' "$ps_out" | grep -E "$LOAD_RE" | grep -vE "$SELF_RE" \
+    | grep -vE "$PLATFORM_RE" || true)"
   n_procs="$(printf '%s' "$loads" | grep -c . || true)"
   if [ "$n_procs" -gt 0 ]; then
     report="$(printf '%s\n' "$loads" | awk "$LOAD_ID_AWK")"
@@ -229,6 +265,12 @@ if [ -n "$ps_out" ]; then
     n_loads=0
     echo "тренировочных нагрузок: 0"
   fi
+  #: Строка сервисов печатается ВСЕГДА, в том числе при нуле: «сервисов нет» —
+  #: это утверждение о площадке, и оно не должно читаться как «нагрузок нет».
+  echo "платформенных сервисов: $n_platforms — не предмет правила (постоянные сервисы площадки)"
+  if [ "$n_platforms" -gt 0 ]; then
+    printf '%s\n' "$platforms" | cut -c1-200 | sed 's/^/    /'
+  fi
   if [ "$n_loads" -gt 1 ]; then
     echo "НАРУШЕНИЕ: одновременно $n_loads тренировочных нагрузок (AD-5: одна нагрузка за раз)"
     violations=$((violations + 1))
@@ -237,16 +279,52 @@ else
   notes+=("ps недоступен — сенсор процессов пропущен")
 fi
 
-# ── сенсор 2: считающие CUDA-процессы ────────────────────────────────────────
+# ── сенсор 2: считающие CUDA-процессы — с классификацией ─────────────────────
+# Больше одного CUDA-процесса само по себе не нарушение: платформенные сервисы
+# держат контекст постоянно (llama-server роутера + его дочерний сервер). Поэтому
+# каждый CUDA-процесс относится к одной из трёх корзин по ОБЪЯВЛЕННОЙ метке:
+# сервис площадки / нагрузка кейса / вне опознания. Внимание — только на третью.
 smi="$(run_remote "nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader" 2>/dev/null)"
 if [ -n "$smi" ]; then
   sensored=$((sensored + 1))
   n_apps="$(printf '%s' "$smi" | grep -c . || true)"
-  echo "CUDA-процессов: $n_apps"
-  printf '%s\n' "$smi" | sed 's/^/    /'
-  if [ "$n_apps" -gt 1 ]; then
-    echo "ВНИМАНИЕ: на GPU больше одного процесса — сверь с сенсором процессов"
-    notes+=("CUDA-процессов $n_apps: параллельная нагрузка возможна, но не подтверждена")
+  #: pid → командная строка: классификация идёт по полной командной строке, а не
+  #: по усечённому `process_name` из nvidia-smi (иначе `llama-server` отличим, а
+  #: `python3 /opt/llm-platform/sft-router.py` — уже нет).
+  cuda_pids="$(printf '%s\n' "$smi" | awk -F, '{gsub(/ /,"",$1); if ($1 ~ /^[0-9]+$/) print $1}')"
+  #: Карта pid → командная строка: печатается по одному pid на строку, чтобы
+  #: поиск по pid не склеивал соседние записи.
+  ps_map="$(printf '%s\n' "$ps_out" | awk -v want="$cuda_pids" '
+    BEGIN { n = split(want, w, "\n"); for (i = 1; i <= n; i++) if (w[i] != "") W[w[i]] = 1 }
+    W[$1] { printf "%s", $1; for (i = 4; i <= NF; i++) printf " %s", $i; printf "\n" }
+  ')"
+  n_plat_gpu=0; n_load_gpu=0; n_other_gpu=0
+  gpu_lines=""
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    pid="$(printf '%s' "$line" | awk -F, '{gsub(/ /,"",$1); print $1}')"
+    pname="$(printf '%s' "$line" | awk -F, '{gsub(/^ +| +$/,"",$2); print $2}')"
+    mem="$(printf '%s' "$line" | awk -F, '{gsub(/^ +| +$/,"",$3); print $3}')"
+    args="$(printf '%s\n' "$ps_map" | awk -v p="$pid" '$1 == p { $1=""; sub(/^ +/,""); print; exit }')"
+    #: Метка классификации: полная командная строка, а если pid в ps не найден —
+    #: то, что дал nvidia-smi (граница сенсора названа в шапке).
+    key="$args"; [ -n "$key" ] || key="$pname"
+    if printf '%s' "$key" | grep -qE "$PLATFORM_RE"; then
+      n_plat_gpu=$((n_plat_gpu + 1)); tag="платформенный сервис"
+    elif printf '%s' "$key" | grep -qE "$LOAD_RE"; then
+      n_load_gpu=$((n_load_gpu + 1)); tag="нагрузка кейса"
+    else
+      n_other_gpu=$((n_other_gpu + 1)); tag="вне опознания"
+      notes+=("CUDA-процесс $pid ($pname) не опознан ни как сервис площадки, ни как нагрузка кейса — сверь с сенсором процессов")
+    fi
+    gpu_lines="${gpu_lines}    [$tag] ${pid}, ${pname}, ${mem}
+"
+  done <<< "$smi"
+  echo "CUDA-процессов: $n_apps (платформенных сервисов: $n_plat_gpu, нагрузок кейса: $n_load_gpu, вне опознания: $n_other_gpu)"
+  printf '%s' "$gpu_lines"
+  if [ "$n_load_gpu" -gt 1 ]; then
+    echo "ВНИМАНИЕ: на GPU больше одной нагрузки кейса — сенсор процессов обязан подтвердить (AD-5)"
+    notes+=("CUDA-процессов-нагрузок $n_load_gpu: параллельная нагрузка возможна, сверь с сенсором процессов")
   fi
 else
   notes+=("nvidia-smi недоступен — сенсор GPU пропущен")
@@ -256,7 +334,7 @@ fi
 tmux_out="$(run_remote "tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} #{pane_current_command} #{pane_start_command}'" 2>/dev/null)"
 if [ -n "$tmux_out" ]; then
   sensored=$((sensored + 1))
-  stage_panes="$(printf '%s\n' "$tmux_out" | grep -E "$LOAD_RE" || true)"
+  stage_panes="$(printf '%s\n' "$tmux_out" | grep -E "$LOAD_RE" | grep -vE "$PLATFORM_RE" || true)"
   n_panes="$(printf '%s' "$stage_panes" | grep -c . || true)"
   n_sessions="$(printf '%s\n' "$stage_panes" | awk '{print $1}' | cut -d: -f1 | sort -u | grep -c . || true)"
   echo "tmux-панелей со стадиями: $n_panes (сессий: $n_sessions)"

@@ -93,13 +93,24 @@ CTR_SHARED = "/workspace/shared"
 CTR_EXPERIMENTS = "/workspace/experiments"
 PIPELINE_CTR = f"{CTR_SHARED}/laguna_pipeline_v8.py"
 
-#: Пул ревизии (ADR-007): версионное имя на сетевом диске; в кейсе — симлинк
-#: `runs/rev-pool/rl_pool_filtered.jsonl` на тот же файл (AD-4/C-011).
-RL_POOL_STAND = f"{STAND_SHARED}/datasets/rl_tasks_revpool_v1.jsonl"
-RL_POOL_CASE = CASE_ROOT / "datasets" / "rl_tasks_revpool_v1.jsonl"
+#: Набор курикулума RL-стадии — **v2** (ADR-054 п.1: пересечение с обучающим набором
+#: 0.00 %, карточка AD-2 есть, лейк-фильтр пройден). Наборы `ox` в курикулум не
+#: берутся (утечка 59.84 %), `v1` остаётся историческим носителем и стадией не
+#: выбирается — он закреплён в раннерах до этого решения и карточки AD-2 не имеет.
+#: Версионное имя на сетевом диске; в кейсе — симлинк
+#: `runs/rev-pool-v2/rl_pool_filtered.jsonl` на тот же файл (AD-4/C-011).
+RL_POOL_NAME = "rl_tasks_revpool_v2.jsonl"
+RL_POOL_STAND = f"{STAND_SHARED}/datasets/{RL_POOL_NAME}"
+RL_POOL_CASE = CASE_ROOT / "datasets" / RL_POOL_NAME
 
 CPT_TOK_CACHE = "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy"
 SFT_TOK_CACHE = "datasets/tok/sft_train_v12_8192_qwen25.npz"
+#: Обучающий набор SFT пилота (ADR-013 п.2 — заморожен). Один источник на три
+#: места: вход стадии (`--sft-data` цепочки), объявление в манифесте AD-2
+#: (`--dataset-extra sft=`) и проверку числа примеров. Пока вход брался литералом
+#: внутри цепочки, объявление и факт расходились молча (S3av).
+SFT_DATA_JSONL = "datasets/sft_train_v12.jsonl"
+SFT_DATA_SHA256 = "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6"
 CPT_TOK_POS = "datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy"
 PRETOKENIZER = f"{CTR_SHARED}/pretokenize_v9.py"
 
@@ -121,6 +132,10 @@ SHIPPED = (
     ("check_resource_owner.sh", "tools/check_resource_owner.sh"),
     ("write_run_manifest.py", "tools/write_run_manifest.py"),
     ("smoke_mem_sampler.sh", "tools/smoke_mem_sampler.sh"),
+    #: Критерий вырожденной награды (ADR-017). Едет на стенд тем же путём, что и
+    #: остальные инструменты цепочки: критерий, считаемый только на хосте
+    #: архитектора, не остановит стадию — а ADR-017 п.2 требует именно остановки.
+    ("rl_degeneracy.py", "tools/rl_degeneracy.py"),
 )
 
 
@@ -242,6 +257,20 @@ def chain_command(args, run_dir_stand: str, stages: list[Stage]) -> str:
         f"--sampler {run_dir_stand}/smoke_mem_sampler.sh",
         f"--storm-gap {STORM_GAP}",
         f"--manifest-tool {run_dir_stand}/write_run_manifest.py",
+        f"--degeneracy-tool {run_dir_stand}/rl_degeneracy.py",
+        f"--degeneracy-window {args.degeneracy_window}",
+        #: Набор SFT — тем же значением, что уходит в объявление манифеста ниже.
+        #: Без этой строки цепочка брала бы умолчание (v12) — сегодня совпадающее,
+        #: завтра могущее разойтись с объявлением молча (S3av).
+        f"--sft-data {CTR_SHARED}/{SFT_DATA_JSONL}",
+        f"--sft-data-sha256 {SFT_DATA_SHA256}",
+        #: Набор курикулума RL — тем же значением, что уходит в объявление манифеста
+        #: (`--dataset-extra rl_pool=`). Без срока давности: пока вход стадии брался
+        #: литералом, объявление и факт расходились молча — дефект S3av, а ADR-054
+        #: п.1–2 распространяет тот же принцип на RL-набор. Хеш не передаётся: его
+        #: цепочка измеряет на стенде по файлу (ADR-028 п.1: объявление измеряется,
+        #: а не берётся константой).
+        f"--rl-data {CTR_SHARED}/datasets/{RL_POOL_NAME}",
         f"--image {args.image}",
         f"--glm-env {GLM_ENV}",
         f"--nvrm-log {NVRN_LOG}",
@@ -394,7 +423,7 @@ def check_inputs(host: str, args) -> dict:
     required = [f"{STAND_SHARED}/{CPT_TOK_CACHE}", f"{STAND_SHARED}/{SFT_TOK_CACHE}",
                 f"{STAND_SHARED}/laguna_pipeline_v8.py", SAFE_START, STORM_GAP,
                 f"{STAND_SHARED}/wt_stubs", RL_POOL_STAND,
-                f"{STAND_SHARED}/datasets/sft_train_v12.jsonl",
+                f"{STAND_SHARED}/{SFT_DATA_JSONL}",
                 f"{STAND_SHARED}/datasets/eval_ood_clean.jsonl",
                 f"{STAND_SHARED}/datasets/general_eval.txt",
                 f"{STAND_SHARED}/datasets/domain_eval.txt"]
@@ -435,7 +464,7 @@ def check_sft_samples(host: str, expect: int) -> dict:
     пойдёт обучение. Расхождение с зафиксированным числом — сигнал и остановка, а
     не молчаливый пересчёт: иначе прогон перестал бы быть тем, что оценивал ADR.
     """
-    rc, out, _ = S.ssh(host, f"wc -l < {STAND_SHARED}/datasets/sft_train_v12.jsonl")
+    rc, out, _ = S.ssh(host, f"wc -l < {STAND_SHARED}/{SFT_DATA_JSONL}")
     got = None
     if rc == 0:
         digits = out.strip().split()
@@ -450,7 +479,7 @@ def check_sft_samples(host: str, expect: int) -> dict:
 
 def check_disk(host: str, min_free_gb: float = 60.0) -> dict:
     """Диск стенда: `*_final` чекпойнты CPT/SFT/RL (~3 ГБ × 3) + hf_rollout/hf_eval."""
-    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user/ | tail -1")
+    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user | tail -1")
     avail = None
     if rc == 0:
         m = "".join(ch for ch in out if ch.isdigit())
@@ -639,7 +668,7 @@ def write_manifest(run_dir: Path, args, stages: list[Stage], statuses: dict) -> 
            "--seed", str(args.seed), "--image", args.image,
            "--stages", spec,
            "--run-version", f"tools/run_pilot.py@{runner_sha12()}",
-           "--dataset-extra", f"sft={CASE_ROOT / 'datasets' / 'sft_train_v12.jsonl'}",
+           "--dataset-extra", f"sft={CASE_ROOT / SFT_DATA_JSONL}",
            "--dataset-extra", f"rl_pool={RL_POOL_CASE}",
            "--dataset-extra", f"eval={CASE_ROOT / 'datasets' / 'eval_ood_clean.jsonl'}",
            "--hyperparams", f"arch_base_version={json.dumps(arch_base())}",
@@ -752,7 +781,18 @@ def build_evidence(args, stages: list[Stage], pre: dict, shipped: dict, gate: di
                                 "entropy_low_streak": args.entropy_low_streak,
                                 "nvrm_limit": args.nvrm_limit,
                                 "mem_floor_gb": args.mem_floor_gb,
-                                "stall_minutes": args.stall_minutes},
+                                "stall_minutes": args.stall_minutes,
+                                #: Критерий вырожденной награды — не порог раннера, а
+                                #: критерий ADR-017, живущий в приборе
+                                #: (tools/rl_degeneracy.py). Здесь только окно и путь:
+                                #: пороги классов дублировать нельзя — их единственный
+                                #: носитель — прибор, и он же их печатает.
+                                "degenerate_reward": {
+                                    "criterion": "ADR-017",
+                                    "tool": "rl_degeneracy.py",
+                                    "window_steps": args.degeneracy_window,
+                                    "thresholds_source": "прибор tools/rl_degeneracy.py "
+                                                         "(ADR-017 п.1 + спайн AD-1)"}},
             "launch": f"{SAFE_START} -d 60 -i 5 -- docker run (absorbер включён)",
             "deterministic_mode": "off (обычный режим контура, ADR-014)",
         },
@@ -877,6 +917,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--nvrm-limit", type=int, default=2, help="NVRM/Xid-инцидентов = стоп и пауза")
     ap.add_argument("--mem-floor-gb", type=float, default=4.0,
                     help="предохранитель памяти стенда во время стадии")
+    ap.add_argument("--degeneracy-window", type=int, default=50,
+                    help="окно критерия вырожденной награды в шагах (ADR-017 п.1: 50; "
+                         "число не подбирается здесь, а наследуется из решения)")
     ap.add_argument("--stall-minutes", type=int, default=120,
                     help="порог молчания стадии (wedge) в минутах")
     ap.add_argument("--poll-seconds", type=int, default=5, help="период стража стадии")

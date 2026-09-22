@@ -1,3 +1,6 @@
+constraints:
+  # NB: правила закрытой зоны banking/ (и ADF) при публикации ядра сняты —
+  # эта зона в публичный снапшот не входит (см. README).
 # CONSTRAINTS.yaml — fitness-функции собственного репозитория Spine (dogfood, AD-9).
 #
 # Прогон:  arch-ml control check . --constraints CONSTRAINTS.yaml
@@ -6,12 +9,7 @@
 #          severity critical|high → error (ломает итог, exit 1), medium → warn.
 # Обход пропускает .git, target, node_modules, dist, __pycache__, .next,
 # .pytest_cache, .arch-handoff (src/control.rs, collect_files).
-constraints:
   # --- AD-6: безопасный Rust -----------------------------------------------
-
-  # NB: правила закрытой зоны banking/ (и ADF) при публикации ядра сняты —
-  # эта зона в публичный снапшот не входит (см. README).
-
   - id: C-01
     name: no_unsafe_code
     type: must_not_contain
@@ -175,6 +173,10 @@ constraints:
     pattern: "arch-ml eval run"
     severity: high
 
+  # --- AD-BE1..BE4: продуктовые инварианты банковской линии (наследие форка) ---
+  # (ARCHITECTURE-SPINE-BE.md; ADR-010…014). Глоб-движок без брейсов {a,b} —
+  # поэтому каждое правило с узким glob; ADR/спайны вне scope: там запрет
+  # обсуждается легитимно.
   - id: BE-02a
     name: no_yandexgpt_in_code
     type: must_not_contain
@@ -209,6 +211,7 @@ constraints:
     path: "NOTICE.md"
     severity: critical
 
+  # --- AD-BE5: egress-дисциплина (ADR-016) ------------------------------------
   - id: BE-14
     name: no_telemetry_beacons_in_src
     type: must_not_contain
@@ -216,7 +219,6 @@ constraints:
     pattern: "(?i)sentry|posthog|amplitude|mixpanel|segment\\.io|telemetry_sdk|telemetry::init"
     severity: critical
 
-  # AD-BE7: бинарь продукта — arch-ml (ADR-026); коллизия с апстримным arch запрещена
   - id: BE-19
     name: binary_named_arch_be
     type: must_contain
@@ -272,7 +274,6 @@ constraints:
     owner: "solution-архитектор BE"
     expiry: "2027-09-03"
 
-  # ADR-027 / монорепозиторий: вендоренный движок Archify на месте
   - id: BE-20g
     name: archify_vendor_present
     type: file_exists
@@ -424,8 +425,8 @@ constraints:
     owner: "ml-architecture"
     expiry: "2027-09-13"
 
-  # ADR-031 / модель угроз T5: целостность вендоренного Archify пиннута
-  # хэшами; подмена файла ломает гейт (раньше BE-20g проверяло лишь наличие).
+  # Покрытие доменов ADF маппингом (замечание ревью №12): каждый domains_id
+  # снапшота обязан иметь строку в adf-mapping.md — регресс ломает сборку.
   - id: BE-22
     name: archify_vendor_integrity
     type: command_succeeds

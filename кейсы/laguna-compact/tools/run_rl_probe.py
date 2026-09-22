@@ -14,8 +14,8 @@ CPT/SFT. Сходимость не является критерием: если
   занятое молчит); меньше порога — стадия **не стартует**;
 * страж сериализации AD-5 в ``--strict``: недоступность стенда — красный вердикт;
 * контейнеры ``llm-platform-*`` — не трогаются, но замеряются до и после;
-* пул ревизии (``rl_tasks_revpool_v1.jsonl``, 27 992 задачи) и SFT-чекпойнт
-  проверяются **до** запуска, а не выясняются падением на 40-й минуте;
+* набор курикулума (``rl_tasks_revpool_v2.jsonl``, 9 162 задачи — ADR-054 п.1) и
+  SFT-чекпойнт проверяются **до** запуска, а не выясняются падением на 40-й минуте;
 * запуск — через ``nvrm-storm/safe_start.sh`` (drop-caches-абсорбер) и с
   cgroup-капом памяти: как в рабочей лесенке ``run_v12_ladder.sh``, иначе
   разведка мерила бы не тот путь запуска.
@@ -30,7 +30,13 @@ CPT/SFT. Сходимость не является критерием: если
 * свободная память хоста ниже ``--mem-floor-gb`` во время прогона → стоп:
   платформенные контейнеры не должны пострадать от чужого OOM;
 * ``--max-wall-hours`` — предел стены на стадию: разведка обязана закончиться
-  замером, а не «идёт».
+  замером, а не «идёт»;
+* **вырожденная награда (ADR-017)** — критерий живёт в общем приборе
+  ``tools/rl_degeneracy.py`` (том же, что стоит стражем в ``pilot_chain.sh``),
+  наблюдения берутся из строк метрик шага. По умолчанию он только **публикует**
+  вердикт: предмет разведки — цена шага, и мёртвая награда замер не отменяет
+  (ADR-010 п.3). Остановка включается флагом ``--degenerate-stop`` — когда
+  разведка исполняет роль стадии, то есть когда ADR-017 п.2 предписывает стоп.
 
 Замеры (в ``evidence/s3-rl-probe.json``): время шага RL; доля времени на
 генерацию роллаутов против обучения (по обвязке ``tools/rl_probe_hook.py``);
@@ -85,6 +91,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #: парсера памяти разошлись бы на первой правке. Своё здесь только то, что
 #: относится к RL: границы шага, стоп-условия, разбивка времени по фазам.
 import run_smoke as S  # noqa: E402
+#: Критерий вырожденной награды (ADR-017) — **тот же прибор**, что стоит стражем в
+#: цепочке пилота: две реализации одного критерия разошлись бы на первой правке, и
+#: «вырождение» в разведке значило бы не то же, что в стадии.
+import rl_degeneracy as D  # noqa: E402
 
 EXIT_OK, EXIT_FAIL, EXIT_NOT_VERIFIED = 0, 1, 2
 
@@ -101,12 +111,14 @@ CTR_EXPERIMENTS = "/workspace/experiments"
 PIPELINE_CTR = f"{CTR_SHARED}/laguna_pipeline_v8.py"
 PIPELINE_CASE = CASE_ROOT / "laguna_pipeline_v8.py"
 
-#: Пул ревизии (ADR-007): на сетевом диске под версионным именем, в кейсе — симлинк
-#: (AD-4/C-011). Это же имя читает контейнер внутри стадии.
-RL_DATA_STAND = f"{STAND_SHARED}/datasets/rl_tasks_revpool_v1.jsonl"
-RL_DATA_CTR = f"{CTR_SHARED}/datasets/rl_tasks_revpool_v1.jsonl"
-RL_DATA_CASE = CASE_ROOT / "datasets" / "rl_tasks_revpool_v1.jsonl"
-RL_POOL_SYMLINK = CASE_ROOT / "runs" / "rev-pool" / "rl_pool_filtered.jsonl"
+#: Набор курикулума стадии — **v2** (ADR-054 п.1): на сетевом диске под версионным
+#: именем, в кейсе — симлинк (AD-4/C-011). Это же имя читает контейнер внутри
+#: стадии. `v1` набором стадии не выбирается (у него нет карточки AD-2 — прогон на
+#: нём недоказуем, ADR-054 п.3); он остаётся историческим носителем.
+RL_DATA_STAND = f"{STAND_SHARED}/datasets/rl_tasks_revpool_v2.jsonl"
+RL_DATA_CTR = f"{CTR_SHARED}/datasets/rl_tasks_revpool_v2.jsonl"
+RL_DATA_CASE = CASE_ROOT / "datasets" / "rl_tasks_revpool_v2.jsonl"
+RL_POOL_SYMLINK = CASE_ROOT / "runs" / "rev-pool-v2" / "rl_pool_filtered.jsonl"
 
 #: Стартовый чекпойнт разведки: готовый SFT исторического прогона (ADR-010).
 #: CPT/SFT для разведки **не** запускаются — это и делает её дешёвой.
@@ -267,7 +279,7 @@ def check_pool_integrity(host: str) -> dict:
 
 def check_disk(host: str, min_free_gb: float = 20.0) -> dict:
     """Диск стенда: RL-чекпоинты ~3 ГБ × 2 + hf_rollout ~1 ГБ на прогон."""
-    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user/ | tail -1")
+    rc, out, _ = S.ssh(host, "df -BG --output=avail /home/user | tail -1")
     avail = None
     if rc == 0:
         m = re.search(r"(\d+)", out)
@@ -328,6 +340,11 @@ class Guard:
         self._stopped = False
         self._mem_min: float | None = None
         self._thread: threading.Thread | None = None
+        #: Наблюдения награды шага — вход критерия ADR-017. Копятся из тех же строк
+        #: лога, что питают страж энтропии: отдельный «мониторинговый» поток метрик
+        #: разошёлся бы с доказательной базой.
+        self.reward_points: list[dict] = []
+        self.degeneracy: dict | None = None
 
     # ── сигналы из лога ───────────────────────────────────────────────────────
     def note_entropy(self, step: int, value: float, line: str) -> None:
@@ -341,6 +358,31 @@ class Guard:
                           f"mode collapse")
         if reason:
             self.trip(reason)
+
+    def note_step(self, m: re.Match) -> None:
+        """Наблюдение шага → критерий вырожденной награды ADR-017.
+
+        Что здесь **не** делается по умолчанию: стоп. Предмет разведки — цена шага
+        (ADR-010 п.3: «сходимость не критерий»), и вырожденная награда замер не
+        отменяет — ADR-010 прямо требует опубликовать её, а не спрятать. Поэтому
+        наблюдение записывается, вердикт идёт в evidence, а остановка включается
+        флагом ``--degenerate-stop`` — тем самым, которым ADR-017 п.2 закрывает
+        стадию (в цепочке пилота стоп ставит ``pilot_chain.sh``).
+        """
+        obs = {"step": int(m.group(1)), "reward_mean": float(m.group(3)),
+               "pass_rate": int(m.group(4)) / 100.0,
+               "clip_frac": float(m.group(9)),
+               "adv_nonzero": int(m.group(11)) / 100.0}
+        with self._lock:
+            self.reward_points.append(obs)
+            report = D.evaluate(self.reward_points,
+                                window_steps=self.args.degeneracy_window)
+            self.degeneracy = report
+        if getattr(self.args, "degenerate_stop", False) \
+                and report["verdict"] == "degenerate_reward":
+            self.trip(f"вырожденная награда RL (ADR-017): классы "
+                      f"{', '.join(report['stop_classes'])} — стоп, результат "
+                      f"помечается degenerate_reward")
 
     def note_line(self, line: str) -> None:
         """NVRM/Xid в логе стадии. ``trip`` зовётся **вне** блокировки: внутри неё
@@ -432,6 +474,9 @@ class Guard:
             "mem_floor_gb": self.args.mem_floor_gb,
             "min_free_gb_seen": self._mem_min,
             "max_wall_hours": self.args.max_wall_hours,
+            "degenerate_reward": self.degeneracy,
+            "reward_observations": len(self.reward_points),
+            "degenerate_stop_enabled": bool(getattr(self.args, "degenerate_stop", False)),
             "note": ("наблюдения энтропии — из строк пайплайна (шаги, кратные 10): "
                      "своей шкалы раннер не вводит; страж по памяти — предохранитель "
                      "хоста, в ADR-010 его нет (платформенные контейнеры дороже "
@@ -552,8 +597,8 @@ def render_plan(args) -> str:
         f"стенд:            {args.host} (ssh), образ: {args.image}",
         f"каталог прогона:  стенд {STAND_EXPERIMENTS}/{run_id}  ←  кейс {args.runs_dir}/rl-probe-{args.ts}",
         f"стартовый чекпойнт: {args.sft_ckpt} (только чтение; CPT/SFT не запускаются)",
-        f"пул:              {RL_DATA_CTR} (27 992 задачи, ADR-007; симлинк кейса "
-        f"runs/rev-pool/rl_pool_filtered.jsonl)",
+        f"пул:              {RL_DATA_CTR} (9 162 задачи, ADR-054 п.1; симлинк кейса "
+        f"runs/rev-pool-v2/rl_pool_filtered.jsonl)",
         f"модель/сид:       {args.model}, seed={args.seed}, шагов RL: {args.rl_steps}",
         f"RL-конфиг:        kl_coef={hp.get('kl_coef')} (код), "
         f"resync_every={args.resync_every} (env; дефолт в коде {hp.get('resync_every_runtime')}, "
@@ -570,6 +615,10 @@ def render_plan(args) -> str:
         f"стоп-условия:     entropy < {args.entropy_floor} ×{args.entropy_low_streak} → стоп; "
         f"NVRM/Xid ≥ {args.nvrm_limit} → стоп и пауза; память хоста < {args.mem_floor_gb} ГБ → стоп; "
         f"стена > {args.max_wall_hours} ч → стоп",
+        f"награда:          критерий ADR-017 (окно {args.degeneracy_window} шагов, прибор "
+        f"tools/rl_degeneracy.py) — стоп "
+        f"{'ВКЛЮЧЁН' if args.degenerate_stop else 'НЕ включается: ADR-010 п.3 — сходимость не критерий разведки'}; "
+        f"вердикт и классы публикуются в evidence в любом случае",
         "замеры:           время шага RL, доля генерации роллаутов против обучения, "
         "пик unified-памяти, tok/s генерации, число ресников, энтропия политики, "
         "pass_rate/reward_mean (фон), деградировавшие траектории",
@@ -644,6 +693,9 @@ def run_stage(host: str, args, local_dir: Path) -> dict:
             step = RL_STEP_RE.search(line)
             if step:
                 guard.note_entropy(int(step.group(1)), float(step.group(8)), line)
+                #: Тот же разбор строки питает критерий награды (ADR-017): одной
+                #: строкой метрик закрываются оба стража, и второй парсер не нужен.
+                guard.note_step(step)
             elif NVRM_RE.search(line):
                 guard.note_line(line)
             if PROGRESS_RE.search(line):
@@ -1197,6 +1249,17 @@ def build_evidence(run_dir: Path, args, pre: dict, stage: dict, summary: dict,
                      "hot-sync считан обвязкой и не напечатан пайплайном"),
         },
         "entropy": ent,
+        #: Критерий вырожденной награды (ADR-017) — рядом с энтропией и **в том же
+        #: evidence**: разведка обязана показать мёртвую награду, а не только цену
+        #: шага (ADR-010 п.3). Вердикт приходит из общего прибора
+        #: ``tools/rl_degeneracy.py`` — того же, что стоит стражем в цепочке.
+        "degeneracy_reward": (guard.get("degenerate_reward") or {
+            "criterion": "ADR-017 (вырожденная награда RL)",
+            "verdict": "not_evaluated",
+            "why": ("ни одной строки метрик шага не разобрано: критерий ADR-017 "
+                    "считается по наблюдениям шагов окна (первые 50), а стадия до "
+                    "них не дошла"),
+        }),
         "background": {
             "note": "фон, а не результат (ADR-010 п.3): цель разведки — цена шага",
             "reward_mean": rollouts.get("reward_mean"),
@@ -1912,6 +1975,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="предохранитель: стоп, если свободной памяти меньше (защита платформы)")
     ap.add_argument("--entropy-floor", type=float, default=ENTROPY_FLOOR,
                     help="порог энтропии политики для стопа (ADR-010 п.5)")
+    ap.add_argument("--degeneracy-window", type=int, default=D.WINDOW_STEPS,
+                    help=f"окно критерия вырожденной награды в шагах (ADR-017 п.1: "
+                         f"{D.WINDOW_STEPS}; число берётся у прибора, а не подбирается)")
+    ap.add_argument("--degenerate-stop", action="store_true",
+                    help="остановить разведку по критерию ADR-017 (по умолчанию "
+                         "вырожденная награда только публикуется: ADR-010 п.3 — "
+                         "сходимость не критерий разведки)")
     ap.add_argument("--entropy-low-streak", type=int, default=ENTROPY_LOW_STREAK,
                     help="сколько наблюдений ниже порога подряд = стоп")
     ap.add_argument("--nvrm-limit", type=int, default=NVRM_LIMIT,
@@ -2067,6 +2137,11 @@ def main(argv: list[str] | None = None) -> int:
     eg = ev["measurements"]["entropy"]["from_log"]
     print(f"  энтропия политики: {eg.get('mean')} (мин {eg.get('min')}, макс {eg.get('max')}, "
           f"точек {eg.get('points_count', 0)}, коридор 1.0–2.0: {eg.get('in_corridor')})")
+    dn = ev["measurements"]["degeneracy_reward"]
+    print(f"  награда (ADR-017): вердикт {dn.get('verdict')}"
+          + (f", классы стопа {dn.get('stop_classes')}, предупреждения "
+             f"{dn.get('warning_classes')}" if dn.get("verdict") not in (None, "not_evaluated")
+             else f" — {dn.get('why', '')[:80]}"))
     mem = summary["memory"]
     print(f"  память: пик занятой {mem.get('peak_used_gb')} ГБ, минимум свободной "
           f"{mem.get('min_available_gb')} ГБ, torch пик {mem.get('torch_peak_allocated_gb')} ГиБ")

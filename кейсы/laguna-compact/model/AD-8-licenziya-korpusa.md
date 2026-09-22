@@ -3,7 +3,7 @@ id: AD-8
 type: ad
 title: "Лицензионный статус корпуса — граница «внутреннее vs публикация»"
 status: "PROPOSED"
-affects: [C-016]
+affects: []
 verified_by: [C-016]
 source: "docs/adr/ADR-005-licenzionnyy-status-domennoy-chasti-korpusa-vnutrennee-ispolzovanie-protiv-publikacii.md"
 ---

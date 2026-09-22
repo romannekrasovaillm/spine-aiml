@@ -1,5 +1,4 @@
 {
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ml-grafting",
   "version": "1.0.0",
   "description": "Доменный плагин AI/ML-исследователя: LLM-графтинг (трансплантация компонентов между моделями) — прививка/замена слоёв (full attention → GQA/MLA/linear), перенос голов и эмбеддингов, сшивание чекпоинтов разных вендоров, learning-free трансплантация токенизаторов (OMP / token-surgeon), merge/TIES/task arithmetic, LoRA на чужой базе, cross-lingual и domain grafting. Триггеры: «графтинг», «трансплантация», «model surgery», «замени слой», «пришей энкодер», «merge моделей», «TIES», «franken-модель». Содержит разбор рисков: расхождение активаций, ABI/раскладка тензоров, RoPE, деградация базы.",

@@ -5,7 +5,8 @@ description: Справка по Spine AI/ML Edition (бинарь arch-ml) — 
 
 # Spine AI/ML Edition — справка по харнессу
 
-Форк Spine Banking Edition под домен AI/ML-исследователя. Бинарь `arch-ml`,
+Форк банковской линии Spine под домен AI/ML-исследователя (происхождение —
+`NOTICE.md`). Бинарь `arch-ml`,
 crate `arch-harness` (не переименован), изолированные пути `~/.arch-ml` /
 `~/.config/arch-ml`.
 

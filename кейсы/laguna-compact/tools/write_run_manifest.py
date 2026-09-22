@@ -6,7 +6,26 @@
 * ``dataset_sha256`` — sha256 файла датасета (симлинки разыменовываются);
 * ``pipeline_version`` / ``pipeline_sha256`` — версия пайплайна = имя файла +
   хеш содержимого (AD-2: «``laguna_pipeline_vN.py`` + хеш файла»);
-* ``arch_base_version`` — коммит кейса (архитектурная база прогона).
+* ``run_started_at_commit`` — коммит, из которого **запущен** прогон;
+* ``manifest_written_at_commit`` — коммит, в котором **записан** манифест.
+
+Два поля вместо ``arch_base_version`` — ADR-028 п.2: одно имя несло два разных
+смысла («откуда запущен прогон» и «где записан манифест»), поэтому поле
+исключено из новых манифестов. ``run_started_at_commit`` **не угадывается**:
+если коммит запуска неизвестен, пишется ``null`` (ADR-028 п.2: не выдумывать);
+``manifest_written_at_commit`` по умолчанию — HEAD кейса в момент записи.
+Старые манифесты с ``arch_base_version`` остаются как есть (ADR-028 п.2).
+
+``instruments`` — sha256 приборов, которыми снят прогон (``--instrument``,
+повторяемый; словарь путь → {path, sha256}). Причина поля — разбор S3ao:
+прогон домен-набора снят редакцией прибора P-4, но **не записал**, какой именно, и
+провенанс числа остался на коммите, а не на хеше; отсюда класс «цитата против
+дерева» (назван в ``docs/specs/INSTRUMENT-VERSIONS.md`` §2.1.4). Словарь, а не
+одно поле ``instrument_sha256``: один прогон снимается несколькими приборами
+(в S3ao участвовали ``calib_ppl_probe.py``, ``ppl_probe.py`` и пайплайн), и одно
+поле молча оставило бы остальные за бортом. Прибор **не угадывается**: не задан
+``--instrument`` — поля нет, а в stderr печатается предупреждение, чтобы дыра
+была видна, а не молчала.
 
 ``image`` не угадывается: берётся из ``--image`` или ``$LAGUNA_IMAGE``, иначе
 отказ — выдуманная версия образа делает манифест вредным, а не полезным.
@@ -33,6 +52,7 @@
         --seed 42 --stages cpt=done,sft=done,eval=pending \\
         --image "$LAGUNA_IMAGE" \\
         --run-version "tools/run_smoke.py@$(sha256sum tools/run_smoke.py | cut -c1-12)" \\
+        --instrument tools/ppl_probe.py --instrument tools/calib_ppl_probe.py \\
         --dataset-extra sft=datasets/tok/sft_train_v12_8192_qwen25.npz
 """
 
@@ -54,7 +74,10 @@ CHUNK = 1 << 20
 
 #: Известные стадии контура — для предупреждения об опечатке.
 KNOWN_STAGES = ("cpt", "sft", "rl", "eval", "probe", "docs")
-KNOWN_STATUS = ("done", "pending", "failed", "skipped", "partial")
+#: ``running`` — состояние стадии в манифесте, снятом **в момент старта** прогона
+#: (S3o: каталог прогона существует с первой минуты, и AD-2 требует, чтобы он нёс
+#: манифест; финальный манифест переписывается цепочкой по завершении стадии).
+KNOWN_STATUS = ("done", "pending", "running", "failed", "skipped", "partial")
 
 
 class NotVerified(Exception):
@@ -110,6 +133,18 @@ def parse_extra(spec: str) -> tuple[str, str]:
     return name, path
 
 
+def parse_instrument(spec: str) -> str:
+    """Путь прибора из ``--instrument`` (имя прибора — сам путь, отдельного имени нет).
+
+    Отличия от ``--dataset-extra``: у датасета имя смысловое (``sft``, ``eval``),
+    у прибора идентичность и есть путь — поэтому формат ``PATH``, а не ``NAME=PATH``.
+    """
+    path = spec.strip()
+    if not path:
+        raise NotVerified("--instrument: пустой путь прибора")
+    return path
+
+
 def parse_hyperparams(spec: str) -> tuple[str, object]:
     """``NAME=VALUE`` → (имя, значение) для фактического гиперпараметра прогона.
 
@@ -157,6 +192,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dataset-extra", action="append", default=[], metavar="NAME=PATH",
                     help="дополнительно пиннуемый датасет прогона (повторяемый); "
                          "C-012 пиннит основной --dataset, остальные — тем же хешем")
+    ap.add_argument("--instrument", action="append", default=[], metavar="PATH",
+                    help="прибор прогона (повторяемый): в манифест пишется его sha256 — "
+                         "иначе провенанс числа держится на коммите (класс S3ao)")
     ap.add_argument("--hyperparams", action="append", default=[], metavar="NAME=VALUE",
                     help="фактический гиперпараметр прогона (повторяемый): AD-2 требует "
                          "гиперпараметры по факту, а не пересказ манифеста пайплайна")
@@ -168,6 +206,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="база относительных путей (по умолчанию корень кейса)")
     ap.add_argument("--complete", action="store_true",
                     help="все стадии пройдены (pipeline_complete=true)")
+    ap.add_argument("--manifest-written-at-commit", default=None,
+                    help="ADR-028 п.2: коммит, в котором ЗАПИСАН манифест "
+                         "(по умолчанию — HEAD кейса в момент записи)")
+    ap.add_argument("--run-started-at-commit", default=None,
+                    help="ADR-028 п.2: коммит, из которого ЗАПУЩЕН прогон; "
+                         "неизвестен — не выдумывать, пишется null")
+    ap.add_argument("--note", action="append", default=[], metavar="TEXT",
+                    help="примечание к манифесту (повторяемое): факты прогона, "
+                         "которые не выражаются полями, — напр. почему стадия "
+                         "помечена failed (ADR-028 п.7) или как пиннится датасет")
     ap.add_argument("--force", action="store_true", help="перезаписать существующий манифест")
     ap.add_argument("--json", action="store_true", help="машинный отчёт в stdout")
     args = ap.parse_args(argv)
@@ -183,10 +231,14 @@ def main(argv: list[str] | None = None) -> int:
                               "не угадывается")
         stages = parse_stages(args.stages)
         extras = [parse_extra(spec) for spec in args.dataset_extra]
+        instruments = [parse_instrument(spec) for spec in args.instrument]
         hyperparams = dict(parse_hyperparams(spec) for spec in args.hyperparams)
         for name, path in extras:
             if not Path(path).is_file():
                 raise NotVerified(f"--dataset-extra {name}: файл не найден: {path}")
+        for path in instruments:
+            if not Path(path).is_file():
+                raise NotVerified(f"--instrument: файл прибора не найден: {path}")
     except NotVerified as e:
         print(f"NOT-VERIFIED: {e}", file=sys.stderr)
         return EXIT_NOT_VERIFIED
@@ -196,7 +248,6 @@ def main(argv: list[str] | None = None) -> int:
 
     ds_sha = sha256_file(dataset)
     pl_sha = sha256_file(pipeline)
-    arch = git_arch_version(case_root)
 
     manifest = {
         "dataset_path": rel(dataset, case_root),
@@ -209,7 +260,10 @@ def main(argv: list[str] | None = None) -> int:
         "seed": args.seed,
         "stages": stages,
         "pipeline_complete": bool(args.complete),
-        "arch_base_version": arch,
+        # ADR-028 п.2: два поля вместо двусмысленного arch_base_version.
+        "run_started_at_commit": args.run_started_at_commit,
+        "manifest_written_at_commit": (args.manifest_written_at_commit
+                                       or git_arch_version(case_root)),
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     if args.run_version:
@@ -217,10 +271,22 @@ def main(argv: list[str] | None = None) -> int:
     for name, path in extras:
         manifest.setdefault("datasets_extra", {})[name] = {
             "path": rel(Path(path), case_root), "sha256": sha256_file(Path(path))}
+    if instruments:
+        # Ключ словаря — путь прибора, как он назван в манифесте: у прибора нет
+        # смыслового имени (в отличие от датасета), а путь — он и есть идентичность.
+        # Порядок ключей — порядок флагов; повтор пути перезаписывает значение тем
+        # же хешем (идемпотентность AD-2 сохраняется).
+        manifest["instruments"] = {
+            rel(Path(path), case_root): {
+                "path": rel(Path(path), case_root), "sha256": sha256_file(Path(path))}
+            for path in instruments
+        }
     if hyperparams:
         manifest["hyperparameters"] = hyperparams
         if args.hyperparams_source:
             manifest["hyperparameters_source"] = args.hyperparams_source
+    if args.note:
+        manifest["notes"] = list(args.note)
 
     mf = run_dir / MANIFEST_NAME
     for st in stages:
@@ -230,6 +296,13 @@ def main(argv: list[str] | None = None) -> int:
         if st["status"] not in KNOWN_STATUS:
             print(f"ПРЕДУПРЕЖДЕНИЕ: статус '{st['status']}' вне известных "
                   f"({', '.join(KNOWN_STATUS)})", file=sys.stderr)
+
+    if not instruments:
+        # Поля нет намеренно (прибор не угадывается: у прогонов CPT/SFT его может
+        # не быть вовсе) — но и молчать нельзя: молчание и есть дефект S3ao.
+        print("ПРЕДУПРЕЖДЕНИЕ: --instrument не задан — манифест не назовёт редакцию "
+              "прибора, которым снят прогон (класс S3ao: провенанс числа останется "
+              "на коммите, а не на хеше)", file=sys.stderr)
 
     if mf.exists() and not args.force:
         try:
@@ -277,6 +350,10 @@ def main(argv: list[str] | None = None) -> int:
             print("  hyperparameters:   "
                   + ", ".join(f"{k}={v}" for k, v in hyperparams.items())
                   + (f"  ({args.hyperparams_source})" if args.hyperparams_source else ""))
+        if instruments:
+            print("  instruments:       "
+                  + ", ".join(f"{p}@{v['sha256'][:12]}"
+                              for p, v in manifest["instruments"].items()))
         print(f"  pipeline_complete: {manifest['pipeline_complete']}")
     return EXIT_OK
 

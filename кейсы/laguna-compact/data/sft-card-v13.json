@@ -1,0 +1,217 @@
+{
+  "card": "sft-dataset-v13-fixed",
+  "artifact": "обучающий набор SFT-стадии фазы 1 после механической нормализации трёх структурных дефектов формата (ADR-042); база — v12, не изменявшийся",
+  "date": "2026-09-19",
+  "constraint": "AD-2 (карточка набора) + AD-7 (состав данных — версионируемый конфиг) + ADR-003 п.2 (заморозка входа v12: новый набор — отдельным файлом)",
+  "decision": {
+    "adr": "ADR-042",
+    "what": "три класса структурных дефектов исправлены механически (R1–R7), нечинимое исключено с названной причиной; ответы не дорисовывались",
+    "why": "SFT учит тому формату, который в данных: 16.86 % обрывов рассуждения воспроизводились моделью (незакрытые блоки 0.34 → 0.57 от CPT к SFT)",
+    "what_is_NOT_changed": "дедупликация не делалась (ADR-033 п.1 в силе; решение о ней — отдельное, после стадии); язык рассуждений не трогали (ADR-037/ADR-040); <think> в лоссе не маскируется"
+  },
+  "path": {
+    "ssot": "/home/user/gb10-shared/datasets/sft_train_v13_fixed.jsonl",
+    "in_case": "симлинк не создан: datasets/ кейса — симлинк на gb10-shared/datasets (AD-4), файл виден как datasets/sft_train_v13_fixed.jsonl",
+    "source_frozen": {
+      "path": "datasets/sft_train_v12.jsonl",
+      "sha256_full": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "unchanged": true,
+      "how_proved": "sha256 до начала дельты и после нормализации — 39f616f1… совпадает с записанным в карточке v12; файл только читался (новый набор — отдельным файлом, AD-4/ADR-003)"
+    },
+    "tokens_cache": {
+      "path": "/home/user/gb10-shared/datasets/tok/sft_train_v13_fixed_8192_qwen25.npz",
+      "builder": "pretokenize_v9.py --tokenizer Qwen/Qwen2.5-0.5B --tag qwen25 --max_len 8192 --max_sft 50000 (тот же прибор, что собрал кэш v12)",
+      "shape": [
+        44105,
+        8192
+      ],
+      "sha256": "dc3d4838d15b83c3f1abefb549473e1efd1dc822000a675e34f548f759b94d75",
+      "note": "кэш v12 не перезаписан: имя новое (sft_train_v13_fixed_…npz)"
+    },
+    "normalizer": "tools/normalize_sft_dataset.py (правила R1–R7, журнал правок, --verify)",
+    "report": "runs/s3an-normalize-20260919/report.json",
+    "changes_log": "runs/s3an-normalize-20260919/changes.jsonl"
+  },
+  "size": {
+    "bytes": 473807562,
+    "examples": 44105,
+    "sha256_full": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+    "hash_note": "полный хеш — им доказывается тождество файла; снят с диска"
+  },
+  "normalization": {
+    "defects_before": {
+      "unclosed_think": {
+        "examples": 7580,
+        "share_pct": 16.86
+      },
+      "no_answer": {
+        "examples": 4794,
+        "share_pct": 10.67
+      },
+      "tool_call_in_think": {
+        "examples": 5053,
+        "share_pct": 11.24
+      }
+    },
+    "defects_after": {},
+    "changed_examples": 10821,
+    "byte_identical_records": 33284,
+    "byte_identical_note": "примеры без правок пишутся байт-в-байт как в v12: нормализация не имеет права менять то, что дефектом не является",
+    "excluded": {
+      "total": 844,
+      "share_pct": 1.88,
+      "by_reason": {
+        "unclosed_block_at_end": {
+          "examples": 480,
+          "meaning": "незакрытый блок в конце сообщения (рассуждение обрывается на середине, ответа нет)"
+        },
+        "call_inside_response": {
+          "examples": 352,
+          "meaning": "<tool_call> внутри <tool_response> — правка испортила бы ответ инструмента"
+        },
+        "quoted_tag_pair_in_reasoning": {
+          "examples": 12,
+          "meaning": "пара <tool_call>…</tool_call> с нагрузкой-не-JSON: тег процитирован внутри рассуждения либо вызов разорван — от настоящего вызова механикой не отличается"
+        }
+      }
+    },
+    "rules": {
+      "R1_drop_noncall_tool_call": 6399,
+      "R2_close_think_before_call": 4919,
+      "R3_drop_duplicate_think_open": 6265,
+      "R4_drop_stray_think_close": 240,
+      "R5_drop_duplicate_block_open": 0,
+      "R6_drop_stray_block_close": 0,
+      "R7_insert_missing_call_close": 14
+    },
+    "rules_meaning": {
+      "R1_drop_noncall_tool_call": "выброшен <tool_call> без нагрузки-вызова (пустой или не-JSON, не закрытый) — остаток шаблона",
+      "R2_close_think_before_call": "вставлен </think> в точке перехода рассуждения в вызов/ответ",
+      "R3_drop_duplicate_think_open": "выброшен повторный <think> при открытом рассуждении",
+      "R4_drop_stray_think_close": "выброшен </think> вне открытого рассуждения",
+      "R5_drop_duplicate_block_open": "выброшен повторный <tool_call>/<tool_response> при открытом блоке",
+      "R6_drop_stray_block_close": "выброшен </tool_call>/</tool_response> вне блока",
+      "R7_insert_missing_call_close": "вставлен </tool_call> в конце валидного JSON-вызова без закрывающего тега"
+    },
+    "reversibility": {
+      "checked_examples": 10821,
+      "failures": 0,
+      "method": "для каждого изменённого сообщения правки снимаются обратно и сверяются с исходным текстом побайтно",
+      "e2e_check": "снятие правок по журналу с нового набора вернуло исходный текст во всех 10 821 изменённом сообщении (расхождений 0); см. runs/s3an-normalize-20260919/reversibility_e2e.txt"
+    },
+    "empty_think_blocks_after": {
+      "examples": 4466,
+      "share_pct": 10.13,
+      "note": "цена правила R2: там, где рассуждения до вызова не было, блок закрыт пустым (ADR-042 п.2а — «закрыть в точке завершения», а не удалить)"
+    },
+    "residual_after_normalization": {
+      "tool_response_without_call": {
+        "examples": 433,
+        "meaning": "в сообщении ответ инструмента без вызова перед ним: вызов был остатком шаблона и снят правилом R1 (класс ADR-042 «структура вызова в целом» не проверяется)"
+      }
+    },
+    "limits": [
+      "журнал несёт out_index (строку нового набора): с ним нормализация снимается парой «новый набор + журнал», без исходного файла",
+      "цена правила R2: где рассуждения до вызова не было вовсе, блок закрыт пустым — обучение получает «пустое рассуждение» как валидную форму",
+      "остаётся класс, который ADR-042 не проверяет: ответ инструмента без вызова перед ним (433 примера, 0.98 %) — вызов был остатком шаблона и снят правилом R1",
+      "исключено 844 примера (1.88 %): 480 — рассуждение обрывается на середине и ответа нет; 352 — <tool_response> не закрыт, и внутри него начинается вызов (цитата тега в выводе инструмента механикой не отличается от нарушения структуры); 12 — пара <tool_call>…</tool_call> с нагрузкой-не-JSON",
+      "«дорисовать хвост из доступных полей записи» (ADR-042 п.2а) невозможно: поля записи — slug/type/task/split/level/formality и счётчик think_words, ответа в них нет; проверено по всем 1221 записям с meta (в исключённых meta есть лишь у 2)",
+      "нормализация — не гарантия улучшения, а гипотеза: результат проверяется прогоном"
+    ]
+  },
+  "format_shares": {
+    "measured_here": {
+      "examples": 44105,
+      "with_think": 0.9674,
+      "with_tool_call": 0.9372,
+      "method": "подстрочный поиск тега по содержимому assistant-сообщений"
+    },
+    "v12_for_comparison": {
+      "tool_call_anywhere": 0.9457,
+      "method": "подстрочный поиск '<tool_call>' по строкам файла (полный проход, 2026-09-17)"
+    }
+  },
+  "composition": {
+    "by_source": {
+      "teacher_oxalpha_reasoning": 22200,
+      "teacher_oxalpha_multiturn": 7292,
+      "oxalpha_reasoning": 3362,
+      "v4_qwen25-15b_s1337": 2604,
+      "teacher_native_xhigh": 1738,
+      "oxalpha_multiturn": 1435,
+      "source_absent_meta_field": 1219,
+      "v10_base": 1219,
+      "v4_qwen25-15b_s2024": 1116,
+      "teacher_multiturn_xhigh": 846,
+      "v4_qwen25-15b_s42": 654,
+      "v4_qwen25-15b_s777": 336,
+      "v4_qwen25-15b_s31415": 84
+    },
+    "note": "посчитано по полю source нового набора; нормализация источник не меняет, поэтому состав близок к v12 с точностью до исключённых"
+  },
+  "duplicates": {
+    "examples": 44105,
+    "unique_normalized": 18713,
+    "duplicates_share_pct": 57.57,
+    "method": "messages → [[role, content]] → json(sort_keys) → sha256; мощность множества хешей",
+    "recomputed": true,
+    "v12_for_comparison": {
+      "duplicates_share_pct": 57.71,
+      "unique_normalized": 19011
+    },
+    "effective_passes": 7.071,
+    "effective_passes_arithmetic": "3 эпохи × 44105 примеров / 18713 уникальных",
+    "why_it_matters": "ADR-033 п.1: дубликаты сохранены ради сопоставимости; нормализация могла сдвинуть долю (правки выравнивают текст), поэтому она пересчитана, а не унаследована"
+  },
+  "overlaps": {
+    "adr": "ADR-025 (чистота измерительных наборов)",
+    "measurement_sets": {
+      "tool": "tools/check_measurement_overlap.py",
+      "sets": {
+        "K1": "datasets/general_eval_v3.txt",
+        "K2": "datasets/general_eval_k2.txt",
+        "DOMAIN": "datasets/domain_eval_v2.txt"
+      },
+      "documents_definition": "как у прибора: split('\\n---\\n'), len>50 (ppl_probe.py:231) — 200 документов в каждом наборе",
+      "gate_result": "0 вхождений документа замера в обучающий пример — все три набора",
+      "info_12grams": {
+        "K1": "0 из 200",
+        "K2": "0 из 200",
+        "DOMAIN": "119 из 200 (59.5 %) — не гейт"
+      },
+      "info_note": "домен-набор собран из той же библиотеки концептов, определения которой цитируются в <tool_response> обучения: общие 12-граммы есть и в v12 (контроль — 119 из 200). Это свойство пары «набор ↔ данные», а не следствие нормализации; для чтения доменного PPL оно значит, что падение доменного отношения нельзя целиком относить к обобщению",
+      "control_v12": {
+        "path": "runs/s3an-normalize-20260919/overlap_v12_control.txt",
+        "gate": "0 вхождений",
+        "info_domain": "119 из 200"
+      }
+    },
+    "eval_tasks": {
+      "tool": "tools/check_eval_leakage.py",
+      "command": "python3 tools/check_eval_leakage.py --eval datasets/eval_ood_clean.jsonl --train datasets/sft_train_v13_fixed.jsonl",
+      "result": "0 нарушений: гейт A 0, гейт B 0, INFO near-duplicate 0 из 192"
+    },
+    "rl_pool": {
+      "tool": "tools/check_sft_rl_overlap.py",
+      "result": "0 совпавших промптов из 44105 (RL-задач затронуто: 0)"
+    }
+  },
+  "consumers": {
+    "stage": "SFT (S3an), прогон sft-20260919-0810, вход — CPT-чекпойнт full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+    "config": "66157 шагов = 3 × 44105 / batch 2; max_len 8192; сид 42; маска лосса prefix_only (ADR-037: think не маскируется)",
+    "manifest": "/home/user/gb10-shared/sft-20260919-0810/run_manifest.json (пишется цепочкой по завершении стадии; факты старта — runs/s3an-normalize-20260919/relaunch/launch_facts.json)"
+  },
+  "license": {
+    "declared": "наследуется от источников (учителя контура: teacher_*, self-distill v4_*)",
+    "license_status": "internal_only",
+    "license_unresolved": true,
+    "license_note": "отдельного решения о лицензии SFT-набора нет (дыра G12 плана). Внутреннее использование разрешено; публикация производных — по ADR-005/AD-8 (решение владельца + новый ADR)",
+    "adr": "ADR-005, AD-8",
+    "note": "наследуется от v12: нормализация не добавляет источников — правит структуру уже имеющегося материала"
+  },
+  "open_questions": [
+    "Домен-набор (119 из 200 документов) делит 12-граммы с обучением — пре-существующее свойство пары, но оно ограничивает чтение доменного PPL как меры обобщения: нужен ли домен-набор из другого источника — решение архитектора",
+    "Остаток «ответ инструмента без вызова» (433 примера) не входит в проверки ADR-042 и механикой не чинится: вопрос, лечится ли он следующим набором",
+    "Пустое рассуждение (4466 примеров, 10.13 %) — следствие буквального правила «закрыть блок в точке завершения»; если оно нежелательно, правило меняется, и набор пересобирается (правки обратимы, журнал есть)"
+  ]
+}

@@ -1,0 +1,4702 @@
+{
+  "schema": "rl-env-probe-gb10/1",
+  "generated_at": "2026-09-20T16:09:18.954864+00:00",
+  "tool": "tools/rl_env_probe_gb10.py",
+  "purpose": "проба предусловий RL на стенде (ADR-049 п.10): механизм изоляции, детерминизм, цена шага, G2/G3",
+  "host": {
+    "platform": "Linux-6.17.0-1029-nvidia-aarch64-with-glibc2.39",
+    "kernel": "6.17.0-1029-nvidia",
+    "machine": "aarch64",
+    "stand": "gb10-fast (контейнер стадии; GPU пробой не задействован)",
+    "cpu_count": 20,
+    "run_dir": "/home/user/rlprobe-runs/20260920-130918",
+    "docker": "29.2.1",
+    "image": "alpine:3.20",
+    "image_digest": "alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc"
+  },
+  "status": "ok",
+  "status_note": "",
+  "limits": [
+    "пробы no-action/empty-action/forge/cheat исполняет прибор, а не модель: проверяется контур награды, а не политика",
+    "лимит шагов реализован прибором (аналог шлюза инструментов харнесса) — в task.json скелета поля шагов нет",
+    "цена шага RL — пересчёт на измеренных слагаемых: рост длины генерации взят из аудита как допущение",
+    "перекрытие шагов среды с генерацией не измерялось: среда считается аддитивной",
+    "проба не проверяет способность модели решать задачи (полоса p* по ADR-049 п.12 — на реальных rollout)"
+  ],
+  "set": {
+    "dir": "/home/user/rlprobe-stage/data/grounded-skeleton",
+    "n_files": 34,
+    "sha256_full": "cae1309f501d7c2d9df9daa2e540492793ad2c6e318bca979b2b22777de329e9",
+    "card_sha256_full": "e43c67394910c5f89910c8098db96bc007fe770f7535617a2b58af63e3e04e23",
+    "card_matches": false,
+    "drift": {
+      "card_sha256_full": "e43c67394910c5f89910c8098db96bc007fe770f7535617a2b58af63e3e04e23",
+      "actual_sha256_full": "cae1309f501d7c2d9df9daa2e540492793ad2c6e318bca979b2b22777de329e9",
+      "matches": false,
+      "files_in_card_missing_on_disk": [
+        "tasks/gs-fs-01/__pycache__/verify.cpython-311.pyc",
+        "tasks/gs-fs-02/__pycache__/verify.cpython-311.pyc",
+        "tasks/gs-http-01/__pycache__/verify.cpython-311.pyc",
+        "tasks/gs-shell-01/__pycache__/verify.cpython-311.pyc",
+        "tasks/gs-shell-02/__pycache__/verify.cpython-311.pyc"
+      ],
+      "files_on_disk_not_in_card": [],
+      "files_with_changed_hash": [
+        "README.md"
+      ],
+      "affects_task_semantics": false
+    },
+    "source": "ветвь arch/laguna-control-arms, data/grounded-skeleton (монтируется как есть)",
+    "source_revision": "arch/laguna-control-arms@1445892 (worktree dirty: README.md)",
+    "local_runner": "tools/grounded_runner.py (прогон на 4080 — на стенд не переносится, ADR-049 п.10)",
+    "n_tasks": 5,
+    "tools": [
+      "filesystem",
+      "http_mock",
+      "shell"
+    ],
+    "task_fields": {
+      "gs-fs-01": [
+        "empty_action_probe",
+        "goal_action",
+        "id",
+        "initial_state",
+        "leak_check",
+        "network",
+        "no_action_probe",
+        "prompt",
+        "requires",
+        "schema",
+        "seed_dir",
+        "solution",
+        "success_criterion",
+        "timeout_s",
+        "tool",
+        "verifier",
+        "verifier_reads",
+        "workdir"
+      ],
+      "gs-fs-02": [
+        "empty_action_probe",
+        "goal_action",
+        "id",
+        "initial_state",
+        "leak_check",
+        "network",
+        "no_action_probe",
+        "prompt",
+        "requires",
+        "schema",
+        "seed_dir",
+        "solution",
+        "success_criterion",
+        "timeout_s",
+        "tool",
+        "verifier",
+        "verifier_reads",
+        "workdir"
+      ],
+      "gs-http-01": [
+        "empty_action_probe",
+        "goal_action",
+        "id",
+        "initial_state",
+        "leak_check",
+        "network",
+        "no_action_probe",
+        "prompt",
+        "requires",
+        "schema",
+        "seed_dir",
+        "solution",
+        "success_criterion",
+        "timeout_s",
+        "tool",
+        "verifier",
+        "verifier_reads",
+        "workdir"
+      ],
+      "gs-shell-01": [
+        "empty_action_probe",
+        "goal_action",
+        "id",
+        "initial_state",
+        "leak_check",
+        "network",
+        "no_action_probe",
+        "prompt",
+        "requires",
+        "schema",
+        "seed_dir",
+        "solution",
+        "success_criterion",
+        "timeout_s",
+        "tool",
+        "verifier",
+        "verifier_reads",
+        "workdir"
+      ],
+      "gs-shell-02": [
+        "empty_action_probe",
+        "goal_action",
+        "holdout_dir",
+        "id",
+        "initial_state",
+        "leak_check",
+        "network",
+        "no_action_probe",
+        "prompt",
+        "requires",
+        "schema",
+        "seed_dir",
+        "solution",
+        "success_criterion",
+        "timeout_s",
+        "tool",
+        "verifier",
+        "verifier_reads",
+        "workdir"
+      ]
+    },
+    "max_steps_declared_in_task_json": {
+      "gs-fs-01": false,
+      "gs-fs-02": false,
+      "gs-http-01": false,
+      "gs-shell-01": false,
+      "gs-shell-02": false
+    },
+    "timeout_declared_s": {
+      "gs-fs-01": 60,
+      "gs-fs-02": 60,
+      "gs-http-01": 60,
+      "gs-shell-01": 60,
+      "gs-shell-02": 90
+    }
+  },
+  "network_profiles": {
+    "probed": [
+      "external http://1.1.1.1/",
+      "dns example.com",
+      "host services on gateway",
+      "interfaces"
+    ],
+    "bridge": {
+      "docker_network": "bridge",
+      "gateway": "172.17.0.1",
+      "external_unreachable": false,
+      "dns_unresolvable": true,
+      "interfaces": [
+        "lo",
+        "eth0"
+      ],
+      "host_service_ports": {
+        "22": "CLOSED",
+        "80": "CLOSED",
+        "443": "CLOSED",
+        "3080": "CLOSED",
+        "8080": "CLOSED"
+      },
+      "network_closed": false
+    },
+    "internal": {
+      "docker_network": "rlprobe-cmp-20260920-130918",
+      "gateway": "172.20.0.1",
+      "external_unreachable": true,
+      "dns_unresolvable": true,
+      "interfaces": [
+        "lo",
+        "eth0"
+      ],
+      "host_service_ports": {
+        "22": "CLOSED",
+        "80": "CLOSED",
+        "443": "CLOSED",
+        "3080": "CLOSED",
+        "8080": "CLOSED"
+      },
+      "network_closed": true
+    },
+    "reading": "дефолтная bridge-сеть НЕ закрыта: egress в интернет открыт (external_unreachable=False) — для задачи с моком это лишний канал наблюдения и действий; профиль `--internal` закрывает egress (external_unreachable=True, dns_unresolvable=True) и оставляет доступным мок на шлюзе своей сети"
+  },
+  "container_limits": {
+    "pids_limit_declared": 32,
+    "pids_limit_observed": "procs=31\nforkerr=sh: can't fork: Resource temporarily unavailable",
+    "pids_processes_at_limit": 31,
+    "pids_fork_errors": true,
+    "pids_limit_enforced": true,
+    "memory_limit_declared_bytes": 268435456,
+    "memory_limit_observed": "Killed\nawk_rc=137",
+    "memory_awk_rc": 137,
+    "memory_limit_enforced": true
+  },
+  "container_lifecycle": {
+    "t1": {
+      "start_s": 0.1512,
+      "stop_s": 1.0964
+    },
+    "t0": {
+      "start_s": 0.1515,
+      "stop_s": 0.0803
+    },
+    "reading": "снятие батч-контейнера почти целиком состоит из grace-периода `docker stop`: -t 1 стоит 1.0964 с, -t 0 — 0.0803 с; цена ложится на каждый батч, то есть на шаг RL целиком"
+  },
+  "step_limit": {
+    "task": "gs-fs-01",
+    "budget_probe": {
+      "0": {
+        "steps_used": 0,
+        "steps_refused": 1,
+        "action_refused_by_step_budget": true,
+        "seed_matches_pristine": true,
+        "state_changed": false,
+        "score": 0,
+        "reason": "app/config/service.json отсутствует — состояние не изменилось"
+      },
+      "1": {
+        "steps_used": 1,
+        "steps_refused": 0,
+        "action_refused_by_step_budget": false,
+        "seed_matches_pristine": true,
+        "state_changed": true,
+        "score": 1,
+        "reason": "service.json собран верно из трёх источников"
+      },
+      "2": {
+        "steps_used": 1,
+        "steps_refused": 0,
+        "action_refused_by_step_budget": false,
+        "seed_matches_pristine": true,
+        "state_changed": true,
+        "score": 1,
+        "reason": "service.json собран верно из трёх источников"
+      }
+    },
+    "binds_on_state": true,
+    "reading": "бюджет 0: эталонное действие не исполнено (состояние не изменилось, награда 0); бюджет 1: исполнено, награда 1 — лимит шагов управляет наградой через состояние"
+  },
+  "timeout": {
+    "task": "gs-fs-01",
+    "timeout_s": 3,
+    "rollout": {
+      "action_s": 3.0055,
+      "action_timed_out": true,
+      "steps_used": 1,
+      "state_digest": "9489ee96bd64b8c52366450b05020a717ea56ec4a862e679674852565ea1ce3d",
+      "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+      "score": 0,
+      "reason": "app/config/service.json отсутствует — состояние не изменилось"
+    },
+    "timeout_applied": true,
+    "state_unchanged": false,
+    "partial_state_left_by_killed_step": true,
+    "sleep_processes_after_timeout": 1,
+    "process_survived_timeout": true,
+    "container_usable_after_timeout": true,
+    "reading": "таймаут применяется (шаг прерван, награда читается из состояния); состояние НЕ вернулось к исходному: прерванный шаг оставил частичный след; процесс внутри контейнера переживает клиентский таймаут — среда обязана добивать его сама (kill по pid внутри контейнера), иначе шаги копятся"
+  },
+  "batches": [
+    {
+      "profile": "none",
+      "container": "rlprobe-20260920-130918-pnone1",
+      "pass": 1,
+      "reps": 2,
+      "container_start_s": 0.1769,
+      "isolation_probes": {
+        "uid": "1000",
+        "nonroot": true,
+        "rootfs_readonly": true,
+        "bind_mount_writable": true,
+        "cap_eff": "0000000000000000",
+        "cap_eff_zero": true,
+        "docker_socket_absent": true,
+        "memory_max_bytes": "268435456",
+        "pids_max": "256",
+        "tmpfs_probe": {
+          "wrote_32m_into_16m_tmpfs": false,
+          "limit_enforced": true,
+          "observed": "dd: error writing '/tmp/fill': No space left on device\n17+0 records in\n16+0 records out\n16777216 bytes (16.0MB) copied, 0.005954 seconds, 2.6GB/s"
+        },
+        "host_paths_probed": [
+          "/home/user",
+          "/home/user/rlprobe-stage/data/grounded-skeleton"
+        ],
+        "host_paths_hidden": true,
+        "verifier_files_invisible": true,
+        "holdout_invisible": true,
+        "profile": "none",
+        "default_route": "",
+        "interfaces": [
+          "lo"
+        ],
+        "external_unreachable": true,
+        "dns_unresolvable": true,
+        "network_closed": true
+      },
+      "isolation_ok": true,
+      "isolation_failed_probes": [],
+      "network": {
+        "profile": "none",
+        "docker_network": "",
+        "mock_url": ""
+      },
+      "mock_seed": null,
+      "rollouts_s": 10.8164,
+      "exec_cost": {
+        "n": 20,
+        "exec_overhead_s": 0.0446,
+        "exec_overhead_min_s": 0.0352,
+        "exec_overhead_max_s": 0.0536,
+        "samples": [
+          0.0516,
+          0.0352,
+          0.0447,
+          0.0536,
+          0.053,
+          0.0373,
+          0.0462,
+          0.0411,
+          0.0393,
+          0.0466,
+          0.0414,
+          0.0352,
+          0.0422,
+          0.0482,
+          0.0452,
+          0.0494,
+          0.0444,
+          0.0375,
+          0.0512,
+          0.0493
+        ],
+        "exec_parallel8_wall_s": 0.0451,
+        "exec_parallel8_per_step_s": 0.0056,
+        "parallelism_note": "8 шагов, запущенных одновременно в ОДНОМ контейнере; перекрытие шагов РАЗНЫХ rollout'ов не измерялось"
+      },
+      "batch_wall_s": 12.7575,
+      "container_stop_s": 1.1003
+    },
+    {
+      "profile": "none",
+      "container": "rlprobe-20260920-130918-pnone2",
+      "pass": 2,
+      "reps": 2,
+      "container_start_s": 0.159,
+      "isolation_probes": {
+        "uid": "1000",
+        "nonroot": true,
+        "rootfs_readonly": true,
+        "bind_mount_writable": true,
+        "cap_eff": "0000000000000000",
+        "cap_eff_zero": true,
+        "docker_socket_absent": true,
+        "memory_max_bytes": "268435456",
+        "pids_max": "256",
+        "tmpfs_probe": {
+          "wrote_32m_into_16m_tmpfs": false,
+          "limit_enforced": true,
+          "observed": "dd: error writing '/tmp/fill': No space left on device\n17+0 records in\n16+0 records out\n16777216 bytes (16.0MB) copied, 0.006784 seconds, 2.3GB/s"
+        },
+        "host_paths_probed": [
+          "/home/user",
+          "/home/user/rlprobe-stage/data/grounded-skeleton"
+        ],
+        "host_paths_hidden": true,
+        "verifier_files_invisible": true,
+        "holdout_invisible": true,
+        "profile": "none",
+        "default_route": "",
+        "interfaces": [
+          "lo"
+        ],
+        "external_unreachable": true,
+        "dns_unresolvable": true,
+        "network_closed": true
+      },
+      "isolation_ok": true,
+      "isolation_failed_probes": [],
+      "network": {
+        "profile": "none",
+        "docker_network": "",
+        "mock_url": ""
+      },
+      "mock_seed": null,
+      "rollouts_s": 11.0227,
+      "exec_cost": {
+        "n": 20,
+        "exec_overhead_s": 0.0471,
+        "exec_overhead_min_s": 0.035,
+        "exec_overhead_max_s": 0.0574,
+        "samples": [
+          0.0415,
+          0.054,
+          0.0447,
+          0.0574,
+          0.0366,
+          0.0471,
+          0.0439,
+          0.0497,
+          0.0531,
+          0.0463,
+          0.0552,
+          0.0483,
+          0.0495,
+          0.0431,
+          0.0485,
+          0.0425,
+          0.0485,
+          0.0521,
+          0.0455,
+          0.035
+        ],
+        "exec_parallel8_wall_s": 0.0496,
+        "exec_parallel8_per_step_s": 0.0062,
+        "parallelism_note": "8 шагов, запущенных одновременно в ОДНОМ контейнере; перекрытие шагов РАЗНЫХ rollout'ов не измерялось"
+      },
+      "batch_wall_s": 12.9937,
+      "container_stop_s": 1.1028
+    },
+    {
+      "profile": "mock",
+      "container": "rlprobe-20260920-130918-pmock1",
+      "pass": 1,
+      "reps": 2,
+      "container_start_s": 0.1774,
+      "isolation_probes": {
+        "uid": "1000",
+        "nonroot": true,
+        "rootfs_readonly": true,
+        "bind_mount_writable": true,
+        "cap_eff": "0000000000000000",
+        "cap_eff_zero": true,
+        "docker_socket_absent": true,
+        "memory_max_bytes": "268435456",
+        "pids_max": "256",
+        "tmpfs_probe": {
+          "wrote_32m_into_16m_tmpfs": false,
+          "limit_enforced": true,
+          "observed": "dd: error writing '/tmp/fill': No space left on device\n17+0 records in\n16+0 records out\n16777216 bytes (16.0MB) copied, 0.006306 seconds, 2.5GB/s"
+        },
+        "host_paths_probed": [
+          "/home/user",
+          "/home/user/rlprobe-stage/data/grounded-skeleton"
+        ],
+        "host_paths_hidden": true,
+        "journal_invisible": true,
+        "verifier_files_invisible": true,
+        "profile": "mock",
+        "default_route": "",
+        "interfaces": [
+          "lo",
+          "eth0"
+        ],
+        "external_unreachable": true,
+        "dns_unresolvable": true,
+        "mock_reachable": true,
+        "gateway": "172.19.0.1",
+        "host_service_ports": {
+          "22": "CLOSED",
+          "80": "CLOSED",
+          "443": "CLOSED",
+          "3080": "CLOSED",
+          "8080": "CLOSED"
+        },
+        "other_host_services_reachable": [],
+        "network_closed": true
+      },
+      "isolation_ok": true,
+      "isolation_failed_probes": [],
+      "network": {
+        "profile": "mock",
+        "docker_network": "rlprobe-20260920-130918-net",
+        "mock_url": "http://172.19.0.1:53253"
+      },
+      "mock_seed": 20260920,
+      "rollouts_s": 1.5484,
+      "exec_cost": {
+        "n": 20,
+        "exec_overhead_s": 0.0459,
+        "exec_overhead_min_s": 0.0368,
+        "exec_overhead_max_s": 0.0552,
+        "samples": [
+          0.05,
+          0.0411,
+          0.0474,
+          0.0552,
+          0.0373,
+          0.0501,
+          0.0439,
+          0.0478,
+          0.0382,
+          0.0464,
+          0.0368,
+          0.0508,
+          0.0451,
+          0.0415,
+          0.0506,
+          0.042,
+          0.0518,
+          0.0498,
+          0.0442,
+          0.0471
+        ],
+        "exec_parallel8_wall_s": 0.0483,
+        "exec_parallel8_per_step_s": 0.006,
+        "parallelism_note": "8 шагов, запущенных одновременно в ОДНОМ контейнере; перекрытие шагов РАЗНЫХ rollout'ов не измерялось"
+      },
+      "batch_wall_s": 3.8137,
+      "container_stop_s": 1.1546
+    },
+    {
+      "profile": "mock",
+      "container": "rlprobe-20260920-130918-pmock2",
+      "pass": 2,
+      "reps": 2,
+      "container_start_s": 0.1788,
+      "isolation_probes": {
+        "uid": "1000",
+        "nonroot": true,
+        "rootfs_readonly": true,
+        "bind_mount_writable": true,
+        "cap_eff": "0000000000000000",
+        "cap_eff_zero": true,
+        "docker_socket_absent": true,
+        "memory_max_bytes": "268435456",
+        "pids_max": "256",
+        "tmpfs_probe": {
+          "wrote_32m_into_16m_tmpfs": false,
+          "limit_enforced": true,
+          "observed": "dd: error writing '/tmp/fill': No space left on device\n17+0 records in\n16+0 records out\n16777216 bytes (16.0MB) copied, 0.006674 seconds, 2.3GB/s"
+        },
+        "host_paths_probed": [
+          "/home/user",
+          "/home/user/rlprobe-stage/data/grounded-skeleton"
+        ],
+        "host_paths_hidden": true,
+        "journal_invisible": true,
+        "verifier_files_invisible": true,
+        "profile": "mock",
+        "default_route": "",
+        "interfaces": [
+          "lo",
+          "eth0"
+        ],
+        "external_unreachable": true,
+        "dns_unresolvable": true,
+        "mock_reachable": true,
+        "gateway": "172.19.0.1",
+        "host_service_ports": {
+          "22": "CLOSED",
+          "80": "CLOSED",
+          "443": "CLOSED",
+          "3080": "CLOSED",
+          "8080": "CLOSED"
+        },
+        "other_host_services_reachable": [],
+        "network_closed": true
+      },
+      "isolation_ok": true,
+      "isolation_failed_probes": [],
+      "network": {
+        "profile": "mock",
+        "docker_network": "rlprobe-20260920-130918-net",
+        "mock_url": "http://172.19.0.1:44993"
+      },
+      "mock_seed": 20260921,
+      "rollouts_s": 1.5518,
+      "exec_cost": {
+        "n": 20,
+        "exec_overhead_s": 0.0461,
+        "exec_overhead_min_s": 0.0335,
+        "exec_overhead_max_s": 0.0572,
+        "samples": [
+          0.054,
+          0.0474,
+          0.0486,
+          0.048,
+          0.0526,
+          0.0359,
+          0.0441,
+          0.0462,
+          0.0522,
+          0.0508,
+          0.0485,
+          0.0335,
+          0.0379,
+          0.0411,
+          0.0484,
+          0.0486,
+          0.0406,
+          0.0572,
+          0.0401,
+          0.0453
+        ],
+        "exec_parallel8_wall_s": 0.047,
+        "exec_parallel8_per_step_s": 0.0059,
+        "parallelism_note": "8 шагов, запущенных одновременно в ОДНОМ контейнере; перекрытие шагов РАЗНЫХ rollout'ов не измерялось"
+      },
+      "batch_wall_s": 3.7948,
+      "container_stop_s": 1.1586
+    }
+  ],
+  "cost": {
+    "is_measurement": true,
+    "what_is_measured": "подъём/снятие контейнера, откат состояния (wipe+seed), шаг среды (docker exec), действие, снимок, верификация — и полное время батча",
+    "measured": {
+      "t_step_env_s": 0.0446,
+      "t_env_per_rollout_at_A1_s": 0.1011,
+      "t_state_and_verify_per_rollout_s": 0.0681,
+      "t_action_measured_s": 0.033,
+      "t_container_lifecycle_s": 1.3021,
+      "container_start_s": {
+        "mean": 0.173,
+        "samples": [
+          0.1769,
+          0.159,
+          0.1774,
+          0.1788
+        ]
+      },
+      "container_stop_s": {
+        "mean": 1.1291,
+        "samples": [
+          1.1003,
+          1.1028,
+          1.1546,
+          1.1586
+        ]
+      },
+      "batch_wall_s": [
+        12.7575,
+        12.9937,
+        3.8137,
+        3.7948
+      ],
+      "exec_cost": {
+        "n": 20,
+        "exec_overhead_s": 0.0446,
+        "exec_overhead_min_s": 0.0352,
+        "exec_overhead_max_s": 0.0536,
+        "samples": [
+          0.0516,
+          0.0352,
+          0.0447,
+          0.0536,
+          0.053,
+          0.0373,
+          0.0462,
+          0.0411,
+          0.0393,
+          0.0466,
+          0.0414,
+          0.0352,
+          0.0422,
+          0.0482,
+          0.0452,
+          0.0494,
+          0.0444,
+          0.0375,
+          0.0512,
+          0.0493
+        ],
+        "exec_parallel8_wall_s": 0.0451,
+        "exec_parallel8_per_step_s": 0.0056,
+        "parallelism_note": "8 шагов, запущенных одновременно в ОДНОМ контейнере; перекрытие шагов РАЗНЫХ rollout'ов не измерялось"
+      },
+      "per_rollout": [
+        {
+          "task": "gs-fs-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0184,
+          "wipe_seed_s": 0.0005,
+          "action_s": 0.0556,
+          "snapshot_s": 0.0008,
+          "verify_s": 0.0171,
+          "env_s_at_A1": 0.074,
+          "total_s": 0.1095
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0334,
+          "wipe_seed_s": 0.0005,
+          "action_s": 0.0546,
+          "snapshot_s": 0.0016,
+          "verify_s": 0.0313,
+          "env_s_at_A1": 0.088,
+          "total_s": 0.1485
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0175,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0002,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0167,
+          "env_s_at_A1": 0.0177,
+          "total_s": 0.052
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0173,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0004,
+          "verify_s": 0.0167,
+          "env_s_at_A1": 0.0174,
+          "total_s": 0.0646
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0311,
+          "wipe_seed_s": 0.0006,
+          "action_s": 0.0512,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.03,
+          "env_s_at_A1": 0.0823,
+          "total_s": 0.1306
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0314,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0412,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0307,
+          "env_s_at_A1": 0.0726,
+          "total_s": 0.1074
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "run",
+          "state_and_verify_s": 0.0203,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0539,
+          "snapshot_s": 0.0011,
+          "verify_s": 0.0188,
+          "env_s_at_A1": 0.0742,
+          "total_s": 0.1136
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "run",
+          "state_and_verify_s": 0.0344,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0608,
+          "snapshot_s": 0.0011,
+          "verify_s": 0.0329,
+          "env_s_at_A1": 0.0952,
+          "total_s": 0.1304
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0178,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0165,
+          "env_s_at_A1": 0.0179,
+          "total_s": 0.0508
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0175,
+          "wipe_seed_s": 0.0006,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0164,
+          "env_s_at_A1": 0.0176,
+          "total_s": 0.0502
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0193,
+          "wipe_seed_s": 0.0006,
+          "action_s": 0.0497,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.0181,
+          "env_s_at_A1": 0.069,
+          "total_s": 0.1032
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0196,
+          "wipe_seed_s": 0.0007,
+          "action_s": 0.0516,
+          "snapshot_s": 0.0007,
+          "verify_s": 0.0182,
+          "env_s_at_A1": 0.0712,
+          "total_s": 0.1056
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0181,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0458,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0173,
+          "env_s_at_A1": 0.0639,
+          "total_s": 0.099
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0175,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0446,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0166,
+          "env_s_at_A1": 0.0621,
+          "total_s": 0.1106
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0176,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0171,
+          "env_s_at_A1": 0.0177,
+          "total_s": 0.0655
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0156,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0149,
+          "env_s_at_A1": 0.0157,
+          "total_s": 0.0453
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0173,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0481,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0167,
+          "env_s_at_A1": 0.0654,
+          "total_s": 0.101
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.018,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.042,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0175,
+          "env_s_at_A1": 0.06,
+          "total_s": 0.1234
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "run",
+          "state_and_verify_s": 0.2352,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0504,
+          "snapshot_s": 0.0008,
+          "verify_s": 0.2341,
+          "env_s_at_A1": 0.2856,
+          "total_s": 0.7457
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "run",
+          "state_and_verify_s": 0.2324,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.044,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.2313,
+          "env_s_at_A1": 0.2764,
+          "total_s": 0.7533
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.2386,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0004,
+          "verify_s": 0.2374,
+          "env_s_at_A1": 0.2387,
+          "total_s": 0.7257
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.234,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0002,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.2331,
+          "env_s_at_A1": 0.2342,
+          "total_s": 0.7142
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.242,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.043,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.2409,
+          "env_s_at_A1": 0.285,
+          "total_s": 0.7839
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.2519,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.0462,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.2508,
+          "env_s_at_A1": 0.2981,
+          "total_s": 0.7539
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0312,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0539,
+          "snapshot_s": 0.0004,
+          "verify_s": 0.0306,
+          "env_s_at_A1": 0.0851,
+          "total_s": 0.1488
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "run",
+          "state_and_verify_s": 0.031,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0528,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0305,
+          "env_s_at_A1": 0.0838,
+          "total_s": 0.1339
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0183,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0179,
+          "env_s_at_A1": 0.0184,
+          "total_s": 0.0529
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0166,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.0158,
+          "env_s_at_A1": 0.0167,
+          "total_s": 0.0477
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0315,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0468,
+          "snapshot_s": 0.0004,
+          "verify_s": 0.0307,
+          "env_s_at_A1": 0.0783,
+          "total_s": 0.1397
+        },
+        {
+          "task": "gs-fs-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.018,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.045,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0171,
+          "env_s_at_A1": 0.063,
+          "total_s": 0.0974
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "run",
+          "state_and_verify_s": 0.0199,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0552,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.019,
+          "env_s_at_A1": 0.0751,
+          "total_s": 0.1136
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "run",
+          "state_and_verify_s": 0.0197,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0602,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0188,
+          "env_s_at_A1": 0.0799,
+          "total_s": 0.1334
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.02,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0007,
+          "verify_s": 0.0189,
+          "env_s_at_A1": 0.0201,
+          "total_s": 0.0578
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0196,
+          "wipe_seed_s": 0.0006,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0185,
+          "env_s_at_A1": 0.0197,
+          "total_s": 0.0567
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0207,
+          "wipe_seed_s": 0.0006,
+          "action_s": 0.0441,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.0195,
+          "env_s_at_A1": 0.0648,
+          "total_s": 0.1307
+        },
+        {
+          "task": "gs-fs-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0204,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0512,
+          "snapshot_s": 0.0007,
+          "verify_s": 0.0194,
+          "env_s_at_A1": 0.0716,
+          "total_s": 0.11
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0311,
+          "wipe_seed_s": 0.0005,
+          "action_s": 0.0567,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0303,
+          "env_s_at_A1": 0.0878,
+          "total_s": 0.1358
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0181,
+          "wipe_seed_s": 0.0004,
+          "action_s": 0.0462,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0172,
+          "env_s_at_A1": 0.0643,
+          "total_s": 0.0988
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0181,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0177,
+          "env_s_at_A1": 0.0182,
+          "total_s": 0.052
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0179,
+          "wipe_seed_s": 0.0001,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0176,
+          "env_s_at_A1": 0.018,
+          "total_s": 0.0521
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0326,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0415,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.032,
+          "env_s_at_A1": 0.0741,
+          "total_s": 0.1224
+        },
+        {
+          "task": "gs-shell-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0324,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0354,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0318,
+          "env_s_at_A1": 0.0678,
+          "total_s": 0.1299
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "run",
+          "state_and_verify_s": 0.2482,
+          "wipe_seed_s": 0.0007,
+          "action_s": 0.0507,
+          "snapshot_s": 0.0008,
+          "verify_s": 0.2467,
+          "env_s_at_A1": 0.2989,
+          "total_s": 0.7611
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "run",
+          "state_and_verify_s": 0.2315,
+          "wipe_seed_s": 0.0009,
+          "action_s": 0.0427,
+          "snapshot_s": 0.0008,
+          "verify_s": 0.2298,
+          "env_s_at_A1": 0.2742,
+          "total_s": 0.7668
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.2334,
+          "wipe_seed_s": 0.0008,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.2321,
+          "env_s_at_A1": 0.2335,
+          "total_s": 0.6893
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "no-action",
+          "state_and_verify_s": 0.223,
+          "wipe_seed_s": 0.0007,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0006,
+          "verify_s": 0.2217,
+          "env_s_at_A1": 0.2231,
+          "total_s": 0.6942
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.2551,
+          "wipe_seed_s": 0.0007,
+          "action_s": 0.0529,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.2541,
+          "env_s_at_A1": 0.308,
+          "total_s": 0.816
+        },
+        {
+          "task": "gs-shell-02",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.2232,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0495,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.2226,
+          "env_s_at_A1": 0.2727,
+          "total_s": 0.7694
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0293,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0549,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0287,
+          "env_s_at_A1": 0.0842,
+          "total_s": 0.1434
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0312,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.057,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.0304,
+          "env_s_at_A1": 0.0882,
+          "total_s": 0.1605
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0444,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0001,
+          "verify_s": 0.0441,
+          "env_s_at_A1": 0.0445,
+          "total_s": 0.1031
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0291,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0287,
+          "env_s_at_A1": 0.0292,
+          "total_s": 0.0885
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0309,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0533,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0305,
+          "env_s_at_A1": 0.0842,
+          "total_s": 0.1567
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0303,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0495,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0298,
+          "env_s_at_A1": 0.0798,
+          "total_s": 0.1656
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0456,
+          "wipe_seed_s": 0.0001,
+          "action_s": 0.0533,
+          "snapshot_s": 0.0005,
+          "verify_s": 0.045,
+          "env_s_at_A1": 0.0989,
+          "total_s": 0.1576
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "run",
+          "state_and_verify_s": 0.0455,
+          "wipe_seed_s": 0.0001,
+          "action_s": 0.0481,
+          "snapshot_s": 0.0003,
+          "verify_s": 0.0451,
+          "env_s_at_A1": 0.0936,
+          "total_s": 0.1664
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0303,
+          "wipe_seed_s": 0.0003,
+          "action_s": 0.0001,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0298,
+          "env_s_at_A1": 0.0304,
+          "total_s": 0.0896
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "no-action",
+          "state_and_verify_s": 0.0306,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0003,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0302,
+          "env_s_at_A1": 0.0309,
+          "total_s": 0.0898
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0456,
+          "wipe_seed_s": 0.0002,
+          "action_s": 0.0512,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0452,
+          "env_s_at_A1": 0.0968,
+          "total_s": 0.1551
+        },
+        {
+          "task": "gs-http-01",
+          "mode": "empty-action",
+          "state_and_verify_s": 0.0462,
+          "wipe_seed_s": 0.0001,
+          "action_s": 0.0429,
+          "snapshot_s": 0.0002,
+          "verify_s": 0.0459,
+          "env_s_at_A1": 0.0891,
+          "total_s": 0.1485
+        }
+      ],
+      "rollouts_per_step": 8
+    },
+    "step": {
+      "A2": {
+        "env_per_rollout_s": 0.1573,
+        "env_per_step_s": 2.5605,
+        "env_share_pct": 2.025,
+        "step_s_additive": 126.43,
+        "ratio_additive": 1.021,
+        "step_s_additive_with_generation_growth": [
+          144.12,
+          161.81
+        ],
+        "ratio_additive_with_generation_growth": [
+          1.163,
+          1.306
+        ],
+        "step_s_overlap_bound": 123.87,
+        "ratio_overlap_bound": 1.0
+      },
+      "A15": {
+        "env_per_rollout_s": 0.7371,
+        "env_per_step_s": 7.1989,
+        "env_share_pct": 5.492,
+        "step_s_additive": 131.07,
+        "ratio_additive": 1.058,
+        "step_s_additive_with_generation_growth": [
+          148.76,
+          166.45
+        ],
+        "ratio_additive_with_generation_growth": [
+          1.201,
+          1.344
+        ],
+        "step_s_overlap_bound": 123.87,
+        "ratio_overlap_bound": 1.0
+      },
+      "bounds": {
+        "why": "среда 2.6 с/шаг (A=2) против генерации 88.4 с/шаг: среда меньше генерации, поэтому при перекрытии прирост может быть скрыт",
+        "additive_reading": "среда прибавляется к базовому шагу целиком (пессимистичная граница)",
+        "overlap_reading": "шаги среды идут между вызовами vLLM; при перекрытии с генерацией прирост ограничен разностью, а не суммой"
+      }
+    },
+    "base": {
+      "step_s": 123.87,
+      "generation_share": 0.714,
+      "source": "evidence/s3-rl-probe.json (S3-pre, 99 закрытых шагов)"
+    },
+    "audit_estimate": {
+      "source": "evidence/grounding-audit.json → cost_estimate.scenarios.container_per_rollout",
+      "actions_per_rollout": [
+        2,
+        15
+      ],
+      "generation_growth_s": [
+        17.69,
+        35.38
+      ],
+      "t_sandbox_per_rollout_s": [
+        0.8,
+        3.0
+      ],
+      "t_action_s": [
+        0.1,
+        0.25
+      ],
+      "ratio_to_base": [
+        1.207,
+        1.722
+      ]
+    },
+    "comparison": {
+      "local_4080_state_and_verify_s": 0.134,
+      "local_4080_action_s": 0.035,
+      "stand_vs_local_state_and_verify": 0.51,
+      "stand_vs_local_step": 1.27,
+      "stand_action_within_audit_range": false
+    },
+    "assumptions": {
+      "inherited": [
+        "рост длины генерации 17.69–35.38 с — из аудита, здесь не измеряется",
+        "число действий на rollout A ∈ {2, 15} — бюджет пула, не замер скелета",
+        "линейность по шагам и отсутствие термотроттлинга — как в S3-pre"
+      ],
+      "measured_not_assumed": [
+        "цена шага среды (docker exec) измерена — в локальном прогоне она была принята нулевой",
+        "подъём и снятие контейнера измерены, а не взяты диапазоном 0.8–3.0 с",
+        "цена верификатора состояния измерена и входит в t_env"
+      ],
+      "scope": "задачи скелета короткие (одно действие на rollout), поэтому измеренное действие — нижняя граница цены действия; сценарий песочницы и шага измерен прямо",
+      "additivity": "среда считается аддитивной к базовому шагу — пессимистичная граница; перекрытие шагов среды с генерацией не измерялось",
+      "batch_per_step": "батч-контейнер амортизируется на один шаг RL (8 rollout'ов); при батче другого размера слагаемое жизненного цикла делится иначе — обе части приведены отдельно, чтобы пересчитать"
+    }
+  },
+  "tasks": [
+    {
+      "id": "gs-fs-01",
+      "tool": "filesystem",
+      "network": "none",
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-fs-01",
+        "tool": "filesystem",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work/src лежат три файла-источника: name.txt (одна строка — имя сервиса), port.txt (одна строка — целое число) и flags.txt (по одному флагу в строке, порядок значим). Собери из них файл app/config/service.json — строгий JSON-объект ровно с тремя ключами: \"name\" (строка), \"port\" (число, не строка) и \"flags\" (массив строк в исходном порядке). Лишних ключей быть не должно. Работай из каталога /work.",
+        "initial_state": "каталог /work/src с тремя файлами-источниками (name.txt, port.txt, flags.txt); каталога app/ нет, файла service.json нет",
+        "goal_action": "прочитать три источника и собрать из них строгий JSON в app/config/service.json",
+        "success_criterion": "app/config/service.json существует, разбирается строгим JSON-парсером, множество ключей ровно {name, port, flags}, типы совпадают (port — число), значения равны прочитанным верификатором из исходных файлов задачи, порядок flags сохранён",
+        "no_action_probe": "текстовый ответ без вызовов: файла нет → 0; отдельно проверяется, что текстовый ответ, в котором JSON приведён дословно, даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): файла нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:src/name.txt",
+          "pristine:src/port.txt",
+          "pristine:src/flags.txt",
+          "snapshot:app/config/service.json"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "cat"
+        ],
+        "leak_check": "собранного JSON в песочнице нет до действия: в src лежат только значения-источники, копировать нечего"
+      },
+      "verifier_sha256": "ef6143d2e7de5669a117499c4d1f80f8ace195e7a5eb0d5acb062d23b218a33e",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0005,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0556,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0554
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0008,
+          "symlink_escape": [],
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "new_paths": [
+            "app",
+            "app/config",
+            "app/config/service.json"
+          ],
+          "verify_s": 0.0171,
+          "score": 1,
+          "reason": "service.json собран верно из трёх источников",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {
+            "got": {
+              "name": "ingest-api",
+              "port": 8443,
+              "flags": [
+                "strict",
+                "verbose",
+                "dry-run"
+              ]
+            }
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1095,
+          "rep": 0
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0002,
+          "steps_used": 0,
+          "steps_refused": 0,
+          "step_records": [],
+          "action_exit_code": null,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.0167,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.052,
+          "rep": 0
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0006,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0512,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0511
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "new_paths": [],
+          "verify_s": 0.03,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1306,
+          "rep": 0
+        },
+        "forge": {
+          "mode": "forge",
+          "task": "gs-fs-01",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0002,
+          "seed_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "pristine_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0373,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0372
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "c692ad1040129c1a4368b39b46a89201b424d5f254ceb41e75b12421a98ede76",
+          "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0012,
+          "symlink_escape": [],
+          "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+          "new_paths": [
+            "ANSWER.txt",
+            "expected.json",
+            "mock-journal.jsonl",
+            "out",
+            "out/verify.py",
+            "verify.json"
+          ],
+          "verify_s": 0.0304,
+          "score": 0,
+          "reason": "app/config/service.json отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1177,
+          "rep": 0
+        }
+      },
+      "repeat_summary": [
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        }
+      ],
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:src/name.txt",
+            "pristine:src/port.txt",
+            "pristine:src/flags.txt",
+            "snapshot:app/config/service.json"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0,
+          "no_action_state_unchanged": true
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "ef6143d2e7de5669a117499c4d1f80f8ace195e7a5eb0d5acb062d23b218a33e",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "forge_score": 0,
+          "forge_rejected": true
+        },
+        "G4": {
+          "pass": true,
+          "isolation_ok": true,
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      },
+      "residue_absent": true,
+      "state_rolled_back": true,
+      "steps_within_budget": true
+    },
+    {
+      "id": "gs-fs-02",
+      "tool": "filesystem",
+      "network": "none",
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-fs-02",
+        "tool": "filesystem",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work/inbox лежат файлы журналов. В первой строке каждого файла указан адресат в виде `tenant: <имя>`. Разложи файлы по адресатам: каждый файл должен оказаться в /work/sorted/<имя>/<исходное имя файла>, содержимое файлов менять нельзя. После работы каталог /work/inbox должен быть пуст, и в /work не должно остаться ничего, кроме каталогов sorted и inbox. Работай из каталога /work.",
+        "initial_state": "каталог /work/inbox с шестью файлами журналов (alpha.log, beta.log, gamma.log, delta.log, eps.log, zeta.log), у каждого в первой строке `tenant: <имя>`; каталога sorted/ нет",
+        "goal_action": "прочитать первую строку каждого файла, определить адресата и переместить файл в sorted/<адресат>/",
+        "success_criterion": "дерево /work в точности равно ожидаемому: inbox пуст, каждый исходный файл лежит в sorted/<адресат>/<имя> и его содержимое (sha256) совпадает с исходным, других файлов нет",
+        "no_action_probe": "текстовый ответ без вызовов: дерево не изменилось → 0; отдельно проверяется, что текстовый ответ с перечислением ожидаемой раскладки даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): дерево не изменилось → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:inbox/*",
+          "snapshot:sorted/**",
+          "snapshot:inbox"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "head",
+          "awk",
+          "mkdir",
+          "mv"
+        ],
+        "leak_check": "эталонной раскладки в песочнице нет: она выводится только из содержимого файлов; копирование вместо перемещения ловится требованием пустого inbox и точным равенством дерева"
+      },
+      "verifier_sha256": "8297152b5761a5969c9b34aa8c38e7e8bd173fbfb6294b00a65a43d9ee64d68a",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0004,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0539,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0537
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0011,
+          "symlink_escape": [],
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "new_paths": [
+            "sorted",
+            "sorted/north",
+            "sorted/north/alpha.log",
+            "sorted/north/gamma.log",
+            "sorted/south",
+            "sorted/south/beta.log",
+            "sorted/south/eps.log",
+            "sorted/west",
+            "sorted/west/delta.log",
+            "sorted/west/zeta.log"
+          ],
+          "verify_s": 0.0188,
+          "score": 1,
+          "reason": "дерево совпало с эталонной раскладкой (6 файлов), inbox пуст",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "files": 6
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1136,
+          "rep": 0
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0008,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "steps_used": 0,
+          "steps_refused": 0,
+          "step_records": [],
+          "action_exit_code": null,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0165,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0508,
+          "rep": 0
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0006,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0497,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0497
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0006,
+          "symlink_escape": [],
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "new_paths": [],
+          "verify_s": 0.0181,
+          "score": 0,
+          "reason": "дерево не совпало: нет ['sorted/north/alpha.log', 'sorted/north/gamma.log', 'sorted/south/beta.log', 'sorted/south/eps.log', 'sorted/west/delta.log', 'sorted/west/zeta.log'], лишнее ['inbox/alpha.log', 'inbox/beta.log', 'inbox/delta.log', 'inbox/eps.log', 'inbox/gamma.log', 'inbox/zeta.log']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "missing": [
+              "sorted/north/alpha.log",
+              "sorted/north/gamma.log",
+              "sorted/south/beta.log",
+              "sorted/south/eps.log",
+              "sorted/west/delta.log",
+              "sorted/west/zeta.log"
+            ],
+            "extra": [
+              "inbox/alpha.log",
+              "inbox/beta.log",
+              "inbox/delta.log",
+              "inbox/eps.log",
+              "inbox/gamma.log",
+              "inbox/zeta.log"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1032,
+          "rep": 0
+        },
+        "forge": {
+          "mode": "forge",
+          "task": "gs-fs-02",
+          "tool": "filesystem",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0007,
+          "seed_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "pristine_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0511,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.051
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "1efb264bb659cc0bae618e2ab32b58a296f1fac42a6b7a82283b3d01ac2371b3",
+          "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0014,
+          "symlink_escape": [],
+          "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+          "new_paths": [
+            "ANSWER.txt",
+            "expected.json",
+            "mock-journal.jsonl",
+            "out",
+            "out/verify.py",
+            "verify.json"
+          ],
+          "verify_s": 0.0189,
+          "score": 0,
+          "reason": "в /work появились лишние каталоги: ['out']",
+          "reads": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "detail": {
+            "extra_dirs": [
+              "out"
+            ]
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1252,
+          "rep": 0
+        }
+      },
+      "repeat_summary": [
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        }
+      ],
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:inbox/*",
+            "snapshot:sorted/**",
+            "snapshot:inbox"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0,
+          "no_action_state_unchanged": true
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "8297152b5761a5969c9b34aa8c38e7e8bd173fbfb6294b00a65a43d9ee64d68a",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "forge_score": 0,
+          "forge_rejected": true
+        },
+        "G4": {
+          "pass": true,
+          "isolation_ok": true,
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      },
+      "residue_absent": true,
+      "state_rolled_back": true,
+      "steps_within_budget": true
+    },
+    {
+      "id": "gs-http-01",
+      "tool": "http_mock",
+      "network": "mock",
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-http-01",
+        "tool": "http_mock",
+        "network": "mock",
+        "workdir": "/work",
+        "prompt": "В переменной окружения MOCK_BASE лежит адрес HTTP-мока. Мок отдаёт выборку предметов: GET $MOCK_BASE/v1/items → {\"items\": [{\"id\": ..., \"qty\": <целое>}, ...], \"count\": <целое>}. Прими отчёт о выборке: POST $MOCK_BASE/v1/report с телом-объектом JSON ровно с двумя полями — \"items_count\" (число предметов в выборке) и \"total_qty\" (сумма qty по всем предметам). Мок принимает отчёт только при верных числах и отвечает {\"accepted\": true, ...}. Доведи сценарий до принятого отчёта. Работай из каталога /work.",
+        "initial_state": "каталог /work пуст; мок доступен по MOCK_BASE, его выборка определяется генератором сервера и в песочнице не лежит",
+        "goal_action": "получить выборку у мока, вычислить items_count и total_qty, отправить отчёт POST /v1/report",
+        "success_criterion": "в журнале СЕРВЕРА есть запись POST /v1/report с accepted=true, и числа в её теле совпадают с независимым пересчётом верификатора по тому же генератору выборки (журнал ведёт мок, агент к нему доступа не имеет)",
+        "no_action_probe": "текстовый ответ без вызовов: в журнале нет принятого отчёта → 0; отдельно проверяется, что текстовый ответ с точными числами (подставленными верификатором) даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): принятого отчёта нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "journal:POST /v1/report",
+          "generator:gen_items(seed)"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "wget",
+          "grep",
+          "awk"
+        ],
+        "leak_check": "ответ мока содержит выборку, но не её сумму; контракт в промпте объявлен, однако чисел не даёт — они выводятся только из ответа мока"
+      },
+      "verifier_sha256": "fe7bcfb05a3481d90ef2838b8762cc5485623bf9a932a2ce2d8d67f4cc755fbf",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "profile": "mock",
+          "container": "rlprobe-20260920-130918-pmock1",
+          "container_start_s": 0.17739458288997412,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0549,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0547
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "new_paths": [
+            "out",
+            "out/items.json",
+            "out/report.json"
+          ],
+          "verify_s": 0.0287,
+          "score": 1,
+          "reason": "сервер принял отчёт {'items_count': 10, 'total_qty': 362} — совпал с независимым пересчётом по генератору выборки",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 3,
+            "posts": 1,
+            "gets": 1,
+            "journal_rotated": true,
+            "receipt_seq": 2
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.1434,
+          "rep": 0
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "profile": "mock",
+          "container": "rlprobe-20260920-130918-pmock1",
+          "container_start_s": 0.17739458288997412,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0001,
+          "steps_used": 0,
+          "steps_refused": 0,
+          "step_records": [],
+          "action_exit_code": null,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0001,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0441,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1031,
+          "rep": 0
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "profile": "mock",
+          "container": "rlprobe-20260920-130918-pmock1",
+          "container_start_s": 0.17739458288997412,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.0533,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0532
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0002,
+          "symlink_escape": [],
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "new_paths": [],
+          "verify_s": 0.0305,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1567,
+          "rep": 0
+        },
+        "forge": {
+          "mode": "forge",
+          "task": "gs-http-01",
+          "tool": "http_mock",
+          "network": "mock",
+          "profile": "mock",
+          "container": "rlprobe-20260920-130918-pmock1",
+          "container_start_s": 0.17739458288997412,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0002,
+          "seed_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "pristine_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "journal_rotated": true,
+          "action_s": 0.054,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0539
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "309d8a822933567bd2d1020d59a7d4508af996073408dfbc068051095cb1c53a",
+          "expected_public": "items_count=10, total_qty=362",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0009,
+          "symlink_escape": [],
+          "state_digest": "21bf46eb0fc3864d63c335a9404e4246b88074007408980615b09ffea14dd47e",
+          "new_paths": [
+            "ANSWER.txt",
+            "expected.json",
+            "mock-journal.jsonl",
+            "out",
+            "out/verify.py",
+            "verify.json"
+          ],
+          "verify_s": 0.0447,
+          "score": 0,
+          "reason": "в журнале мока нет ни одного POST /v1/report — действия не было",
+          "reads": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "detail": {
+            "journal_entries": 1,
+            "posts": 0,
+            "gets": 0,
+            "journal_rotated": true
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1721,
+          "rep": 0
+        }
+      },
+      "repeat_summary": [
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 1,
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 1,
+          "state_digest": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "21bf46eb0fc3864d63c335a9404e4246b88074007408980615b09ffea14dd47e",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock1",
+          "score": 0,
+          "state_digest": "21bf46eb0fc3864d63c335a9404e4246b88074007408980615b09ffea14dd47e",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 1,
+          "state_digest": "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 1,
+          "state_digest": "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pmock2",
+          "score": 0,
+          "state_digest": "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        }
+      ],
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "journal:POST /v1/report",
+            "generator:gen_items(seed)"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0,
+          "no_action_state_unchanged": true
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "fe7bcfb05a3481d90ef2838b8762cc5485623bf9a932a2ce2d8d67f4cc755fbf",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "forge_score": 0,
+          "forge_rejected": true,
+          "journal_written_by_server": true
+        },
+        "G4": {
+          "pass": true,
+          "isolation_ok": true,
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false,
+          "mock_response_has_gold": false,
+          "mock_contract_stated_in_prompt": true
+        }
+      },
+      "residue_absent": true,
+      "state_rolled_back": true,
+      "steps_within_budget": true
+    },
+    {
+      "id": "gs-shell-01",
+      "tool": "shell",
+      "network": "none",
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-shell-01",
+        "tool": "shell",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work лежит файл in/series.csv (заголовок `label,value`, далее строки показаний). Собери сумму значений столбца value по всем строкам данных и положи её в файл out/total.txt — ровно одно целое число. Каталог out/ создай сам. Работай из каталога /work.",
+        "initial_state": "каталог /work с единственным файлом in/series.csv (41 строка: заголовок + 40 показаний); каталога out/ нет",
+        "goal_action": "прочитать данные, вычислить сумму столбца value и записать её в out/total.txt",
+        "success_criterion": "out/total.txt существует, содержит ровно один целый токен, и этот токен равен сумме столбца value, вычисленной верификатором независимо по исходному (неизменённому) in/series.csv",
+        "no_action_probe": "текстовый ответ без вызовов инструментов: файл out/total.txt не создан → 0; отдельно проверяется, что текстовый ответ с ТОЧНЫМ значением суммы (подставленным верификатором) даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): файла нет → 0",
+        "seed_dir": "seed",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "pristine:in/series.csv",
+          "snapshot:out/total.txt"
+        ],
+        "timeout_s": 60,
+        "requires": [
+          "sh",
+          "awk"
+        ],
+        "leak_check": "ожидаемое число в промпте и в seed отсутствует — оно выводится только из данных"
+      },
+      "verifier_sha256": "b4f4251bbc9a63d276e2b8dde0b9853b6beedda1d976256caaca69ec6b854b44",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0458,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0457
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "18675",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "new_paths": [
+            "out",
+            "out/total.txt"
+          ],
+          "verify_s": 0.0173,
+          "score": 1,
+          "reason": "сумма 18675 совпала с независимым пересчётом по исходным данным",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.099,
+          "rep": 0
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0002,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "steps_used": 0,
+          "steps_refused": 0,
+          "step_records": [],
+          "action_exit_code": null,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0171,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.0655,
+          "rep": 0
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0481,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.048
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "new_paths": [],
+          "verify_s": 0.0167,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.101,
+          "rep": 0
+        },
+        "forge": {
+          "mode": "forge",
+          "task": "gs-shell-01",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0004,
+          "seed_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "pristine_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0548,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0547
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "a780bc3f5b58b01229013d32a71ed27ee09ef2f477416db581434c16672b60fc",
+          "expected_public": "18675",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0004,
+          "symlink_escape": [],
+          "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+          "new_paths": [
+            "ANSWER.txt",
+            "expected.json",
+            "mock-journal.jsonl",
+            "out",
+            "out/verify.py",
+            "verify.json"
+          ],
+          "verify_s": 0.018,
+          "score": 0,
+          "reason": "out/total.txt отсутствует — состояние не изменилось",
+          "reads": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "detail": {},
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.1217,
+          "rep": 0
+        }
+      },
+      "repeat_summary": [
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        }
+      ],
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "pristine:in/series.csv",
+            "snapshot:out/total.txt"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0,
+          "no_action_state_unchanged": true
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "b4f4251bbc9a63d276e2b8dde0b9853b6beedda1d976256caaca69ec6b854b44",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "forge_score": 0,
+          "forge_rejected": true
+        },
+        "G4": {
+          "pass": true,
+          "isolation_ok": true,
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      },
+      "residue_absent": true,
+      "state_rolled_back": true,
+      "steps_within_budget": true
+    },
+    {
+      "id": "gs-shell-02",
+      "tool": "shell",
+      "network": "none",
+      "spec": {
+        "schema": "grounded-task/1",
+        "id": "gs-shell-02",
+        "tool": "shell",
+        "network": "none",
+        "workdir": "/work",
+        "prompt": "В каталоге /work лежит скрипт bin/aggregate.sh: он должен собирать сумму столбца value по всем файлам data/*.csv в один файл out/aggregate.txt (ровно одно целое число, ничего кроме него). Сейчас скрипт считает не то. Почини bin/aggregate.sh так, чтобы при запуске из каталога /work (`sh bin/aggregate.sh`) он завершался успешно и давал верную сумму на ЛЮБОМ наборе файлов data/*.csv с той же схемой (`label,value`), а не только на лежащем сейчас.",
+        "initial_state": "каталог /work: bin/aggregate.sh (дефектный: суммирует столбец label вместо value) и data/a.csv, data/b.csv со схемой `label,value`",
+        "goal_action": "исправить bin/aggregate.sh так, чтобы он давал верную сумму столбца value",
+        "success_criterion": "предъявленный bin/aggregate.sh запускается верификатором в чистом контейнере (--network none, CWD=/work) на ДРУГОМ наборе data/*.csv, которого агент не видел: код возврата 0 И out/aggregate.txt равен сумме столбца value, вычисленной верификатором независимо по этому же набору",
+        "no_action_probe": "текстовый ответ без вызовов: предъявлен исходный (дефектный) скрипт → 0; отдельно проверяется, что текстовый ответ с точным ожидаемым числом даёт те же 0",
+        "empty_action_probe": "действие без последствий (true): скрипт не изменён → 0",
+        "seed_dir": "seed",
+        "holdout_dir": "holdout",
+        "solution": "solution.sh",
+        "verifier": "verify.py",
+        "verifier_reads": [
+          "snapshot:bin/aggregate.sh",
+          "holdout:data/*.csv",
+          "reexec:/work/out/aggregate.txt"
+        ],
+        "timeout_s": 90,
+        "requires": [
+          "sh",
+          "awk",
+          "docker"
+        ],
+        "leak_check": "ожидаемое число не в промпте и не в seed: оно выводится только из данных; сверка идёт на удержанном наборе, поэтому зашитое значение не проходит"
+      },
+      "verifier_sha256": "d46f4cffddde0fdee98fb48ef58582d9506a19f8b84c0244602ac203c6f2f8b5",
+      "res": {
+        "run": {
+          "mode": "run",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0504,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0502
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "e5d53a7982f84ced39282b696590a5dfacd8951948ca347aae20c7b1e9fa091f",
+          "expected_public": "1430",
+          "text_answer_carried_expected": false,
+          "snapshot_s": 0.0008,
+          "symlink_escape": [],
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "new_paths": [
+            "out",
+            "out/aggregate.txt"
+          ],
+          "verify_s": 0.2341,
+          "score": 1,
+          "reason": "скрипт верен: на удержанных данных 1430 совпало с независимым пересчётом",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 1430
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 1,
+          "verifier_ignores_text": true,
+          "total_s": 0.7457,
+          "rep": 0
+        },
+        "no-action": {
+          "mode": "no-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0001,
+          "steps_used": 0,
+          "steps_refused": 0,
+          "step_records": [],
+          "action_exit_code": null,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0004,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2374,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.7257,
+          "rep": 0
+        },
+        "empty-action": {
+          "mode": "empty-action",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0008,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.043,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0429
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "new_paths": [],
+          "verify_s": 0.2409,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.7839,
+          "rep": 0
+        },
+        "forge": {
+          "mode": "forge",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0003,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0389,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0387
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0005,
+          "symlink_escape": [],
+          "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+          "new_paths": [
+            "ANSWER.txt",
+            "expected.json",
+            "mock-journal.jsonl",
+            "out",
+            "out/verify.py",
+            "verify.json"
+          ],
+          "verify_s": 0.2337,
+          "score": 0,
+          "reason": "на удержанных данных получено 0, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 0
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.7359,
+          "rep": 0
+        },
+        "cheat": {
+          "mode": "cheat",
+          "task": "gs-shell-02",
+          "tool": "shell",
+          "network": "none",
+          "profile": "none",
+          "container": "rlprobe-20260920-130918-pnone1",
+          "container_start_s": 0.1769107230938971,
+          "step_budget": 4,
+          "wipe_seed_s": 0.0004,
+          "seed_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "pristine_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": [],
+          "action_s": 0.0474,
+          "steps_used": 1,
+          "steps_refused": 0,
+          "step_records": [
+            {
+              "refused": false,
+              "returncode": 0,
+              "elapsed_s": 0.0471
+            }
+          ],
+          "action_exit_code": 0,
+          "action_timed_out": false,
+          "action_refused_by_step_budget": false,
+          "transcript_sha256": "707dd27dc5a90da1052ec10fbda8769e00d68169f881b1b1f24df7f6f7d10b6a",
+          "expected_public": "1430",
+          "text_answer_carried_expected": true,
+          "snapshot_s": 0.0003,
+          "symlink_escape": [],
+          "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+          "new_paths": [
+            "out",
+            "out/aggregate.txt"
+          ],
+          "verify_s": 0.244,
+          "score": 0,
+          "reason": "на удержанных данных получено 1255, ожидалось 1430",
+          "reads": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "detail": {
+            "reexec_exit_code": 0,
+            "reexec_stderr_tail": "",
+            "holdout_files": [
+              "c.csv",
+              "d.csv"
+            ],
+            "got": 1255
+          },
+          "verifier_deterministic": true,
+          "score_without_transcript": 0,
+          "verifier_ignores_text": true,
+          "total_s": 0.7749,
+          "rep": 0
+        }
+      },
+      "repeat_summary": [
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 1,
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "cheat",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "cheat",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone1",
+          "score": 0,
+          "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "run",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 1,
+          "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "no-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "empty-action",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "forge",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "cheat",
+          "rep": 0,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        },
+        {
+          "mode": "cheat",
+          "rep": 1,
+          "pass_batch": "rlprobe-20260920-130918-pnone2",
+          "score": 0,
+          "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+          "seed_matches_pristine": true,
+          "residue_from_previous": []
+        }
+      ],
+      "gates": {
+        "G1": {
+          "pass": true,
+          "reward_by_state": true,
+          "state_sources": [
+            "snapshot:bin/aggregate.sh",
+            "holdout:data/*.csv",
+            "reexec:/work/out/aggregate.txt"
+          ],
+          "text_channel_read": false,
+          "state_digest_changed_by_action": true
+        },
+        "G2": {
+          "pass": true,
+          "no_action_score": 0,
+          "no_action_text_carried_expected": true,
+          "empty_action_score": 0,
+          "no_action_state_unchanged": true
+        },
+        "G3": {
+          "pass": true,
+          "verifier": "verify.py",
+          "verifier_sha256": "d46f4cffddde0fdee98fb48ef58582d9506a19f8b84c0244602ac203c6f2f8b5",
+          "binary": true,
+          "deterministic": true,
+          "ignores_text": true,
+          "reads_state_only": true,
+          "forge_score": 0,
+          "forge_rejected": true,
+          "cheat_score": 0,
+          "cheat_rejected": true
+        },
+        "G4": {
+          "pass": true,
+          "isolation_ok": true,
+          "residue_absent": true,
+          "state_rolled_back": true,
+          "symlink_escape": []
+        },
+        "leak": {
+          "gold_in_prompt": false,
+          "gold_in_id": false,
+          "gold_in_seed": false
+        }
+      },
+      "residue_absent": true,
+      "state_rolled_back": true,
+      "steps_within_budget": true
+    }
+  ],
+  "gates": {
+    "G1": {
+      "name": "награда по состоянию, не по тексту ответа",
+      "pass": true
+    },
+    "G2": {
+      "name": "no-action = 0 (успех недостижим без действий)",
+      "pass": true
+    },
+    "G3": {
+      "name": "бинарный внешний верификатор, читает не то, что писал агент",
+      "pass": true
+    },
+    "G4": {
+      "name": "изоляция контейнером + откат состояния + лимиты",
+      "pass": true
+    },
+    "container_limits": {
+      "pids_limit_declared": 32,
+      "pids_limit_observed": "procs=31\nforkerr=sh: can't fork: Resource temporarily unavailable",
+      "pids_processes_at_limit": 31,
+      "pids_fork_errors": true,
+      "pids_limit_enforced": true,
+      "memory_limit_declared_bytes": 268435456,
+      "memory_limit_observed": "Killed\nawk_rc=137",
+      "memory_awk_rc": 137,
+      "memory_limit_enforced": true
+    },
+    "container_lifecycle": {
+      "t1": {
+        "start_s": 0.1512,
+        "stop_s": 1.0964
+      },
+      "t0": {
+        "start_s": 0.1515,
+        "stop_s": 0.0803
+      },
+      "reading": "снятие батч-контейнера почти целиком состоит из grace-периода `docker stop`: -t 1 стоит 1.0964 с, -t 0 — 0.0803 с; цена ложится на каждый батч, то есть на шаг RL целиком"
+    },
+    "step_limit_binds": true,
+    "timeout_applied": true
+  },
+  "rollouts_count": 84,
+  "no_action": {
+    "share": 0.0,
+    "expected": 0.0,
+    "per_task": {
+      "gs-fs-01": 0,
+      "gs-fs-02": 0,
+      "gs-shell-01": 0,
+      "gs-shell-02": 0,
+      "gs-http-01": 0
+    },
+    "empty_action_per_task": {
+      "gs-fs-01": 0,
+      "gs-fs-02": 0,
+      "gs-shell-01": 0,
+      "gs-shell-02": 0,
+      "gs-http-01": 0
+    },
+    "forge_per_task": {
+      "gs-fs-01": 0,
+      "gs-fs-02": 0,
+      "gs-shell-01": 0,
+      "gs-shell-02": 0,
+      "gs-http-01": 0
+    },
+    "cheat_per_task": {
+      "gs-shell-02": 0
+    },
+    "text_answer_carried_expected": {
+      "gs-fs-01": true,
+      "gs-fs-02": true,
+      "gs-shell-01": true,
+      "gs-shell-02": true,
+      "gs-http-01": true
+    }
+  },
+  "determinism": {
+    "same_seed_same_state": true,
+    "same_seed_groups": {
+      "gs-fs-01[run]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+            "score": 1,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+            "score": 1,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+            "score": 1,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "f3e52770d63d4a63b537490f4d97c34ab56f9802c1ed6b18f96ca53bc4966feb",
+            "score": 1,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-01[no-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-01[empty-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "280a22c29579f3395fc28b9309220a6caa9ac5d53a280370e8a60a75a94052f9",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-01[forge]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7677c027e595f9fe3e114e6cd31615cbbd7781f8bf750d81a617db932f733068",
+            "score": 0,
+            "expected_public": "{\"name\": \"ingest-api\", \"port\": 8443, \"flags\": [\"strict\", \"verbose\", \"dry-run\"]}"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-02[run]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+            "score": 1,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+            "score": 1,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+            "score": 1,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "11403f35957a8099af28ad4b96e7107688aae327120ffa11ba47ebb29a5baf5b",
+            "score": 1,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-02[no-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-02[empty-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "328b06d4f31292e691c95aa653c17ef03a85f8b65cc6d389ff76b9faf9457ba1",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-fs-02[forge]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "22c6941d2ed917038286301e3c7464a5178fec4f9ef023c9274958f068bb151c",
+            "score": 0,
+            "expected_public": "разложить по адресатам: sorted/north/alpha.log, sorted/north/gamma.log, sorted/south/beta.log, sorted/south/eps.log, sorted/west/delta.log, sorted/west/zeta.log"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-01[run]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+            "score": 1,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+            "score": 1,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+            "score": 1,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "f1507a9ff03e0b46b901eb65e994fa4f5fe068835ac9be9bac857e1e01213559",
+            "score": 1,
+            "expected_public": "18675"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-01[no-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-01[empty-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "7326e7dda723c927dc59762b33192f271f8edd92d05be64eab9382e571646c1c",
+            "score": 0,
+            "expected_public": "18675"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-01[forge]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+            "score": 0,
+            "expected_public": "18675"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "96d9c2bb80fe86278ad32fc2ecf421de44fb90581d55e7ddab6d5fba2e48aff8",
+            "score": 0,
+            "expected_public": "18675"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-02[run]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+            "score": 1,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+            "score": 1,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+            "score": 1,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "b960cc401ab318e37263ff1b563f4e62068174492dc0285efe7132e0876a5211",
+            "score": 1,
+            "expected_public": "1430"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-02[no-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-02[empty-action]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "18392cdd977db65951e30b2c46d7ec0944d6a5a032ac3059bed57cb1fb873141",
+            "score": 0,
+            "expected_public": "1430"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-02[forge]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "9bd0f8c7a4c03b7914d18bc06a8b5cfa8d99b9e3cfd185c0d29144f50b6510ec",
+            "score": 0,
+            "expected_public": "1430"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-shell-02[cheat]": {
+        "seed": null,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone1",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 0,
+            "seed": null,
+            "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+            "score": 0,
+            "expected_public": "1430"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pnone2",
+            "rep": 1,
+            "seed": null,
+            "state_digest": "df48d28921d12c293c9969bf459e8d6ff4b73e2090db52f5d3cc8bcbf64d0d9d",
+            "score": 0,
+            "expected_public": "1430"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-http-01[run]": {
+        "seed": 20260921,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 0,
+            "seed": 20260921,
+            "state_digest": "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2",
+            "score": 1,
+            "expected_public": "items_count=10, total_qty=282"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 1,
+            "seed": 20260921,
+            "state_digest": "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2",
+            "score": 1,
+            "expected_public": "items_count=10, total_qty=282"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-http-01[no-action]": {
+        "seed": 20260921,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 0,
+            "seed": 20260921,
+            "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 1,
+            "seed": 20260921,
+            "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-http-01[empty-action]": {
+        "seed": 20260921,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 0,
+            "seed": 20260921,
+            "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 1,
+            "seed": 20260921,
+            "state_digest": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          }
+        ],
+        "distinct_state_digests": 1
+      },
+      "gs-http-01[forge]": {
+        "seed": 20260921,
+        "runs": [
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 0,
+            "seed": 20260921,
+            "state_digest": "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          },
+          {
+            "container": "rlprobe-20260920-130918-pmock2",
+            "rep": 1,
+            "seed": 20260921,
+            "state_digest": "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1",
+            "score": 0,
+            "expected_public": "items_count=10, total_qty=282"
+          }
+        ],
+        "distinct_state_digests": 1
+      }
+    },
+    "unstable_with_same_seed": {},
+    "changes_with_seed": {
+      "tasks": [
+        "gs-http-01"
+      ],
+      "state_digests_per_seed": {
+        "20260920": [
+          "21bf46eb0fc3864d63c335a9404e4246b88074007408980615b09ffea14dd47e",
+          "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536"
+        ],
+        "20260921": [
+          "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1",
+          "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2"
+        ]
+      },
+      "per_mode_digests": {
+        "gs-http-01[run]": {
+          "20260920": "7902cd82c4787c37eac5c02d65d818551709295dd84151a7141675105d552536",
+          "20260921": "9b0cb78d9043ef7bf58ac1603ac670f1484b85a2c008dfeb447e7ad03e063ee2"
+        },
+        "gs-http-01[no-action]": {
+          "20260920": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "20260921": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3"
+        },
+        "gs-http-01[empty-action]": {
+          "20260920": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3",
+          "20260921": "4d2874faa52e3855773fce20183f75e0181a5aacf2f8a6166fc377b78268e6e3"
+        },
+        "gs-http-01[forge]": {
+          "20260920": "21bf46eb0fc3864d63c335a9404e4246b88074007408980615b09ffea14dd47e",
+          "20260921": "2fdac20cab6ca78e0342b27955f27a90fca4d125cfd847459525df09da71f6d1"
+        }
+      },
+      "modes_differing_between_seeds": [
+        "gs-http-01[forge]",
+        "gs-http-01[run]"
+      ],
+      "modes_equal_between_seeds": [
+        "gs-http-01[empty-action]",
+        "gs-http-01[no-action]"
+      ],
+      "distinct_states_across_seeds": 5,
+      "note": "у задачи с моком сид задаёт выборку генератора: смена сида меняет и ожидаемое значение, и состояние после того же действия; у задач без сети сид ни на что не влияет"
+    },
+    "does_not_change": [
+      "состояние задач без сети (shell/filesystem) от сида мока не зависит",
+      "вердикт верификатора на одном и том же снимке (два вызова дают один балл)",
+      "хэш текста состязательного ответа при одном и том же expected_public"
+    ],
+    "varies_regardless_of_seed": [
+      "времена: подъём контейнера, шаг среды, верификация (в отчёте — распределение, не одно число)"
+    ]
+  },
+  "verdict": {
+    "isolation_works": true,
+    "G1": true,
+    "G2": true,
+    "G3": true,
+    "G4": true,
+    "red_probes": [],
+    "isolation_failed_containers": [],
+    "not_measured_here": [
+      "способность модели решать задачи (полоса p* по ADR-049 п.12) — нужен rollout политики",
+      "утечка gold у МАССОВОГО пула (9162 задачи) — здесь только скелет из 5 задач",
+      "цена обучения RL на заземлённом пуле (шаг пересчитан на измеренных слагаемых, не замерен целиком)"
+    ]
+  }
+}

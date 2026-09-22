@@ -1,0 +1,895 @@
+{
+  "schema": "s3x-switch-lr/1",
+  "stage": "S3x",
+  "date": "2026-09-16T19:16:28+00:00",
+  "status": "partial",
+  "status_basis": "частично: прогон LR×0.35 остановлен (часть 1), новый прогон LR×0.035 запущен автономно и идёт (часть 2); стадия не завершена — 9776 шагов ≈ 7.0 ч, замеры K1/K2/домен идут по точкам каждые 500 шагов сторожем на локальной машине. Дельта закрывается забором результата (команда ниже), а не ожиданием",
+  "task": "S3x — полный CPT на замороженном ADR-003 миксе v12r при пике LR ×0.035 (ADR-031 п.1) вместо остановленного LR×0.35",
+  "decision": {
+    "adr": "ADR-031",
+    "what": "пик LR полного CPT — ×0.035; прогон LR×0.35 остановлен по протоколу ADR-016 п.2, чекпойнты сохранены как артефакт «цена высокого LR»",
+    "why": "конфигурация LR×0.35 строго доминируема: домен сопоставим (×0.384 против ×0.391 — отношение отношений 0.982), язык хуже в ×1.51 (K1) и ×1.66 (K2)",
+    "not_changed": "микс, число шагов, сид, образ, копия пайплайна — без изменений (сверка ниже: only_lr)"
+  },
+  "launch_first_point": {
+    "point": "s500",
+    "step": 500,
+    "ratios": {
+      "K1@s500": 1.0142,
+      "K2@s500": 1.0442,
+      "DOMAIN@s500": 0.4199,
+      "K1@base_untouched": 1.0,
+      "K2@base_untouched": 1.0,
+      "DOMAIN@base_untouched": 1.0
+    },
+    "baseline_ok": true,
+    "base_restored": "ok",
+    "measured_at": "2026-09-16T19:14:57+00:00",
+    "trend": {
+      "schema": "adr030-trend/1",
+      "date": "2026-09-16T19:15:13+00:00",
+      "steps": 9776,
+      "ceiling": {
+        "K1": 2.0,
+        "K2": 2.0,
+        "DOMAIN": 1.0,
+        "base": {
+          "K1": 7.50468637420902,
+          "K2": 6.1599356842437585,
+          "DOMAIN": 11.134115855539092
+        },
+        "note": "K1/K2 — потолок 2× базы (ADR-022 п.3б); домен — «выучен» при × базы < 1 (ADR-031 п.4)"
+      },
+      "rows": [
+        {
+          "point": "s500",
+          "step": 500,
+          "K1": 1.0142,
+          "K1_limit": 2.0,
+          "K1_within": true,
+          "K2": 1.0442,
+          "K2_limit": 2.0,
+          "K2_within": true,
+          "DOMAIN": 0.4199,
+          "DOMAIN_limit": 1.0,
+          "DOMAIN_within": true,
+          "lang_measured": true,
+          "lang_within": true,
+          "domain_learned": true
+        }
+      ],
+      "alarms": [],
+      "stop_condition": null,
+      "first_quarter": {
+        "step_required": 2444,
+        "point": null,
+        "step": null,
+        "lang_within": null,
+        "domain_learned": null,
+        "verdict": "не проверено",
+        "why": "нет точки на шаге ≥ 2444"
+      },
+      "verdict": "норма",
+      "checked": 1
+    },
+    "note": "первая точка — ранний сигнал: у руки C2 (тот же микс, LR×0.035) на шаге 500 было ×1.014/×1.044 и домен ниже базы; ступенька шага 500 — свойство высокого LR (ADR-030)"
+  },
+  "identity_proof": {
+    "requirement": "тождество прибора доказать числом: общая база 11.931923888, K1 7.504686374, K2 6.159936, домен 11.134115856; допуск ±1e-4",
+    "launch_run": {
+      "available": true,
+      "probe_dir": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-ppl-20260916-2149",
+      "report": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-ppl-20260916-2149/s500.json",
+      "numbers": {
+        "v3_general": {
+          "expected": 7.50468637420902,
+          "measured_base": 7.50468637420902,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        },
+        "k2_general": {
+          "expected": 6.1599356842437585,
+          "measured_base": 6.1599356842437585,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        },
+        "v1_general": {
+          "expected": 11.931923888434497,
+          "measured_base": 11.931923888434497,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        },
+        "v2_domain": {
+          "expected": 11.134115855539092,
+          "measured_base": 11.134115855539092,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        }
+      },
+      "all_within_1e-4": true,
+      "baseline_ok_verdicts": {
+        "s500": true
+      },
+      "rule": "базовые веса обязаны воспроизвести ожидаемые числа: иначе точка снята другим прибором или другим набором (ADR-029 п.4, ADR-031 п.4)"
+    },
+    "previous_run": {
+      "available": true,
+      "probe_dir": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-ppl-20260916-1933",
+      "report": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-ppl-20260916-1933/s500.json",
+      "numbers": {
+        "v3_general": {
+          "expected": 7.50468637420902,
+          "measured_base": 7.50468637420902,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        },
+        "k2_general": {
+          "expected": 6.1599356842437585,
+          "measured_base": 6.1599356842437585,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        },
+        "v1_general": {
+          "expected": 11.931923888434497,
+          "measured_base": 11.931923888434497,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0,
+          "within_1e-4": true
+        }
+      },
+      "all_within_1e-4": true,
+      "baseline_ok_verdicts": {
+        "s500": true,
+        "s1000": true,
+        "s1500": true,
+        "s2000": true,
+        "s2500": true,
+        "s3000": true
+      },
+      "rule": "базовые веса обязаны воспроизвести ожидаемые числа: иначе точка снята другим прибором или другим набором (ADR-029 п.4, ADR-031 п.4)"
+    }
+  },
+  "part1_stopped": {
+    "stopped_by": "ADR-031",
+    "stopped_at": "2026-09-16T18:48:06+00:00",
+    "stopped_at_step": 3141,
+    "purpose": "artifact \"цена высокого LR\"",
+    "run_dir": "/home/user/gb10-shared/full-cpt-20260916-1933",
+    "case_dir": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-20260916-1933",
+    "container": "laguna-full-cpt-20260916-1933-cpt",
+    "reason": "ADR-031 п.2 (протокол вмешательства ADR-016 п.2): конфигурация LR×0.35 строго доминируема — домен сопоставим (×0.384 против ×0.391, отношение 0.982), язык хуже в ×1.51 (K1) и ×1.66 (K2); стадия остановлена по решению, чекпойнты сохранены как артефакт «цена высокого LR», из каталога прогона ничего не удаляется",
+    "method": {
+      "marker": "/home/user/gb10-shared/full-cpt-20260916-1933/var/STOPPED",
+      "marker_text": "ADR-031 п.2 (протокол вмешательства ADR-016 п.2): конфигурация LR×0.35 строго доминируема — домен сопоставим (×0.384 против ×0.391, отношение 0.982), язык хуже в ×1.51 (K1) и ×1.66 (K2); стадия остановлена по решению, чекпойнты сохранены как артефакт «цена высокого LR», из каталога прогона ничего не удаляется\nПрогон: full-cpt-20260916-1933; остановка выполнена раннером tools/run_full_cpt.py --stop; ожидание точки: нет (точка 3500 не устоялась за 5 мин).\n",
+      "docker_stop": {
+        "command": "docker stop -t 120 laguna-full-cpt-20260916-1933-cpt",
+        "exit": 0,
+        "stdout": "laguna-full-cpt-20260916-1933-cpt",
+        "stderr": "",
+        "graceful": true
+      },
+      "hard_kill_used": false,
+      "point_wait": {
+        "waited": false,
+        "why": "точка 3500 не устоялась за 5 мин",
+        "from_step": 3002,
+        "target_step": 3500,
+        "checkpoint": {
+          "ckpt": "checkpoints/calib_checkpoint_3500.pt",
+          "size": 0,
+          "size_before": 0,
+          "settled": false,
+          "gap_s": 25
+        },
+        "seconds": 335.5
+      },
+      "protocol": "ADR-016 п.2: штатный путь цепочки (var/STOPPED + docker stop), не docker kill; из каталога прогона ничего не удалено"
+    },
+    "state_before": {
+      "host": "spark-44c3",
+      "ctr_running": "true",
+      "docker_line": "laguna-full-cpt-20260916-1933-cpt Up 2 hours",
+      "tmux": "full-cpt-20260916-1933: 1 windows (created Wed Sep 16 13:35:18 2026)",
+      "stage_status": "",
+      "stage_row": "",
+      "chain_status": "running",
+      "chain_pid": "1749816",
+      "stop_marker": "",
+      "trace_lines": "3003",
+      "trace_last": "{\"step\": 3002, \"loss\": 1.6195731163024902, \"lr\": 0.000175, \"t\": 1789583844.002525}",
+      "ckpts": "calib_checkpoint_1000.pt,calib_checkpoint_1500.pt,calib_checkpoint_2000.pt,calib_checkpoint_2500.pt,calib_checkpoint_3000.pt,calib_checkpoint_500.pt,run_manifest.json,",
+      "final_exists": "no",
+      "dir_exists": "yes",
+      "_ssh_rc": 0
+    },
+    "state_after": {
+      "host": "spark-44c3",
+      "ctr_running": "no",
+      "ctr_exists": "no",
+      "docker_line": "",
+      "tmux": "",
+      "stage_status": "stopped",
+      "stage_row": "stopped 2026-09-16T15:43:03-03:00 7665 - стоп-условие",
+      "chain_status": "stopped",
+      "chain_pid": "1749816",
+      "stop_marker": "ADR-031 п.2 (протокол вмешательства ADR-016 п.2): конфигурация LR×0.35 строго доминируема — домен сопоставим (×0.384 против ×0.391, отношение 0.982), язык хуже в ×1.51 (K1) и ×1.66 (K2); стадия остановлена по решению, чекпойнты сохранены как артефакт «цена высокого LR», из каталога прогона ничего не удаляется",
+      "trace_lines": "3142",
+      "trace_last": "{\"step\": 3141, \"loss\": 1.6121625900268555, \"lr\": 0.000175, \"t\": 1789584181.0350208}",
+      "ckpts": "calib_checkpoint_1000.pt,calib_checkpoint_1500.pt,calib_checkpoint_2000.pt,calib_checkpoint_2500.pt,calib_checkpoint_3000.pt,calib_checkpoint_500.pt,run_manifest.json,",
+      "final_exists": "no",
+      "dir_exists": "yes",
+      "_ssh_rc": 0
+    },
+    "artifacts_kept": {
+      "dir": "/home/user/gb10-shared/full-cpt-20260916-1933",
+      "files": {
+        "run_manifest.json": {
+          "bytes": 2063,
+          "sha256": "36b87a81ad3988cb5186529ceab88f944d5a56bff94374ca9dea1aaf8b7351f1",
+          "mtime": "2026-09-16T21:49:22+03:00"
+        },
+        "full_cpt_params.json": {
+          "bytes": 3986,
+          "sha256": "2a5eebbefb9966a1dc9294aa48dc4e4e9e4ca15a9ecef8ccabd517a355f536db",
+          "mtime": "2026-09-16T19:35:02+03:00"
+        },
+        "chain_command.txt": {
+          "bytes": 1594,
+          "sha256": "45d7f9f88bf3d35373cfed6c263e97ae726b26e6ebbe68afedb2c405b44fe565",
+          "mtime": "2026-09-16T19:35:03+03:00"
+        },
+        "stages.tsv": {
+          "bytes": 76,
+          "sha256": "c5d445cfa412536a17a029b0c70d9ff4f630954a327facbe6b2ebfe7f5816870",
+          "mtime": "2026-09-16T19:35:02+03:00"
+        },
+        "chain.log": {
+          "bytes": 3488,
+          "sha256": "5d018595262222b906104c79c022a841460dadaa67390e650096d25e7446ae41",
+          "mtime": "2026-09-16T21:43:03+03:00"
+        },
+        "pipeline_patch.json": {
+          "bytes": 704,
+          "sha256": "327dd4e97729fab167337345ce03f82a1943e83c931b2f5b778c16ed322a9caf",
+          "mtime": "2026-09-16T19:35:02+03:00"
+        },
+        "ship.json": {
+          "bytes": 1352,
+          "sha256": "555d5e1623296e057b818bf2697d0e9ab68ef60e98c0e403733085f19f773610",
+          "mtime": "2026-09-16T19:35:03+03:00"
+        },
+        "laguna_pipeline_calib.py": {
+          "bytes": 119810,
+          "sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+          "mtime": "2026-09-16T19:35:02+03:00"
+        },
+        "logs/loss_trace.jsonl": {
+          "bytes": 261325,
+          "sha256": "2f20cd521d1bc2216cdcab911c3cd0376b9c38d3bff3284c4af652b072fa0254",
+          "mtime": "2026-09-16T21:43:01+03:00"
+        },
+        "logs/cpt.log": {
+          "bytes": 9525,
+          "sha256": "0d1c1f9c28a98dbd2e8e606a714700e265ab43561da1d0ebfb6fd134a8eb0c61",
+          "mtime": "2026-09-16T21:43:03+03:00"
+        },
+        "var/chain.status": {
+          "bytes": 8,
+          "sha256": "f247a76b2893208aae7751dbf51f4c495efacfb6d9e743802870300f31ac45c8",
+          "mtime": "2026-09-16T21:43:03+03:00"
+        },
+        "var/status/cpt": {
+          "bytes": 65,
+          "sha256": "1a059ab610fbb6128e258b3128b6bd5df3602dd6ef93a70b6e752fb524779216",
+          "mtime": "2026-09-16T21:43:03+03:00"
+        },
+        "var/STOPPED": {
+          "bytes": 729,
+          "sha256": "59a41ebd060e3df92e701ca60568696e85615882f4cffd46d3d362a5d847e3ca",
+          "mtime": "2026-09-16T21:43:01+03:00"
+        }
+      },
+      "checkpoints": {
+        "calib_checkpoint_1000.pt": {
+          "bytes": 2963146899,
+          "mtime": "2026-09-16T20:16:20+03:00",
+          "sha256": "a1da383970196780aa5f2a395f565b19a4c93f011bff34284f74fc2b283c9ed8"
+        },
+        "calib_checkpoint_1500.pt": {
+          "bytes": 2963146899,
+          "mtime": "2026-09-16T20:36:33+03:00",
+          "sha256": "7bbb45cb907306bac06163f1b66ff4e6bdca66e369c4803cff925cab3e2aed2b"
+        },
+        "calib_checkpoint_2000.pt": {
+          "bytes": 2963146899,
+          "mtime": "2026-09-16T20:56:45+03:00",
+          "sha256": "f22feafd62a59fc5b0af8b2795df319e9bfe95f0345a02d559c6b0012ce41d4c"
+        },
+        "calib_checkpoint_2500.pt": {
+          "bytes": 2963146899,
+          "mtime": "2026-09-16T21:16:59+03:00",
+          "sha256": "54f724236474d15af44115a3e18c15ea51ae69c8d4999a5e37a299aa334a4bd4"
+        },
+        "calib_checkpoint_3000.pt": {
+          "bytes": 2963146899,
+          "mtime": "2026-09-16T21:37:18+03:00",
+          "sha256": "9f58091a6a2aa54033d32ca9aa052bfa0658f7d2194759c9dab832e3b2798733"
+        },
+        "calib_checkpoint_500.pt": {
+          "bytes": 2963145733,
+          "mtime": "2026-09-16T19:56:02+03:00",
+          "sha256": "53575f64a2c414ef45a20e664bb647f87f9a0b0473c12e2a9567804490d62c87"
+        }
+      },
+      "bytes": {
+        "files": 404725,
+        "checkpoints": 17778880228
+      },
+      "hash_checkpoints": true,
+      "count": {
+        "files": 13,
+        "checkpoints": 6
+      }
+    },
+    "manifest_note": {
+      "/home/user/gb10-shared/full-cpt-20260916-1933/run_manifest.json": {
+        "ok": true,
+        "detail": "пометка stop добавлена, статус cpt=stopped"
+      },
+      "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-20260916-1933/run_manifest.json": {
+        "ok": true,
+        "detail": "пометка stop добавлена, статус cpt=stopped"
+      }
+    },
+    "loss_trace": {
+      "file": "/home/user/gb10-shared/full-cpt-20260916-1933/logs/loss_trace.jsonl",
+      "exists": true,
+      "lines": 3142,
+      "parsed": 3142,
+      "unparsable_lines": [],
+      "first_step": 0,
+      "last_step": 3141,
+      "monotone": true,
+      "intact": true
+    },
+    "record_updated_at": "2026-09-16T18:54:12+00:00",
+    "record_updates": [
+      "2026-09-16T18:49:22+00:00",
+      "2026-09-16T18:54:12+00:00"
+    ],
+    "record_file": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms/кейсы/laguna-compact/runs/full-cpt-20260916-1933/stopped.json"
+  },
+  "stopped_run_trend": {
+    "schema": "adr030-trend/1",
+    "date": "2026-09-16T19:16:08+00:00",
+    "steps": 9776,
+    "ceiling": {
+      "K1": 2.0,
+      "K2": 2.0,
+      "DOMAIN": 1.0,
+      "base": {
+        "K1": 7.50468637420902,
+        "K2": 6.1599356842437585,
+        "DOMAIN": null
+      },
+      "note": "K1/K2 — потолок 2× базы (ADR-022 п.3б); домен — «выучен» при × базы < 1 (ADR-031 п.4)"
+    },
+    "rows": [
+      {
+        "point": "s500",
+        "step": 500,
+        "K1": 2.4488,
+        "K1_limit": 2.0,
+        "K1_within": false,
+        "K2": 2.5898,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      },
+      {
+        "point": "s1000",
+        "step": 1000,
+        "K1": 2.1938,
+        "K1_limit": 2.0,
+        "K1_within": false,
+        "K2": 2.4489,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      },
+      {
+        "point": "s1500",
+        "step": 1500,
+        "K1": 2.1111,
+        "K1_limit": 2.0,
+        "K1_within": false,
+        "K2": 2.3667,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      },
+      {
+        "point": "s2000",
+        "step": 2000,
+        "K1": 1.9929,
+        "K1_limit": 2.0,
+        "K1_within": true,
+        "K2": 2.2512,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      },
+      {
+        "point": "s2500",
+        "step": 2500,
+        "K1": 2.1084,
+        "K1_limit": 2.0,
+        "K1_within": false,
+        "K2": 2.3873,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      },
+      {
+        "point": "s3000",
+        "step": 3000,
+        "K1": 1.8702,
+        "K1_limit": 2.0,
+        "K1_within": true,
+        "K2": 2.1715,
+        "K2_limit": 2.0,
+        "K2_within": false,
+        "DOMAIN": null,
+        "DOMAIN_limit": 1.0,
+        "DOMAIN_within": null,
+        "lang_measured": true,
+        "lang_within": false,
+        "domain_learned": null
+      }
+    ],
+    "alarms": [
+      {
+        "kind": "тревога",
+        "at": "s2000",
+        "step": 2000,
+        "why": "точка выше потолка, следующая не лучше предыдущей",
+        "ratios": {
+          "K1": 1.9929,
+          "K2": 2.2512
+        },
+        "next": {
+          "point": "s2500",
+          "step": 2500,
+          "K1": 2.1084,
+          "K2": 2.3873
+        }
+      }
+    ],
+    "stop_condition": null,
+    "first_quarter": {
+      "step_required": 2444,
+      "point": "s2500",
+      "step": 2500,
+      "lang_within": false,
+      "domain_learned": null,
+      "verdict": "НАРУШЕН",
+      "why": "к концу первой четверти конъюнкция не в потолке — ADR-030 п.5: это не ступенька, стадия останавливается по протоколу ADR-016"
+    },
+    "verdict": "ТРЕВОГА",
+    "checked": 6
+  },
+  "only_lr_changed": {
+    "params_compared": [
+      "mix",
+      "replay_share_pct",
+      "model",
+      "seed",
+      "max_len",
+      "max_samples",
+      "cpt_steps",
+      "cpt_batch",
+      "ckpt_every",
+      "cpt_data_ctr",
+      "cpt_dataset_host",
+      "corpus_label",
+      "attn",
+      "pipeline_base_sha256"
+    ],
+    "param_diffs": {},
+    "pipeline_sha256": {
+      "stopped": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "launched": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "same": true,
+      "same_as_calib_arms": true
+    },
+    "corpus_shape": {
+      "stopped": [
+        9776,
+        8192
+      ],
+      "launched": [
+        9776,
+        8192
+      ],
+      "same": true
+    },
+    "chain_command": {
+      "differing_positions": [
+        {
+          "i": 29,
+          "stopped": "peak_lr_scale=0.35",
+          "launched": "peak_lr_scale=0.035"
+        },
+        {
+          "i": 63,
+          "stopped": "0.35",
+          "launched": "0.035"
+        }
+      ],
+      "same_length": true,
+      "n_diff": 2,
+      "normalized": "из строк убраны имя каталога прогона и хеш раннера"
+    },
+    "lr": {
+      "stopped": 0.35,
+      "launched": 0.035
+    },
+    "runner_sha12": {
+      "stopped": "b90b2caa7c4c",
+      "launched": "2284c4ee584c",
+      "why": "раннер — инструмент, а не конфигурация: в этой дельте он получил остановку по ADR-016 и параметр пика LR; пайплайн, микс, сид, образ и число шагов при этом не менялись"
+    },
+    "verdict": "изменён только peak_lr_scale"
+  },
+  "part2_launched": {
+    "run": {
+      "dir": "/home/user/gb10-shared/full-cpt-20260916-2149",
+      "ctr_dir": "/workspace/shared/full-cpt-20260916-2149",
+      "case_dir": "runs/full-cpt-20260916-2149",
+      "command": "bash /home/user/gb10-shared/full-cpt-20260916-2149/pilot_chain.sh --run-dir /home/user/gb10-shared/full-cpt-20260916-2149 --ctr-run-dir /workspace/shared/full-cpt-20260916-2149 --stages-file /home/user/gb10-shared/full-cpt-20260916-2149/stages.tsv --exp-base full-cpt-20260916-2149 --ctr-prefix laguna-full-cpt-20260916-2149 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/full-cpt-20260916-2149/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/full-cpt-20260916-2149/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_full_cpt.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.035 --extra-hyperparam corpus=v12r --extra-hyperparam cpt_steps=9776 --guard /home/user/gb10-shared/full-cpt-20260916-2149/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/full-cpt-20260916-2149/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/full-cpt-20260916-2149/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 2284c4ee584c --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.035 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 30",
+      "session": "full-cpt-20260916-2149",
+      "mixin": "v12r (75/25, заморожен ADR-003)",
+      "peak_lr_scale": 0.035,
+      "replay_share_pct": 25,
+      "steps": 9776,
+      "steps_source": "ADR-008: «CPT на корпусе v12r: 9776 чанков / batch 1 = 9776 шагов × 2.569 с = 7.0 ч на сид» (бюджет стадии); то же значение — в runs/pilot-compact-s42-20260914-1626/pilot_run.json, stages[cpt].steps",
+      "steps_check": {
+        "ok": true,
+        "cache": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "shape": [
+          9776,
+          8192
+        ],
+        "chunks": 9776,
+        "steps": 9776,
+        "why": "форма совпала с числом шагов: один проход по корпусу"
+      },
+      "seed": 42,
+      "model": "Qwen/Qwen2.5-0.5B",
+      "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "ckpt_every": 500,
+      "pipeline": {
+        "file": "laguna_pipeline_calib.py",
+        "sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+        "same_as_calib_arms": true
+      },
+      "launched_at": "2026-09-16T21:50:02+03:00",
+      "launch_mechanism": "tmux-сессия на стенде + setsid nohup (переживает смерть агента)",
+      "evidence_of_start": {
+        "session": "full-cpt-20260916-2149",
+        "tmux": "full-cpt-20260916-2149: 1 windows (created Wed Sep 16 15:50:02 2026)",
+        "containers": [
+          "laguna-full-cpt-20260916-2149-cpt\tUp 26 minutes"
+        ],
+        "log_bytes": 2891,
+        "status_row": null,
+        "loss_trace_lines": 637,
+        "last_step": 635,
+        "seconds": 2.8
+      }
+    },
+    "ship": {
+      "ok": true,
+      "files": 9,
+      "mismatched": [],
+      "checked_from": "ssh gb10-fast — /home/user/gb10-shared/full-cpt-20260916-2149 (хостовый путь того же файла; в контейнере он же /workspace/shared/full-cpt-20260916-2149)",
+      "detail": "все файлы доставлены, sha256 совпал со стороны стенда"
+    },
+    "checkpoints": {
+      "listing_tail": [
+        "итого 2893716",
+        "drwxrwxr-x 2 roman roman       4096 сен 16 16:10 .",
+        "drwxrwxr-x 6 roman roman       4096 сен 16 16:13 ..",
+        "-rw-r--r-- 1 root  root  2963145733 сен 16 16:10 calib_checkpoint_500.pt",
+        "-rw-r--r-- 1 root  root         892 сен 16 15:50 run_manifest.json"
+      ]
+    },
+    "loss_trace": {
+      "file": "/home/user/gb10-shared/full-cpt-20260916-2149/logs/loss_trace.jsonl",
+      "lines": 637,
+      "last_step": 636,
+      "last_loss": 2.7440173625946045,
+      "last_lr": 1.7500000000000002e-05,
+      "note": "судить по траектории (ADR-022 п.4), а не по сводке по окнам"
+    },
+    "manifest": {
+      "dataset_path": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+      "base_model_id": "Qwen/Qwen2.5-0.5B",
+      "pipeline_path": "runs/full-cpt-20260916-2149/laguna_pipeline_calib.py",
+      "pipeline_version": "laguna_pipeline_calib.py@1571cbd1043d",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+      "seed": 42,
+      "stages": [
+        {
+          "name": "cpt",
+          "status": "running"
+        }
+      ],
+      "pipeline_complete": false,
+      "arch_base_version": "e7d2d89",
+      "created_at": "2026-09-16T18:49:43+00:00",
+      "run_version": "tools/run_full_cpt.py@2284c4ee584c",
+      "hyperparameters": {
+        "replay_share_pct": 25,
+        "peak_lr_scale": 0.035,
+        "cpt_steps": 9776,
+        "corpus": "v12r",
+        "ckpt_every": 500
+      },
+      "hyperparameters_source": "full_cpt_params.json прогона (фактический запуск цепочки)"
+    }
+  },
+  "probe_plan": {
+    "every_steps": 500,
+    "components": [
+      "K1",
+      "K2",
+      "DOMAIN"
+    ],
+    "sets": {
+      "K1": "datasets/general_eval_v3.txt",
+      "K2": "datasets/general_eval_k2.txt",
+      "DOMAIN": "datasets/domain_eval_v2.txt (ADR-031 п.4 — решающий доменный набор; domain_eval.txt из 5 документов не усредняется с ним)",
+      "reference": "datasets/general_eval.txt (опорно: тождество прибора)"
+    },
+    "tool": "tools/calib_ppl_probe.py (методика tools/ppl_probe.py:measure)",
+    "instrument_sha256": {
+      "ppl_probe.py": {
+        "path": "tools/ppl_probe.py",
+        "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+      },
+      "calib_ppl_probe.py": {
+        "path": "tools/calib_ppl_probe.py",
+        "sha256": "d6082bdeb3185e82be7d75d3141c3349db65ddeae2c22464919166f3a6a116df"
+      }
+    },
+    "where": "локальная машина (RTX 4080) — стенд занят обучением (AD-5); обучение на 4080 не запускается",
+    "identity_numbers": {
+      "v1_general": {
+        "value": 11.931923888434497,
+        "source": "эталон S3h (evidence/ppl-baseline-v1v2.json, ppl.v1_general) — число, к которому сверяется прибор"
+      },
+      "v2_domain": {
+        "value": 11.134115855539092,
+        "source": "эталон S3h (ppl.v2_domain) — тот же эталон, набор домена"
+      },
+      "v3_general": {
+        "value": 7.50468637420902,
+        "source": "базовое состояние прибора в отчётах точек (states.base.sets.v3_general.ppl) — число, которым мерены точки K1; в S3h набора v3 нет (он добавлен позже, ADR-025)"
+      },
+      "k2_general": {
+        "value": 6.1599356842437585,
+        "source": "базовое состояние прибора в отчётах точек (states.base.sets.k2_general.ppl) — число, которым мерены точки K2; в S3h набора k2 нет (он добавлен позже, ADR-027)"
+      },
+      "tolerance": "±1e-4 (относительное расхождение базовых чисел, требование дельты); сторож проверяет с запасом — 1e-3, и печатает вердикт baseline_ok на каждой точке; достигнутое расхождение — в identity_proof"
+    },
+    "watcher": {
+      "state": {
+        "probe_dir": "/home/user/gb10-shared/full-cpt-ppl-20260916-2149",
+        "sets": [
+          "v1_general",
+          "v3_general",
+          "k2_general",
+          "v2_domain"
+        ],
+        "components": {
+          "K1": "v3_general",
+          "K2": "k2_general",
+          "DOMAIN": "v2_domain"
+        },
+        "every_steps": 500,
+        "measured": [
+          "s500"
+        ],
+        "measured_count": 1,
+        "ratios": {
+          "s500": {
+            "K1@s500": 1.0142,
+            "K2@s500": 1.0442,
+            "DOMAIN@s500": 0.4199,
+            "K1@base_untouched": 1.0,
+            "K2@base_untouched": 1.0,
+            "DOMAIN@base_untouched": 1.0
+          }
+        },
+        "baseline_ok": true
+      },
+      "command": "setsid nohup python3 tools/full_cpt_probe.py --ts 20260916-2149 --watch --poll 120 --max-hours 11 >> runs/full-cpt-ppl-20260916-2149/watch.log 2>&1 < /dev/null &",
+      "log": "runs/full-cpt-ppl-20260916-2149/watch.log"
+    },
+    "points": [
+      {
+        "name": "s500",
+        "step": 500,
+        "ckpt": "checkpoints/calib_checkpoint_500.pt"
+      },
+      {
+        "name": "s1000",
+        "step": 1000,
+        "ckpt": "checkpoints/calib_checkpoint_1000.pt"
+      },
+      {
+        "name": "s1500",
+        "step": 1500,
+        "ckpt": "checkpoints/calib_checkpoint_1500.pt"
+      },
+      {
+        "name": "s2000",
+        "step": 2000,
+        "ckpt": "checkpoints/calib_checkpoint_2000.pt"
+      },
+      {
+        "name": "s2500",
+        "step": 2500,
+        "ckpt": "checkpoints/calib_checkpoint_2500.pt"
+      },
+      {
+        "name": "s3000",
+        "step": 3000,
+        "ckpt": "checkpoints/calib_checkpoint_3000.pt"
+      },
+      {
+        "name": "s3500",
+        "step": 3500,
+        "ckpt": "checkpoints/calib_checkpoint_3500.pt"
+      },
+      {
+        "name": "s4000",
+        "step": 4000,
+        "ckpt": "checkpoints/calib_checkpoint_4000.pt"
+      },
+      {
+        "name": "s4500",
+        "step": 4500,
+        "ckpt": "checkpoints/calib_checkpoint_4500.pt"
+      },
+      {
+        "name": "s5000",
+        "step": 5000,
+        "ckpt": "checkpoints/calib_checkpoint_5000.pt"
+      },
+      {
+        "name": "s5500",
+        "step": 5500,
+        "ckpt": "checkpoints/calib_checkpoint_5500.pt"
+      },
+      {
+        "name": "s6000",
+        "step": 6000,
+        "ckpt": "checkpoints/calib_checkpoint_6000.pt"
+      },
+      {
+        "name": "s6500",
+        "step": 6500,
+        "ckpt": "checkpoints/calib_checkpoint_6500.pt"
+      },
+      {
+        "name": "s7000",
+        "step": 7000,
+        "ckpt": "checkpoints/calib_checkpoint_7000.pt"
+      },
+      {
+        "name": "s7500",
+        "step": 7500,
+        "ckpt": "checkpoints/calib_checkpoint_7500.pt"
+      },
+      {
+        "name": "s8000",
+        "step": 8000,
+        "ckpt": "checkpoints/calib_checkpoint_8000.pt"
+      },
+      {
+        "name": "s8500",
+        "step": 8500,
+        "ckpt": "checkpoints/calib_checkpoint_8500.pt"
+      },
+      {
+        "name": "s9000",
+        "step": 9000,
+        "ckpt": "checkpoints/calib_checkpoint_9000.pt"
+      },
+      {
+        "name": "s9500",
+        "step": 9500,
+        "ckpt": "checkpoints/calib_checkpoint_9500.pt"
+      },
+      {
+        "name": "s9776",
+        "step": 9776,
+        "ckpt": "checkpoints/checkpoint_final.pt"
+      }
+    ],
+    "rule": "ADR-030: тревога — точка выше потолка и следующая не лучше; остановка — рост на трёх точках подряд выше потолка; контроль первой четверти — к шагу 2500 конъюнкция K1 ∧ K2 и домен обязаны быть в потолке (считает сторож: tools/full_cpt_probe.py --trend --ts 20260916-2149)"
+  },
+  "how_to_fetch": [
+    "прогресс стадии: ssh gb10-fast 'tail -3 /home/user/gb10-shared/full-cpt-20260916-2149/logs/loss_trace.jsonl; cat /home/user/gb10-shared/full-cpt-20260916-2149/var/status/cpt'",
+    "живость цепочки: ssh gb10-fast 'tmux ls; docker ps | grep full-cpt-20260916-2149'",
+    "цепочка целиком (руками): bash /home/user/gb10-shared/full-cpt-20260916-2149/pilot_chain.sh --run-dir /home/user/gb10-shared/full-cpt-20260916-2149 --ctr-run-dir /workspace/shared/full-cpt-20260916-2149 --stages-file /home/user/gb10-shared/full-cpt-20260916-2149/stages.tsv --exp-base full-cpt-20260916-2149 --ctr-prefix laguna-full-cpt-20260916-2149 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/full-cpt-20260916-2149/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/full-cpt-20260916-2149/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_full_cpt.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.035 --extra-hyperparam corpus=v12r --extra-hyperparam cpt_steps=9776 --guard /home/user/gb10-shared/full-cpt-20260916-2149/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/full-cpt-20260916-2149/smoke_mem_sampler.sh --sampler-seconds 32400 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/full-cpt-20260916-2149/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 2284c4ee584c --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.035 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 30",
+    "замеры K1/K2/домен: журнал runs/full-cpt-ppl-20260916-2149/state.json; отчёты — /home/user/gb10-shared/full-cpt-ppl-20260916-2149/<точка>.json",
+    "тренд по ADR-030: python3 tools/full_cpt_probe.py --trend --ts 20260916-2149",
+    "забрать манифест и логи в кейс: ssh gb10-fast 'cat /home/user/gb10-shared/full-cpt-20260916-2149/run_manifest.json' > runs/full-cpt-20260916-2149/run_manifest.json",
+    "артефакт «цена высокого LR»: runs/full-cpt-20260916-1933/stopped.json и /home/user/gb10-shared/full-cpt-20260916-1933/ (чекпойнты 500…2500/3000 не удалены)",
+    "судить стадию по конъюнкции (ADR-027/ADR-031): на каждой точке K1/K2 ≤ 2× своей базы (K1 15.009373, K2 12.319871), домен × базы < 1 — числа точек в отчётах сторожа"
+  ],
+  "artifacts": [
+    "runs/full-cpt-20260916-2149/ (манифест AD-2, параметры, строка запуска, ship.json, копия пайплайна, HANDOFF.md)",
+    "/home/user/gb10-shared/full-cpt-20260916-2149/ (чекпойнты и логи — на сетевом диске, AD-4)",
+    "runs/full-cpt-ppl-20260916-2149/ (журнал и зеркала отчётов замеров)",
+    "runs/full-cpt-20260916-1933/stopped.json — запись остановки (если --previous-ts)",
+    "runs/full-cpt-ppl-20260916-1933/trend.json — правило ADR-030 по точкам остановленного прогона (тревога + контроль первой четверти), runs/full-cpt-ppl-20260916-2149/trend.json — то же для идущего"
+  ],
+  "invariants": {
+    "AD-2": "run_manifest.json с хешем датасета (полный файл), версией пайплайна, образом, сидом — на первом шаге; пометка остановки — в манифесте остановленного прогона",
+    "AD-4": "данные и веса — на gb10-shared; в каталоге прогона только копии текстов и симлинк datasets у пробы",
+    "AD-5": "на GB10 одна тренировочная нагрузка; замеры PPL идут на локальной карте, обучение на 4080 не запускается",
+    "ADR-027": "компоненты меры не смешиваются: K1, K2 и домен считаются и публикуются раздельно",
+    "ADR-030": "правило промежуточных точек: тревога по тренду, остановка по росту на трёх точках, контроль первой четверти — вынесено в сторожа (--trend)",
+    "ADR-031": "пик LR — ×0.035; остановка LR×0.35 корректна (не docker kill), артефакты целы",
+    "ADR-016 п.2": "остановка — штатным путём цепочки (маркер var/STOPPED + docker stop); правки в каталог прогона не вносились под живым читателем",
+    "ADR-023 п.11": "долгоживущий прогон: подтверждён старт, ожидания завершения нет"
+  },
+  "assumptions": [
+    "Маркер var/STOPPED прочитан как **объявленный канал управления**, а не как «правка под живой цепочкой» (запрет ADR-016 R2 назван для файлов-входов: stages.tsv, pilot_chain.sh, check_resource_owner.sh). Основание: этот файл штатно создаёт собственный страж цепочки в trip(), и цепочка на него реагирует статусом stopped — то есть это интерфейс остановки, а не обход правила. Запись сделана до docker stop, чтобы цепочка записала именно stopped, а не failed.",
+    "«Дать цепочке завершить текущий шаг/точку» прочитано как «дождаться ближайшей точки замера (шаг, кратный 500) и её устоявшегося файла чекпойнта»: это снимает риск усечённого файла (2.9 ГБ пишутся секундами) и оставляет ещё одну полную точку в артефакте. Ожидание ограничено по времени и при неистечении фиксируется как факт.",
+    "«В потолке» для домен-метрики прочитано по ADR-031 п.4 как «домен выучен» (× базы < 1), а не как потолок 2× базы: 2× для домена — это полоса сопоставимости конфигураций, а не признак выученности.",
+    "Замеры идут на локальной карте (4080), а не в контейнере стенда: TASK резервирует 4080 под замеры PPL, а замер в контейнере спорил бы с обучением за память (AD-5)."
+  ],
+  "open_questions": [
+    "Профиль LR перенесён с 2000 шагов калибровки на бюджет 9776 шагов (названное допущение ADR-031 п.5): поведение низкого LR на длине не измерено — возможен более медленный выход на плато по домену. Точки 500…9776 дают ранний ответ на это.",
+    "Порог остановки стадии по промежуточной точке теперь механический (ADR-030 правило в сторожe), но порог для ПРОМЕЖУТОЧНОЙ точки по домену числом не назван: ADR-031 п.4 даёт «× базы < 1 = выучен», но не говорит, что делать, если домен растёт (хуже) на трёх точках подряд — правило ADR-030 п.4 сформулировано для конъюнкции языка."
+  ]
+}

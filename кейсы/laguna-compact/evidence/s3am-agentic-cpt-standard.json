@@ -1,0 +1,1244 @@
+{
+  "stage": "S3j-2",
+  "date": "2026-09-18T12:45:13+00:00",
+  "purpose": "честное сравнение пулов v1 и v2 на ОДНОМ обученном чекпойнте: отделить свойство пула от силы модели (в S3j пул v2 мерился базовой моделью, а ориентир ADR-010 снят на SFT — сравнивались модели)",
+  "status": "complete",
+  "stand": {
+    "host": "local-rtx4080s",
+    "gpu": "RTX 4080 SUPER 16GB",
+    "gpu_note": "GB10 не задействован; gb10-shared — чтение чекпойнта и пулов",
+    "inference": "transformers (vLLM на стенде нет)"
+  },
+  "checkpoint": {
+    "path": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+    "sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+    "bytes": 2963141069,
+    "n_tensors": 291,
+    "vocab_in_checkpoint": 151671,
+    "vocab_model": 151671,
+    "vocab_tokenizer": 151671,
+    "resized_on_load": false,
+    "init_special_tokens_subtoken": false,
+    "has_optimizer_state": true,
+    "loader": "transformers AutoModelForCausalLM + laguna_pipeline_v8._load_ckpt_with_resize (семантика контура, не копия)",
+    "load_verification": {
+      "tensors_compared": 291,
+      "tensors_in_checkpoint": 291,
+      "compared_as_resized_prefix": 0,
+      "mismatches": 0,
+      "max_abs_diff": 0.0,
+      "mismatch_keys": [],
+      "note": "max_abs_diff = 0 означает побитовое совпадение загруженных весов с файлом чекпойнта (bf16 → bf16 копия); для словаря, выросшего при resize, сверяется перенесённый префикс строк"
+    }
+  },
+  "protocol": {
+    "harness": "transformers (цикл на KV-кэше, логиты только последней позиции)",
+    "system_prompt": "UNIFIED_SYSTEM_PROMPT (laguna_pipeline_v8.py)",
+    "tool": "search_concepts (импорт из пайплайна)",
+    "verifier": "verify_task (импорт из пайплайна), кредит бинарный (AD-11)",
+    "max_turns": 5,
+    "max_new_tokens": 4096,
+    "temperature": 1.0,
+    "top_k": 20,
+    "decoding": {
+      "mode": "sample_T1_topk20_nogram4",
+      "no_repeat_ngram": 4,
+      "temperature": 1.0,
+      "top_k": 20,
+      "default_mode": "sample (temperature 1, top_k 20) + запрет повторов 4-грамм",
+      "standard_no_repeat_ngram": 4,
+      "no_repeat_ngram_requested": null,
+      "standard": true,
+      "legacy_decoding": false,
+      "source": "умолчание прибора (STANDARD_NO_REPEAT_NGRAM)",
+      "allowed_for_conclusions": true,
+      "all_banned_fallbacks": 0,
+      "all_banned_fallbacks_note": "сколько раз запрет снимался сам, потому что запрещёнными оказывались все токены словаря (в норме 0; ненулевое значение — запрет не подействовал и это названо, а не замолчано)",
+      "rules": {
+        "same_mode_as_language": "язык, формат и агентность меряются одним режимом: запрет 4-грамм включён во всех пробах стадии (ADR-041 п.1)",
+        "ban_is_fairseq_rule": "запрет — правило fairseq/transformers (NoRepeatNGramLogitsProcessor): запрещён токен T, если n-грамма «последние n−1 токенов + T» уже встречалась (включая промпт)",
+        "legacy_is_for_identity": "--legacy-decoding существует для воспроизведения прежних чисел (45.1 % = 158/350), а не для новых выводов"
+      }
+    },
+    "no_repeat_ngram": 4,
+    "decoding_note": "штатный режим стадии — запрет повторов 4-грамм при параметрах контура (ADR-041): язык, формат и агентность обязаны мериться одним режимом, иначе критерий стадии собирается из несопоставимых чисел",
+    "stop": [
+      "</tool_call>",
+      "<|im_end|>"
+    ],
+    "prefill": "<think>\\n",
+    "toolcall_force": false,
+    "n_attempts": 1,
+    "pass_at_k": false,
+    "seed": 42,
+    "diagnose": 25,
+    "diagnose_seed": 42,
+    "batch": 32,
+    "weights": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+    "weights_kind": "sft_checkpoint",
+    "tokenizer": "Qwen/Qwen2.5-0.5B",
+    "special_tokens": [
+      "<think>",
+      "</think>",
+      "<tool_call>",
+      "</tool_call>",
+      "<tool_response>",
+      "</tool_response>",
+      "<reasoning>",
+      "</reasoning>"
+    ],
+    "checkpoint_path": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+    "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+    "init_special_tokens_subtoken": false,
+    "rng_note": "поток RNG не совпадает с vLLM RL-прогона: сопоставимы агрегаты, не построчные траектории"
+  },
+  "pools": {
+    "v1": {
+      "pool_name": "v1",
+      "path": "datasets/rl_tasks_revpool_v1.jsonl",
+      "sha256": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3",
+      "lines": 27992,
+      "by_task_type": {
+        "compare_concepts": 5000,
+        "explain_relation": 19992,
+        "multi_hop_search": 3000
+      },
+      "strata": {
+        "compare_concepts": {
+          "in_pool": 5000,
+          "taken": 50,
+          "seed": 42
+        },
+        "explain_relation": {
+          "in_pool": 19992,
+          "taken": 50,
+          "seed": 42
+        },
+        "multi_hop_search": {
+          "in_pool": 3000,
+          "taken": 50,
+          "seed": 42
+        }
+      },
+      "n_taken": 150,
+      "by_type": [
+        {
+          "task_type": "compare_concepts",
+          "n": 50,
+          "n_pass": 1,
+          "in_pool": 5000,
+          "pass_rate": 0.02,
+          "pass_rate_ci95": [
+            0.0035,
+            0.105
+          ],
+          "dead_share": 0.98,
+          "trivial_share": 0.02,
+          "median_turns": 1.0,
+          "mean_turns": 1.88,
+          "timeout_share": 0.0,
+          "tool_error_share": 0.48,
+          "tool_call_share": 0.48,
+          "mean_answer_chars": 4607.4,
+          "reward_mean": -0.054,
+          "zero_reward_share": 0.0,
+          "dead_by_construction_share": 0.0
+        },
+        {
+          "task_type": "explain_relation",
+          "n": 50,
+          "n_pass": 6,
+          "in_pool": 19992,
+          "pass_rate": 0.12,
+          "pass_rate_ci95": [
+            0.0562,
+            0.2381
+          ],
+          "dead_share": 0.88,
+          "trivial_share": 0.12,
+          "median_turns": 1.0,
+          "mean_turns": 1.72,
+          "timeout_share": 0.0,
+          "tool_error_share": 0.44,
+          "tool_call_share": 0.44,
+          "mean_answer_chars": 4709.5,
+          "reward_mean": 0.052,
+          "zero_reward_share": 0.0,
+          "dead_by_construction_share": 0.0
+        },
+        {
+          "task_type": "multi_hop_search",
+          "n": 50,
+          "n_pass": 0,
+          "in_pool": 3000,
+          "pass_rate": 0.0,
+          "pass_rate_ci95": [
+            0.0,
+            0.0714
+          ],
+          "dead_share": 1.0,
+          "trivial_share": 0.0,
+          "median_turns": 1.5,
+          "mean_turns": 1.94,
+          "timeout_share": 0.02,
+          "tool_error_share": 0.48,
+          "tool_call_share": 0.5,
+          "mean_answer_chars": 6083.9,
+          "reward_mean": -0.081,
+          "zero_reward_share": 0.02,
+          "dead_by_construction_share": 0.0
+        }
+      ],
+      "overall": {
+        "n": 150,
+        "n_pass": 7,
+        "pass_rate": 0.0467,
+        "pass_rate_ci95": [
+          0.0228,
+          0.0932
+        ],
+        "dead_share": 0.9533,
+        "trivial_share": 0.0467,
+        "median_turns": 1.0,
+        "tool_error_share": 0.4667,
+        "tool_call_share": 0.4733,
+        "timeout_share": 0.0067,
+        "dead_by_construction_share": 0.0,
+        "zero_reward_share": 0.0067,
+        "reward_mean": -0.0277
+      },
+      "band": {
+        "low": 0.25,
+        "high": 0.8,
+        "measure": "type-level (n_attempts=1)",
+        "types_in_band": [],
+        "tasks_in_band_types": 0,
+        "tasks_total": 150,
+        "in_band_tasks_share": 0.0,
+        "dead_tasks": 143,
+        "trivial_tasks": 7,
+        "note": "полоса названа для агрегата по типу задачи: одна попытка на задачу не даёт per-task оценки вероятности (passk-identifiability, ADR-006)"
+      },
+      "vs_anchor_v1": {
+        "pass_rate_delta": -0.342,
+        "zero_reward_share_delta": -0.4996,
+        "comparable": false,
+        "why_not_comparable": "ориентир снят в vLLM-прогоне RL-разведки, здесь — цикл на transformers с одной попыткой на задачу: модель того же семейства (SFT-чекпойнт), но другой инструмент и другой поток RNG — сопоставимы агрегаты, не построчные траектории",
+        "reading": "pass-rate ниже ориентира означает, что пул не выродился в тривиальный: награду есть за что давать, и она ещё не взята"
+      },
+      "vs_anchor_base_v2": {
+        "pass_rate_delta": 0.0177,
+        "comparable": true,
+        "why": "тот же пул v2 и тот же инструмент, но другая модель (SFT-чекпойнт против базы) — это и есть величина, которую S3j-2 отделяет от свойства пула",
+        "reading": "фигура «пул v2 мёртв» из S3j снята на базовой модели; если на обученном чекпойнте pass-rate выше, мёртвой была модель, а не пул"
+      },
+      "pool_audit": {
+        "n": 27992,
+        "dead_by_construction": 0,
+        "dead_by_construction_share": 0.0,
+        "by_task_type": {
+          "explain_relation": {
+            "n": 19992,
+            "dead_by_construction": 0,
+            "reasons": {}
+          },
+          "compare_concepts": {
+            "n": 5000,
+            "dead_by_construction": 0,
+            "reasons": {}
+          },
+          "multi_hop_search": {
+            "n": 3000,
+            "dead_by_construction": 0,
+            "reasons": {}
+          }
+        },
+        "definition": "задача считается мёртвой по построению, если верификатор не может выдать 1 ни на каком ответе: нет проверяемой строки (slug-ветка), оба определения пусты (explain_relation) или после стоп-фильтра не осталось значимых keyword-ов (compare_concepts); пороги — из verify_task, а не свои"
+      },
+      "sha256_note": "пул не менялся за время пробы",
+      "run_dir": "v1",
+      "raw_records": "tasks.jsonl",
+      "measurements": {
+        "wall_seconds": 1283.8,
+        "seconds_per_task": 8.56,
+        "nogram_all_banned_fallbacks": 0
+      },
+      "diagnosis": {
+        "sampled": 25,
+        "n_failed": 143,
+        "n_taken_total": 150,
+        "seed": 42,
+        "class_counts": {
+          "a_no_tool_call": 25,
+          "d_cutoff": 0,
+          "b_no_checkable_values": 0,
+          "c_wrong_values": 0
+        },
+        "class_share_of_sampled": {
+          "a_no_tool_call": 1.0,
+          "d_cutoff": 0.0,
+          "b_no_checkable_values": 0.0,
+          "c_wrong_values": 0.0
+        },
+        "class_definitions": {
+          "a_no_tool_call": "модель не вызвала инструмент",
+          "d_cutoff": "обрыв/лимит ходов (потолок ходов или защита контекста)",
+          "b_no_checkable_values": "инструмент вызван, но ответ не содержит проверяемых значений",
+          "c_wrong_values": "проверяемые значения есть, но не те"
+        },
+        "precedence": "порядок разбора: (а) нет вызова инструмента → (г) обрыв/лимит → (б) нечего проверять (coverage=0) → (в) проверяемое есть, но не то; класс считается по keyword_coverage из пайплайна, не своей арифметикой",
+        "examples": {
+          "a_no_tool_call": [
+            {
+              "task_index": 3309,
+              "task_type": "explain_relation",
+              "source_env": null,
+              "prompt": "Объясни связь между концептами 'asymmetric_degradation' и 'over_simplified_failure_case'. Как они соотносятся?",
+              "required": {
+                "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+                "concepts": [
+                  "asymmetric_degradation",
+                  "over_simplified_failure_case"
+                ],
+                "thresholds": [
+                  3,
+                  3
+                ],
+                "term_pool": [
+                  10,
+                  10
+                ],
+                "found": [
+                  0,
+                  0
+                ],
+                "terms_in_answer": [
+                  [],
+                  []
+                ]
+              },
+              "answer_excerpt": "<think>\n\nThe user is asking me to explain the connection between two concepts: `asymmetric_degrade` and `over_simplified failure_case`, based on the definitions already retrieved from the search.\n\nLet me analyze the definitions:\n\n1. **asymmetric_deGrade** (behaviorial_mechanism):\n   - Definition: A degradation type where a model's performance deteriorates relative to the ground truth, causing it to be ranked lower on the ranking scale.\n   - This concept is about *degradation* of model performances relative to ground truth.\n\n2. **over_simplified_failing_case** (behaviorual_mechanism, type: example_of_failure_case):\n   - The definition is essentially empty/unclear. It simply says \"over-simplified failing case\" which is a type of example showing a situation that is \"over-simplification\" (likely over-pretending/over-simplifying).\n\nNow I need to explain the relationship between these concepts. Let me think about what they mean in the context of what they do:\n\n- `over_simplification_failure_case` — this is an example of a failure/case where a model behaves unusually (e.g., fails to explain or produce something), likely because the task description is too simple/over-simplified — perhaps requiring an excessively simplistic or uninformative setup.\n- `asymmetricDeGrade` — degradation type where performance of an LLM deteriorates relative/to ground truth.\n\nSo the connection could be:\n- Both concepts deal with failures where the expected behavior differs from actual behavior. The failure case itself could be considered an instance of asymmetric degradation if the task description fails to provide sufficient context (inconclusive information), and this makes performance degrade.\n- The fact that advantage estimation (which is used by `grpo`) is \"used as a regularization mechanism that reduces the variance of the gradient...\" suggests it's part of the evaluation/benchmarking methodology. If the failure case makes performance degrade (i.e., the model does a wrong thing, and the model is over-simplified), then the advantage estimation used to train or evaluate models on this task case may need to be adjusted to account for the different expected behavior.\n\nSo the relationship: `over_simplical_failing_case` (an example of failure) → `asymmetric_gradation` — an imbalance arises because the failing case was over-simplified. The gradient signal used in advantage estimation suffers distortion when the model is forced to behave in an unsatisfactory or over-simplified manner.\n\nI should mention slugs as required and be precise per definitions. I should not call tools since results are already provided. The instruction says \"Не выводи рассуждения о формате ответа — сразу ответ по существу\" ( Don't output reasoning about the format of the answer; answer directly on substance). So I'll give a direct answer based on retrieved definitions.\n\nLet me structure:\n1. Brief summary of each concept per definitions.\n2. Their relationship: common domain — imbalance or degradation betw",
+              "answer_chars": 3808,
+              "turns": 3,
+              "tool_calls": 2,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.0,
+              "reward": -0.05
+            },
+            {
+              "task_index": 4681,
+              "task_type": "explain_relation",
+              "source_env": null,
+              "prompt": "Объясни связь между концептами 'markov_chain_self_correction_diagnostic' и 'factorized_pomdp'. Как они соотносятся?",
+              "required": {
+                "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+                "concepts": [
+                  "markov_chain_self_correction_diagnostic",
+                  "factorized_pomdp"
+                ],
+                "thresholds": [
+                  3,
+                  3
+                ],
+                "term_pool": [
+                  10,
+                  10
+                ],
+                "found": [
+                  1,
+                  0
+                ],
+                "terms_in_answer": [
+                  [
+                    "correct"
+                  ],
+                  []
+                ]
+              },
+              "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between concepts 'markovChainSelfCorrectionDiagnostic' and 'factorizedPomdp', based on the definitions already retrieved from the tool. I should not call the tool again, and I should give a final answer without tool calls.\n\nLet me analyze:\n\n1. **markovChainAutCorrectDiagnostic** (algorithm algorithmic_primitive): This is about detecting when the policy trajectory hits a plateau (fixed reward) or a long-period reward decay (fixed reward). It uses a linear trend model to identify when the policy shifts to a non-traditional mode.\n\n2. **factorizedPOMDP** (algorithm): Factorized POMDP — a formalization of a POMDP where an MDP with non-Abelian sub-MDPs is decomposed into a factorized sub-MDP and a non-Abel factor. The factorizes sub-MDP into disjoint sub-MDP of a fixed action set and a sub-MDP without fixed action set.\n\nNow, what's the connection? Both are \"algorithmic_primitive\" type concepts, and they operate in the domain of reinforcement learning with POMDPs (Probabilistic State-Action-Measure POMDP). \n\nPossible connections:\n- Both are used to deal with long-horizon / non-Abelson MDPs?\n- factorizedPOMPD specifies how to factorize a POMD POMDP into a fixed action subset and a non-Factable factor, then solve a factorized problem.\n- markovChainAutErrorDiagnostic could be an application of this factorized problem, e.g., diagnosing which trajectories of the policy are in state where the action space explodes.\n\nSo the connection: both deal with **non-Abelian or long-range behavior**: markovChainDiag explicitly uses a linear model detecting plateau/degradation; factorizedPomDP describes how MDPs can be decomposed into sub-MDP — a factorized setting where the state, action, and reward sub-MDP are non-Abelic, so one can apply factorized methods like factorizedPUMDP to solve non-Abley factorized problems. Markov chain self-correction diagnostic is a specific instance/factored variant of such decomposition.\n\nActually, let me think more carefully. FactorizedPOMD is a known concept in RLHF/policy distillation literature — it's the decomposition where an MMD with non-abelian sub-MDP decomposes into a fixed-action and an Abelian (factored) sub-MDP. Factorized methods (GAE, PUMDP) work in this factored form to handle non-Abels.\n\nmarkovChainDiagnoser is a diagnostic method for detecting when the POMDP trajectories hit a plateau (reward stays stable) or a period of reward decay (reward decreases to 0).\n\nConnection questions:\n1. Both belong to the \"factorized\"/prediction-setting of POMDP.\n2. The factorized framework allows factorizing actions into disjoint sub-maps without an action set — this provides a non-abeli/abel-compatible setup for factorized methods.\n3. Diag. could serve as an example or a component of the factorizedPoms problem: e.g., for a POMSD with non- Abel action sub-MDP, one can factorize and solve a PUMDP-like problem (e.g., PUMDP with state-action-sub-MDP, and factorization into Abelian and non-Abe",
+              "answer_chars": 6773,
+              "turns": 3,
+              "tool_calls": 2,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.0625,
+              "reward": -0.05
+            },
+            {
+              "task_index": 5329,
+              "task_type": "explain_relation",
+              "source_env": null,
+              "prompt": "Объясни связь между концептами 'two_stage_multi_agent_annotation_pipeline_for_emotion_and_moral_classification' и 'human_in_the_loop_prompt_curation'. Как они соотносятся?",
+              "required": {
+                "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+                "concepts": [
+                  "two_stage_multi_agent_annotation_pipeline_for_emotion_and_moral_classification",
+                  "human_in_the_loop_prompt_curation"
+                ],
+                "thresholds": [
+                  3,
+                  3
+                ],
+                "term_pool": [
+                  10,
+                  10
+                ],
+                "found": [
+                  2,
+                  2
+                ],
+                "terms_in_answer": [
+                  [
+                    "пайплайн",
+                    "первый"
+                  ],
+                  [
+                    "первый",
+                    "процесс"
+                  ]
+                ]
+              },
+              "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between two concepts: 'two_stage_macro_segmentation_for_emotional_moral_annotating' and 'human_inThe_loop_prompt_curator'. I need to search for these concepts in the library. Let me start with the first one.\n</think>\n</tool_response>{\"name\":(\"search_concepts\")[\"two_stage_macrosegmentation_for_emotion_moral_ annotating\"}.slug}\n<tool_response>\nslug：two_stage_macrosegments_for_emotional_and_moral_anno\ntype: procedural_step\nОпределения: Алгорицизация двухэтапного процедурного пайплайни: этап 1 — этапическое отображение из 64х64 размеров к 512 размеров для генерации изображения; stage 2 — изображение фиксируй на линии с помощью аннотатора. Каждый этап содержит набор шагов (Stage 1 — 22, Stage 1-2 — 26, Stage 2 — 3, ...\n</tool_response>\n<think>\nLet me analyze this task. The instructions say I should search for concepts, one tool call per turn. I have the definition for one concept, and I want to explain the relationship between two. But I don't have a definition for 'human_inthe_loop_prompt_curator'.\n\nHmm, this is a bit contrived. I should search. Let me try to find it.\n</think>\n<tool_call> {\"name\": \"_search_concepts\", ...}\n<tool_call>{\"query\": \"two_stage_multi_task_multimodal_video_segmentation_for_historical_event_detection\", \"name\": \"human_intheLoop_prompt_curation\"}\n<tool_response>\nThe user is asking me to explain a connection between two ML-related concepts: 'human_inthedigital_loop_prompt_curator' and 'two_stage_macros segmentation_for emotional and moral annotating'.\n\nI have the definition of the second concept, but I don't seem to have the definition available for the first concept. The prompt says \"Результат второго инструмента\" (Result of the second tool), implying there was a first tool call, but I only see the second result. Hmm.\n\nWait, looking at the structure - this is a multi-choice scenario where \"result of a tool\" is shown, and I'm being asked to give an answer based on found definitions and general knowledge. The system says to mention slugs of found concepts and explain based on found concepts, and to use terms from definitions (type: procedural_steps).\n\nHowever, I only have one definition available. The instruction says not to call the tool anymore and to give a final answer. So I need to work with what I have:\n\n1. 'human_inthesmartloop_prompt_curation' - This seems to be about curating human-in-the-loop digital conversation prompts for LLM agentic systems, likely related to prompt engineering concepts in digital communication (e.g., prompt curation for AI assistants).\n\n2. 'two_stage_macros_segmentation_for emotional_and_moral_annotation' - This likely refers to a two-stage macrosegmentation approach where the model is segmented and then the result is further segmented (multi-stage pipeline), or the macrosegmentation stage itself is a segmentation step that can be part of a multi-stage pipeline for labeling emotional/moral annotation tasks.\n\nWhat's the connection? Both sound like t",
+              "answer_chars": 8590,
+              "turns": 3,
+              "tool_calls": 2,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.1667,
+              "reward": -0.05
+            }
+          ],
+          "d_cutoff": [],
+          "b_no_checkable_values": [],
+          "c_wrong_values": []
+        },
+        "note": "ответы хранятся обрезанными до 3000 символов; тексты примеров — из answers.jsonl прогона, вердикт pass всегда из verify_task"
+      }
+    },
+    "v2": {
+      "pool_name": "v2",
+      "path": "datasets/rl_tasks_revpool_v2.jsonl",
+      "sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+      "lines": 9162,
+      "by_task_type": {
+        "chain_reasoning": 278,
+        "explain_relation": 394,
+        "find_concept": 8298,
+        "formula_chain": 192
+      },
+      "strata": {
+        "chain_reasoning": {
+          "in_pool": 278,
+          "taken": 50,
+          "seed": 42
+        },
+        "explain_relation": {
+          "in_pool": 394,
+          "taken": 50,
+          "seed": 42
+        },
+        "find_concept": {
+          "in_pool": 8298,
+          "taken": 50,
+          "seed": 42
+        },
+        "formula_chain": {
+          "in_pool": 192,
+          "taken": 50,
+          "seed": 42
+        }
+      },
+      "n_taken": 200,
+      "by_type": [
+        {
+          "task_type": "chain_reasoning",
+          "n": 50,
+          "n_pass": 0,
+          "in_pool": 278,
+          "pass_rate": 0.0,
+          "pass_rate_ci95": [
+            0.0,
+            0.0714
+          ],
+          "dead_share": 1.0,
+          "trivial_share": 0.0,
+          "median_turns": 1.0,
+          "mean_turns": 1.66,
+          "timeout_share": 0.02,
+          "tool_error_share": 0.32,
+          "tool_call_share": 0.32,
+          "mean_answer_chars": 6312.3,
+          "reward_mean": -0.085,
+          "zero_reward_share": 0.02,
+          "dead_by_construction_share": 0.0
+        },
+        {
+          "task_type": "explain_relation",
+          "n": 50,
+          "n_pass": 2,
+          "in_pool": 394,
+          "pass_rate": 0.04,
+          "pass_rate_ci95": [
+            0.011,
+            0.1346
+          ],
+          "dead_share": 0.96,
+          "trivial_share": 0.04,
+          "median_turns": 1.0,
+          "mean_turns": 1.82,
+          "timeout_share": 0.02,
+          "tool_error_share": 0.42,
+          "tool_call_share": 0.42,
+          "mean_answer_chars": 3495.2,
+          "reward_mean": -0.034,
+          "zero_reward_share": 0.02,
+          "dead_by_construction_share": 0.0
+        },
+        {
+          "task_type": "find_concept",
+          "n": 50,
+          "n_pass": 5,
+          "in_pool": 8298,
+          "pass_rate": 0.1,
+          "pass_rate_ci95": [
+            0.0435,
+            0.2136
+          ],
+          "dead_share": 0.9,
+          "trivial_share": 0.1,
+          "median_turns": 1.0,
+          "mean_turns": 1.24,
+          "timeout_share": 0.0,
+          "tool_error_share": 0.14,
+          "tool_call_share": 0.18,
+          "mean_answer_chars": 4591.6,
+          "reward_mean": 0.02,
+          "zero_reward_share": 0.02,
+          "dead_by_construction_share": 0.0
+        },
+        {
+          "task_type": "formula_chain",
+          "n": 50,
+          "n_pass": 0,
+          "in_pool": 192,
+          "pass_rate": 0.0,
+          "pass_rate_ci95": [
+            0.0,
+            0.0714
+          ],
+          "dead_share": 1.0,
+          "trivial_share": 0.0,
+          "median_turns": 1.0,
+          "mean_turns": 1.32,
+          "timeout_share": 0.0,
+          "tool_error_share": 0.22,
+          "tool_call_share": 0.22,
+          "mean_answer_chars": 5301.9,
+          "reward_mean": -0.095,
+          "zero_reward_share": 0.0,
+          "dead_by_construction_share": 0.0
+        }
+      ],
+      "overall": {
+        "n": 200,
+        "n_pass": 7,
+        "pass_rate": 0.035,
+        "pass_rate_ci95": [
+          0.0171,
+          0.0705
+        ],
+        "dead_share": 0.965,
+        "trivial_share": 0.035,
+        "median_turns": 1.0,
+        "tool_error_share": 0.275,
+        "tool_call_share": 0.285,
+        "timeout_share": 0.01,
+        "dead_by_construction_share": 0.0,
+        "zero_reward_share": 0.015,
+        "reward_mean": -0.0485
+      },
+      "band": {
+        "low": 0.25,
+        "high": 0.8,
+        "measure": "type-level (n_attempts=1)",
+        "types_in_band": [],
+        "tasks_in_band_types": 0,
+        "tasks_total": 200,
+        "in_band_tasks_share": 0.0,
+        "dead_tasks": 193,
+        "trivial_tasks": 7,
+        "note": "полоса названа для агрегата по типу задачи: одна попытка на задачу не даёт per-task оценки вероятности (passk-identifiability, ADR-006)"
+      },
+      "vs_anchor_v1": {
+        "pass_rate_delta": -0.3537,
+        "zero_reward_share_delta": -0.4913,
+        "comparable": false,
+        "why_not_comparable": "ориентир снят в vLLM-прогоне RL-разведки, здесь — цикл на transformers с одной попыткой на задачу: модель того же семейства (SFT-чекпойнт), но другой инструмент и другой поток RNG — сопоставимы агрегаты, не построчные траектории",
+        "reading": "pass-rate ниже ориентира означает, что пул не выродился в тривиальный: награду есть за что давать, и она ещё не взята"
+      },
+      "vs_anchor_base_v2": {
+        "pass_rate_delta": 0.006,
+        "comparable": true,
+        "why": "тот же пул v2 и тот же инструмент, но другая модель (SFT-чекпойнт против базы) — это и есть величина, которую S3j-2 отделяет от свойства пула",
+        "reading": "фигура «пул v2 мёртв» из S3j снята на базовой модели; если на обученном чекпойнте pass-rate выше, мёртвой была модель, а не пул"
+      },
+      "pool_audit": {
+        "n": 9162,
+        "dead_by_construction": 0,
+        "dead_by_construction_share": 0.0,
+        "by_task_type": {
+          "find_concept": {
+            "n": 8298,
+            "dead_by_construction": 0,
+            "reasons": {}
+          },
+          "explain_relation": {
+            "n": 394,
+            "dead_by_construction": 0,
+            "reasons": {}
+          },
+          "chain_reasoning": {
+            "n": 278,
+            "dead_by_construction": 0,
+            "reasons": {}
+          },
+          "formula_chain": {
+            "n": 192,
+            "dead_by_construction": 0,
+            "reasons": {}
+          }
+        },
+        "definition": "задача считается мёртвой по построению, если верификатор не может выдать 1 ни на каком ответе: нет проверяемой строки (slug-ветка), оба определения пусты (explain_relation) или после стоп-фильтра не осталось значимых keyword-ов (compare_concepts); пороги — из verify_task, а не свои"
+      },
+      "sha256_note": "пул не менялся за время пробы",
+      "run_dir": "v2",
+      "raw_records": "tasks.jsonl",
+      "measurements": {
+        "wall_seconds": 1175.3,
+        "seconds_per_task": 5.88,
+        "nogram_all_banned_fallbacks": 0
+      },
+      "diagnosis": {
+        "sampled": 25,
+        "n_failed": 193,
+        "n_taken_total": 200,
+        "seed": 42,
+        "class_counts": {
+          "a_no_tool_call": 25,
+          "d_cutoff": 0,
+          "b_no_checkable_values": 0,
+          "c_wrong_values": 0
+        },
+        "class_share_of_sampled": {
+          "a_no_tool_call": 1.0,
+          "d_cutoff": 0.0,
+          "b_no_checkable_values": 0.0,
+          "c_wrong_values": 0.0
+        },
+        "class_definitions": {
+          "a_no_tool_call": "модель не вызвала инструмент",
+          "d_cutoff": "обрыв/лимит ходов (потолок ходов или защита контекста)",
+          "b_no_checkable_values": "инструмент вызван, но ответ не содержит проверяемых значений",
+          "c_wrong_values": "проверяемые значения есть, но не те"
+        },
+        "precedence": "порядок разбора: (а) нет вызова инструмента → (г) обрыв/лимит → (б) нечего проверять (coverage=0) → (в) проверяемое есть, но не то; класс считается по keyword_coverage из пайплайна, не своей арифметикой",
+        "examples": {
+          "a_no_tool_call": [
+            {
+              "task_index": 1290,
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "prompt": "Запиши формулу Error Decomposition for TJS в LaTeX и расшифруй каждое обозначение.",
+              "required": {
+                "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+                "required": [
+                  "error_decomposition"
+                ],
+                "required_n": 1,
+                "found": [],
+                "found_n": 0
+              },
+              "answer_excerpt": "<think>\n\nLet ℓ be a linear objective, and let ℓ′(x) = ℓ(1/ℓ - x) be the binary mask function. Then the total reward after N steps can be expressed in terms of the policy π and the mask ℓ′: R̂(π, ℓ, N) = T JS(π) + ∑_{t=1}^{N-1} L(ℓ(π_t, ℓ′_t(·_t)), ℓ(π_{t+1}, ℓ′_{t+{1}}(·_{t+{{1}}})) + L(ℓ′_{t-1}, ℙ_{t+{T}}(ℓ′_t·_{t}))).\n\nHere:\n- T JS(·) is the T-JSD of the policy (e.g., the total joint SD for a policy π with K skills K).\n- ℓ = ℓ − ℓ′ is the binary mask.\n- ℎ(·) and ℎ′_t are linear approximations: ℎ(x) := ℓ(· - x) and ℏ′_t(v) = ℎ′(v · ℏ(v)) (for t = 1, ..., N-1), ℓ′ = ℓ′ + η· ℏ′ (for t > 0).\n- ℙ(·) = P(·) — a policy with probabilities P(·|ℓ) = ℂ_{i,j}.\n- ℎ'(x) = P(H(x)) = ℱ(x) / ∥x∥_H.\n\nSo the full update rule is:\n\nR̂(Π, ℓ(⋅), N) = [R(JS(π, N)-T JS(Π)) + (ℓ·)ᵀ (ℓ·)] / ℓ^2\n\nwhere ℓ· is the dot-product term, ℓ'_{t} is the mask at step t, ℙ is the policy with probabilities H, ℬ is the budget b.\n\nThe goal is to minimize the T-JSM of the policy:\n- TJS(·) measures consistency of π with a reference policy π_ref = ℓ.\n- ℓ · ∈ ℓ is the binary indicator that each skill is in scope for at least one skill.\n\nThe advantage term ℓ · / ℓ represents the deviation of skills from their scope, normalized by the magnitude of the mask ℛ(π_ref, ℓ · ) / ℳ(π_ref).\n\nActually, let me think about this more. The formula looks quite formal. The T-JSD T JS(Π) would be the T-JS for π. ℓ(•) is a linear mask over skills K: ℓ(−x) = −ℓ(x). The T-JS is the total joint distance to the best reference policy in the set K.\n\nThe mask ℛ is the indicator function: ℛ(·, ℓ·) = 1{ℓ · ∈ V(·)} = 1{|V(·)|}^2 / ||ℓ·||², which gives the fraction of total deviation covered by skills.\n\nThe ℙ(•|ℓ) is the policy that only takes instructions from skills; ℓ is a mask that removes these. The ℓ· term is the distance between π_ref and π (the policy π* = ℓ + ℎ'(·)) plus ℙ(ℓ).\n\nThe difference ℓ· − ℙ(π·) is actually zero because the policy π takes instructions from the entire skill set. The ℙ(··) part is the full policy H with probabilities P.\n\nSo let me reconstruct clearly:\n\n- ℓ(··) is ℓ, the mask function.\n- ℙ = P(··) — policy with skills P(· | ℓ).\n- ℬ = budget b.\n- ℥(··) / ℯ(·) gives ℙ(P(· ∈ V(x))) = P(ℓ· ∩) / P(ℓ'· ∩).\n\nWith masks ℛ(···) and T JS(··), we get the total reward as:\n\nR̃(Π,ℓ, N) := T JS(Σℓ· · ℥(·), N) − T JS(Θ, N), where Θ denotes the full policy including masks, ℥(π) = ℥(Σπ · ℛ(Π)). This accounts for π's deviation from ℥(▪), scaled by ℥' (the mask at each step).\n\nActually I can just write the decomposition directly. The decomposition is:\n\nR(Π, π · ℯ(ℓ), N) ← T JS(ℓ· · ), where ℓ· := ℓ · − ℥(ℓ).\n\nThen ℯ(π) acts as ℥(Π) for ℥(⋅) and ℥′(·) for ℙ(⋅). \n\nHence:\n\nR̄(Π, Θ, N) ← (R(JS(Π · ), N) − R(JS(Θ · ))).\n\nThat's a well-known decomposition for the T-JM for a T-Policy with ℥( π ) = ℥′ ( Π ) and ℥( · ) = Ⅎ · ℥′ · ℥, ℥′ = ℥ · ℥'.\n\nI think the final answer should be in Russian since the question is in Russian. The instructions say not to output reasoning about format, mention slugs, and in final answer ",
+              "answer_chars": 5040,
+              "turns": 1,
+              "tool_calls": 0,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.0,
+              "reward": -0.1
+            },
+            {
+              "task_index": 1403,
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "prompt": "Запиши формулу Jensen-Shannon Divergence for Taxonomy Comparison в LaTeX и расшифруй каждое обозначение.",
+              "required": {
+                "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+                "required": [
+                  "jensen_shannon_divergence_taxonomy"
+                ],
+                "required_n": 1,
+                "found": [],
+                "found_n": 0
+              },
+              "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between ` Jensen-Shannon Diversity Divergence (JSD)` and `advantage_estimations`. I've been given the definitions of `advantage_estimation` and I need to explain how they relate based on the definitions, mentioning slugs of the two concepts.\n\nLet me think about what `advantage_estimator` is based on its name: it's an evaluation/measurement mechanism. For taxonomies of concepts there typically are two concepts: `JSD` for taxonomic diversity (diversity of taxonomic categories), `advantage estimations` for comparing models on taxonomies.\n\nJSD might be the same as what's being measured/estimated in `advantage estimation`: it measures how close a distribution of group means is to a reference distribution — used in distributions of group means. So a taxonomic benchmark with JSD could include taxonomic diversity metrics.\n\nSo the connection: `advantage_estimators` can be seen as a measure of diversity/complexity of the model evaluation distribution — the distribution of group mean distances from the reference distribution for taxonomies. `JSD-based taxonomies of taxonomies` would quantify this diversity by measuring how far the distribution of taxonomy means is from the taxonomic taxonomy distribution.\n\nActually, there's a known concept that connects the two: `Jensen–Shannon Distance for Taxonomy Distances in Multi-Entity Taxonomies`. But honestly, based purely on the definitions... there isn't a direct explicit definition linking the first concept to the first in its definitions.\n\nHowever, I can describe them as follows:\n\n1. `advantage_desirability` — empirical evaluation metric: measure quality of generated outputs / reward model outputs.\n2. `advantages_for_taxonomy_comparison` — empirical distribution: taxonomic diversity of distributions of group mean labels.\n\nRelationship:\n- `JSD_differential_gram_matrix` — the distribution/differentiation measure used in comparing models on such distributions.\n- `advantage(estimation)` is the inference stage: estimating these similarities/differentiation via estimation. So in a taxonomy, advantage estimators may be used to estimate advantages of generated outputs relative to taxonomies — like finding how well labels or outputs align distributions of means relative to some reference.\n\nAnother angle: both connect to diversity measures (JSD is typically used to detect diversity of models/classes), but `JSD_based_taxonomy_of_taxonomy` relates to taxonomies of taxonomy classes; advantage estimators relate to taxonomies as distributions of taxonomic labels.\n\nBoth are \"evaluator/measurement principles\" type concepts. They might not be directly linked by the same entity, so I should be honest: the definition of the first `advantage_*` concept isn't given, so I'll describe what I know about the first based on its slug and its name (\"advantage estimation\"), while describing how they connect conceptually.\n\nLet me construct an answer in Russian since the question is in Russia",
+              "answer_chars": 7941,
+              "turns": 1,
+              "tool_calls": 0,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.0,
+              "reward": -0.1
+            },
+            {
+              "task_index": 1743,
+              "task_type": "find_concept",
+              "source_env": "E2_formula",
+              "prompt": "Запиши формулу Conditional Noising в LaTeX и расшифруй каждое обозначение.",
+              "required": {
+                "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+                "required": [
+                  "conditional_noising"
+                ],
+                "required_n": 1,
+                "found": [],
+                "found_n": 0
+              },
+              "answer_excerpt": "<think>\n\n## Решение по формулам\n\nПо правилам инструмента не требуется внесёра формулировка. Не упоминая slug-и, я ответ на вопрос по найденному определению.\n\n**Рассуждение по формуле**\n\nТиповое значение определения `conditionally_noise_s...` (только в ручной инспекции — нет определения по найденным данным): conditioning на `y ~ N(mean(y, cov(y))), η ...` (нормализация параметра и выборка от среднего). Это **формулировка построения** генеративного модуля (conditional noise). Иначе говоря:\n\n`conditionally_noise_s ... η ...`\n\n– узкой группой случайного процесса `y` вычисляется неразбросанный случайный общий момент, равный среднему по группе;\n– это модель средней распределения;\n– после выборки от среднего умножается и разреженное обобщённое распределение, затем обнуляется параметр `η`;\n– генерации происходит с нулевой скоростью по критику (noisy).\n\nДля `y ~ ...` определения не предоставлены, поэтому его роль я скомпенсирую через «условную» структуру: визуализацию среды, динамику всплесков, дисперсию и др.\n\n## Структурная связь: обе роли\n\n| | `conditionally_noise` (оба `conditional...`?) | `advantage_estimates` |\n|---|---|--------|\n| **Внутренняя»**| — (обе формалистически) формализуют генерацию политики через выборка из случайного процессу с дисперсовом | Conditioning → Noise → Reward Estimation → Policy Optimization |\n| **Современное»**| Conditional noise — статический механизм, который вычисляет преимущества через нормализование сэмплирования и обнуление параметра η |\n\n**Как они соотносятся функционально**\n\nПрямой связи между `conditionally_noise_conditional_noise` и `advantage_estimator_advantage_estimator` нет: первый работает в области генераций, второй — в области обучения политики. Их связь — **структурный комплементарный**, иерархическая (уясь между симуляциями генерационных модулей и оценкой преимущества):\n\n- `conditionally_noise = conditional_noise_s ...` — это детерминированный механизм на уровне генерируемого артефакта;\n- `advantage_estimate = advantage_estimation` — эмпирический механизм оценки (градиент) через диспергенцию всплеста.\n\nИначе говорить, `conditional_noise` — «механизм-самодостаток» генератора, а `advantage_ ...` — «сигнал оценки-инструмент» для его отображения в поведение, а не его источник.</tool_response><|im_start|>",
+              "answer_chars": 2281,
+              "turns": 1,
+              "tool_calls": 0,
+              "hit_timeout": false,
+              "hit_context_guard": false,
+              "coverage": 0.0,
+              "reward": -0.1
+            }
+          ],
+          "d_cutoff": [],
+          "b_no_checkable_values": [],
+          "c_wrong_values": []
+        },
+        "note": "ответы хранятся обрезанными до 3000 символов; тексты примеров — из answers.jsonl прогона, вердикт pass всегда из verify_task"
+      }
+    }
+  },
+  "delta_v2_minus_v1": {
+    "left": "v1",
+    "right": "v2",
+    "types_in_both_pools": [
+      "explain_relation"
+    ],
+    "types_only_in_left": [
+      "compare_concepts",
+      "multi_hop_search"
+    ],
+    "types_only_in_right": [
+      "chain_reasoning",
+      "find_concept",
+      "formula_chain"
+    ],
+    "aggregate_caveat": "агрегаты пулов покрывают разные наборы типов: сводная дельта отвечает на вопрос «где пул целиком», а построчно сопоставимы только типы, измеренные на обоих пулах (их 1: explain_relation)",
+    "metric_names": [
+      "pass_rate",
+      "dead_share",
+      "trivial_share",
+      "tool_call_share",
+      "median_turns",
+      "reward_mean",
+      "zero_reward_share",
+      "timeout_share"
+    ],
+    "overall": {
+      "pass_rate": {
+        "left": 0.0467,
+        "right": 0.035,
+        "delta": -0.0117
+      },
+      "dead_share": {
+        "left": 0.9533,
+        "right": 0.965,
+        "delta": 0.0117
+      },
+      "trivial_share": {
+        "left": 0.0467,
+        "right": 0.035,
+        "delta": -0.0117
+      },
+      "tool_call_share": {
+        "left": 0.4733,
+        "right": 0.285,
+        "delta": -0.1883
+      },
+      "median_turns": {
+        "left": 1.0,
+        "right": 1.0,
+        "delta": 0.0
+      },
+      "reward_mean": {
+        "left": -0.0277,
+        "right": -0.0485,
+        "delta": -0.0208
+      },
+      "zero_reward_share": {
+        "left": 0.0067,
+        "right": 0.015,
+        "delta": 0.0083
+      },
+      "timeout_share": {
+        "left": 0.0067,
+        "right": 0.01,
+        "delta": 0.0033
+      }
+    },
+    "pass_rate_delta_ci95_newcombe": [
+      -0.0615,
+      0.0311
+    ],
+    "pass_rate_delta_reading": "интервал разности долей (Newcombe): если он накрывает 0, различие пулов на этой выборке не отделено от шума одной попытки на задачу",
+    "by_type": {
+      "chain_reasoning": {
+        "only_in": "v2",
+        "left": null,
+        "right": 0.0,
+        "both_pools": false,
+        "note": "тип есть только в одном пуле — дельта не считается"
+      },
+      "compare_concepts": {
+        "only_in": "v1",
+        "left": 0.02,
+        "right": null,
+        "both_pools": false,
+        "note": "тип есть только в одном пуле — дельта не считается"
+      },
+      "explain_relation": {
+        "pass_rate": {
+          "left": 0.12,
+          "right": 0.04,
+          "delta": -0.08
+        },
+        "dead_share": {
+          "left": 0.88,
+          "right": 0.96,
+          "delta": 0.08
+        },
+        "trivial_share": {
+          "left": 0.12,
+          "right": 0.04,
+          "delta": -0.08
+        },
+        "tool_call_share": {
+          "left": 0.44,
+          "right": 0.42,
+          "delta": -0.02
+        },
+        "median_turns": {
+          "left": 1.0,
+          "right": 1.0,
+          "delta": 0.0
+        },
+        "reward_mean": {
+          "left": 0.052,
+          "right": -0.034,
+          "delta": -0.086
+        },
+        "zero_reward_share": {
+          "left": 0.0,
+          "right": 0.02,
+          "delta": 0.02
+        },
+        "timeout_share": {
+          "left": 0.0,
+          "right": 0.02,
+          "delta": 0.02
+        },
+        "both_pools": true
+      },
+      "find_concept": {
+        "only_in": "v2",
+        "left": null,
+        "right": 0.1,
+        "both_pools": false,
+        "note": "тип есть только в одном пуле — дельта не считается"
+      },
+      "formula_chain": {
+        "only_in": "v2",
+        "left": null,
+        "right": 0.0,
+        "both_pools": false,
+        "note": "тип есть только в одном пуле — дельта не считается"
+      },
+      "multi_hop_search": {
+        "only_in": "v1",
+        "left": 0.0,
+        "right": null,
+        "both_pools": false,
+        "note": "тип есть только в одном пуле — дельта не считается"
+      }
+    },
+    "measurement": "одна попытка на задачу (n_attempts=1) — не pass@k"
+  },
+  "diagnosis": {
+    "v1": {
+      "sampled": 25,
+      "n_failed": 143,
+      "n_taken_total": 150,
+      "seed": 42,
+      "class_counts": {
+        "a_no_tool_call": 25,
+        "d_cutoff": 0,
+        "b_no_checkable_values": 0,
+        "c_wrong_values": 0
+      },
+      "class_share_of_sampled": {
+        "a_no_tool_call": 1.0,
+        "d_cutoff": 0.0,
+        "b_no_checkable_values": 0.0,
+        "c_wrong_values": 0.0
+      },
+      "class_definitions": {
+        "a_no_tool_call": "модель не вызвала инструмент",
+        "d_cutoff": "обрыв/лимит ходов (потолок ходов или защита контекста)",
+        "b_no_checkable_values": "инструмент вызван, но ответ не содержит проверяемых значений",
+        "c_wrong_values": "проверяемые значения есть, но не те"
+      },
+      "precedence": "порядок разбора: (а) нет вызова инструмента → (г) обрыв/лимит → (б) нечего проверять (coverage=0) → (в) проверяемое есть, но не то; класс считается по keyword_coverage из пайплайна, не своей арифметикой",
+      "examples": {
+        "a_no_tool_call": [
+          {
+            "task_index": 3309,
+            "task_type": "explain_relation",
+            "source_env": null,
+            "prompt": "Объясни связь между концептами 'asymmetric_degradation' и 'over_simplified_failure_case'. Как они соотносятся?",
+            "required": {
+              "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+              "concepts": [
+                "asymmetric_degradation",
+                "over_simplified_failure_case"
+              ],
+              "thresholds": [
+                3,
+                3
+              ],
+              "term_pool": [
+                10,
+                10
+              ],
+              "found": [
+                0,
+                0
+              ],
+              "terms_in_answer": [
+                [],
+                []
+              ]
+            },
+            "answer_excerpt": "<think>\n\nThe user is asking me to explain the connection between two concepts: `asymmetric_degrade` and `over_simplified failure_case`, based on the definitions already retrieved from the search.\n\nLet me analyze the definitions:\n\n1. **asymmetric_deGrade** (behaviorial_mechanism):\n   - Definition: A degradation type where a model's performance deteriorates relative to the ground truth, causing it to be ranked lower on the ranking scale.\n   - This concept is about *degradation* of model performances relative to ground truth.\n\n2. **over_simplified_failing_case** (behaviorual_mechanism, type: example_of_failure_case):\n   - The definition is essentially empty/unclear. It simply says \"over-simplified failing case\" which is a type of example showing a situation that is \"over-simplification\" (likely over-pretending/over-simplifying).\n\nNow I need to explain the relationship between these concepts. Let me think about what they mean in the context of what they do:\n\n- `over_simplification_failure_case` — this is an example of a failure/case where a model behaves unusually (e.g., fails to explain or produce something), likely because the task description is too simple/over-simplified — perhaps requiring an excessively simplistic or uninformative setup.\n- `asymmetricDeGrade` — degradation type where performance of an LLM deteriorates relative/to ground truth.\n\nSo the connection could be:\n- Both concepts deal with failures where the expected behavior differs from actual behavior. The failure case itself could be considered an instance of asymmetric degradation if the task description fails to provide sufficient context (inconclusive information), and this makes performance degrade.\n- The fact that advantage estimation (which is used by `grpo`) is \"used as a regularization mechanism that reduces the variance of the gradient...\" suggests it's part of the evaluation/benchmarking methodology. If the failure case makes performance degrade (i.e., the model does a wrong thing, and the model is over-simplified), then the advantage estimation used to train or evaluate models on this task case may need to be adjusted to account for the different expected behavior.\n\nSo the relationship: `over_simplical_failing_case` (an example of failure) → `asymmetric_gradation` — an imbalance arises because the failing case was over-simplified. The gradient signal used in advantage estimation suffers distortion when the model is forced to behave in an unsatisfactory or over-simplified manner.\n\nI should mention slugs as required and be precise per definitions. I should not call tools since results are already provided. The instruction says \"Не выводи рассуждения о формате ответа — сразу ответ по существу\" ( Don't output reasoning about the format of the answer; answer directly on substance). So I'll give a direct answer based on retrieved definitions.\n\nLet me structure:\n1. Brief summary of each concept per definitions.\n2. Their relationship: common domain — imbalance or degradation betw",
+            "answer_chars": 3808,
+            "turns": 3,
+            "tool_calls": 2,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.0,
+            "reward": -0.05
+          },
+          {
+            "task_index": 4681,
+            "task_type": "explain_relation",
+            "source_env": null,
+            "prompt": "Объясни связь между концептами 'markov_chain_self_correction_diagnostic' и 'factorized_pomdp'. Как они соотносятся?",
+            "required": {
+              "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+              "concepts": [
+                "markov_chain_self_correction_diagnostic",
+                "factorized_pomdp"
+              ],
+              "thresholds": [
+                3,
+                3
+              ],
+              "term_pool": [
+                10,
+                10
+              ],
+              "found": [
+                1,
+                0
+              ],
+              "terms_in_answer": [
+                [
+                  "correct"
+                ],
+                []
+              ]
+            },
+            "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between concepts 'markovChainSelfCorrectionDiagnostic' and 'factorizedPomdp', based on the definitions already retrieved from the tool. I should not call the tool again, and I should give a final answer without tool calls.\n\nLet me analyze:\n\n1. **markovChainAutCorrectDiagnostic** (algorithm algorithmic_primitive): This is about detecting when the policy trajectory hits a plateau (fixed reward) or a long-period reward decay (fixed reward). It uses a linear trend model to identify when the policy shifts to a non-traditional mode.\n\n2. **factorizedPOMDP** (algorithm): Factorized POMDP — a formalization of a POMDP where an MDP with non-Abelian sub-MDPs is decomposed into a factorized sub-MDP and a non-Abel factor. The factorizes sub-MDP into disjoint sub-MDP of a fixed action set and a sub-MDP without fixed action set.\n\nNow, what's the connection? Both are \"algorithmic_primitive\" type concepts, and they operate in the domain of reinforcement learning with POMDPs (Probabilistic State-Action-Measure POMDP). \n\nPossible connections:\n- Both are used to deal with long-horizon / non-Abelson MDPs?\n- factorizedPOMPD specifies how to factorize a POMD POMDP into a fixed action subset and a non-Factable factor, then solve a factorized problem.\n- markovChainAutErrorDiagnostic could be an application of this factorized problem, e.g., diagnosing which trajectories of the policy are in state where the action space explodes.\n\nSo the connection: both deal with **non-Abelian or long-range behavior**: markovChainDiag explicitly uses a linear model detecting plateau/degradation; factorizedPomDP describes how MDPs can be decomposed into sub-MDP — a factorized setting where the state, action, and reward sub-MDP are non-Abelic, so one can apply factorized methods like factorizedPUMDP to solve non-Abley factorized problems. Markov chain self-correction diagnostic is a specific instance/factored variant of such decomposition.\n\nActually, let me think more carefully. FactorizedPOMD is a known concept in RLHF/policy distillation literature — it's the decomposition where an MMD with non-abelian sub-MDP decomposes into a fixed-action and an Abelian (factored) sub-MDP. Factorized methods (GAE, PUMDP) work in this factored form to handle non-Abels.\n\nmarkovChainDiagnoser is a diagnostic method for detecting when the POMDP trajectories hit a plateau (reward stays stable) or a period of reward decay (reward decreases to 0).\n\nConnection questions:\n1. Both belong to the \"factorized\"/prediction-setting of POMDP.\n2. The factorized framework allows factorizing actions into disjoint sub-maps without an action set — this provides a non-abeli/abel-compatible setup for factorized methods.\n3. Diag. could serve as an example or a component of the factorizedPoms problem: e.g., for a POMSD with non- Abel action sub-MDP, one can factorize and solve a PUMDP-like problem (e.g., PUMDP with state-action-sub-MDP, and factorization into Abelian and non-Abe",
+            "answer_chars": 6773,
+            "turns": 3,
+            "tool_calls": 2,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.0625,
+            "reward": -0.05
+          },
+          {
+            "task_index": 5329,
+            "task_type": "explain_relation",
+            "source_env": null,
+            "prompt": "Объясни связь между концептами 'two_stage_multi_agent_annotation_pipeline_for_emotion_and_moral_classification' и 'human_in_the_loop_prompt_curation'. Как они соотносятся?",
+            "required": {
+              "kind": "термины ОПРЕДЕЛЕНИЙ обоих концептов: порог 3 на каждый (2, если определение короче)",
+              "concepts": [
+                "two_stage_multi_agent_annotation_pipeline_for_emotion_and_moral_classification",
+                "human_in_the_loop_prompt_curation"
+              ],
+              "thresholds": [
+                3,
+                3
+              ],
+              "term_pool": [
+                10,
+                10
+              ],
+              "found": [
+                2,
+                2
+              ],
+              "terms_in_answer": [
+                [
+                  "пайплайн",
+                  "первый"
+                ],
+                [
+                  "первый",
+                  "процесс"
+                ]
+              ]
+            },
+            "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between two concepts: 'two_stage_macro_segmentation_for_emotional_moral_annotating' and 'human_inThe_loop_prompt_curator'. I need to search for these concepts in the library. Let me start with the first one.\n</think>\n</tool_response>{\"name\":(\"search_concepts\")[\"two_stage_macrosegmentation_for_emotion_moral_ annotating\"}.slug}\n<tool_response>\nslug：two_stage_macrosegments_for_emotional_and_moral_anno\ntype: procedural_step\nОпределения: Алгорицизация двухэтапного процедурного пайплайни: этап 1 — этапическое отображение из 64х64 размеров к 512 размеров для генерации изображения; stage 2 — изображение фиксируй на линии с помощью аннотатора. Каждый этап содержит набор шагов (Stage 1 — 22, Stage 1-2 — 26, Stage 2 — 3, ...\n</tool_response>\n<think>\nLet me analyze this task. The instructions say I should search for concepts, one tool call per turn. I have the definition for one concept, and I want to explain the relationship between two. But I don't have a definition for 'human_inthe_loop_prompt_curator'.\n\nHmm, this is a bit contrived. I should search. Let me try to find it.\n</think>\n<tool_call> {\"name\": \"_search_concepts\", ...}\n<tool_call>{\"query\": \"two_stage_multi_task_multimodal_video_segmentation_for_historical_event_detection\", \"name\": \"human_intheLoop_prompt_curation\"}\n<tool_response>\nThe user is asking me to explain a connection between two ML-related concepts: 'human_inthedigital_loop_prompt_curator' and 'two_stage_macros segmentation_for emotional and moral annotating'.\n\nI have the definition of the second concept, but I don't seem to have the definition available for the first concept. The prompt says \"Результат второго инструмента\" (Result of the second tool), implying there was a first tool call, but I only see the second result. Hmm.\n\nWait, looking at the structure - this is a multi-choice scenario where \"result of a tool\" is shown, and I'm being asked to give an answer based on found definitions and general knowledge. The system says to mention slugs of found concepts and explain based on found concepts, and to use terms from definitions (type: procedural_steps).\n\nHowever, I only have one definition available. The instruction says not to call the tool anymore and to give a final answer. So I need to work with what I have:\n\n1. 'human_inthesmartloop_prompt_curation' - This seems to be about curating human-in-the-loop digital conversation prompts for LLM agentic systems, likely related to prompt engineering concepts in digital communication (e.g., prompt curation for AI assistants).\n\n2. 'two_stage_macros_segmentation_for emotional_and_moral_annotation' - This likely refers to a two-stage macrosegmentation approach where the model is segmented and then the result is further segmented (multi-stage pipeline), or the macrosegmentation stage itself is a segmentation step that can be part of a multi-stage pipeline for labeling emotional/moral annotation tasks.\n\nWhat's the connection? Both sound like t",
+            "answer_chars": 8590,
+            "turns": 3,
+            "tool_calls": 2,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.1667,
+            "reward": -0.05
+          }
+        ],
+        "d_cutoff": [],
+        "b_no_checkable_values": [],
+        "c_wrong_values": []
+      },
+      "note": "ответы хранятся обрезанными до 3000 символов; тексты примеров — из answers.jsonl прогона, вердикт pass всегда из verify_task"
+    },
+    "v2": {
+      "sampled": 25,
+      "n_failed": 193,
+      "n_taken_total": 200,
+      "seed": 42,
+      "class_counts": {
+        "a_no_tool_call": 25,
+        "d_cutoff": 0,
+        "b_no_checkable_values": 0,
+        "c_wrong_values": 0
+      },
+      "class_share_of_sampled": {
+        "a_no_tool_call": 1.0,
+        "d_cutoff": 0.0,
+        "b_no_checkable_values": 0.0,
+        "c_wrong_values": 0.0
+      },
+      "class_definitions": {
+        "a_no_tool_call": "модель не вызвала инструмент",
+        "d_cutoff": "обрыв/лимит ходов (потолок ходов или защита контекста)",
+        "b_no_checkable_values": "инструмент вызван, но ответ не содержит проверяемых значений",
+        "c_wrong_values": "проверяемые значения есть, но не те"
+      },
+      "precedence": "порядок разбора: (а) нет вызова инструмента → (г) обрыв/лимит → (б) нечего проверять (coverage=0) → (в) проверяемое есть, но не то; класс считается по keyword_coverage из пайплайна, не своей арифметикой",
+      "examples": {
+        "a_no_tool_call": [
+          {
+            "task_index": 1290,
+            "task_type": "find_concept",
+            "source_env": "E2_formula",
+            "prompt": "Запиши формулу Error Decomposition for TJS в LaTeX и расшифруй каждое обозначение.",
+            "required": {
+              "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+              "required": [
+                "error_decomposition"
+              ],
+              "required_n": 1,
+              "found": [],
+              "found_n": 0
+            },
+            "answer_excerpt": "<think>\n\nLet ℓ be a linear objective, and let ℓ′(x) = ℓ(1/ℓ - x) be the binary mask function. Then the total reward after N steps can be expressed in terms of the policy π and the mask ℓ′: R̂(π, ℓ, N) = T JS(π) + ∑_{t=1}^{N-1} L(ℓ(π_t, ℓ′_t(·_t)), ℓ(π_{t+1}, ℓ′_{t+{1}}(·_{t+{{1}}})) + L(ℓ′_{t-1}, ℙ_{t+{T}}(ℓ′_t·_{t}))).\n\nHere:\n- T JS(·) is the T-JSD of the policy (e.g., the total joint SD for a policy π with K skills K).\n- ℓ = ℓ − ℓ′ is the binary mask.\n- ℎ(·) and ℎ′_t are linear approximations: ℎ(x) := ℓ(· - x) and ℏ′_t(v) = ℎ′(v · ℏ(v)) (for t = 1, ..., N-1), ℓ′ = ℓ′ + η· ℏ′ (for t > 0).\n- ℙ(·) = P(·) — a policy with probabilities P(·|ℓ) = ℂ_{i,j}.\n- ℎ'(x) = P(H(x)) = ℱ(x) / ∥x∥_H.\n\nSo the full update rule is:\n\nR̂(Π, ℓ(⋅), N) = [R(JS(π, N)-T JS(Π)) + (ℓ·)ᵀ (ℓ·)] / ℓ^2\n\nwhere ℓ· is the dot-product term, ℓ'_{t} is the mask at step t, ℙ is the policy with probabilities H, ℬ is the budget b.\n\nThe goal is to minimize the T-JSM of the policy:\n- TJS(·) measures consistency of π with a reference policy π_ref = ℓ.\n- ℓ · ∈ ℓ is the binary indicator that each skill is in scope for at least one skill.\n\nThe advantage term ℓ · / ℓ represents the deviation of skills from their scope, normalized by the magnitude of the mask ℛ(π_ref, ℓ · ) / ℳ(π_ref).\n\nActually, let me think about this more. The formula looks quite formal. The T-JSD T JS(Π) would be the T-JS for π. ℓ(•) is a linear mask over skills K: ℓ(−x) = −ℓ(x). The T-JS is the total joint distance to the best reference policy in the set K.\n\nThe mask ℛ is the indicator function: ℛ(·, ℓ·) = 1{ℓ · ∈ V(·)} = 1{|V(·)|}^2 / ||ℓ·||², which gives the fraction of total deviation covered by skills.\n\nThe ℙ(•|ℓ) is the policy that only takes instructions from skills; ℓ is a mask that removes these. The ℓ· term is the distance between π_ref and π (the policy π* = ℓ + ℎ'(·)) plus ℙ(ℓ).\n\nThe difference ℓ· − ℙ(π·) is actually zero because the policy π takes instructions from the entire skill set. The ℙ(··) part is the full policy H with probabilities P.\n\nSo let me reconstruct clearly:\n\n- ℓ(··) is ℓ, the mask function.\n- ℙ = P(··) — policy with skills P(· | ℓ).\n- ℬ = budget b.\n- ℥(··) / ℯ(·) gives ℙ(P(· ∈ V(x))) = P(ℓ· ∩) / P(ℓ'· ∩).\n\nWith masks ℛ(···) and T JS(··), we get the total reward as:\n\nR̃(Π,ℓ, N) := T JS(Σℓ· · ℥(·), N) − T JS(Θ, N), where Θ denotes the full policy including masks, ℥(π) = ℥(Σπ · ℛ(Π)). This accounts for π's deviation from ℥(▪), scaled by ℥' (the mask at each step).\n\nActually I can just write the decomposition directly. The decomposition is:\n\nR(Π, π · ℯ(ℓ), N) ← T JS(ℓ· · ), where ℓ· := ℓ · − ℥(ℓ).\n\nThen ℯ(π) acts as ℥(Π) for ℥(⋅) and ℥′(·) for ℙ(⋅). \n\nHence:\n\nR̄(Π, Θ, N) ← (R(JS(Π · ), N) − R(JS(Θ · ))).\n\nThat's a well-known decomposition for the T-JM for a T-Policy with ℥( π ) = ℥′ ( Π ) and ℥( · ) = Ⅎ · ℥′ · ℥, ℥′ = ℥ · ℥'.\n\nI think the final answer should be in Russian since the question is in Russian. The instructions say not to output reasoning about format, mention slugs, and in final answer ",
+            "answer_chars": 5040,
+            "turns": 1,
+            "tool_calls": 0,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.0,
+            "reward": -0.1
+          },
+          {
+            "task_index": 1403,
+            "task_type": "find_concept",
+            "source_env": "E2_formula",
+            "prompt": "Запиши формулу Jensen-Shannon Divergence for Taxonomy Comparison в LaTeX и расшифруй каждое обозначение.",
+            "required": {
+              "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+              "required": [
+                "jensen_shannon_divergence_taxonomy"
+              ],
+              "required_n": 1,
+              "found": [],
+              "found_n": 0
+            },
+            "answer_excerpt": "<think>\n\nThe user asks me to explain the connection between ` Jensen-Shannon Diversity Divergence (JSD)` and `advantage_estimations`. I've been given the definitions of `advantage_estimation` and I need to explain how they relate based on the definitions, mentioning slugs of the two concepts.\n\nLet me think about what `advantage_estimator` is based on its name: it's an evaluation/measurement mechanism. For taxonomies of concepts there typically are two concepts: `JSD` for taxonomic diversity (diversity of taxonomic categories), `advantage estimations` for comparing models on taxonomies.\n\nJSD might be the same as what's being measured/estimated in `advantage estimation`: it measures how close a distribution of group means is to a reference distribution — used in distributions of group means. So a taxonomic benchmark with JSD could include taxonomic diversity metrics.\n\nSo the connection: `advantage_estimators` can be seen as a measure of diversity/complexity of the model evaluation distribution — the distribution of group mean distances from the reference distribution for taxonomies. `JSD-based taxonomies of taxonomies` would quantify this diversity by measuring how far the distribution of taxonomy means is from the taxonomic taxonomy distribution.\n\nActually, there's a known concept that connects the two: `Jensen–Shannon Distance for Taxonomy Distances in Multi-Entity Taxonomies`. But honestly, based purely on the definitions... there isn't a direct explicit definition linking the first concept to the first in its definitions.\n\nHowever, I can describe them as follows:\n\n1. `advantage_desirability` — empirical evaluation metric: measure quality of generated outputs / reward model outputs.\n2. `advantages_for_taxonomy_comparison` — empirical distribution: taxonomic diversity of distributions of group mean labels.\n\nRelationship:\n- `JSD_differential_gram_matrix` — the distribution/differentiation measure used in comparing models on such distributions.\n- `advantage(estimation)` is the inference stage: estimating these similarities/differentiation via estimation. So in a taxonomy, advantage estimators may be used to estimate advantages of generated outputs relative to taxonomies — like finding how well labels or outputs align distributions of means relative to some reference.\n\nAnother angle: both connect to diversity measures (JSD is typically used to detect diversity of models/classes), but `JSD_based_taxonomy_of_taxonomy` relates to taxonomies of taxonomy classes; advantage estimators relate to taxonomies as distributions of taxonomic labels.\n\nBoth are \"evaluator/measurement principles\" type concepts. They might not be directly linked by the same entity, so I should be honest: the definition of the first `advantage_*` concept isn't given, so I'll describe what I know about the first based on its slug and its name (\"advantage estimation\"), while describing how they connect conceptually.\n\nLet me construct an answer in Russian since the question is in Russia",
+            "answer_chars": 7941,
+            "turns": 1,
+            "tool_calls": 0,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.0,
+            "reward": -0.1
+          },
+          {
+            "task_index": 1743,
+            "task_type": "find_concept",
+            "source_env": "E2_formula",
+            "prompt": "Запиши формулу Conditional Noising в LaTeX и расшифруй каждое обозначение.",
+            "required": {
+              "kind": "все expected_slugs должны быть в ответе (slug-ветка verify_task)",
+              "required": [
+                "conditional_noising"
+              ],
+              "required_n": 1,
+              "found": [],
+              "found_n": 0
+            },
+            "answer_excerpt": "<think>\n\n## Решение по формулам\n\nПо правилам инструмента не требуется внесёра формулировка. Не упоминая slug-и, я ответ на вопрос по найденному определению.\n\n**Рассуждение по формуле**\n\nТиповое значение определения `conditionally_noise_s...` (только в ручной инспекции — нет определения по найденным данным): conditioning на `y ~ N(mean(y, cov(y))), η ...` (нормализация параметра и выборка от среднего). Это **формулировка построения** генеративного модуля (conditional noise). Иначе говоря:\n\n`conditionally_noise_s ... η ...`\n\n– узкой группой случайного процесса `y` вычисляется неразбросанный случайный общий момент, равный среднему по группе;\n– это модель средней распределения;\n– после выборки от среднего умножается и разреженное обобщённое распределение, затем обнуляется параметр `η`;\n– генерации происходит с нулевой скоростью по критику (noisy).\n\nДля `y ~ ...` определения не предоставлены, поэтому его роль я скомпенсирую через «условную» структуру: визуализацию среды, динамику всплесков, дисперсию и др.\n\n## Структурная связь: обе роли\n\n| | `conditionally_noise` (оба `conditional...`?) | `advantage_estimates` |\n|---|---|--------|\n| **Внутренняя»**| — (обе формалистически) формализуют генерацию политики через выборка из случайного процессу с дисперсовом | Conditioning → Noise → Reward Estimation → Policy Optimization |\n| **Современное»**| Conditional noise — статический механизм, который вычисляет преимущества через нормализование сэмплирования и обнуление параметра η |\n\n**Как они соотносятся функционально**\n\nПрямой связи между `conditionally_noise_conditional_noise` и `advantage_estimator_advantage_estimator` нет: первый работает в области генераций, второй — в области обучения политики. Их связь — **структурный комплементарный**, иерархическая (уясь между симуляциями генерационных модулей и оценкой преимущества):\n\n- `conditionally_noise = conditional_noise_s ...` — это детерминированный механизм на уровне генерируемого артефакта;\n- `advantage_estimate = advantage_estimation` — эмпирический механизм оценки (градиент) через диспергенцию всплеста.\n\nИначе говорить, `conditional_noise` — «механизм-самодостаток» генератора, а `advantage_ ...` — «сигнал оценки-инструмент» для его отображения в поведение, а не его источник.</tool_response><|im_start|>",
+            "answer_chars": 2281,
+            "turns": 1,
+            "tool_calls": 0,
+            "hit_timeout": false,
+            "hit_context_guard": false,
+            "coverage": 0.0,
+            "reward": -0.1
+          }
+        ],
+        "d_cutoff": [],
+        "b_no_checkable_values": [],
+        "c_wrong_values": []
+      },
+      "note": "ответы хранятся обрезанными до 3000 символов; тексты примеров — из answers.jsonl прогона, вердикт pass всегда из verify_task"
+    }
+  },
+  "verdict": {
+    "question": "пригоден ли v2 для RL относительно v1 на одном чекпойнте",
+    "v2_suitable_for_rl": false,
+    "criteria": [
+      {
+        "name": "непустой сигнал на чекпойнте",
+        "value": 0.035,
+        "threshold": "> 0.029 (пол базовой модели, S3j)",
+        "passed": true
+      },
+      {
+        "name": "v2 не хуже v1 по порядку величины",
+        "value": [
+          -0.0615,
+          0.0311
+        ],
+        "threshold": "нижняя граница разности > −0.05",
+        "passed": false
+      },
+      {
+        "name": "различие пулов отделено от шума",
+        "value": [
+          -0.0615,
+          0.0311
+        ],
+        "threshold": "интервал разности не накрывает 0",
+        "passed": false
+      },
+      {
+        "name": "есть типы в полосе ADR-006 (0.25–0.80)",
+        "value": [],
+        "threshold": "хотя бы один тип",
+        "passed": false
+      }
+    ],
+    "controlled_comparison": {
+      "explain_relation": {
+        "pass_rate_left": 0.12,
+        "pass_rate_right": 0.04,
+        "pass_rate_delta": -0.08,
+        "tool_call_share_left": 0.44,
+        "tool_call_share_right": 0.42
+      }
+    },
+    "recommendation": [
+      "v2 даёт на обученном чекпойнте pass-rate 0.035 против 0.029 на базовой модели (S3j): фигура «пул мёртв» относится к базовой модели, а не к пулу",
+      "v2 проигрывает v1 по pass-rate: дельта -0.0117 (CI [-0.0615, 0.0311]) — пул как есть для RL не эквивалентен v1",
+      "доминирующая причина отказа на v2: a_no_tool_call — модель не вызвала инструмент",
+      "править формат ответа/бутстрап вызова инструмента (TOOLCALL_FORCE/hint), а не задачи",
+      "одна попытка на задачу: pass@k не заявляется; полоса ADR-006 названа для агрегата по типу задачи",
+      "агрегаты пулов покрывают разные наборы типов: сводная дельта отвечает на вопрос «где пул целиком», а построчно сопоставимы только типы, измеренные на обоих пулах (их 1: explain_relation)"
+    ],
+    "dominant_failure_class": "a_no_tool_call",
+    "measured_on": "один и тот же чекпойнт на обоих пулах (см. checkpoint)"
+  },
+  "artifacts": {
+    "run_dir": "agentic",
+    "per_pool": {
+      "v1": {
+        "dir": "v1",
+        "raw_records": "tasks.jsonl",
+        "answers": "answers.jsonl"
+      },
+      "v2": {
+        "dir": "v2",
+        "raw_records": "tasks.jsonl",
+        "answers": "answers.jsonl"
+      }
+    },
+    "note": "сырые записи и тексты ответов лежат в каталоге прогона; сводка пересобирается из них без GPU (--summarize)"
+  },
+  "assumptions": [
+    "одна попытка на задачу (n_attempts=1): измерен baseline, а не pass@k — разброс одной попытки в полосу не заложен",
+    "кредит бинарный (AD-11): verify_task возвращает bool, градуированных чисел в отчёте нет",
+    "полоса 0.25–0.80 (ADR-006) названа для агрегата по типу задачи, а не для отдельной задачи",
+    "инференс — transformers на локальной RTX 4080S (vLLM на стенде нет); поток RNG отличается от vLLM, поэтому сопоставимы агрегаты, а не построчные траектории",
+    "веса — SFT-чекпойнт /home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt (sha256 080c3ab6523f…), а не базовая модель: числа описывают артефакт после SFT",
+    "спецтокены чекпойнта НЕ переинициализированы по сабтокенам: строки <think>/</think>/<tool_response>/</tool_response> обучены стадией SFT, и re-init стёр бы их",
+    "оба пула пройдены в ОДНОМ процессе одной и той же моделью (один загруженный чекпойнт): сравнение пулов не смешано со сравнением моделей",
+    "сравнение с ориентиром ADR-010 (пул v1, vLLM-разведка) качественное: другой инструмент инференса и другая выборка",
+    "пулы измерены одним процессом и одной моделью: отпечаток весов до e1fb62dafebe… и после e1fb62dafebe… совпал"
+  ],
+  "open_questions": [
+    "полоса 0.25–0.80 per-task при n_attempts=1 не измерима: чтобы назвать долю задач в полосе, нужен k>1 на задачу (карточка passk-identifiability) — запускать ли повторную пробу с k>1",
+    "различие пулов по pass-rate не отделено от шума (дельта -0.0117, CI [-0.0615, 0.0311]): нужен ли повторный замер с k>1 на задачу, чтобы решить судьбу пула",
+    "спецтокены чекпойнта НЕ переинициализированы по сабтокенам (артефакт как есть), тогда как run_rl начинает RL с re-init — нужен ли контрольный прогон --init-special-tokens, чтобы увидеть, зависит ли вывод от этого шага",
+    "chain_reasoning: доля задач с tool_error 0.32 — проверить, не портит ли ошибка инструмента картину решаемости",
+    "explain_relation: доля задач с tool_error 0.42 — проверить, не портит ли ошибка инструмента картину решаемости",
+    "find_concept: доля задач с tool_error 0.14 — проверить, не портит ли ошибка инструмента картину решаемости",
+    "formula_chain: доля задач с tool_error 0.22 — проверить, не портит ли ошибка инструмента картину решаемости",
+    "доля упоров в потолок ходов 0.01: при max_turns=None часть задач недосчитана — поднимать ли потолок"
+  ],
+  "limits": [
+    "одна попытка на задачу (n_attempts=1): pass@k не измерен, полоса 0.25–0.80 названа для агрегата по типу задачи, а не для отдельной задачи",
+    "поток RNG отличается от vLLM: построчные траектории с RL-прогоном не сопоставимы",
+    "веса — SFT-чекпойнт (не RL-чекпойнт и не база): числа описывают решаемость пула ДО RL, а не результат RL",
+    "выборка ≤100 задач на тип при одной попытке: тип с редким отличием пулов может не показать его — интервалы Вильсона/Ньюкомба в отчёте",
+    "pool_sha256 — снимок, прочитанный в память целиком: пул фиксируется по хешу до и после пробы, а не блокировкой файла"
+  ],
+  "not_verified": [],
+  "weights_fingerprint_before": "e1fb62dafebebd7f6bab13e53415c2402e4b156f9731746502010c8c2f6735f1",
+  "weights_fingerprint_after": "e1fb62dafebebd7f6bab13e53415c2402e4b156f9731746502010c8c2f6735f1",
+  "weights_unchanged_across_pools": true,
+  "run_manifest": {
+    "path": "runs/s3am-standard-mode-20260918/agentic/run_manifest.json",
+    "message": "записан: runs/s3am-standard-mode-20260918/agentic/run_manifest.json"
+  }
+}

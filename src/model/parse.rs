@@ -421,7 +421,7 @@ mod tests {
     const VALID: &str = "---\n\
                          id: CMP-001\n\
                          type: cmp\n\
-                         title: Payment Gateway\n\
+                         title: Inference Gateway\n\
                          status: adopted\n\
                          date: 2026-08-15\n\
                          depends_on:\n\
@@ -429,22 +429,22 @@ mod tests {
                          verified_by: [C-001]\n\
                          ---\n\
                          \n\
-                         Приём платёжных запросов.\n";
+                         Приём запросов на инференс.\n";
 
     #[test]
     fn parse_valid_entity() {
         let dir = tempfile::tempdir().expect("tmp");
-        let file = write(dir.path(), "CMP-001-payment-gateway.md", VALID);
+        let file = write(dir.path(), "CMP-001-inference-gateway.md", VALID);
         let e = parse_entity(&file, &std::fs::read_to_string(&file).expect("чтение"))
             .expect("валидная сущность");
         assert_eq!(e.id, "CMP-001");
         assert_eq!(e.kind, EntityKind::Cmp);
-        assert_eq!(e.title, "Payment Gateway");
+        assert_eq!(e.title, "Inference Gateway");
         assert_eq!(e.status, "adopted");
         assert_eq!(e.date.as_deref(), Some("2026-08-15"));
         assert_eq!(e.depends_on, ["CMP-002"]);
         assert_eq!(e.verified_by, ["C-001"]);
-        assert_eq!(e.body, "Приём платёжных запросов.");
+        assert_eq!(e.body, "Приём запросов на инференс.");
         // Количественные поля ADR-007 опциональны: без них — None.
         assert_eq!(e.latency_budget_ms, None);
         assert_eq!(e.instances, None);

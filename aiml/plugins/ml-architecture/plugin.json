@@ -1,5 +1,4 @@
 {
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ml-architecture",
   "version": "1.0.0",
   "description": "Доменный плагин AI/ML-исследователя: проектирование нейросетей с нуля — выбор семейства архитектуры (MLP/CNN/RNN/Transformer/MoE/SSM/hybrid) под задачу и индуктивный сдвиг, парам-бюджет и скейлинг-законы (total vs active params, tokens-per-param, пять рычагов пост-тренинга), оценка VRAM/pамяти до аренды GPU (веса+KV-кэш+оверхед, 2 байта × 2 копии + overhead) и типовые ловушки (mode collapse, ABI-несовместимость, OOM). Триггеры: «спроектировать сеть», «выбрать архитектуру», «MLP vs Transformer vs MoE», «сколько параметров», «скейлинг-законы», «влезет ли в GPU», «оценка VRAM», «KV-кэш», «mode collapse», «ABI», «OOM».",

@@ -1,0 +1,3 @@
+strict
+verbose
+dry-run

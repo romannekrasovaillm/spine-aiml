@@ -1,0 +1,46 @@
+{
+  "schema": "grounded-portability/1",
+  "date": "2026-09-20",
+  "delta": "grounded-instrument-registry",
+  "is_measurement": false,
+  "what": "границы переносимости чисел замера заземлённого скелета (ADR-049 п.10) — что числа НЕ покрывают",
+  "why_an_artifact": "у числа один носитель (ADR-023 п.10б), а у границы замера — тоже: непроверенное, названное в прозе README, теряется при первой же правке вёрстки. Артефакт объявляет границы машинно и не выдаёт себя за замер (is_measurement: false)",
+  "carrier_of_the_numbers": {
+    "file": "evidence/grounded-skeleton.json",
+    "instrument_revision": "G-5 registry → tools/grounded_runner.py, но числа сняты редакцией G-4",
+    "registry": "docs/specs/INSTRUMENT-VERSIONS.md §2.3"
+  },
+  "boundaries": [
+    {
+      "id": "cold-host-image-pull",
+      "status": "not_measured",
+      "claim": "цена первой пробы на ЧИСТОМ (непрогретом) стенде включает скачивание образов; в числах замера этой цены нет",
+      "applies_to": ["evidence/grounded-skeleton.json"],
+      "why": "проба 20.09.2026 шла на стенде, где оба образа — песочницы (alpine:3.20) и sidecar'ов/канарейки (python:3.12-alpine) — уже лежали в хранилище демона: docker image inspect отвечал без тяга, и цена подъёма контейнера его не содержала",
+      "observed": {
+        "pull_attempted": false,
+        "pull_s": null,
+        "note": "наблюдалось ли когда-либо скачивание этого образа — не записано ни в одном артефакте; числа нет вовсе"
+      },
+      "not_replaced_by_estimate": "оценка тяга не подставляется: оценка не замер (ADR-023 п.13). Пустое место названо пустым, а не заполнено числом «по ощущению»",
+      "how_to_measure_next": "поле host.images[].pull_s отчёта прибора: null — образ лежал, число — тяг стоил столько секунд. Пишется с редакции G-5; на чистом стенде первый прогон даст число сам",
+      "why_not_measured_now": "переписывать замороженное доказательство запрещено (ADR-028 п.4), а повторный замер на прогретом стенде числа не дал бы: он измеряет прогрев, а не холод"
+    },
+    {
+      "id": "stand-not-interchangeable",
+      "status": "named",
+      "claim": "числа цены сняты на стенде, названном в host.stand, и между стендами не переносятся (ADR-049 п.10)",
+      "applies_to": ["evidence/grounded-skeleton.json", "evidence/grounded-skeleton-r1-2026-09-20.json"],
+      "observed": {
+        "numbers_of_this_delta": "gb10-fast (внутри контейнера стадии; GPU пробой не задействован)",
+        "numbers_of_previous_revision": "локальная 4080 (набор e43c6739, сохранён поимённо, не переписан)"
+      },
+      "how_to_check": "поле host.stand отчёта; страж docs/specs/INSTRUMENT-VERSIONS.md §2.3 называет редакцию, которой сняты числа"
+    }
+  ],
+  "invariants": {
+    "ok": true,
+    "findings": [],
+    "note": "артефакт объявляет границы, а не измеряет их: находок у него быть не может по построению — он и есть перечень того, чего в замере нет"
+  }
+}

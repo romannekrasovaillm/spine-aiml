@@ -18,7 +18,7 @@
 //! - **Reasoning/thinking в API нет** — карты ризонинга не задаются;
 //!   контекст моделей GigaChat-2/3 — 128K (пресет `context_limit`).
 //! - **TLS**: корень НУЦ Минцифры — поле `ca_pem_file` (добавляется в
-//!   rustls root store; НЕ `verify=false` — AD-BE5); банковский контур
+//!   rustls root store; НЕ `verify=false` — AD-BE5); корпоративный контур
 //!   `B2Bank` — mTLS парой `client_cert_file`/`client_key_file`.
 //!
 //! Профили конфигурации (`[models.<имя>]`, имя с префиксом `gigachat`):
@@ -26,7 +26,7 @@
 //!   B2B/CORP — выбор владельца инсталляции; от scope зависят лимиты
 //!   одновременных потоков: 1 физлица / 10 юрлица — при параллельных
 //!   субагентах упрётесь в 429), `token_url` можно опустить;
-//! - банковский контур `B2Bank` (домен sbrf.ru): `base_url` стенда
+//! - корпоративный контур `B2Bank` (домен sbrf.ru): `base_url` стенда
 //!   инсталляции + `client_cert_file`/`client_key_file`, `oauth`
 //!   отсутствует — заголовок `Authorization` не шлётся вовсе
 //!   (клиента аутентифицирует сертификат).
@@ -1078,7 +1078,7 @@ data: [DONE]\n\n";
         std::fs::write(&key_path, test_key_pem()).expect("write key");
         let (port, server, mut rx) = serve_mock(vec![http_response(
             "200 OK",
-            &chat_ok_body("из банковского контура"),
+            &chat_ok_body("из корпоративного контура"),
         )])
         .await;
 
@@ -1099,7 +1099,7 @@ data: [DONE]\n\n";
             .await
             .expect("complete без Authorization");
         server.await.expect("join");
-        assert_eq!(msg.content, "из банковского контура");
+        assert_eq!(msg.content, "из корпоративного контура");
 
         let req = rx.recv().await.expect("chat-запрос");
         assert!(rx.recv().await.is_none());

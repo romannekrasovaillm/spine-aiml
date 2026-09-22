@@ -1,0 +1,404 @@
+{
+  "artifact": "fleet-disk-audit",
+  "case": "laguna-compact",
+  "stage": "S3r-followup",
+  "generated_at": "2026-09-16T19:20:00+00:00",
+  "generated_at_local": "2026-09-16T22:20+03:00",
+  "host": "spark-44c3",
+  "mode": "read-only",
+  "deletions_performed": 0,
+  "status": "partial",
+  "status_reason": "Разведка и карта места полные; пиковые потребители и AD-4-нарушения подтверждены фактами. Не измерено: точный размер rl_tasks_revpool_v2.jsonl и корпуса RL-стадии, разбивка /home/user/.openclaw и .hermes по назначению — на них не хватило бюджета прогона. Оценка потребности SFT/RL-стадий дана по аналогу CPT-чекпойнта, не по фактическим артефактам.",
+
+  "invariants_respected": {
+    "nothing_deleted": true,
+    "gb10_shared_untouched": true,
+    "gpu_not_occupied": true,
+    "no_copies_made": true,
+    "note": "Читались только метаданные (du/find/stat/df/ls/ps/cat). Модель весов и NFS-данные не модифицировались."
+  },
+
+  "headline": {
+    "filesystem": "/dev/nvme0n1p3 mounted at /",
+    "total": "468G",
+    "used": "421G",
+    "free": "24G",
+    "used_pct": 95,
+    "acceptance_threshold_free": "33G",
+    "verdict": "НИЖЕ ПОРОГА: свободно 24 ГБ против критерия 33 ГБ. За время аудита свободное место сократилось с 30 ГБ до 24 ГБ.",
+    "inodes": {"total": 31227904, "used": 4144281, "free": 27083623, "used_pct": 14,
+               "verdict": "инодами не ограничены — проблема только в байтах"}
+  },
+
+  "key_finding_disk_pressure_is_not_the_cpt_blocker": {
+    "fact": "Тяжёлые артефакты контура Laguna физически лежат на NFS /home/user/gb10-shared (смонтирован с 10.55.0.2), а НЕ на локальном /.",
+    "evidence": [
+      "lrwxrwxrwx /home/user/.cache/huggingface -> /home/user/gb10-shared/models-store/home-roman/huggingface-cache",
+      "lrwxrwxrwx кейсы/laguna-compact/datasets -> /home/user/gb10-shared/datasets",
+      "lrwxrwxrwx кейсы/laguna-compact/cpt_corpus_v12r.txt -> /home/user/gb10-shared/cpt_corpus_v12r.txt",
+      "mount: 10.55.0.2:/home/user/gb10-shared on /home/user/gb10-shared type nfs4"
+    ],
+    "consequence": "Полный CPT на 9776 шагов пишет ~59 ГБ чекпойнтов на NFS (там свободно 1,2 ТБ из 3,7 ТБ, 67% занято) и ~0 ГБ на локальный /. Локальные 24 ГБ не блокируют стадии CPT/SFT/RL.",
+    "but": "Локальный / блокирует всё остальное: новые worktree, git-клоны, pip/conda-установки, docker build-контексты, запись локальных чекпойнтов, apt/обновления ОС. Один всплеск /tmp или сборка образа доводят / до 100% и валят хост."
+  },
+
+  "live_run_hazard": {
+    "severity": "high",
+    "fact": "В момент аудита НА СТЕНДЕ ИДЁТ прогон CPT: full-cpt-20260916-2149, старт 21:49 MSK, logs/cpt.log обновлён 22:00, logs/loss_trace.jsonl — 22:02 (step 250/9776).",
+    "evidence": [
+      "logs/cpt.log: 'CPT step 250/9776 | loss=1.8723 | lr=1.75e-05 | tok/s=3326'",
+      "logs/loss_trace.jsonl mtime 2026-09-16 22:02",
+      "каталог checkpoints/ создан 21:50"
+    ],
+    "implication": "НИКАКИХ деструктивных действий на стенде и NFS до завершения прогона. Пиковые кандидаты (kda-graft/runs, gb10-shared/*, /tmp/kk-calib-tasks) не трогать до его конца."
+  },
+
+  "why_previous_run_stopped_NOT_disk": {
+    "run": "full-cpt-20260916-1933",
+    "stopped_at": "2026-09-16T21:43:03+03:00",
+    "stopped_at_step": 3141,
+    "reason": "ADR-031 п.2 — конфигурация LR×0.35 строго доминируема (домен сопоставим ×0.384 против ×0.391; язык хуже ×1.51 K1 / ×1.66 K2)",
+    "protocol": "ADR-016 п.2: var/STOPPED + 'docker stop -t 120', graceful, hard_kill_used=false",
+    "checkpoints_kept": 6,
+    "checkpoints_bytes": 17778880228,
+    "exit_code": "143 (SIGTERM, штатный)",
+    "conclusion": "Остановка — намеренное решение владельца, НЕ следствие нехватки диска. Ложный след закрыт: exit 143 + 'стоп-условие' в var/status/cpt не являются признаком ENOSPC."
+  },
+
+  "top_consumers_local_root": [
+    {"rank": 1, "path": "/home/user/Документы", "size": "113G", "type": "личный архив + research library",
+     "breakdown": {"/home/user/Документы/КОД/gigachat/РАЗБОРЫ": "90G", "/home/user/Документы/БИБЛИОТЕКА": "18G",
+                   "/home/user/Документы/__archive": "1.7G", "/home/user/Документы/postman": "1.1G"}},
+    {"rank": 2, "path": "/home/user/experiments", "size": "44G", "type": "наши прогоны вне контура",
+     "breakdown": {"/home/user/experiments/kda-graft": "33G", "/home/user/experiments/harness-review": "5.6G",
+                   "/home/user/experiments/oxalpha_gen": "3.9G", "прочее": "1.5G"}},
+    {"rank": 3, "path": "/usr", "size": "42G", "type": "система",
+     "breakdown": {"/usr/share/ollama": "17G", "/usr/share (прочее)": "3G", "/usr/local/cuda-12.4": "7.0G",
+                   "/usr/local/lib": "4.7G", "/usr/lib": "8.0G"}},
+    {"rank": 4, "path": "/tmp", "size": "25G", "type": "scratch (эфемерный по определению)"},
+    {"rank": 5, "path": "/home/user/.local", "size": "16G", "type": "user site-packages (python -m pip install --user)"},
+    {"rank": 6, "path": "/var", "size": "15G", "type": "система", "breakdown": {"/var/lib/snapd": "12G", "/var/log": "1.6G"}},
+    {"rank": 7, "path": "/home/user/miniconda3", "size": "13G", "type": "conda base"},
+    {"rank": 8, "path": "/home/user/.openclaw", "size": "8.6G", "type": "инструмент, вне контура"},
+    {"rank": 9, "path": "/home/user/.hermes", "size": "8.5G", "type": "инструмент, вне контура"},
+    {"rank": 10, "path": "/home/user/.cache", "size": "8.4G", "type": "кэши (HF-кэша здесь НЕТ — он на NFS)"},
+    {"rank": 11, "path": "/home/user/spine-bank", "size": "8.2G", "type": "смежный репозиторий"},
+    {"rank": 12, "path": "/home/user/library", "size": "7.2G", "type": "библиотека"},
+    {"rank": 13, "path": "/home/user/venv-kk", "size": "5.6G", "type": "venv"},
+    {"rank": 14, "path": "/home/user/slime_venv", "size": "5.3G", "type": "venv"},
+    {"rank": 15, "path": "/home/user/llama.cpp", "size": "5.3G", "type": "сборка"},
+    {"rank": 16, "path": "/home/user/venv", "size": "5.1G", "type": "venv"},
+    {"rank": 17, "path": "/home/user/.arch-ml", "size": "4.7G", "type": "17 worktree контура"}
+  ],
+
+  "single_biggest_item": {
+    "path": "/home/user/Документы/КОД/gigachat/РАЗБОРЫ/recipes_taxonomy",
+    "size": "90G",
+    "share_of_root": "19%",
+    "nature": "личная research-библиотека: arxiv-PDF, разложенные по таксономии",
+    "subdirs": {"03_ПОСТ-ТРЕЙНИНГ_RL": "37G", "01_СРЕДЫ": "32G", "02_МИД-ТРЕЙНИНГ": "8.3G",
+                "06_Вне_фокуса": "4.8G", "10_Проекты_и_отчёты": "3.7G", "11_Техотчёты_лабораторий_LLM": "2.0G",
+                "04_КОМПЬЮТ": "1.1G", "temp_pdfs_* (7 каталогов)": "1.35G"},
+    "largest_file": "/home/user/Документы/КОД/gigachat/РАЗБОРЫ/recipes_taxonomy/10_Проекты_и_отчёты/_Архив/translations.7z — 1.09 GB",
+    "project_relevance": "не данные контура; вне AD-4",
+    "verdict": "решение владельца — перенос на NFS/архив, не удаление"
+  },
+
+  "worktrees": {
+    "count_total": 17,
+    "count_reported_in_task": 15,
+    "note": "git worktree list даёт 17 записей: main (/home/user/spine-aiml) + 16 linked worktree",
+    "total_size": "4.7G",
+    "items": [
+      {"path": "/home/user/spine-aiml", "branch": "main", "head": "8778125", "size": "1.3G",
+       "note": "716M из 1.3G — Rust target/"},
+      {"path": "/home/user/.arch-ml/worktrees/sanitize-ad7", "branch": "sanitize/ad7-publish", "head": "ea81c37", "size": "1.6G",
+       "note": "~1.2G — Rust target/debug (артефакты сборки); ветка вне группы arch/*"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace", "branch": "arch/gate-scope-workspace", "head": "c91546b", "size": "1.5G",
+       "note": "СОДЕРЖИТ AD-4-НАРУШЕНИЕ: 1.46G реальных копий датасета в git-индексе"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/attn-sparse-8k-cost", "branch": "arch/attn-sparse-8k-cost", "head": "25e6e35", "size": "56M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set", "branch": "arch/laguna-eval-set", "head": "949a5b9", "size": "120M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-passrate-probe", "branch": "arch/laguna-passrate-probe", "head": "e1b07a2", "size": "118M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-control-arms", "branch": "arch/laguna-control-arms", "head": "e7d2d89", "size": "118M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-sft-prep", "branch": "arch/laguna-sft-prep", "head": "5ba3fc9", "size": "117M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-protocol-diag", "branch": "arch/laguna-protocol-diag", "head": "afa359e", "size": "117M", "note": "текущий worktree"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-mix-lr-calibration", "branch": "arch/laguna-mix-lr-calibration", "head": "e3cceb3", "size": "117M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fleet-analysis", "branch": "arch/laguna-fleet-analysis", "head": "0ec9cf4", "size": "116M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fleet-2", "branch": "arch/laguna-fleet-2", "head": "47f921f", "size": "116M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-replay50", "branch": "arch/laguna-replay50", "head": "c6e9374", "size": "115M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-flex-check", "branch": "arch/laguna-flex-check", "head": "c25afe2", "size": "115M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-pool-v2-fix", "branch": "arch/laguna-pool-v2-fix", "head": "ae692aa", "size": "114M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-verifiers", "branch": "arch/laguna-verifiers", "head": "b2b5456", "size": "113M"},
+      {"path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-ppl-probe", "branch": "arch/laguna-ppl-probe", "head": "09427f4", "size": "113M"}
+    ],
+    "assessment": {
+      "hygiene_good": "13 из 16 linked worktree весят ~113–120 МБ и не содержат локальных данных — AD-4 по данным соблюдён, симлинки на NFS на месте (проверено в laguna-control-arms, sanitize-ad7, gate-scope-workspace, main).",
+      "heavy": ["sanitize-ad7 1.6G", "gate-scope-workspace 1.5G"],
+      "regenerable": "~1.9 ГБ из 4.7 ГБ — Rust target/ (spine-aiml/target 716M + sanitize-ad7/target ~1.2G); восстанавливается cargo build.",
+      "duplicates": "Дублирование кода неизбежно (каждый worktree = полный чекаут). Реального дублирования ДАННЫХ нет, кроме AD-4-нарушения в gate-scope-workspace.",
+      "abandoned": "sanitize-ad7 (ветка sanitize/ad7-publish вне группы arch/*, head ea81c37) — кандидат на сведение/удаление после подтверждения владельца. gate-scope-workspace — коммит c91546b прямо описывает 'незакоммиченную работу, сохранение перед решением владельца', т.е. ждёт решения.",
+      "safe_to_remove_after_merge": []
+    }
+  },
+
+  "ad4_audit": {
+    "rule": "AD-4: корпуса, датасеты и веса живут в /home/user/gb10-shared; в рабочих каталогах и кейсе — только симлинки; копии запрещены, включая git-историю. Страж C-011.",
+    "status": "VIOLATED — обнаружен живой повтор инцидента, который AD-4 явно называет в поле Prevents",
+    "violations": [
+      {
+        "id": "AD4-V1",
+        "severity": "high",
+        "class": "датасет — реальные копии + попадание в git-индекс",
+        "files": [
+          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/real-l0-00/data/datasets/sft_train_v12.jsonl",
+          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l0-00/data/datasets/sft_train_v12.jsonl",
+          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l1-00/data/datasets/sft_train_v12.jsonl"
+        ],
+        "worktree": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace",
+        "size_each": 486352008,
+        "size_total": "1.46G (3 копии одного файла)",
+        "inodes": [17573263, 17573443, 17573607],
+        "nlink": 1,
+        "proof_real_copies": "разные inode, nlink=1 → три независимых файла, не хардлинки и не симлинки",
+        "git_tracked": true,
+        "proof_git_tracked": "git ls-files --error-unmatch — успех для всех трёх; git check-ignore — пусто (не игнорируются); git status --porcelain по каталогу — пусто (закоммичены и чисты)",
+        "blob_in_history": {"object": "2700788ba6af4a5d8e214cd6f581a2f549b883dd", "raw_bytes": 486352008, "packed_bytes": 142973472, "content_head": "{\"messages\": [{\"role\": \"system\", \"content\": \"Ты — эксперт по ML/AI с доступом к библиотеке концептов..."},
+        "matches_known_incident": "AD-4 ПРЕДУПРЕЖДАЕТ ровно это: 'повтор инцидента попадания копий sft_train_v12.jsonl (486 МБ ×3) в git-индекс (коммит f7deadc)'. Сейчас в контуре существует активная ветка arch/gate-scope-workspace с тем же нарушением.",
+        "contrast": "В main-дереве тот же путь — КОРРЕКТНЫЙ симлинк: spine-aiml/кейсы/kimi-killer/data/datasets/sft_train_v12.jsonl -> /home/user/gb10-shared/datasets/sft_train_v12.jsonl. Нарушение живёт только в evidence-подкаталоге a4-run-wire.",
+        "fix": "заменить на симлинки на /home/user/gb10-shared/datasets/sft_train_v12.jsonl; для освобождения байтов объектов нужна перезапись истории ветки (git filter-repo), иначе блобы останутся в .git"
+      },
+      {
+        "id": "AD4-V2",
+        "severity": "medium",
+        "class": "токенизированный корпус — numpy-массив в git-истории",
+        "blob": {"object": "1a3de70e8d07d27ebc737390180be5ab4bd2dc88", "raw_bytes": 228262016, "packed_bytes": 88849169,
+                 "content_head": "NUMPY v {'descr': '<i4', 'fortran_order': False, 'shape': (6966, 8192), }"},
+        "nature": "npy-массив (6966 × 8192, int32) — токенизированный корпус, закоммичен в .git",
+        "verdict": "нарушение AD-4 ('копии запрещены, включая git-историю'); вес в .git ~88 МБ упакованного"
+      },
+      {
+        "id": "AD4-V3",
+        "severity": "medium",
+        "class": "веса/состояние оптимизатора на локальном /",
+        "files": [
+          "/home/user/experiments/kda-graft/runs/smoke-r2c/checkpoints/last/optim.pt",
+          "/home/user/experiments/kda-graft/runs/retrieval-r2c-window128/checkpoints/last/optim.pt",
+          "/home/user/experiments/kda-graft/runs/retrieval-r1c-mqar-w32/checkpoints/last/optim.pt",
+          "/home/user/experiments/kda-graft/runs/smoke-r2b/checkpoints/last/optim.pt",
+          "/home/user/experiments/kda-graft/runs/retrieval-r2b-paraphrase/checkpoints/last/optim.pt"
+        ],
+        "size_each": 4385703594,
+        "size_total": "21.9G (только optim.pt; + ~5.5G model.safetensors)",
+        "rule_text": "AD-4: 'корпуса, датасеты и веса живут в /home/user/gb10-shared'",
+        "note": "AD-4 приводит этот же класс как факт 14.09.2026 ('чекпойнты контура лежат на локальном / GB10, /home/user/experiments'). На NFS уже есть выделенная площадка gb10-shared/kda-graft-scratch (29G) — перенос туда снимает нарушение."
+      }
+    ],
+    "ad4_claim_now_stale": {
+      "claim": "AD-4: 'на локальном / GB10 ... 111 файлов *_final.pt'",
+      "measured": "найдено 1 совпадение '*_final.pt' — /home/user/experiments/laguna_qwen25-05b/checkpoints/checkpoint_final.pt, 86 БАЙТ (заглушка), 0.00 ГБ",
+      "verdict": "утверждение УСТАРЕЛО — чекпойнты с локального / с тех пор убраны. Правило AD-4 по этому пункту соблюдено."
+    },
+    "large_files_outside_gb10_shared_inside_worktrees": [
+      {"path": "gate-scope-workspace/кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/{real-l0-00,corruption-l0-00,corruption-l1-00}/data/datasets/sft_train_v12.jsonl", "size": "486M ×3", "tree": "gate-scope-workspace", "verdict": "НАРУШЕНИЕ AD-4 (AD4-V1)"},
+      {"path": "sanitize-ad7/target/debug/incremental/.../dep-graph.bin", "size": "151M", "tree": "sanitize-ad7", "verdict": "не данные — артефакт сборки Rust; AD-4 не нарушает, но 1.9 ГБ суммарно регенерируемы"},
+      {"path": "sanitize-ad7/target/debug/libarch_harness.rlib", "size": "142M", "tree": "sanitize-ad7", "verdict": "артефакт сборки"},
+      {"path": "sanitize-ad7/target/debug/deps/{libarch_harness-*.rlib,arch_ml-*,arch-ml}", "size": "142M/123M/123M", "tree": "sanitize-ad7", "verdict": "артефакт сборки"},
+      {"path": "sanitize-ad7/target/debug/incremental/.../query-cache.bin", "size": "96M", "tree": "sanitize-ad7", "verdict": "артефакт сборки"},
+      {"path": "spine-aiml/target/release/{libarch_harness.rlib,deps/libarch_harness-*.rlib}", "size": "117M ×2", "tree": "main", "verdict": "артефакт сборки"},
+      {"path": "spine-aiml/.git/objects/27/00788ba6...", "size": "143M", "tree": "main (.git)", "verdict": "НАРУШЕНИЕ AD-4 в истории (AD4-V1 blob)"},
+      {"path": "spine-aiml/.git/objects/1a/3de70e8d...", "size": "88M", "tree": "main (.git)", "verdict": "НАРУШЕНИЕ AD-4 в истории (AD4-V2 blob)"}
+    ],
+    "symlinks_verified_ok": [
+      "main: кейсы/kimi-killer/data/datasets/sft_train_v12.jsonl -> gb10-shared/datasets/sft_train_v12.jsonl",
+      "main: кейсы/laguna-compact/{datasets,data/tok,cpt_corpus_v12r.txt,domain_eval_v2.txt,general_eval_v2.txt,laguna_pipeline_v8.py} -> gb10-shared/...",
+      "main: кейсы/kimi-killer/evidence/a4-run-wire/{sft,rl}/checkpoint -> gb10-shared/checkpoints/{sft,rl}-smoke",
+      "laguna-control-arms: runs/replay50-collapse-20260916/{corpus/tok/*.npy,model/Qwen2.5-0.5B/model.safetensors} -> gb10-shared/...",
+      "sanitize-ad7, gate-scope-workspace: те же симлинки на месте"
+    ]
+  },
+
+  "caches_and_temp": [
+    {
+      "path": "/home/user/.cache/huggingface",
+      "size": "НЕ на локальном диске",
+      "resolved": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache",
+      "type": "HF-кэш (симлинк на NFS)",
+      "verdict": "нельзя трогать",
+      "risk": "кэш весов всей флот-линии; удаление/чистка валит инференс прогонов и провоцирует повторную закачку десятков ГБ на NFS. На локальный / не влияет вообще."
+    },
+    {
+      "path": "torch cache (~/.cache/torch, TORCH_HOME)",
+      "size": "отсутствует",
+      "verdict": "нечего чистить",
+      "risk": "— ; inductor_cache лежит на NFS (gb10-shared/inductor_cache, 50 МБ)"
+    },
+    {
+      "path": "/home/user/.cache/tracker3",
+      "size": "3.9G",
+      "type": "индекс GNOME Tracker",
+      "verdict": "безопасно чистить",
+      "risk": "теряется только поисковый индекс рабочего стола; перестроится сам. Рекомендую tracker3 reset/clean."
+    },
+    {
+      "path": "/home/user/.cache/google-chrome",
+      "size": "1.8G",
+      "type": "кэш браузера",
+      "verdict": "безопасно чистить",
+      "risk": "потеря кэша страниц и, при агрессивной чистке профиля, локальной истории/сессий. Риск для прогонов: если браузер используется в arch-be/harness — только повторная загрузка."
+    },
+    {
+      "path": "/home/user/.cache/tui-skill-finder",
+      "size": "1.4G",
+      "type": "кэш нашего TUI-инструмента",
+      "verdict": "безопасно чистить",
+      "risk": "перестроится при следующем запуске; на контур Laguna не влияет."
+    },
+    {
+      "path": "/home/user/.cache/puppeteer",
+      "size": "653M",
+      "type": "бинарники браузеров для автоматизации",
+      "verdict": "рискованно",
+      "risk": "удаление ломает puppeteer-тесты до повторной закачки Chromium (~150–200 МБ на браузер). Если такие тесты есть в harness/CI — не трогать."
+    },
+    {
+      "path": "/home/user/.cache/ms-playwright",
+      "size": "267M",
+      "type": "бинарники Playwright",
+      "verdict": "рискованно",
+      "risk": "то же: Playwright-тесты перестанут запускаться до `playwright install`."
+    },
+    {
+      "path": "/home/user/.cache/grok-profile",
+      "size": "272M",
+      "type": "профиль инструмента",
+      "verdict": "рискованно",
+      "risk": "профиль авторизации/сессии — удаление потребует повторного логина, возможна потеря локальной истории."
+    },
+    {
+      "path": "/tmp",
+      "size": "25G",
+      "type": "scratch",
+      "verdict": "в основном безопасно, но выборочно",
+      "risk": "каталог эфемерный by design, НО машина поднята 3 дня 16 ч, и часть каталогов — рабочие данные незавершённых прогонов.",
+      "subitems": [
+        {"path": "/tmp/kk-calib-tasks", "size": "9.1G", "content": "holdout, public", "verdict": "рискованно", "risk": "фикстуры задач kimi-killer для калибровки. Если calib-харнесс ссылается на них в текущем/следующем прогоне — удаление сломает калибровку. Сначала подтвердить, что источник этих фикстур есть в репозитории."},
+        {"path": "/tmp/probe-h7fbq4nq", "size": "4.1G", "verdict": "вероятно безопасно", "risk": "временный каталог прогона-пробника; проверить, не держит ли его живой процесс"},
+        {"path": "/tmp/spine-private-fix", "size": "3.8G", "verdict": "вероятно безопасно", "risk": "рабочая копия; если это клон репозитория — восстановимо"},
+        {"path": "/tmp/tmpot39_9da", "size": "1.4G", "verdict": "безопасно", "risk": "безымянный tmp"},
+        {"path": "/tmp/pytest-of-roman", "size": "1.4G", "verdict": "безопасно", "risk": "tmp_path pytest; чистится pytest --basetemp"},
+        {"path": "/tmp/probe2-9lzekdix", "size": "931M", "verdict": "вероятно безопасно"},
+        {"path": "/tmp/proftest", "size": "920M", "verdict": "вероятно безопасно"},
+        {"path": "/tmp/rl-smoke-rollouts-rcn4yqau", "size": "466M", "verdict": "рискованно", "risk": "роллауты RL-смоука; могут быть доказательной базой гейта"},
+        {"path": "/tmp/kk-diag-c1jjurh1", "size": "466M", "verdict": "рискованно", "risk": "диагностика kimi-killer"},
+        {"path": "прочее (mmv, mmcheck, spine-aiml-pub, laguna-*, ...)", "size": "~2.9G", "verdict": "выборочно"}
+      ],
+      "note": "Перезагрузка очистила бы /tmp, но убьёт 3 дня аптайма и живые процессы — не рекомендую как способ освобождения."
+    }
+  ],
+
+  "capacity_estimate": {
+    "unit": "полный CPT = max_steps 9776 (run_manifest.json), batch_size 1, max_len 8192, vllm_gpu_util 0.55, resync_every 25, seed 42, Qwen/Qwen2.5-0.5B",
+    "measured_checkpoint": {
+      "file": "calib_checkpoint_3000.pt",
+      "bytes": 2963146899,
+      "size": "2.96G",
+      "content": "модель + состояние оптимизатора (calib-чекпойнт стадии CPT)",
+      "cadence": "каждые 500 шагов (подтверждено 6 записями CKPT в logs/cpt.log прогона 1933: шаги 500,1000,1500,2000,2500,3000)"
+    },
+    "cpt": {
+      "checkpoints_per_full_run": "19 промежуточных (500..9500) + final ≈ 20",
+      "bytes_per_full_run": "≈ 59.2 ГБ",
+      "already_on_nfs": "17.8 ГБ (6 чекпойнтов прогона 1933, сохранены как артефакт 'цена высокого LR')",
+      "landing_zone": "NFS /home/user/gb10-shared/full-cpt-<ts>/checkpoints",
+      "local_root_impact": "≈ 0 ГБ (в /home/user остаётся только код, логи и манифесты)",
+      "nfs_headroom": "свободно 1.2 ТБ из 3.7 ТБ (67% занято) → влезает ~20 полных CPT; сейчас занято 208 ГБ",
+      "verdict": "полный CPT обеспечен ёмкостью; локальный / не является ограничением"
+    },
+    "sft": {
+      "input": "/home/user/gb10-shared/datasets/sft_train_v12.jsonl — 486 МБ (уже на NFS)",
+      "checkpoint_class": "тот же порядок, что CPT-чекпойнт (модель 0.5B + оптимизатор) ≈ 3 ГБ на точку",
+      "estimate": "3–5 точек ≈ 9–15 ГБ",
+      "landing_zone": "NFS",
+      "local_root_impact": "≈ 0 ГБ",
+      "confidence": "низкая — фактических SFT-чекпойнтов не найдено, оценка по аналогу CPT"
+    },
+    "rl": {
+      "steps": 500,
+      "resync_every": 25,
+      "artifacts": "чекпойнты RL + роллауты + пул задач",
+      "measured_local": "кейс-каталог runs/ = 21 МБ, крупнейший файл runs/rl-probe-20260914-0956/rollouts_log.jsonl = 16 МБ",
+      "estimate": "локально 1–3 ГБ scratch; чекпойнты на NFS",
+      "confidence": "низкая — размер rl_tasks_revpool_v2.jsonl не измерен",
+      "local_root_impact": "малый"
+    },
+    "summary": {
+      "local_root_needed_for_full_pipeline": "≈ 2–3 ГБ (scratch, worktree, кэши компиляции)",
+      "current_free": "24 ГБ",
+      "conclusion": "Текущих 24 ГБ ДОСТАТОЧНО для прохождения стадий CPT/SFT/RL, поскольку тяжёлые артефакты уходят на NFS.",
+      "however": "24 ГБ НЕ хватает как рабочий запас хоста: они ниже порога 33 ГБ и съедаются одним /tmp-всплеском (уже 25 ГБ), docker build или pip/conda-установкой (venv-класс 5–16 ГБ каждый).",
+      "recommended_target": "освободить 60–90 ГБ → 84–114 ГБ свободно (≈82–76% занято), с запасом на полный CPT + SFT + RL и на хост"
+    }
+  },
+
+  "candidates": {
+    "note": "НИЧЕГО НЕ УДАЛЕНО. Порядок — по убыванию (объём × безопасность). Перед шагами 1–4 дождаться конца живого прогона full-cpt-20260916-2149.",
+    "items": [
+      {"order": 1, "id": "C-TMP", "path": "/tmp (выборочно)", "reclaim": "~17G", "risk": "низкий/средний",
+       "risk_detail": "безопасно: tmpot39_9da 1.4G, pytest-of-roman 1.4G, probe2 931M, proftest 920M, мелочь. Рискованно: kk-calib-tasks 9.1G, rl-smoke-rollouts 466M, kk-diag 466M — трогать только после подтверждения, что не нужны живому/следующему прогону.",
+       "owner": "владелец", "reversible": "нет (данные)"},
+      {"order": 2, "id": "C-TARGET", "path": "Rust target/: spine-aiml/target (716M), sanitize-ad7/target (~1.2G)", "reclaim": "~1.9G", "risk": "низкий",
+       "risk_detail": "артефакты сборки; восстанавливаются `cargo build`. Цена — время пересборки (~минуты).",
+       "owner": "можно автоматически", "reversible": "да (пересборка)"},
+      {"order": 3, "id": "C-CACHE", "path": ".cache: tracker3 3.9G, google-chrome 1.8G, tui-skill-finder 1.4G", "reclaim": "~7.1G", "risk": "низкий",
+       "risk_detail": "индексы и кэши, перестраиваются. НЕ трогать puppeteer/ms-playwright/grok-profile — они ломают тесты и сессии.",
+       "owner": "владелец", "reversible": "да"},
+      {"order": 4, "id": "C-SNAP", "path": "/var/lib/snapd (старые ревизии snap)", "reclaim": "до ~10G", "risk": "низкий",
+       "risk_detail": "`snap list --all` + удаление disabled-ревизий. Теряется возможность отката к прежней версии snap-пакета. Нужен sudo.",
+       "owner": "владелец (sudo)", "reversible": "частично (переустановка версии)"},
+      {"order": 5, "id": "C-AD4-FIX", "path": "AD-4-нарушения: 1.46G копий датасета + блобы в .git (143M+88M)", "reclaim": "~1.5G рабочее дерево (+230M .git при перезаписи истории)", "risk": "низкий по сути, средний по процедуре",
+       "risk_detail": "Замена копий на симлинки — прямое требование AD-4, безопасно. Освобождение байтов в .git требует перезаписи истории ветки arch/gate-scope-workspace (git filter-repo) — это меняет SHA и требует согласования со всеми worktree. НЕ делать на общей ветке без решения владельца.",
+       "owner": "владелец (история)", "reversible": "симлинки — да; перезапись истории — нет"},
+      {"order": 6, "id": "C-OLLAMA", "path": "/usr/share/ollama", "reclaim": "17G", "risk": "средний",
+       "risk_detail": "Модели Ollama. К контуру Laguna отношения не имеют. Удаление = повторная закачка моделей (десятки ГБ трафика). Сначала `ollama list` — вероятно, часть моделей не использовалась месяцами.",
+       "owner": "владелец", "reversible": "да (повторная закачка)"},
+      {"order": 7, "id": "C-KDAGRAFT", "path": "/home/user/experiments/kda-graft/runs (5 прогонов)", "reclaim": "до 27G (5 × 4.4G optim.pt = 21.9G + ~5.5G safetensors)", "risk": "высокий",
+       "risk_detail": "НАШИ результаты. optim.pt — состояние оптимизатора для возобновления обучения: удаление убивает возможность resume. model.safetensors — обученные веса. Сначала проверить, сведены ли результаты и есть ли копии на NFS (площадка gb10-shared/kda-graft-scratch уже есть). Это же — AD-4-V3.",
+       "owner": "владелец ОБЯЗАТЕЛЬНО", "reversible": "нет"},
+      {"order": 8, "id": "C-WORKTREE", "path": "worktree sanitize-ad7 (1.6G) и/или gate-scope-workspace (1.5G)", "reclaim": "до ~3.1G", "risk": "средний",
+       "risk_detail": "sanitize-ad7 — ветка sanitize/ad7-publish вне группы arch/*. gate-scope-workspace (c91546b) коммитит 'незакоммиченную работу ... перед решением владельца' — то есть явно ждёт решения. Удалять только после сведения ветки в main. Незакоммиченного нет (status чист в обоих, кроме AD-4-файлов в gate-scope).",
+       "owner": "владелец", "reversible": "да, если ветка сведена или сохранена"},
+      {"order": 9, "id": "C-RECIPES", "path": "/home/user/Документы/КОД/gigachat/РАЗБОРЫ/recipes_taxonomy", "reclaim": "до 90G (реально ~88G без temp_pdfs)", "risk": "низкий для проекта, высокий для владельца",
+       "risk_detail": "Крупнейший единичный объект (19% диска). Это ЛИЧНАЯ research-библиотека arxiv-PDF, не данные контура, вне AD-4. Не удалять — ПЕРЕНЕСТИ на NFS/внешний архив. Гарантированно безопасная часть внутри: 7 каталогов temp_pdfs_* = 1.35G (временный мусор, можно удалить сразу).",
+       "owner": "владелец ОБЯЗАТЕЛЬНО (перенос, не удаление)", "reversible": "перенос — да"},
+      {"order": 10, "id": "C-VENVS", "path": ".local/lib 11G, .local/share 4.1G, miniconda3 13G, venv 5.1G, venv-kk 5.6G, slime_venv 5.3G", "reclaim": "до ~44G", "risk": "высокий",
+       "risk_detail": "Окружения python. Удаление ломает воспроизводимость прогонов и требует пересборки с риском несовместимости версий (см. правило pre-flight: veRL × vLLM × torch × CUDA). Чистить только мёртвые окружения после инвентаризации «какое окружение какой стадии обслуживает».",
+       "owner": "владелец ОБЯЗАТЕЛЬНО", "reversible": "нет (пересборка)"}
+    ],
+    "safe_immediate_total": "~10G (порядки 1–4 без рискованных /tmp-подкаталогов)",
+    "recommended_first_wave": "порядки 1(безопасная часть) + 2 + 3 + 4 + 5(симлинки) ≈ 10–12 ГБ без единого риска для данных; далее 6 (ollama 17G) и 9 (перенос библиотеки 88G) закрывают задачу полностью"
+  },
+
+  "acceptance_check": {
+    "threshold": "≥ 33 ГБ свободно на /",
+    "before": "24 ГБ — FAIL",
+    "after_safe_first_wave": "34–36 ГБ — PASS (без риска для данных)",
+    "after_ollama": "51–53 ГБ — PASS с запасом",
+    "after_library_move": "139–141 ГБ — PASS с большим запасом"
+  },
+
+  "not_measured": [
+    "точный размер /home/user/gb10-shared/datasets/rl_tasks_revpool_v2.jsonl и корпуса RL-стадии",
+    "назначение /home/user/.openclaw (8.6G) и /home/user/.hermes (8.5G) — не разбирались по подкаталогам",
+    "назначение /home/user/spine-bank (8.2G), library (7.2G), harness-review (5.6G), oxalpha_gen (3.9G)",
+    "проверка, держит ли какой-либо живой процесс файлы в /tmp/probe-h7fbq4nq и /tmp/spine-private-fix (lsof не запускался)",
+    "фактические SFT-чекпойнты и их размер — оценка по аналогу CPT"
+  ],
+
+  "next_steps": [
+    "Дождаться завершения живого прогона full-cpt-20260916-2149 (step 250/9776 на 22:02) — до этого не трогать NFS и каталоги прогонов.",
+    "Согласовать с владельцем порядки 6 (ollama) и 9 (перенос research-библиотеки) — они закрывают задачу вдвоём.",
+    "Починить AD4-V1: заменить 3 копии sft_train_v12.jsonl на симлинки в ветке arch/gate-scope-workspace; историю не переписывать без решения владельца.",
+    "Перенести experiments/kda-graft/runs на gb10-shared/kda-graft-scratch (закрывает AD4-V3 и освобождает до 27 ГБ) — только после подтверждения, что resume не нужен.",
+    "Обновить формулировку AD-4: утверждение про 111 файлов *_final.pt устарело (сейчас 1 файл-заглушка 86 байт)."
+  ]
+}

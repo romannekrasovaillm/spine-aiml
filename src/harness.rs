@@ -1096,6 +1096,9 @@ pub async fn run_harness(
 /// живости для флота, НЕ сырой вывод (сырой — в `HarnessRun.stdout`/`stderr`
 /// и per-agent логе вызывающего). Позволяет оркестратору эмитить
 /// `AgentHeartbeat` в стрим, не читая гигабайты stdout большого флота.
+///
+/// # Errors
+/// Как у [`run_harness`]: бинарь не найден, сбой запуска/ожидания.
 pub async fn run_harness_streaming(
     name: &str,
     cfg: &CodingHarnessConfig,
@@ -2434,7 +2437,7 @@ mod tests {
         dir
     }
 
-    /// Заглушка pre_handoff: пишет `hits` в `$3/HYPOTHESES.json` и маркер.
+    /// Заглушка `pre_handoff`: пишет `hits` в `$3/HYPOTHESES.json` и маркер.
     const PRE_HANDOFF_STUB: &str = "#!/bin/sh\n\
         # $1=event $2=repo $3=handoff\n\
         : > \"$3/pre_handoff_hook.marker\"\n\
@@ -2443,7 +2446,7 @@ mod tests {
         echo \"pre-handoff: 1 карточка\"\n\
         exit 0\n";
 
-    /// Тест (а): хук pre_handoff питает MANIFEST.json гипотезами и скиллами.
+    /// Тест (а): хук `pre_handoff` питает MANIFEST.json гипотезами и скиллами.
     #[test]
     fn pre_handoff_hook_feeds_manifest_with_hypotheses() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -2510,7 +2513,7 @@ mod tests {
         assert!(!obj.contains_key("hypotheses"), "hypotheses: {manifest}");
     }
 
-    /// Тест (в): include_hooks=false глушит доменный хук (проверка маркером).
+    /// Тест (в): `include_hooks=false` глушит доменный хук (проверка маркером).
     #[test]
     fn include_hooks_false_disables_pre_handoff_hook() {
         let tmp = tempfile::tempdir().expect("tempdir");

@@ -1,0 +1,304 @@
+{
+  "tool": "S3an (ручная сборка свода из артефактов дельты)",
+  "stage": "S3an",
+  "adr": [
+    "ADR-042 (нормализация набора и перезапуск SFT)",
+    "ADR-016 (штатная остановка)",
+    "ADR-025 (чистота измерительных наборов)",
+    "ADR-003 (заморозка входа)",
+    "ADR-033 (критерий стадии, дубликаты)",
+    "ADR-037 (think не маскируется)",
+    "ADR-041 (единый штатный режим декодирования)",
+    "ADR-002 (AD-2/AD-7: карточка набора)"
+  ],
+  "built_at": "2026-09-19T05:20:00+00:00",
+  "status": "complete",
+  "status_note": "остановка выполнена, набор нормализован и проверен, стадия перезапущена на исправленном наборе; вердикт по критерию стадии — не предмет этой дельты (стадия идёт, её числа снимет следующая)",
+  "stopped": {
+    "run_dir": "/home/user/gb10-shared/sft-resume-20260917-1215",
+    "stopped_at_step": 42179,
+    "stopped_by": "ADR-042",
+    "purpose": "артефакт «SFT на дефектном наборе» (незакрытые think 16.86 %, tool_call внутри think 11.24 %, без ответа 10.67 %)",
+    "loss_mask": "prefix_only",
+    "chain_status": "stopped",
+    "stage_status": "stopped",
+    "marker": "/home/user/gb10-shared/sft-resume-20260917-1215/var/STOPPED",
+    "container": "laguna-sft-resume-20260917-1215-sft",
+    "stop_mechanism": "ADR-016: маркер var/STOPPED → docker stop -t 120 (без kill); контейнер остановлен за 1.5 с",
+    "step_note": "в ADR-042 шаг назван «≈32.7k» — это число на момент написания ADR (18.09); фактический шаг остановки 42179: прогон шёл дальше, остановка выполнена по решению, а не по достижении шага",
+    "checkpoints_kept": {
+      "count": 27,
+      "bytes": 80004875071,
+      "names_tail": [
+        "sft_probe_39500.pt",
+        "sft_probe_40000.pt",
+        "sft_probe_40500.pt",
+        "sft_probe_41000.pt",
+        "sft_probe_41500.pt",
+        "sft_probe_42000.pt"
+      ],
+      "loss_trace_lines": 39179,
+      "logs": [
+        "loss_trace.jsonl",
+        "probes_sft_mid.json",
+        "sft.log"
+      ]
+    },
+    "manifest_note": {
+      "stopped_by": "ADR-042",
+      "stopped_at_step": 42179,
+      "purpose": "артефакт «SFT на дефектном наборе» (незакрытые think 16.86 %, tool_call внутри think 11.24 %, без ответа 10.67 %)",
+      "loss_mask": "prefix_only"
+    },
+    "artifacts_in_case": [
+      "runs/sft-resume-20260917-1215/STOP-RECORD.json",
+      "runs/sft-resume-20260917-1215/run_manifest.json",
+      "runs/sft-resume-20260917-1215/logs/"
+    ],
+    "manifest_provenance": "манифест в каталоге прогона — стартовый манифест, доставленный в кейс launch_sft_stage.py (ship.json), затем аннотированный stop_stage_run.py --do record: цепочка стадии манифест по остановке не пишет (pilot_chain.sh выходит с кодом 3 из attempt_stage до write_manifest), поэтому без этой аннотации каталог прогона остался бы без записи о состоянии. Аннотация меняет только статус стадии и поля stopped_*; остальные поля — как при запуске"
+  },
+  "dataset": {
+    "path": "/home/user/gb10-shared/datasets/sft_train_v13_fixed.jsonl",
+    "sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+    "examples_before": 44949,
+    "examples_after": 44105,
+    "defects_before": {
+      "unclosed_think": {
+        "examples": 7580,
+        "share_pct": 16.86
+      },
+      "no_answer": {
+        "examples": 4794,
+        "share_pct": 10.67
+      },
+      "tool_call_in_think": {
+        "examples": 5053,
+        "share_pct": 11.24
+      }
+    },
+    "defects_after": {},
+    "excluded": {
+      "total": 844,
+      "share_pct": 1.88,
+      "by_reason": {
+        "unclosed_block_at_end": {
+          "examples": 480,
+          "meaning": "незакрытый блок в конце сообщения (рассуждение обрывается на середине, ответа нет)"
+        },
+        "call_inside_response": {
+          "examples": 352,
+          "meaning": "<tool_call> внутри <tool_response> — правка испортила бы ответ инструмента"
+        },
+        "quoted_tag_pair_in_reasoning": {
+          "examples": 12,
+          "meaning": "пара <tool_call>…</tool_call> с нагрузкой-не-JSON: тег процитирован внутри рассуждения либо вызов разорван — от настоящего вызова механикой не отличается"
+        }
+      }
+    },
+    "duplicates_share": {
+      "before": {
+        "examples": 44949,
+        "unique_normalized": 19011,
+        "duplicates_share_pct": 57.71,
+        "method": "messages → [[role, content]] → json(sort_keys) → sha256; мощность множества хешей"
+      },
+      "after": {
+        "examples": 44105,
+        "unique_normalized": 18713,
+        "duplicates_share_pct": 57.57,
+        "method": "messages → [[role, content]] → json(sort_keys) → sha256; мощность множества хешей"
+      },
+      "effective_passes_after": 7.071
+    },
+    "overlap_checks": {
+      "adr": "ADR-025 (чистота измерительных наборов)",
+      "measurement_sets": {
+        "tool": "tools/check_measurement_overlap.py",
+        "sets": {
+          "K1": "datasets/general_eval_v3.txt",
+          "K2": "datasets/general_eval_k2.txt",
+          "DOMAIN": "datasets/domain_eval_v2.txt"
+        },
+        "documents_definition": "как у прибора: split('\\n---\\n'), len>50 (ppl_probe.py:231) — 200 документов в каждом наборе",
+        "gate_result": "0 вхождений документа замера в обучающий пример — все три набора",
+        "info_12grams": {
+          "K1": "0 из 200",
+          "K2": "0 из 200",
+          "DOMAIN": "119 из 200 (59.5 %) — не гейт"
+        },
+        "info_note": "домен-набор собран из той же библиотеки концептов, определения которой цитируются в <tool_response> обучения: общие 12-граммы есть и в v12 (контроль — 119 из 200). Это свойство пары «набор ↔ данные», а не следствие нормализации; для чтения доменного PPL оно значит, что падение доменного отношения нельзя целиком относить к обобщению",
+        "control_v12": {
+          "path": "runs/s3an-normalize-20260919/overlap_v12_control.txt",
+          "gate": "0 вхождений",
+          "info_domain": "119 из 200"
+        }
+      },
+      "eval_tasks": {
+        "tool": "tools/check_eval_leakage.py",
+        "command": "python3 tools/check_eval_leakage.py --eval datasets/eval_ood_clean.jsonl --train datasets/sft_train_v13_fixed.jsonl",
+        "result": "0 нарушений: гейт A 0, гейт B 0, INFO near-duplicate 0 из 192"
+      },
+      "rl_pool": {
+        "tool": "tools/check_sft_rl_overlap.py",
+        "result": "0 совпавших промптов из 44105 (RL-задач затронуто: 0)"
+      }
+    },
+    "source_unchanged": {
+      "path": "datasets/sft_train_v12.jsonl",
+      "sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "verified_after": true
+    },
+    "card": "data/sft-card-v13.json",
+    "tokens_cache": {
+      "path": "/home/user/gb10-shared/datasets/tok/sft_train_v13_fixed_8192_qwen25.npz",
+      "builder": "pretokenize_v9.py --tokenizer Qwen/Qwen2.5-0.5B --tag qwen25 --max_len 8192 --max_sft 50000 (тот же прибор, что собрал кэш v12)",
+      "shape": [
+        44105,
+        8192
+      ],
+      "sha256": "dc3d4838d15b83c3f1abefb549473e1efd1dc822000a675e34f548f759b94d75",
+      "note": "кэш v12 не перезаписан: имя новое (sft_train_v13_fixed_…npz)"
+    },
+    "determinism": "повторный прогон нормализации дал файл с тем же sha256 (71c4bd2b…) — правила не зависят от порядка/времени"
+  },
+  "normalization": {
+    "tool": "tools/normalize_sft_dataset.py",
+    "rules": {
+      "R1_drop_noncall_tool_call": {
+        "examples": 6399,
+        "meaning": "выброшен <tool_call> без нагрузки-вызова (пустой или не-JSON, не закрытый) — остаток шаблона"
+      },
+      "R2_close_think_before_call": {
+        "examples": 4919,
+        "meaning": "вставлен </think> в точке перехода рассуждения в вызов/ответ"
+      },
+      "R3_drop_duplicate_think_open": {
+        "examples": 6265,
+        "meaning": "выброшен повторный <think> при открытом рассуждении"
+      },
+      "R4_drop_stray_think_close": {
+        "examples": 240,
+        "meaning": "выброшен </think> вне открытого рассуждения"
+      },
+      "R5_drop_duplicate_block_open": {
+        "examples": 0,
+        "meaning": "выброшен повторный <tool_call>/<tool_response> при открытом блоке"
+      },
+      "R6_drop_stray_block_close": {
+        "examples": 0,
+        "meaning": "выброшен </tool_call>/</tool_response> вне блока"
+      },
+      "R7_insert_missing_call_close": {
+        "examples": 14,
+        "meaning": "вставлен </tool_call> в конце валидного JSON-вызова без закрывающего тега"
+      }
+    },
+    "changed_examples": 10821,
+    "byte_identical_records": 33284,
+    "reversibility": {
+      "checked_examples": 10821,
+      "failures": 0,
+      "method": "для каждого изменённого сообщения правки снимаются обратно и сверяются с исходным текстом побайтно",
+      "journal_fields": "index (строка в исходном наборе) + out_index (строка в новом) + edits (op/координаты/текст) + content_sha256_before/after",
+      "e2e_check": {
+        "what": "снятие правок по журналу с НОВОГО набора (исходный файл привлечён только как независимая сверка) возвращает исходный текст",
+        "result": "10 821 изменённое сообщение восстановлено точно, расхождений 0; 844 записи журнала — исключения",
+        "artifact": "runs/s3an-normalize-20260919/reversibility_e2e.txt",
+        "found_and_fixed": "первая редакция журнала писала out_index на единицу больше (счёт после добавления строки): правки снимались бы с чужого примера. Ошибку поймала end-to-end проверка, а не глазомер; на неё есть тест (run_tool_tests.sh §24.7)"
+      }
+    },
+    "empty_think_blocks_after": {
+      "examples": 4466,
+      "share_pct": 10.13,
+      "note": "цена правила R2: там, где рассуждения до вызова не было, блок закрыт пустым (ADR-042 п.2а — «закрыть в точке завершения», а не удалить)"
+    },
+    "residual_after_normalization": {
+      "tool_response_without_call": {
+        "examples": 433,
+        "meaning": "в сообщении ответ инструмента без вызова перед ним: вызов был остатком шаблона и снят правилом R1 (класс ADR-042 «структура вызова в целом» не проверяется)"
+      }
+    },
+    "log": "runs/s3an-normalize-20260919/changes.jsonl",
+    "report": "runs/s3an-normalize-20260919/report.json",
+    "tests": {
+      "runner": "tools/tests/run_tool_tests.sh §24",
+      "cases": 11,
+      "result": "все зелёные; красные пути: обрыв рассуждения, цитата тега (<tool_call>…</tool_call> с нагрузкой-не-JSON), отсутствие ответа, короткий ответ, нечитаемый вход (exit 2), --verify на дефектном наборе (exit 1), документ замера внутри примера (exit 1)",
+      "note": "единственный красный в полном прогоне набора тестов — пре-существующий и не относящийся к дельте: datasets/rl_tasks_revpool_v2.jsonl на сетевом диске разошёлся с data/rev-envs-v2-card.json (sha256 и число строк); файлы дельтой не трогались"
+    },
+    "defect_definition_note": "определения трёх дефектов воспроизводят числа ADR-042 до знака (7580 / 5053 / 4794, 96.80 % / 94.57 %) — «до» в отчёте измерено тем же прибором, что и в ADR, а не другим"
+  },
+  "relaunch": {
+    "run_dir": "/home/user/gb10-shared/sft-20260919-0810",
+    "run_dir_in_case": "runs/s3an-normalize-20260919/relaunch/ (малые артефакты; каталог прогона на стенде получит run_manifest.json от цепочки по завершении стадии)",
+    "evidence_of_start": {
+      "checked_at": "2026-09-19T05:11:48.336440+00:00",
+      "tmux": "sft-20260919-0810: 1 windows (created Sat Sep 19 02:04:24 2026)",
+      "docker": "laguna-sft-20260919-0810-sft Up 7 minutes",
+      "chain_status": "running",
+      "loss_trace": {
+        "file": "/home/user/gb10-shared/sft-20260919-0810/logs/loss_trace.jsonl",
+        "lines": 30,
+        "first_step": 0,
+        "last_step": 29,
+        "last_loss": 1.30485999584198,
+        "last_lr": 9.999995027707612e-06,
+        "lines_after_60s": 49,
+        "growing": true
+      },
+      "loaded_cpt_ckpt": true,
+      "sft_log_tail": [
+        "[safe_start] absorber завершён",
+        "05:06:03 [INFO] SFT warmup 20/100 | loss=1.3343",
+        "05:06:58 [INFO] SFT warmup 40/100 | loss=1.0687",
+        "05:07:56 [INFO] SFT warmup 60/100 | loss=1.2845",
+        "05:08:54 [INFO] SFT warmup 80/100 | loss=0.6761",
+        "05:09:48 [INFO] Unfrozen, main SFT",
+        "05:09:48 [INFO] Unfrozen, main SFT",
+        "05:09:48 [INFO] SFT: gradient_checkpointing ON",
+        "05:09:50 [INFO] SFT val: 500 held-out сэмплов из sft_train_v12_8192_qwen25.npz",
+        "05:09:54 [INFO] SFT step 0/66157 | loss=1.2756 | ema=1.2756 | gnorm=12.56 | lr=1.00e-05",
+        "05:10:22 [INFO] GEN-EVAL step 0 [ADR-033 п.3: K1/K2/домен] K1 ×0.9868 ; K2 ×1.0692 ; DOMAIN ×0.3464 | справочно v1_general=12.0 domain_legacy=4.0",
+        "05:10:29 [INFO] SFT val_loss=1.1954 (held-out 500)"
+      ]
+    },
+    "input": "CPT-чекпойнт full-cpt-20260916-2149/checkpoints/checkpoint_final.pt (sha256 080c3ab6…, сверен при сборке; жёсткая ссылка невозможна — копия, тождество доказано равенством sha256)",
+    "config": {
+      "steps": 66157,
+      "steps_source": "3 эпохи × 44105 примеров // batch 2",
+      "epochs": 3,
+      "batch": 2,
+      "lr": 1e-05,
+      "max_len": 8192,
+      "seed": 42,
+      "loss_mask": "prefix_only",
+      "monitor_sets": {
+        "K1": "general_eval_v3.txt",
+        "K2": "general_eval_k2.txt",
+        "DOMAIN": "domain_eval_v2.txt"
+      },
+      "probe_ckpt_every": 500
+    },
+    "hyperparameters_note": "шаги пересчитаны от размера набора (3 × 44105 // 2 = 66157 вместо 67423): оставить прежнее число значило бы изменить число эпох, то есть сменить гиперпараметр, а не сохранить его",
+    "what_is_NOT_the_same": [
+      "val-набор: пайплайн берёт хвост 500 сэмплов ИЗ КЭША v12 (жёстко прописанный путь sft_train_v12_8192_<tag>.npz, laguna_pipeline_sft.py:875) — это пре-существующий дефект прибора, а не следствие дельты; плюс: val_loss остаётся сопоставимым с прежними прогонами. Правка под живой цепочкой запрещена (ADR-016 п.1) — названо, не исправлено",
+      "datasets_extra.sft в манифесте прогона: цепочка пишет туда жёстко v12 (pilot_chain.sh:321); авторитетные поля манифеста — dataset_path/dataset_sha256 и гиперпараметры sft_dataset/sft_dataset_sha256 — называют v13"
+    ],
+    "how_to_fetch": [
+      "ls -la /home/user/gb10-shared/sft-20260919-0810/checkpoints/",
+      "cat /home/user/gb10-shared/sft-20260919-0810/run_manifest.json",
+      "tail -3 /home/user/gb10-shared/sft-20260919-0810/logs/loss_trace.jsonl",
+      "grep 'GEN-EVAL' /home/user/gb10-shared/sft-20260919-0810/logs/sft.log | tail -5"
+    ],
+    "stop_plan": "остановка — штатным механизмом ADR-016 (var/STOPPED → docker stop -t 120) по решению о достаточности точек; до естественного финиша (66157 шагов, ≈40+ ч) прогон не доводится: предмет дельты — формат, а он виден на точках",
+    "budget_note": "перезапуск выполнен целиком в бюджете дельты: сборка + претокенизация (≈3 мин) + старт; ожидание обучения не требуется (ADR-023 п.11)"
+  },
+  "criterion_note": "ADR-042 п.5: SFT обязан быть не хуже CPT-финала по формату (незакрытые блоки, tool_call, покрытие ответа) и агентности, иначе стадия невалидна независимо от языка. Числа снимаются с точек прогона тем же прибором (runs/s3al-decoding-protocol-20260918/, штатный режим ADR-041)",
+  "open_questions": [
+    "Домен-набор (119 из 200 документов) делит 12-граммы с обучением — пре-существующее свойство пары, но оно ограничивает чтение доменного PPL как меры обобщения: нужен ли домен-набор из другого источника — решение архитектора",
+    "Остаток «ответ инструмента без вызова» (433 примера) не входит в проверки ADR-042 и механикой не чинится: вопрос, лечится ли он следующим набором",
+    "Пустое рассуждение (4466 примеров, 10.13 %) — следствие буквального правила «закрыть блок в точке завершения»; если оно нежелательно, правило меняется, и набор пересобирается (правки обратимы, журнал есть)",
+    "Пре-существующий красный тест: datasets/rl_tasks_revpool_v2.jsonl (сетевой диск) разошёлся с data/rev-envs-v2-card.json по sha256 и числу строк (9162 против 9197) — к S3an не относится, но роняет tools/tests/run_tool_tests.sh; решение — за владельцем пула",
+    "Живой сторож runs/sft-ppl-20260916-2246/watch.log (PID 1969367, tools/full_cpt_probe.py --watch, запущен 17.09) продолжает писать в каталог кейса каждые 2 минуты, хотя наблюдаемый прогон остановлен 17.09: файл будет «грязным» в git по причине, не зависящей от дельты"
+  ]
+}

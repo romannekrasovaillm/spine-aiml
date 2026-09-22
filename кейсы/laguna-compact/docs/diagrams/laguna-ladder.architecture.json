@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Лесенка Лагуна: контур ревизии (состояние 20.09.2026)",
+    "output": "laguna-ladder.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "flow",
+        "label": "Поток стадий",
+        "focus": [
+          "base",
+          "cpt",
+          "ckpt",
+          "sft",
+          "rl"
+        ],
+        "note": "CPT пройдена, SFT идёт, RL не начата."
+      },
+      {
+        "id": "instruments",
+        "label": "Приборы и гейты",
+        "focus": [
+          "sft",
+          "probes",
+          "gates"
+        ],
+        "note": "Пробы измеряют стадию, гейт принимает решение."
+      },
+      {
+        "id": "data",
+        "label": "Данные и периметр",
+        "focus": [
+          "corp",
+          "sets",
+          "ckpt"
+        ],
+        "note": "Приватный периметр: корпус, наборы, чекпойнты."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "base",
+      "type": "external",
+      "label": "Qwen2.5-0.5B",
+      "sublabel": "база ревизии",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "cpt",
+      "type": "backend",
+      "label": "CPT — пройдена",
+      "sublabel": "9776 шагов",
+      "pos": [
+        230,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "ckpt",
+      "type": "database",
+      "label": "Чекпойнт стадии",
+      "sublabel": "пиннинг и ретенция",
+      "pos": [
+        420,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "sft",
+      "type": "backend",
+      "label": "SFT — идёт",
+      "sublabel": "~25k из 66157",
+      "pos": [
+        610,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "rl",
+      "type": "backend",
+      "label": "Agentic-RL — не начата",
+      "sublabel": "среды E1-E8",
+      "pos": [
+        800,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "corp",
+      "type": "database",
+      "label": "Корпус v12r",
+      "sublabel": "концепты ML/AI",
+      "pos": [
+        230,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "sets",
+      "type": "database",
+      "label": "Наборы",
+      "sublabel": "SFT v13 и RL-пул",
+      "pos": [
+        610,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "probes",
+      "type": "backend",
+      "label": "Приборы",
+      "sublabel": "PPL v3/K2, GEN-EVAL",
+      "pos": [
+        610,
+        360
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "gates",
+      "type": "security",
+      "label": "Гейты стадии",
+      "sublabel": "K1 K2 домен, AD-9",
+      "pos": [
+        800,
+        360
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "base-to-cpt",
+      "from": "base",
+      "to": "cpt",
+      "label": "старт"
+    },
+    {
+      "id": "corp-to-cpt",
+      "from": "corp",
+      "to": "cpt",
+      "label": "микс 75/25",
+      "labelAt": [
+        305,
+        118
+      ]
+    },
+    {
+      "id": "cpt-to-ckpt",
+      "from": "cpt",
+      "to": "ckpt",
+      "label": "финал CPT",
+      "labelAt": [
+        400,
+        278
+      ]
+    },
+    {
+      "id": "ckpt-to-sft",
+      "from": "ckpt",
+      "to": "sft",
+      "label": "чекпойнт",
+      "labelAt": [
+        590,
+        278
+      ]
+    },
+    {
+      "id": "sets-to-sft",
+      "from": "sets",
+      "to": "sft",
+      "label": "набор v13",
+      "labelAt": [
+        685,
+        118
+      ]
+    },
+    {
+      "id": "sft-to-rl",
+      "from": "sft",
+      "to": "rl",
+      "label": "финал SFT",
+      "labelAt": [
+        780,
+        278
+      ]
+    },
+    {
+      "id": "sft-to-probes",
+      "from": "sft",
+      "to": "probes",
+      "label": "пробы /500",
+      "labelAt": [
+        685,
+        278
+      ]
+    },
+    {
+      "id": "probes-to-gates",
+      "from": "probes",
+      "to": "gates",
+      "label": "K1 K2 домен",
+      "variant": "emphasis",
+      "labelAt": [
+        780,
+        438
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Стадии",
+      "items": [
+        "CPT пройдена: K1 x0.98, K2 x1.07, домен x0.35 от базы",
+        "SFT идёт: около 25k из 66157, язык и домен в норме",
+        "Agentic-RL не начата: пул и среды готовятся"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Гейты",
+      "items": [
+        "Язык K1 и K2 в потолке 2x базы, домен ниже базы",
+        "AD-9: хозяин стенда объявлен, не более 1 нагрузки",
+        "AD-12: дельта принята только при evidence и коммите"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Открытые вопросы",
+      "items": [
+        "Рост длины рассуждений под SFT: ADR-045, решающий замер идёт",
+        "Канон ADR не сведён (G0): конфликт номера 024 закрывается ADR-046",
+        "S4-PROTOCOL считает по отозванным базам (дыра G8)"
+      ]
+    }
+  ]
+}

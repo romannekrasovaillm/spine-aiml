@@ -700,7 +700,7 @@ mod tests {
         });
         app.push_block(ChatBlock::Assistant(
             "**Ландшафт из десяти не разошёлся.** Склейка `bankcalc` — «день процессинга»\n\
-             прошёл с первой сборки: платёж прошёл все десять контрактов по цепочке.\n\
+             прошёл с первой сборки: сквозной сценарий прошёл все десять контрактов по цепочке.\n\
              Интеграция читается из git log — оркестратору нечего дособирать."
                 .into(),
         ));
@@ -768,14 +768,14 @@ mod tests {
             .join("кейсы/drift-control/screenshots");
         std::fs::create_dir_all(&out).expect("mkdir");
 
-        // A. Две руки: одна и та же задача платёжного ядра — голая и с пакетом;
+        // A. Две руки: одна и та же задача расчётного ядра — голая и с пакетом;
         //    механический гейт судит обе одними правилами.
         let mut app = test_app();
         app.screen = Screen::Chat;
         app.model_name = "deepseek:deepseek-v4-flash".into();
         app.tool_ctx.cwd = std::path::PathBuf::from("/home/user/drift-lab");
         app.push_block(ChatBlock::User(
-            "дрейф-эксперимент: одна задача «платёжное ядро» двум рукам — \
+            "дрейф-эксперимент: одна задача «расчётное ядро» двум рукам — \
              A голая, B с handoff-пакетом (AD-1…3 + C-01…06); судит control check"
                 .into(),
         ));
@@ -825,7 +825,7 @@ mod tests {
                 .into(),
         ));
         app.panels.mermaid = crate::mermaid::render(
-            "flowchart TD\n  T[задача: платёжное ядро] --> A[рука A: голая]\n  \
+            "flowchart TD\n  T[задача: расчётное ядро] --> A[рука A: голая]\n  \
              T --> B[рука B: + спайн AD-1…3]\n  A --> GA[гейт: FAIL 2/6]\n  \
              B --> GB[гейт: PASS 6/6]",
         )
@@ -864,7 +864,7 @@ mod tests {
         });
         app.push_block(ChatBlock::Assistant(
             "**Не формальность.** Идемпотентность — настоящий inbox: повтор с тем же\n\
-             ключом клонирует первый платёж, ошибка возвращается та же. Цена спайна\n\
+             ключом клонирует первый запрос, ошибка возвращается та же. Цена спайна\n\
              по стене — нулевая: 360 с против 372 с у голой руки. Гейт воспроизводим:\n\
              `arch-ml control check кейсы/drift-control/armB-solution -c …` → exit 0."
                 .into(),

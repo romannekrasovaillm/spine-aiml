@@ -1,0 +1,1481 @@
+{
+  "schema": "fleet-branch-divergence/1",
+  "node": "fleet-2 / S3x-branch-canonization",
+  "date": "2026-09-16",
+  "title": "Карта расхождений между ветвями кейса laguna-compact и предложение канонизации",
+  "status": "complete",
+  "scope": "Только чтение. Чужие ветви не изменялись (ни checkout, ни merge, ни push); GPU/стенд не задействованы (полный CPT идёт в tmux s3u-full-cpt-20260916-1933); копий данных не создавалось. Инструменты: git ls-tree -r -l, git cat-file, git show, git rev-parse, git log --all.",
+  "rule": "ADR-028 пп.1–3 (факт первичен; два поля вместо arch_base_version; нумерация ADR) + ADR-023 п.8 (расхождения чинятся при сведении, чужие ветви не правятся, owner-гейт).",
+  "method": {
+    "adr_inventory": "git ls-tree -r --name-only <branch> -- ./docs/adr/ | grep -oP 'ADR-\\d+'",
+    "divergence": "git ls-tree -r -l <branch> для 8 ветвей; файл расходится, если множество blob-хешей среди ветвей, где он есть, имеет мощность > 1",
+    "field_level": "git show <branch>:./runs/<run>/run_manifest.json + разбор JSON по листьям",
+    "history": "git log --all --diff-filter=A -- <path> (кто и в каком коммите создал файл)"
+  },
+  "branches": {
+    "control-arms": {
+      "tip": "e7d2d89\n",
+      "files_in_case": 295
+    },
+    "eval-set": {
+      "tip": "949a5b9\n",
+      "files_in_case": 259
+    },
+    "mix-lr-calibration": {
+      "tip": "17945e5\n",
+      "files_in_case": 220
+    },
+    "protocol-diag": {
+      "tip": "6d2aa3c\n",
+      "files_in_case": 248
+    },
+    "fleet-analysis": {
+      "tip": "0ec9cf4\n",
+      "files_in_case": 236
+    },
+    "replay50": {
+      "tip": "c6e9374\n",
+      "files_in_case": 214
+    },
+    "passrate-probe": {
+      "tip": "e1b07a2\n",
+      "files_in_case": 142
+    },
+    "fleet-2": {
+      "tip": "47f921f\n",
+      "files_in_case": 301
+    }
+  },
+  "tips_note": "Ветви читались по ссылкам refs/heads на момент аудита (tip зафиксирован выше). Две ветви — arch/laguna-mix-lr-calibration и arch/laguna-protocol-diag — получили по одному новому коммиту ВО ВРЕМЯ аудита (17945e5, 6d2aa3c); оба коммита добавляют только новые файлы (docs/specs/SFT-STAGE-PLAN.md, evidence/fleet-sft-prep.json, docs/specs/DISK-PLAN.md, evidence/fleet-disk-audit.json) и ни одного файла из карты расхождений не трогают, поэтому карта от них не зависит.",
+  "totals": {
+    "case_files_union": 385,
+    "identical_in_all_branches": 124,
+    "identical_between_present_branches": 154,
+    "divergent": 27,
+    "branch_unique": 80
+  },
+  "classification_taxonomy": {
+    "note": "Запрошенные три класса уточнены до пяти: два дополнительных нужны, чтобы «разные редакции одного решения» и «одно имя — два артефакта» не сваливались в «разные решения» — у них разная цена сведения.",
+    "stale_snapshot": "устаревший снимок той же линии: одна ветвь содержит строго более новую редакцию, сведение — fast-forward по содержанию",
+    "additive_annotation": "одно решение + дополнения, сделанные в разных ветвях: каждая сторона нужна, сведение — объединение (дает конфликт в diff)",
+    "field_value_conflict": "разные значения одного поля (запрошенный класс)",
+    "different_decision": "разные решения по существу (в этом наборе не встретился ни разу на уровне файлов)",
+    "artifact_name_conflict": "одно имя несут несовместимые артефакты: два разных доказательства (s3s-hygiene) или разные типы (compare_text.json) — дефект имени, не расхождение редакций",
+    "identical_copy": "идемпотентная копия (запрошенный класс) — в этот список не попадает по построению: расхождением считается только разный blob"
+  },
+  "divergent_files": [
+    {
+      "path": "ARCHITECTURE-SPINE.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "09ea27e1efb59ca701a84ded8a4b71151bb38a81",
+          "size": 23653,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "98cc9a2d3089e0670f416b4ed817045569796276",
+          "size": 20836,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "09ea27e1efb59ca701a84ded8a4b71151bb38a81",
+      "why": "passrate-probe несёт снимок спайна без раздела AD-12 (7 строк); остальные семь ветвей совпадают побайтово."
+    },
+    {
+      "path": "CONSTRAINTS.yaml",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "502411752cd44546fe0c4407f9e40ec38f4f3027",
+          "size": 13106,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "passrate-probe",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "4891d221c46e06b04fc3145ce9230b576ba25a0f",
+          "size": 14876,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "4891d221c46e06b04fc3145ce9230b576ba25a0f",
+      "why": "mix-lr-calibration несёт 20 правил (C-001…C-020), семь остальных — 19 (без C-020 «leak_check в evidence PPL», ADR-025 п.2). Вариант mix-lr — надмножество; файлы различны, набор правил строго вложен."
+    },
+    {
+      "path": "README.md",
+      "variant_count": 6,
+      "variants": [
+        {
+          "blob": "2e70b76e8af6c806077c6318ffa2f6aeaeaf04fe",
+          "size": 24636,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "2b8097a14920f1023740e6b03cf1aa0db0f1ed7c",
+          "size": 35810,
+          "branches": [
+            "eval-set"
+          ]
+        },
+        {
+          "blob": "812fc696e95d373d1f025536289c335d995eb82f",
+          "size": 32141,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "badcbeb4586f28f1301e7b052715d306b09ac506",
+          "size": 24486,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "7d6c3c07915719e54225e5679524c50c134436fd",
+          "size": 23420,
+          "branches": [
+            "fleet-analysis",
+            "replay50"
+          ]
+        },
+        {
+          "blob": "3c0ecbc6a6534527b8001b3cce10e8f571ca6e83",
+          "size": 13806,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "MERGE(2e70b76e8af6c806077c6318ffa2f6aeaeaf04fe base + разделы ветвей)",
+      "why": "Шесть редакций одной линии: каждая ветвь дописала свои стадии в карту evidence и в список инструментов. passrate-probe — самый старый снимок (счётчик «19 ADR, 19 правил, 19 инструментов, 7 evidence»). Канон — сведение: база fleet-2/control-arms + разделы ветвей."
+    },
+    {
+      "path": "data/rev-envs-v2-card.json",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "9a2b8be9820d4a9bc43c215082972cd2263c7c71",
+          "size": 13906,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "passrate-probe",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "67829db26492e602c44cd17bda53fff3f3729b6a",
+          "size": 41426,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "67829db26492e602c44cd17bda53fff3f3729b6a",
+      "why": "mix-lr-calibration несёт пересобранную карточку с полем prompt_leak (E5: 6 исключённых из 216, E6: 30 из 700, chain_projection по 500 задач); в остальных семи — 13.9 КБ без этих полей. Вариант mix-lr — надмножество факта."
+    },
+    {
+      "path": "docs/adr/ADR-015-promezhutochnye-chek-poynty-pilota-gen-eval-kak-ranniy-signal-degradacii.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "5fd74b94c28317375eed0445451be3cc5bc00a6f",
+          "size": 14215,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "0f16abe01edf272d4c8aae8219929252ea7c4cbc",
+          "size": 11561,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "5fd74b9428721fe4c70e0b8d3d48c4c45f57b09d",
+      "why": "Версия в passrate-probe (11.5 КБ) — ранняя редакция; семь ветвей совпадают (14.2 КБ). Выбор направления не проверялся содержательно, только по ветвлению."
+    },
+    {
+      "path": "docs/adr/ADR-018-rasshirenie-naborov-gen-eval-novye-fayly-v2-s-filtrom-peresecheniya-s-obucheniem.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "2df62edce2f7cd6f5e3ff8f372a3add2c011a6fc",
+          "size": 15194,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "passrate-probe",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "4c09a830406373533dc474a4a379fd0102336f5a",
+          "size": 16933,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "MERGE(2df62edce2f7cd6f5e3ff8f372a3add2c011a6fc + 4c09a830406373533dc474a4a379fd0102336f5a)",
+      "why": "mix-lr-calibration несёт дополнения (16.9 КБ против 15.2 КБ в семи): ADR-025 вырос из этого решения. Канон — сведение, не выбор одной стороны."
+    },
+    {
+      "path": "docs/adr/ADR-021-sreda-revizii-v2-podklyuchenie-sred-e1-e8-i-env-types-s-filtrom-po-verificiruemosti.md",
+      "variant_count": 3,
+      "variants": [
+        {
+          "blob": "bddfdcacceb05a1cf8637bc98dbd82336d4ef8dc",
+          "size": 26561,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "ce1ede069703c158972b9c7f172e443eabd349b6",
+          "size": 30684,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "f9434a7eadfbfdd9de57c6843a3e41f166344682",
+          "size": 18831,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "MERGE(bddfdcacceb05a1cf8637bc98dbd82336d4ef8dc + ce1ede069703c158972b9c7f172e443eabd349b6)",
+      "why": "Три редакции: passrate-probe — ранняя (18.8 КБ), шесть ветвей — базовая (26.6 КБ), mix-lr-calibration — с дополнениями (30.7 КБ). Канон — база + дополнения mix-lr."
+    },
+    {
+      "path": "docs/adr/ADR-022-perezapusk-cpt-snachala-diagnostika-prichiny-forgettinga-flex-maska-protiv-miksa-i-lr.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "4083f9215685466ca61f0a2e9e87cc43b98322a8",
+          "size": 10015,
+          "branches": [
+            "control-arms",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "e32a9d0df14c0518a0d23c834e787d16050c1b0f",
+          "size": 11670,
+          "branches": [
+            "eval-set"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "e32a9d0df14c0518a0d23c834e787d16050c1b0f",
+      "why": "eval-set добавил к шапке баннер «ОТОЗВАНО ПО ОСНОВАНИЮ — ADR-029» (+11 строк); тело решения совпадает. Канон — редакция с баннером: без неё ADR-029 не виден из ADR-022."
+    },
+    {
+      "path": "docs/adr/ADR-023-praktika-handoff-chek-list-zavershyonnosti-razmer-delty-zapret-fonovyh-ozhidaniy.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "9a6fc4bb6c714b184cc2f99453664a10a1ef8af4",
+          "size": 10827,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "ac67f793a34314f620d345f525db6eb14479bac0",
+          "size": 16368,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "ac67f793a34314f620d345f525db6eb14479bac0",
+      "why": "mix-lr-calibration добавил пункты 8–11 (+20 строк: self-check своего коммита, аудиторский след не переписывается, один носитель чисел, долгоживущий процесс = handoff). Канон — редакция с пунктами 8–11."
+    },
+    {
+      "path": "docs/adr/ADR-024-sostav-cpt-miksa-v12r50-dolya-replay-50-kak-kalibrovochnyy-miks-s3m.md",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "a5b7a68afe89e2276a4bb9aab1de5d197d9d829a",
+          "size": 10522,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "9d078c2dbf9fdaffc75798f6c2c320034f54e9e1",
+          "size": 11184,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "9d078c2dbf9fdaffc75798f6c2c320034f54e9e1",
+      "why": "mix-lr-calibration меняет ссылку на носитель чисел: канонический — evidence/s3m-ppl-arms.json, а evidence/mix-lr-calibration.json «не создан и не будет» (ADR-023 п.10б). Канон — редакция mix-lr."
+    },
+    {
+      "path": "evidence/s3m-ppl-arms.json",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "6f521f418f8b43c37e9cd64b354ac46fb85c48bc",
+          "size": 35697,
+          "branches": [
+            "eval-set"
+          ]
+        },
+        {
+          "blob": "b081cc6fca94a37c5378e15a9a7f79dd21ec46bf",
+          "size": 35755,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "b081cc6fca94a37c5378e15a9a7f79dd21ec46bf",
+      "why": "mix-lr-calibration добавляет leak_check_ref → evidence/calib-protocol-audit.json (ADR-025 п.2 / C-020). Канон — редакция mix-lr."
+    },
+    {
+      "path": "evidence/s3s-hygiene.json",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "c1b71108965edf4160f3e6dd4a726be949f27ced",
+          "size": 12543,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "c26463c7932e05297c1ccbac6fb52b2ca7e67068",
+          "size": 25742,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "artifact_name_conflict",
+      "canon_proposal": "SPLIT(c1b71108965edf4160f3e6dd4a726be949f27ced ; c26463c7932e05297c1ccbac6fb52b2ca7e67068)",
+      "why": "ОДНО ИМЯ — ДВА РАЗНЫХ УЗЛА: control-arms/fleet-2 несут узел S3s-2 (12.5 КБ, ветка arch/laguna-control-arms), fleet-analysis несёт узел S3s-1 (25.7 КБ, ветка arch/laguna-fleet-analysis). Это не редакции одного доказательства, а два разных доказательства. Канон — развести по именам (s3s1-hygiene.json / s3s2-hygiene.json) либо оставить одно с полем node и слить как массив узлов."
+    },
+    {
+      "path": "runs/calib-25-0.35-20260916-0820/run_manifest.json",
+      "variant_count": 4,
+      "variants": [
+        {
+          "blob": "7c3b803e39d3f13e6d8fb269a1298a5eb2721ff1",
+          "size": 1507,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "f24f5792ce425c570da8ee27a9580802a485b7b4",
+          "size": 1659,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "02e13f4fc8825ed1b0e095b77bd5f99f3d8cb428",
+          "size": 1662,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "1c558fe6a4be3c0b3d3bf0d71d96272e8f412c10",
+          "size": 1507,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "field_value_conflict",
+      "canon_proposal": "PENDING-OWNER",
+      "why": "Четыре редакции одного манифеста одного физического прогона; расходятся arch_base_version, pipeline_path, created_at, набор hyperparameters и hyperparameters_source. Носители факта (calib_params.json, stages.tsv) во всех ветвях тождественны — см. canon_fields."
+    },
+    {
+      "path": "runs/calib-25-0.7-20260916-0820/run_manifest.json",
+      "variant_count": 4,
+      "variants": [
+        {
+          "blob": "5bd3d33e93379e775552eb6fd20db413c9e79be2",
+          "size": 1505,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "5011a3311667b4580d9239abd461e61c0935ff7c",
+          "size": 1657,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "1738a37d09af1b68b7dd0b0edc0cdb4a3c9609f0",
+          "size": 1660,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "16fbda31a16513039e5e6b73e865d398982c7baf",
+          "size": 1505,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "field_value_conflict",
+      "canon_proposal": "PENDING-OWNER",
+      "why": "То же, рука 25-0.7."
+    },
+    {
+      "path": "runs/calib-50-0.35-20260916-0820/run_manifest.json",
+      "variant_count": 4,
+      "variants": [
+        {
+          "blob": "b88f33f3cbe3a280ebc02b1086f9d8f361d73a73",
+          "size": 1511,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "b868ac8d1c508c33dcea87acd4d2f12da6cb1639",
+          "size": 1663,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "dd28eb6e70f3904f27e2b00eb391281d13797c4e",
+          "size": 1511,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "25bfb26b0780bbc47184127476157c04efe889c9",
+          "size": 1511,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "field_value_conflict",
+      "canon_proposal": "PENDING-OWNER",
+      "why": "То же, рука 50-0.35."
+    },
+    {
+      "path": "runs/calib-50-0.7-20260916-0820/run_manifest.json",
+      "variant_count": 4,
+      "variants": [
+        {
+          "blob": "1755f8f46cda6169aaa29dc0889b6bf59af7d485",
+          "size": 1509,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "484e20c1b7e28768786c58524ede56f4a41c9892",
+          "size": 1661,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "0cdbef05207ab1852eb1e15bc5b9b222743c6799",
+          "size": 1509,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "00de843a2bf1aab94e97f59af38c57e2aad35b31",
+          "size": 1509,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "field_value_conflict",
+      "canon_proposal": "PENDING-OWNER",
+      "why": "То же, рука 50-0.7."
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/NOT_A_RUN",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "99c7d828007fb5bd4c8b49ee8a2d582cddfe5e3e",
+          "size": 781,
+          "branches": [
+            "control-arms",
+            "protocol-diag",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "a68600f253513e2a0f00d948d7cebbdd3765f705",
+          "size": 787,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "99c7d828007fb5bd4c8b49ee8a2d582cddfe5e3e",
+      "why": "fleet-analysis меняет одну строку: ссылка на «тот же класс каталога» указывает на runs/calib-audit-20260916/ вместо runs/s3n-ppl-20260916/. Смысл маркера тождествен; канон — любая, предпочтительна ссылка на каталог, существующий в сводимой ветке."
+    },
+    {
+      "path": "runs/replay50-collapse-20260916/compare_text.json",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "b4dba60af5499087d7fc370694b1096aa979fe41",
+          "size": 16309,
+          "branches": [
+            "control-arms",
+            "protocol-diag",
+            "fleet-analysis",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "e8ae603868a894d17743a5a1db0ffd42a33f0647",
+          "size": 145,
+          "branches": [
+            "replay50"
+          ]
+        }
+      ],
+      "classification": "artifact_name_conflict",
+      "canon_proposal": "b4dba60af5499087d7fc370694b1096aa979fe41",
+      "why": "ОДНО ИМЯ — РАЗНЫЕ ТИПЫ АРТЕФАКТА: в ветке replay50 под этим именем лежит stdout-лог детокенизации (145 Б, не JSON), в четырёх других — JSON-отчёт схемы corpus-compare-text/1 (16.3 КБ). Дефект: имя .json занято логом. Канон — JSON-отчёт; лог переносится под .log."
+    },
+    {
+      "path": "runs/replay50-collapse-20260916/run_manifest.json",
+      "variant_count": 3,
+      "variants": [
+        {
+          "blob": "4b85f3f8ba8d772c56eaa72384a18e6138a0799c",
+          "size": 3686,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "e58c5852ab309786f085d9c6aef0997df03ffadd",
+          "size": 3488,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "41d3fd4fe14c31583178a248e772500fe9336640",
+          "size": 3812,
+          "branches": [
+            "fleet-analysis"
+          ]
+        }
+      ],
+      "classification": "field_value_conflict",
+      "canon_proposal": "PENDING-OWNER",
+      "why": "Три редакции: arch_base_version a0ed9c9/342eb9e/2f85a12 и разные notes[2] (S3s-2 / S3s-1 / S3r описывают свой способ переноса корпуса)."
+    },
+    {
+      "path": "runs/rev-pool-v2/exclusions.json",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "0d083b6b938e1a4d5d6eb6495020643f60f793e8",
+          "size": 48843,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "passrate-probe",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "74fa04a2ebd96aa4440cdaf63d20282a9fb8ef94",
+          "size": 114605,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "74fa04a2ebd96aa4440cdaf63d20282a9fb8ef94",
+      "why": "mix-lr-calibration несёт S3f-fix-2 с разбором цепочек (114.6 КБ, +840/-125 строк); семь ветвей — S3f (48.8 КБ). Вариант mix-lr — продолжение той же линии."
+    },
+    {
+      "path": "tools/README.md",
+      "variant_count": 3,
+      "variants": [
+        {
+          "blob": "afc4b640d7b35b3e9c848993025825d6e24bdc3d",
+          "size": 59062,
+          "branches": [
+            "control-arms",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "55787250017860a521deaf7a1ec877ce07ddfc71",
+          "size": 60616,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "94418c96980a7d281ac37b82b0ff27c6d1b647ca",
+          "size": 51028,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "MERGE(afc4b640d7b35b3e9c848993025825d6e24bdc3d + 55787250017860a521deaf7a1ec877ce07ddfc71)",
+      "why": "Три редакции: passrate-probe — ранняя (51.0 КБ), control-arms/protocol-diag/fleet-analysis/replay50/fleet-2 — база (59.1 КБ), eval-set/mix-lr — база + раздел S3m-2 (+14 строк). Канон — сведение."
+    },
+    {
+      "path": "tools/mix_lr_grid_chain.sh",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "e945eddd84856d8e10b7e592ad221f1ced6ac05a",
+          "size": 10507,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "3d553d4ac86cd773c6e91ee0510b446528da10cf",
+          "size": 8762,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "e945eddd84856d8e10b7e592ad221f1ced6ac05a",
+      "why": "control-arms/fleet-2 несут обобщённый драйвер (--run-prefix / --grid-name, серия контрольных рук S3o, 10.5 КБ); пять ветвей — версия S3m с жёсткими calib-* (8.8 КБ). Обобщённая версия — надмножество."
+    },
+    {
+      "path": "tools/pilot_chain.sh",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "d7cd13ec98e363414ae93c35cca952b13b1a71e2",
+          "size": 42320,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "66e46f39cea7bc102c25ad5e3a2e72c0193121e5",
+          "size": 39724,
+          "branches": [
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "d7cd13ec98e363414ae93c35cca952b13b1a71e2",
+      "why": "passrate-probe несёт снимок от 14.09 (39.7 КБ); семь ветвей — 42.3 КБ. Направление — база семи."
+    },
+    {
+      "path": "tools/ppl_probe.py",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "8ec80ebaa4bc08c15b49f399822ac396ddc378c4",
+          "size": 83623,
+          "branches": [
+            "control-arms",
+            "eval-set",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "5441da887105c19547e7dc22c1490501e8899f70",
+          "size": 82355,
+          "branches": [
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "8ec80ebaa4bc08c15b49f399822ac396ddc378c4",
+      "why": "ФАКТ ПЕРВИЧЕН (ADR-028 п.1): вариант control-arms/eval-set/fleet-2 (83.6 КБ) имеет sha256 5a2c3f72…abf72, который объявлен в docs/specs/EVAL-SETS.md и процитирован в 5 evidence-файлах (s3t-baseline-k2, s3t-k2-set, s3v-control-arms-ppl, s3w-domain-by-arms, s3u-full-cpt). Вариант mix-lr/protocol-diag/fleet-analysis/replay50 (82.4 КБ, sha256 73c6b3a8…) не процитирован нигде и не содержит наборов v3_general/k2_general. Канон — вариант с объявленным хешем."
+    },
+    {
+      "path": "tools/run_mix_lr_calib.py",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "96a8b353274842559227392bec4a0c23783307c8",
+          "size": 148565,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "bbc650587005204ec7ed9e13b1f9b3cb235ebf1e",
+          "size": 116314,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "96a8b353274842559227392bec4a0c23783307c8",
+      "why": "control-arms/fleet-2 несут обобщённый раннер (148.6 КБ, поддержка серии контрольных рук, +16 функций относительно 5 ветвей); пять ветвей — версия S3m (116.3 КБ). Обобщённая версия — надмножество."
+    },
+    {
+      "path": "tools/tests/run_tool_tests.sh",
+      "variant_count": 7,
+      "variants": [
+        {
+          "blob": "83b8888837757bf2c3ed56c7ef6ecb0428b840b9",
+          "size": 304085,
+          "branches": [
+            "control-arms"
+          ]
+        },
+        {
+          "blob": "1f19af070f82758717ffe0be6ea70992b7230546",
+          "size": 354833,
+          "branches": [
+            "eval-set"
+          ]
+        },
+        {
+          "blob": "53a00d6491ccec72d26aa77ea291e25febc8d800",
+          "size": 297507,
+          "branches": [
+            "mix-lr-calibration"
+          ]
+        },
+        {
+          "blob": "55888125d5608687691382e793c96de4c63263cf",
+          "size": 287150,
+          "branches": [
+            "protocol-diag"
+          ]
+        },
+        {
+          "blob": "a4c643082d1e62488ba46dfe70371583691cfb70",
+          "size": 275273,
+          "branches": [
+            "fleet-analysis",
+            "replay50"
+          ]
+        },
+        {
+          "blob": "07694e8bd1ddcf5b4224241bd2b084e0da7850f6",
+          "size": 211304,
+          "branches": [
+            "passrate-probe"
+          ]
+        },
+        {
+          "blob": "35912d4fb944abe1d987603195a377907957f252",
+          "size": 309043,
+          "branches": [
+            "fleet-2"
+          ]
+        }
+      ],
+      "classification": "additive_annotation",
+      "canon_proposal": "UNION(SECTIONS)",
+      "why": "СЕМЬ редакций одной линии — каждая ветвь дописала свои секции поверх общей базы (18 общих секций). Уникальные секции: eval-set — 16–24 (S3q/S3t/S3v/S3w), protocol-diag — 17 (s3n_ppl_curve), control-arms/fleet-2 — 17–19 (S3o, S3u, check_handoff_contract), mix-lr — без своих, passrate-probe — 16 (passrate_probe.py). Ни одна ветвь не несёт всех секций. Канон — объединение секций по номерам инструментов, не выбор одной стороны."
+    },
+    {
+      "path": "tools/write_run_manifest.py",
+      "variant_count": 2,
+      "variants": [
+        {
+          "blob": "58bdce0fcfb1ef802989d35dca601f613d8810bf",
+          "size": 15043,
+          "branches": [
+            "control-arms",
+            "fleet-2"
+          ]
+        },
+        {
+          "blob": "c6e670e3d796f5b0fd9b349b60a1b10d34073de0",
+          "size": 14616,
+          "branches": [
+            "eval-set",
+            "mix-lr-calibration",
+            "protocol-diag",
+            "fleet-analysis",
+            "replay50",
+            "passrate-probe"
+          ]
+        }
+      ],
+      "classification": "stale_snapshot",
+      "canon_proposal": "58bdce0fcfb1ef802989d35dca601f613d8810bf",
+      "why": "control-arms/fleet-2 добавили статус `running` в KNOWN_STATUS (+1/−4, коммит a0ed9c9 S3o) — «каталог прогона существует с первой минуты». Шесть ветвей — редакция S3-pre. Важно: замороженные копии в runs/<прогон>/write_run_manifest.py обязаны остаться прежними (sha256 ba3f889… прибит в calib_params.json прогонов)."
+    }
+  ],
+  "branch_unique_files": {
+    ".arch-fleet/laguna-compact-fanout.plan.toml": [
+      "mix-lr-calibration"
+    ],
+    "data/gen-eval-k2-card.json": [
+      "eval-set"
+    ],
+    "data/gen-eval-v3-card.json": [
+      "eval-set"
+    ],
+    "docs/adr/ADR-025-chistota-izmeritelnogo-nabora-general-nabor-ne-peresekaetsya-ni-s-odnim-kandidatnym-miksom-geyt-pered-primeneniem-potolka-ppl.md": [
+      "mix-lr-calibration"
+    ],
+    "docs/adr/ADR-026-odnomernost-kalibrovochnoy-manipulyacii-i-nerazlichyonnyy-rezhim-vnimaniya-peresmotr-vyvodov-s3m.md": [
+      "mix-lr-calibration"
+    ],
+    "docs/adr/ADR-028-kanon-manifesta-progona-i-politika-istorii-git-fakt-pervichen-istoriya-ne-perepisyvaetsya.md": [
+      "protocol-diag"
+    ],
+    "docs/adr/ADR-029-otzyv-stop-signala-cpt-dvuhkomponentnaya-mera-ne-podtverzhdaet-razrushenie-obschego-yazyka-stadiya-prodolzhaetsya-na-zamorozhennom-mikse.md": [
+      "eval-set"
+    ],
+    "docs/specs/DISK-PLAN.md": [
+      "protocol-diag"
+    ],
+    "docs/specs/EVAL-SETS.md": [
+      "eval-set"
+    ],
+    "docs/specs/HANDOFF-CONTRACT-PROPOSAL.md": [
+      "fleet-2"
+    ],
+    "docs/specs/REPLAY50-ANALYSIS.md": [
+      "replay50"
+    ],
+    "docs/specs/S3N-PPL-CURVE.md": [
+      "protocol-diag"
+    ],
+    "docs/specs/SFT-STAGE-PLAN.md": [
+      "mix-lr-calibration"
+    ],
+    "evidence/fleet-disk-audit.json": [
+      "protocol-diag"
+    ],
+    "evidence/fleet-handoff-contract.json": [
+      "fleet-2"
+    ],
+    "evidence/fleet-sft-prep.json": [
+      "mix-lr-calibration"
+    ],
+    "evidence/passrate-baseline-v2.json": [
+      "passrate-probe"
+    ],
+    "evidence/replay50-collapse.json": [
+      "replay50"
+    ],
+    "evidence/s3n-ppl-curve.json": [
+      "protocol-diag"
+    ],
+    "evidence/s3p-pool-v2-card.json": [
+      "mix-lr-calibration"
+    ],
+    "evidence/s3q-baseline-v3.json": [
+      "eval-set"
+    ],
+    "evidence/s3q-eval-set.json": [
+      "eval-set"
+    ],
+    "evidence/s3q-purity.json": [
+      "eval-set"
+    ],
+    "evidence/s3r-hygiene.json": [
+      "protocol-diag"
+    ],
+    "evidence/s3t-baseline-k2.json": [
+      "eval-set"
+    ],
+    "evidence/s3t-k2-set.json": [
+      "eval-set"
+    ],
+    "evidence/s3t-purity-k2.json": [
+      "eval-set"
+    ],
+    "evidence/s3t-purity-v2.json": [
+      "eval-set"
+    ],
+    "evidence/s3v-control-arms-ppl.json": [
+      "eval-set"
+    ],
+    "evidence/s3w-domain-by-arms.json": [
+      "eval-set"
+    ],
+    "evidence/s3w-purity-v1domain.json": [
+      "eval-set"
+    ],
+    "evidence/s3w-purity-v2domain.json": [
+      "eval-set"
+    ],
+    "runs/passrate-probe-20260916-0740/probe_meta.json": [
+      "passrate-probe"
+    ],
+    "runs/passrate-probe-20260916-0740/tasks.jsonl": [
+      "passrate-probe"
+    ],
+    "runs/replay50-collapse-20260916/analyze_corpora.py": [
+      "replay50"
+    ],
+    "runs/replay50-collapse-20260916/build_evidence.py": [
+      "replay50"
+    ],
+    "runs/replay50-collapse-20260916/corpus_compare.err": [
+      "replay50"
+    ],
+    "runs/replay50-collapse-20260916/corpus_compare.json": [
+      "replay50"
+    ],
+    "runs/replay50-collapse-20260916/probe_control.json": [
+      "replay50"
+    ],
+    "runs/replay50-collapse-20260916/probe_control.py": [
+      "replay50"
+    ],
+    "runs/s3n-ppl-20260916/25-0.35.json": [
+      "protocol-diag"
+    ],
+    "runs/s3n-ppl-20260916/25-0.7.json": [
+      "protocol-diag"
+    ],
+    "runs/s3n-ppl-20260916/50-0.35.json": [
+      "protocol-diag"
+    ],
+    "runs/s3n-ppl-20260916/50-0.7.json": [
+      "protocol-diag"
+    ],
+    "runs/s3n-ppl-20260916/NOT_A_RUN": [
+      "protocol-diag"
+    ],
+    "runs/s3n-ppl-20260916/_sha_cache.json": [
+      "protocol-diag"
+    ],
+    "runs/s3q-arms-20260916/25-0.35-ml192.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/25-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/25-0.7-ml192.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/25-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/50-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/50-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3q-arms-20260916/run_manifest.json": [
+      "eval-set"
+    ],
+    "runs/s3t-arms-20260916/25-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3t-arms-20260916/25-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3t-arms-20260916/50-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3t-arms-20260916/50-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3v-arms-20260916/ctrl-C1-100-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3v-arms-20260916/ctrl-C2-25-0.035.json": [
+      "eval-set"
+    ],
+    "runs/s3v-arms-20260916/run_manifest.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/calib-25-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/calib-25-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/calib-50-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/calib-50-0.7.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/ctrl-C1-100-0.35.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/ctrl-C2-25-0.035.json": [
+      "eval-set"
+    ],
+    "runs/s3w-domain-20260916/run_manifest.json": [
+      "eval-set"
+    ],
+    "tools/_extract_eval_set_branch.py": [
+      "fleet-2"
+    ],
+    "tools/assemble_s3q_evidence.py": [
+      "eval-set"
+    ],
+    "tools/assemble_s3t_evidence.py": [
+      "eval-set"
+    ],
+    "tools/assemble_s3v_evidence.py": [
+      "eval-set"
+    ],
+    "tools/assemble_s3w_evidence.py": [
+      "eval-set"
+    ],
+    "tools/build_general_eval_k2.py": [
+      "eval-set"
+    ],
+    "tools/build_general_eval_v3.py": [
+      "eval-set"
+    ],
+    "tools/check_handoff_contract.py": [
+      "fleet-2"
+    ],
+    "tools/passrate_probe.py": [
+      "passrate-probe"
+    ],
+    "tools/ppl_probe_k2.py": [
+      "eval-set"
+    ],
+    "tools/ppl_probe_v3.py": [
+      "eval-set"
+    ],
+    "tools/probe_pool_v2_leak.py": [
+      "mix-lr-calibration"
+    ],
+    "tools/s3n_ppl_curve.py": [
+      "protocol-diag"
+    ]
+  },
+  "canon_proposal_manifest_fields": {
+    "fact_carriers_identical_across_all_branches": {
+      "runs/calib-25-0.35-20260916-0820/calib_params.json": "6eaef0c (все 8 ветвей)",
+      "runs/calib-25-0.7-20260916-0820/calib_params.json": "f24a4b6 (все 8 ветвей)",
+      "runs/calib-50-0.35-20260916-0820/calib_params.json": "07357f4 (все 8 ветвей)",
+      "runs/calib-50-0.7-20260916-0820/calib_params.json": "7c212ed (все 8 ветвей)",
+      "runs/<рука>/stages.tsv": "736581c / 22c25ba / 2b4ee4f / c7c89eb (все 8 ветвей)",
+      "runs/<рука>/write_run_manifest.py": "c6e670e3, sha256 ba3f889abe288767… (все 8 ветвей)",
+      "note": "Четыре физические руки — ОДИН прогон каждая: носители факта тождественны во всех ветвях (calib_params.json created_at 06:50:35 для 25-0.35). Расходится только производный артефакт — run_manifest.json, пересобранный в четырёх дельтах независимо."
+    },
+    "who_rebuilt": {
+      "fleet-2/control-arms": "a3dee03 (S3s-2)",
+      "fleet-analysis": "0ec9cf4 (S3s-1)",
+      "protocol-diag": "282d903 (S3r + 0150d6e)",
+      "eval-set/mix-lr": "bd05ed4 (S3m-2)"
+    },
+    "fields": {
+      "arch_base_version": {
+        "canon": "УДАЛИТЬ (ADR-028 п.2)",
+        "why": "поле с двусмысленным смыслом: несёт коммит запуска, коммит записи, или null — в зависимости от ветви. Заменяется парой run_started_at_commit / manifest_written_at_commit."
+      },
+      "pipeline_path": {
+        "canon": "runs/calib-<рука>-<ts>/laguna_pipeline_calib.py",
+        "why": "Каталога calib/ в кейсе не существует (проверено ls на fleet-2): значение ветвей eval-set/mix-lr указывает в никуда. Факт — путь runs/…, он же совпадает с фактическим расположением копии пайплайна."
+      },
+      "created_at": {
+        "canon": "время записи канонического манифеста",
+        "why": "Время записи, а не время прогона: у четырёх редакций оно разное (14:11:52 / 14:11:12 / 14:02:20 / 08:14:19). Различить «когда шёл прогон» оно не может по построению — отсюда и пара полей-коммитов."
+      },
+      "hyperparameters": {
+        "canon": "объединение с исключением hyperparameters.arch_base_version",
+        "why": "Рука eval-set/mix-lr несёт более полный набор (+pipeline_base_sha256, rl_steps, eval_items, stages_file) — это фактические значения запуска; в её же hyperparameters лежит пустое arch_base_version: \"\" — дубль удаляемого поля внутри hyperparameters, подлежит удалению."
+      },
+      "hyperparameters.corpus": {
+        "canon": "v12r для 25-рук, v12r50 для 50-рук — СОВПАДАЕТ ВО ВСЕХ ВЕТВЯХ",
+        "why": "Дефект ADR-028 п.1 («v12r50 у 25-рук») на момент аудита уже исправлен везде: все восемь ветвей дают для 25-рук corpus=v12r при dataset_path=datasets/tok/cpt_corpus_v12r_8192_qwen25.npy. Единственное отличие — protocol-diag несёт поясняющее поле hyperparameters.corpus_value_note; его следует сохранить как примечание."
+      },
+      "hyperparameters.corpus_value_note": {
+        "canon": "СОХРАНИТЬ примечание",
+        "why": "Пояснение protocol-diag к исправленному полю corpus: «исправлено по факту dataset_path (v12r = 75/25); прежнее v12r50 противоречило dataset_path». Это след применения ADR-028 п.1 — при сведении сохраняется."
+      },
+      "hyperparameters.pipeline_base_sha256": {
+        "canon": "объединить (фактическое значение запуска)",
+        "why": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d — хеш базового laguna_pipeline_v8.py, из которого патчем получена копия пайплайна руки; тот же хеш лежит в calib_params.json прогона."
+      },
+      "hyperparameters.arch_base_version": {
+        "canon": "УДАЛИТЬ (дубль удаляемого поля)",
+        "why": "В hyperparameters руки eval-set/mix-lr лежит ПО ВТОРОМУ РАЗУ то же двусмысленное поле, пустой строкой. Удаляется вместе с верхнеуровневым arch_base_version (ADR-028 п.2)."
+      },
+      "hyperparameters_source": {
+        "canon": "\"calib_params.json прогона (фактический запуск цепочки)\"",
+        "why": "Строка-источник у четырёх редакций разная. Канон — источник, называющий носитель факта (calib_params.json), а не пересказ (run_pilot.py → pilot_chain.sh). Обе строки заданы аргументом --hyperparams-source, а не кодом: ни одна закоммиченная версия tools/write_run_manifest.py их не содержит."
+      }
+    }
+  },
+  "adr_table_025_031": [
+    {
+      "adr": "ADR-025",
+      "title": "Чистота измерительного набора: general-набор не пересекается ни с одним кандидатным миксом (гейт перед применением потолка PPL)",
+      "status": "Proposed",
+      "branches": [
+        "mix-lr-calibration"
+      ],
+      "branch_count": 1,
+      "file": "ADR-025-chistota-izmeritelnogo-nabora-general-nabor-ne-peresekaetsya-ni-s-odnim-kandidatnym-miksom-geyt-pered-primeneniem-potolka-ppl.md"
+    },
+    {
+      "adr": "ADR-026",
+      "title": "Одномерность калибровочной манипуляции и неразличённый режим внимания: пересмотр выводов S3m",
+      "status": "Proposed",
+      "branches": [
+        "mix-lr-calibration"
+      ],
+      "branch_count": 1,
+      "file": "ADR-026-odnomernost-kalibrovochnoy-manipulyacii-i-nerazlichyonnyy-rezhim-vnimaniya-peresmotr-vyvodov-s3m.md"
+    },
+    {
+      "adr": "ADR-027",
+      "title": "Мера общего языка двухкомпонентна: набор в жанре реплея и набор вне обучающего распределения",
+      "status": "Proposed",
+      "branches": [
+        "eval-set",
+        "fleet-2"
+      ],
+      "branch_count": 2,
+      "file": "ADR-027-mera-obschego-yazyka-dvuhkomponentna-nabor-v-zhanre-repleya-i-nabor-vne-obuchayuschego-raspredeleniya.md"
+    },
+    {
+      "adr": "ADR-028",
+      "title": "Канон манифеста прогона и политика истории git: факт первичен, история не переписывается",
+      "status": "Proposed",
+      "branches": [
+        "protocol-diag"
+      ],
+      "branch_count": 1,
+      "file": "ADR-028-kanon-manifesta-progona-i-politika-istorii-git-fakt-pervichen-istoriya-ne-perepisyvaetsya.md"
+    },
+    {
+      "adr": "ADR-029",
+      "title": "Отзыв стоп-сигнала CPT: двухкомпонентная мера не подтверждает разрушение общего языка, стадия продолжается на замороженном миксе",
+      "status": "Proposed",
+      "branches": [
+        "eval-set"
+      ],
+      "branch_count": 1,
+      "file": "ADR-029-otzyv-stop-signala-cpt-dvuhkomponentnaya-mera-ne-podtverzhdaet-razrushenie-obschego-yazyka-stadiya-prodolzhaetsya-na-zamorozhennom-mikse.md"
+    },
+    {
+      "adr": "ADR-030",
+      "title": "Промежуточные точки CPT: тревога по тренду, остановка по концу стадии или по росту на трёх точках",
+      "status": "Proposed",
+      "branches": [
+        "control-arms",
+        "fleet-2"
+      ],
+      "branch_count": 2,
+      "file": "ADR-030-promezhutochnye-tochki-cpt-trevoga-po-trendu-ostanovka-po-koncu-stadii-ili-po-rostu-na-tryoh-tochkah.md"
+    },
+    {
+      "adr": "ADR-031",
+      "title": "Пик LR полного CPT: ×0.035 вместо ×0.35 — домен сопоставим, язык на порядок лучше",
+      "status": "Proposed",
+      "branches": [
+        "control-arms",
+        "fleet-2"
+      ],
+      "branch_count": 2,
+      "file": "ADR-031-pik-lr-polnogo-cpt-0-035-vmesto-0-35-domen-sopostavim-yazyk-na-poryadok-luchshe.md"
+    }
+  ],
+  "tool_tests_sections": {
+    "per_branch_counts": {
+      "control-arms": 21,
+      "eval-set": 28,
+      "mix-lr-calibration": 19,
+      "protocol-diag": 20,
+      "fleet-analysis": 19,
+      "replay50": 19,
+      "passrate-probe": 17,
+      "fleet-2": 22
+    },
+    "common_18": "секции 1–11, 12, 13, 14, 15(build_gen_eval_v2/validate_verifiers/ppl_probe), 16(S3m) — присутствуют во всех восьми ветвях",
+    "unique": {
+      "eval-set": "16 check_eval_set_purity, 17 build_general_eval_v3, 18 ppl_probe_v3, 19 assemble_s3q_evidence, 20 build_general_eval_k2, 21 ppl_probe_k2, 22 assemble_s3t_evidence, 23 assemble_s3v_evidence, 24 assemble_s3w_evidence",
+      "protocol-diag": "17 s3n_ppl_curve.py",
+      "control-arms": "17 S3o контрольные руки, 18 S3u полный CPT",
+      "fleet-2": "17 S3o контрольные руки, 18 S3u полный CPT, 19 check_handoff_contract.py",
+      "passrate-probe": "16 passrate_probe.py (и отсутствуют 15 validate_verifiers/ppl_probe)"
+    },
+    "canon": "объединение по номерам инструментов; счётчики PASS в шапке README после сведения обязаны быть пересчитаны прогоном, а не перенесены"
+  },
+  "adr_inventory": {
+    "control-arms": "ADR-001…ADR-031 (26 файлов)",
+    "eval-set": "ADR-001…ADR-029 (26 файлов)",
+    "mix-lr-calibration": "ADR-001…ADR-026 (26 файлов)",
+    "protocol-diag": "ADR-001…ADR-028 (25 файлов)",
+    "fleet-analysis": "ADR-001…ADR-024 (24 файлов)",
+    "replay50": "ADR-001…ADR-024 (24 файлов)",
+    "passrate-probe": "ADR-001…ADR-021 (21 файлов)",
+    "fleet-2": "ADR-001…ADR-031 (27 файлов)"
+  },
+  "adr_dangling_dependencies": {
+    "note": "НИ ОДНА ветвь не несёт полного набора решений: у каждой есть ссылки на ADR, которых в ней нет. При сведении union по docs/adr/ закрывает все ссылки — проверено: объединение 8 ветвей даёт ровно ADR-001…ADR-031 без пропусков и без дублей номеров.",
+    "by_branch": {
+      "control-arms": {
+        "ADR-027": [
+          30,
+          31
+        ],
+        "ADR-029": [
+          30,
+          31
+        ]
+      },
+      "eval-set": {
+        "ADR-025": [
+          27,
+          29
+        ],
+        "ADR-026": [
+          27,
+          29
+        ]
+      },
+      "protocol-diag": {
+        "ADR-025": [
+          28
+        ]
+      },
+      "fleet-2": {
+        "ADR-025": [
+          27
+        ],
+        "ADR-026": [
+          27
+        ],
+        "ADR-029": [
+          30,
+          31
+        ]
+      }
+    }
+  },
+  "adr_renumbering": {
+    "verdict": "ПЕРЕНОМЕРАЦИЯ НЕ ТРЕБУЕТСЯ",
+    "facts": {
+      "case_namespace": "ADR-025…ADR-031 заняты по одному разу каждый; файлового дубля номера нет ни в одном дереве и ни в одной точке истории (проверено полным обходом git log --all по путям docs/adr/ADR-025* и ADR-026* — за всю историю существует ровно один ADR-025 и ровно один ADR-026 в пространстве имён кейса).",
+      "union": "Объединение docs/adr/ по восьми ветвям = ADR-001…ADR-031, 31 файл, без пропусков номеров.",
+      "premise_check": "Пример ADR-028 п.3 («ADR-025 существует в двух вариантах: чистота измерительного набора и канон манифеста») в репозитории НЕ ВОСПРОИЗВОДИТСЯ: решение о каноне манифеста закоммичено сразу как ADR-028 (коммит 105f1ee), а ADR-025 за всю историю существует в единственном варианте. Правило п.3 не отменяется, но его обоснование следует привести к факту при сведении.",
+      "real_overlap": "Реальное перекрытие номеров — МЕЖДУ ПРОСТРАНСТВАМИ ИМЁН репозитория: корневой docs/adr/ (продукт arch-be, 45 файлов, максимум ADR-047) и кейсовый кейсы/laguna-compact/docs/adr/ (31 файл) обе используют номера 001…031+. Файлового конфликта нет (разные каталоги), но правило «номер = максимум по всем ветвям +1» без указания области неисполнимо."
+    },
+    "proposal": "Уточнить ADR-028 п.3 при сведении: (а) нумерация глобальна ВНУТРИ области (кейс / корневой продукт), максимум считается по всем ветвям этой области; (б) пример-обоснование заменить на воспроизводимый факт — перекрытие кейсового и корневого пространств имён; (в) счётчик «следующий свободный номер кейса» = ADR-032.",
+    "no_moves": "Ни один ADR не «уезжает» на другой номер: перенумерация задним числом запрещена ADR-028 п.3 и здесь не нужна."
+  },
+  "canonization_plan": {
+    "owner_gate": "Каждый шаг ниже выполняется владельцем на ветке сведения; этот аудит ничего не менял.",
+    "target_branch": "arch/laguna-fleet-2 (точка сведения)",
+    "steps": [
+      {
+        "n": 1,
+        "what": "Зафиксировать область нумерации ADR (ADR-028 п.3): кейс — своё пространство, максимум 031 → следующий ADR-032.",
+        "why": "Без этого шага любой следующий номер рискует столкнуться с корневым docs/adr/.",
+        "risk": "низкий"
+      },
+      {
+        "n": 2,
+        "what": "Перенести отсутствующие решения: ADR-025, ADR-026 из mix-lr-calibration, ADR-028 из protocol-diag, ADR-029 из eval-set. ADR-027/030/031 уже в fleet-2.",
+        "why": "Закрывает все висячие зависимости: ADR-027 зависит от 025/026, ADR-030/031 — от 027 и 029.",
+        "risk": "низкий — файлы вносятся как есть, номера не меняются"
+      },
+      {
+        "n": 3,
+        "what": "Свести tools/ppl_probe.py к варианту с объявленным хешем 5a2c3f72…; проверить, что sha256 файла после сведения совпадает с объявленным в EVAL-SETS.md и в 5 evidence-файлах.",
+        "why": "ADR-028 п.1: факт первичен. Обратный выбор обесценил бы 5 доказательств, ссылающихся на хеш.",
+        "risk": "средний — нужна сверка, что вариант mix-lr не несёт нужных правок помимо SETS"
+      },
+      {
+        "n": 4,
+        "what": "Свести tools/run_mix_lr_calib.py, tools/mix_lr_grid_chain.sh, tools/write_run_manifest.py к обобщённым редакциям (fleet-2/control-arms).",
+        "why": "Это надмножества: контрольные руки S3o и обобщённый драйвер серий не существуют в редакциях пяти ветвей.",
+        "risk": "низкий — направление проверено по diff (добавление флагов, а не иная логика)"
+      },
+      {
+        "n": 5,
+        "what": "Свести tools/tests/run_tool_tests.sh объединением секций, а не выбором стороны.",
+        "why": "Ни одна из семи редакций не несёт всех секций: уникальные наборы у eval-set (16–24), protocol-diag (17), fleet-2/control-arms (17–19), passrate-probe (16). Выбор любой стороны молча удалит проверки четырёх приборов.",
+        "risk": "высокий — самая дорогая операция сведения; делать по секциям с прогоном после каждой"
+      },
+      {
+        "n": 6,
+        "what": "Пересобрать восемь run_manifest.json калибровочных рук и replay50-collapse по канону ADR-028: удалить arch_base_version, добавить run_started_at_commit=null и manifest_written_at_commit=<коммит сведения>, привести pipeline_path к runs/…, hyperparameters — к объединению без arch_base_version, сохранить corpus_value_note.",
+        "why": "Это единственный класс, где расходятся ЗНАЧЕНИЯ одного поля, и единственный, который ADR-028 п.2 предписывает чинить механически. Носители факта (calib_params.json, stages.tsv, замороженный write_run_manifest.py) во всех ветвях тождественны — пересборка воспроизводима.",
+        "risk": "средний — перезапись поля, которое читает страж C-012; прогнать check_run_manifest.py после"
+      },
+      {
+        "n": 7,
+        "what": "Развести evidence/s3s-hygiene.json: два узла (S3s-1 и S3s-2) под одним именем — либо два файла, либо один с массивом узлов.",
+        "why": "Это не редакции одного доказательства, а два разных; слияние «по одной стороне» потеряет доказательство одной из дельт.",
+        "risk": "низкий — файлы не читаются стражами по имени"
+      },
+      {
+        "n": 8,
+        "what": "Развести runs/replay50-collapse-20260916/compare_text.json: JSON-отчёт оставить под именем .json, stdout-лог ветки replay50 перенести под .log.",
+        "why": "Под одним именем лежат разные типы артефакта; сейчас ветка replay50 несёт под .json не-JSON.",
+        "risk": "низкий"
+      },
+      {
+        "n": 9,
+        "what": "Свести CONSTRAINTS.yaml к редакции с C-020 (20 правил) и проверить C-020 на evidence-файлах после шага 6.",
+        "why": "C-020 (leak_check в evidence PPL) ссылается на поле, которое добавляет mix-lr; без него гейт C-020 красный.",
+        "risk": "низкий"
+      },
+      {
+        "n": 10,
+        "what": "Свести data/rev-envs-v2-card.json и runs/rev-pool-v2/exclusions.json к редакциям mix-lr-calibration (надмножества с prompt_leak и S3f-fix-2).",
+        "why": "Правка карточки пула v2 (35a96e9) существует только в mix-lr-calibration — отсюда красный тест S3f в двух других ветках.",
+        "risk": "низкий — надмножества"
+      },
+      {
+        "n": 11,
+        "what": "Свести ADR-018/021/022/023/024/015 и README.md/tools/README.md/ARCHITECTURE-SPINE.md объединением дополнений на базовой редакции; для ADR-022 сохранить баннер «ОТОЗВАНО — ADR-029».",
+        "why": "Дополнения сделаны в разных ветвях и каждое несёт решение; выбор одной стороны теряет пункты 8–11 ADR-023 и ссылку на канонический носитель чисел.",
+        "risk": "средний — ручная работа с текстом, источник новых расхождений"
+      },
+      {
+        "n": 12,
+        "what": "После сведения прогнать полный набор гейтов и тестов ветви-приёмника; зафиксировать факт сведения в README (карта evidence) и в отдельном evidence-файле.",
+        "why": "ADR-023 п.8: дельта обязана проверить СВОЙ результат механически, а не заявить его.",
+        "risk": "низкий"
+      }
+    ],
+    "not_doing": [
+      "Перенумерация ADR — не требуется (дублей номеров в кейсе нет).",
+      "Перезапись git-истории для удаления 456 524 032 Б (два блоба по 228 262 016 Б, коммит 342eb9e) — запрещена ADR-028 п.4.",
+      "Правка чужих ветвей: расхождения чинятся только на ветке сведения (ADR-028 п.8).",
+      "Запуск GPU/стенда: полный CPT идёт автономно (tmux s3u-full-cpt-20260916-1933), аудит его не трогал."
+    ],
+    "conflicts_with_prior_decisions": [
+      "ADR-028 п.3: пример-обоснование («ADR-025 в двух вариантах») не воспроизводится в репозитории; правило сохраняется, обоснование требует правки при сведении.",
+      "ADR-028 п.1: описанный дефект corpus=v12r50 у 25-рук на момент аудита исправлен во всех восьми ветвях — расхождение по этому полю отсутствует, чинить нечего.",
+      "ADR-023 п.10б: mix-lr-calibration объявляет evidence/s3m-ppl-arms.json каноническим носителем чисел S3m и снимает evidence/mix-lr-calibration.json; при сведении имя в README и ADR-024 обязано указывать на фактический носитель."
+    ]
+  },
+  "status_basis": "Прочитаны все восемь ветвей с каталогом кейса (8/8) по их tip-коммитам; инвентарь ADR, карта расхождений по всем 385 файлам кейса и разбор поле-в-поле восьми run_manifest.json сделаны механически по git-объектам. Канонизация НЕ выполнялась — это план для owner-гейта (ADR-028 п.8)."
+}

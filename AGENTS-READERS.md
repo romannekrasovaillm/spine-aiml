@@ -1,16 +1,14 @@
-# AGENTS-READERS.md — чтение Spine Banking Edition
+# AGENTS-READERS.md — чтение Spine AI/ML Edition
 
 You are an agent **reading** this repository — to learn domain-harness
 patterns, reuse ideas, or review the design. This guide orients you in five
 minutes and keeps the reading safe. If you intend to *modify* the project,
 use `AGENTS.md` instead.
 
-> **Product fork of Spine.** Spine Banking Edition is a domain agent harness
-> for solution architects (banking; Rust, one `arch-ml` binary: TUI/CLI/library).
-> Core is MIT (`LICENSE`), the `banking/` layer is proprietary
-> (`LICENSE.banking`). The core can be studied and reused under MIT; the
-> banking layer is distributed under a license agreement only
-> (`NOTICE.md`, ADR-010/013).
+> **AI/ML Edition.** Spine AI/ML Edition is a domain meta-harness for
+> AI/ML researchers (Rust, one `arch-ml` binary: TUI/CLI/library) — a clean
+> fork of the banking line of Spine (`NOTICE.md`). The core is studied and
+> reused under MIT (`LICENSE`).
 
 ## Five-minute reading order
 

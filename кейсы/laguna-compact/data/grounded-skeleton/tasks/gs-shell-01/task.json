@@ -1,0 +1,21 @@
+{
+  "schema": "grounded-task/2",
+  "id": "gs-shell-01",
+  "tool": "shell",
+  "network": "none",
+  "max_steps": 4,
+  "workdir": "/work",
+  "prompt": "В каталоге /work лежит файл in/series.csv (заголовок `label,value`, далее строки показаний). Собери сумму значений столбца value по всем строкам данных и положи её в файл out/total.txt — ровно одно целое число. Каталог out/ создай сам. Работай из каталога /work.",
+  "initial_state": "каталог /work с единственным файлом in/series.csv (41 строка: заголовок + 40 показаний); каталога out/ нет",
+  "goal_action": "прочитать данные, вычислить сумму столбца value и записать её в out/total.txt",
+  "success_criterion": "out/total.txt существует, содержит ровно один целый токен, и этот токен равен сумме столбца value, вычисленной верификатором независимо по исходному (неизменённому) in/series.csv",
+  "no_action_probe": "текстовый ответ без вызовов инструментов: файл out/total.txt не создан → 0; отдельно проверяется, что текстовый ответ с ТОЧНЫМ значением суммы (подставленным верификатором) даёт те же 0",
+  "empty_action_probe": "действие без последствий (true): файла нет → 0",
+  "seed_dir": "seed",
+  "solution": "solution.sh",
+  "verifier": "verify.py",
+  "verifier_reads": ["pristine:in/series.csv", "snapshot:out/total.txt"],
+  "timeout_s": 60,
+  "requires": ["sh", "awk"],
+  "leak_check": "ожидаемое число в промпте и в seed отсутствует — оно выводится только из данных"
+}

@@ -1,0 +1,3476 @@
+{
+  "schema": "s3w-domain-by-arms/1",
+  "stage": "S3w",
+  "status": "complete",
+  "date": "2026-09-16T18:02:25.637685+00:00",
+  "purpose": "домен-метрика по всем рукам: цена низкого пика LR для домена против цены по языку — вторая половина основания решения о полном CPT (ADR-029 п.2)",
+  "question": "выучивает ли LR×0.035 (C2) домен так же, как LR×0.35 при том же миксе, и что это значит для выбора между «продолжать на ×0.35» и «перезапустить на ×0.035»",
+  "adr": [
+    "ADR-022 п.1/п.2/п.3 (LR и потолок деградации — шкала ×2)",
+    "ADR-025 п.1/п.2/п.5 (чистота измерительного набора)",
+    "ADR-027 п.1/п.2 (двухкомпонентная мера языка; компоненты не усредняются)",
+    "ADR-029 п.2 (полный CPT продолжается на v12r при LR×0.35)",
+    "ADR-015 п.1 / ADR-018 п.1 (слабость доменного набора из 5 документов)",
+    "AD-11 (критерий бинарный)",
+    "AD-12 (доказательства + коммит)"
+  ],
+  "stand": {
+    "where_measured": "локальная машина (RTX 4080 SUPER), НЕ стенд GB10",
+    "why": "стенд не задействован: на нём идёт полный CPT (ADR-029 п.2) — ни остановить, ни занять его этот замер не имеет права; числа PPL переносятся как свойства наборов и состояний, а не как замеры производительности стенда",
+    "checkpoints_read_in_place": "/home/user/gb10-shared/calib/calib/<рука>/checkpoints/ — по месту, копий не делалось (AD-4)"
+  },
+  "instrument": {
+    "probe": "tools/calib_ppl_probe.py (прибор S3m, не переписан)",
+    "measure": "tools/ppl_probe.py:measure (методика _ppl_eval S3h)",
+    "load_checkpoint": "laguna_pipeline_v8.py:_load_ckpt_with_resize из копии пайплайна того прогона, чей чекпойнт меряется",
+    "sets_measured": [
+      "v2_domain",
+      "v1_domain",
+      "v1_general",
+      "v3_general",
+      "k2_general"
+    ],
+    "language_components": [
+      "v3_general",
+      "k2_general"
+    ],
+    "max_len": 1024,
+    "batch": 4,
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "tokenizer_setup": "pipeline (8 спецтокенов + resize), как в S3h/S3q/S3t/S3v",
+    "base_weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "env_shims": [
+      "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется",
+      "C1 (только эта рука): `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` и повторный запуск пробы — при первом проходе карта 16 ГБ была занята чужой пробой полного CPT (tools/full_cpt_probe.py --watch, пик ~14 ГБ) и замер упал CUDA OOM на шаге 1000. Прибор не менялся (те же batch 4 / max_len 1024 / bfloat16 / наборы): смена расписания попыток числу не передаётся, а тождество доказано в самом отчёте — база сошлась с пятью эталонами, а c500…cfinal — с отчётом S3v (расхождение 0.0)"
+    ]
+  },
+  "domain_set": {
+    "chosen": "v2_domain",
+    "chosen_path": "datasets/domain_eval_v2.txt",
+    "chosen_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+    "chosen_base_ppl": 11.134115855539092,
+    "chosen_docs": 200,
+    "chosen_tokens": 125322,
+    "why_chosen": [
+      "различимость: 200 документов / 125 322 токена против 5 / 2 604 — ×48 по токенам; ADR-015 назвал прибор `ppl_domain` слабым прямо по числу документов, а ADR-018 п.1 собрал v2, чтобы это снять",
+      "роль: на 5 документах одного шаблона решение принималось бы внутри разброса прибора — ровно та ошибка, из-за которой v1 снят с решающей роли в мере общего языка (ADR-027 п.3)",
+      "источник в контуре: набор собран из `cpt_corpus_full.txt` с отсевом документов, найденных в обучающем корпусе (карточка `data/gen-eval-v2-card.json`), и его база снята тем же прибором (`evidence/ppl-baseline-v1v2.json`, S3h)"
+    ],
+    "historical_alt": {
+      "set": "v1_domain",
+      "path": "datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "base_ppl": 9.29019390347789,
+      "docs": 5,
+      "tokens": 2604,
+      "why_kept": "непрерывность с S3n: `ppl_domain` GEN-EVAL считался именно по этому набору, и расхождение с прежними дельтами без него читалось бы как смена прибора",
+      "why_not_deciding": "5 документов общего шаблона: ADR-015 п.1 — прибор слабый, ADR-018 п.1 — причина сборки v2"
+    },
+    "both_sets_measured": true,
+    "note": "числа двух наборов не усредняются: решает один, второй отвечает за непрерывность"
+  },
+  "purity": {
+    "v2_domain": {
+      "set": "datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "docs": 200,
+      "set_windows": 49962,
+      "corpora": {
+        "domain": {
+          "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+          "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 1733
+        },
+        "replay": {
+          "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+          "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 0
+        }
+      },
+      "overlap_docs_total": 0,
+      "overlap_ngram_total": 1733,
+      "ngram_share": 0.03469,
+      "window_examples": [
+        "\"if the correction concerns expression or interaction behavior, it produces a normalized",
+        "\"prism establishes a tight coupling between perception and decision-making through a dynamic",
+        "\"the kitti qa dataset features high-quality qa pairs on av scene understanding",
+        "\"the model employs a learnable class token, pre-norm transformer blocks with swiglu",
+        "\"to enable self-correction, we optimize π_θ using group relative policy optimization (grpo)"
+      ],
+      "tool_verdict": "overlap",
+      "verdict": "clean",
+      "gate_note": "гейт ADR-025 п.1 сформулирован для наборов `general_eval*`; на доменный набор он здесь применён как проверка той компоненты, которая делает число свойством модели (дословный документ), а 12-граммы оставлены справкой — карточка набора объявляет их не-гейтом",
+      "report": "evidence/s3w-purity-v2domain.json",
+      "report_sha256": "6c46a2a7a302f3800010e9a1209755daf7ec7339d1b59e74bb5fccfc28abed88"
+    },
+    "v1_domain": {
+      "set": "datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "docs": 5,
+      "set_windows": 1006,
+      "corpora": {
+        "domain": {
+          "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+          "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 78
+        },
+        "replay": {
+          "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+          "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 0
+        }
+      },
+      "overlap_docs_total": 0,
+      "overlap_ngram_total": 78,
+      "ngram_share": 0.07753,
+      "window_examples": [
+        "\"scope principle\" дифференциальной приватности: гарантия покрывает только те данные, которые были использованы",
+        "## gpu-эксперименты - complexity: low - estimated_time: < 2 hours - estimated_vram:",
+        "## gpu-эксперименты - complexity: low - estimated_time: <1 hour - estimated_vram: 2-4",
+        "## уровень α — концепция полностью определена с формальным математическим описанием (уравнения",
+        "## уровень β — эмпирически наблюдаемое явление. ## формальность c — описательное"
+      ],
+      "tool_verdict": "overlap",
+      "verdict": "clean",
+      "gate_note": "гейт ADR-025 п.1 сформулирован для наборов `general_eval*`; на доменный набор он здесь применён как проверка той компоненты, которая делает число свойством модели (дословный документ), а 12-граммы оставлены справкой — карточка набора объявляет их не-гейтом",
+      "report": "evidence/s3w-purity-v1domain.json",
+      "report_sha256": "dee021acf07da881d1fea1109162cdf3d708dc309aa10854ee231337a3a242ce"
+    }
+  },
+  "domain_baselines": {
+    "v2_domain": {
+      "set": "v2_domain",
+      "role": "решающий",
+      "base_ppl": 11.134115855539092,
+      "docs": 200,
+      "tokens": 125322,
+      "evidence": "evidence/ppl-baseline-v1v2.json",
+      "evidence_stage": "S3h",
+      "set_sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "ratio_reading": "отношение < 1 = домен выучен (PPL ниже базовой), > 1 = домен испорчен обучением"
+    },
+    "v1_domain": {
+      "set": "v1_domain",
+      "role": "исторический",
+      "base_ppl": 9.29019390347789,
+      "docs": 5,
+      "tokens": 2604,
+      "evidence": "evidence/ppl-baseline-v1v2.json",
+      "evidence_stage": "S3h",
+      "set_sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "ratio_reading": "отношение < 1 = домен выучен (PPL ниже базовой), > 1 = домен испорчен обучением"
+    }
+  },
+  "language_baselines": {
+    "K1": {
+      "component": "K1",
+      "set": "v3_general",
+      "base_ppl": 7.50468637420902,
+      "ceiling_ppl": 15.00937274841804,
+      "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+      "ceiling_recorded_in_evidence": 15.00937274841804,
+      "evidence": "evidence/s3q-baseline-v3.json",
+      "evidence_stage": "S3q",
+      "evidence_sha256": "c7956f168f42fa25f78989de6748144f83b20110801537cb4883358ba1bd0ddc",
+      "set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "ceiling_agrees_with_recorded": true
+    },
+    "K2": {
+      "component": "K2",
+      "set": "k2_general",
+      "base_ppl": 6.1599356842437585,
+      "ceiling_ppl": 12.319871368487517,
+      "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+      "ceiling_recorded_in_evidence": 12.319871368487517,
+      "evidence": "evidence/s3t-baseline-k2.json",
+      "evidence_stage": "S3t",
+      "evidence_sha256": "88148da34f29cf5ab7992659e686bbe0bcc9e6eedac628f4a5623e34d424beac",
+      "set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "ceiling_agrees_with_recorded": true
+    }
+  },
+  "sets": {
+    "v2_domain": {
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "role": "решающая домен-метрика: 200 документов вне обучающего корпуса"
+    },
+    "v1_domain": {
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "role": "историческая домен-шкала: тот же набор, что `ppl_domain` GEN-EVAL (S3n), 5 документов"
+    },
+    "v3_general": {
+      "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "role": "компонента K1 меры общего языка (ADR-027 п.1)"
+    },
+    "k2_general": {
+      "sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "role": "компонента K2 меры общего языка (ADR-027 п.1)"
+    },
+    "v1_general": {
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "role": "контрольное число прибора (S3h), не решающее"
+    }
+  },
+  "pipeline_identity": {
+    "hashes": {
+      "calib-25-0.35": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "calib-25-0.7": "ee8341d0f1630e2daf701401323d96408a82ee02f0d852e84e36c420255645fd",
+      "calib-50-0.35": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "calib-50-0.7": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "ctrl-C1-100-0.35": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "ctrl-C2-25-0.035": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa"
+    },
+    "distinct": [
+      "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "ee8341d0f1630e2daf701401323d96408a82ee02f0d852e84e36c420255645fd"
+    ],
+    "five_of_six_identical": true,
+    "why": "пять рук грузили тождественные копии пайплайна; `calib-25-0.7` — более раннюю ревизию патча снимков (ee8341d0…), где отличается только имя номерного чекпойнта; загрузчик `_load_ckpt_with_resize` в обеих ревизиях один и тот же — это и делает числа сопоставимыми"
+  },
+  "instrument_identity": {
+    "what": "пять исторических чисел сняты в этих же прогонах у каждой руки: одно совпадение объяснялось бы совпадением набора, пять — только тем, что измеряет та же функция",
+    "tolerance_abs": 0.0001,
+    "checks": {
+      "calib-25-0.35:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:v1_general": {
+        "set": "v1_general",
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:v1_domain": {
+        "set": "v1_domain",
+        "ppl_measured": 9.29019390347789,
+        "ppl_historical": 9.29019390347789,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:v2_domain": {
+        "set": "v2_domain",
+        "ppl_measured": 11.134115855539092,
+        "ppl_historical": 11.134115855539092,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:v3_general": {
+        "set": "v3_general",
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:k2_general": {
+        "set": "k2_general",
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t",
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      }
+    },
+    "worst_abs_delta": 0.0,
+    "reproduced": true
+  },
+  "cross_run_reproduction": {
+    "checks": {
+      "calib-25-0.35:v2_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 4.3489838785484505,
+        "ppl_peer": 4.3489838785484505,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:v1_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 4.850528362483078,
+        "ppl_peer": 4.850528362483078,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:v3_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 11.409872955368016,
+        "ppl_peer": 11.409872955368016,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.35:k2_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 10.748038263184394,
+        "ppl_peer": 10.748038263184394,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v2_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 5.142101861551874,
+        "ppl_peer": 5.142101861551874,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v1_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 5.899026932489226,
+        "ppl_peer": 5.899026932489226,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:v3_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 15.611452742253395,
+        "ppl_peer": 15.611452742253395,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-25-0.7:k2_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 14.977957061554418,
+        "ppl_peer": 14.977957061554418,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v2_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 4.479908334927121,
+        "ppl_peer": 4.479908334927121,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v1_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 4.967359547674651,
+        "ppl_peer": 4.967359547674651,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:v3_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 9.744301181980813,
+        "ppl_peer": 9.744301181980813,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.35:k2_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 9.413869849428322,
+        "ppl_peer": 9.413869849428322,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v2_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 5.405920610323565,
+        "ppl_peer": 5.405920610323565,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v1_domain": {
+        "what": "домен финала калибровочной руки — сверка с S3m",
+        "ppl_measured": 6.204108412656972,
+        "ppl_peer": 6.204108412656972,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:v3_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 12.343895124865169,
+        "ppl_peer": 12.343895124865169,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "calib-50-0.7:k2_general": {
+        "what": "язык финала калибровочной руки — сверка с S3t",
+        "ppl_measured": 12.208278305742509,
+        "ppl_peer": 12.208278305742509,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c500:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 66.76293675290913,
+        "ppl_peer": 66.76293675290913,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c500:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 13.870402697663478,
+        "ppl_peer": 13.870402697663478,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c500:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 12.525053032667635,
+        "ppl_peer": 12.525053032667635,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1000:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 110.13416564428691,
+        "ppl_peer": 110.13416564428691,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1000:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 12.610566020579006,
+        "ppl_peer": 12.610566020579006,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1000:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 11.25709611699609,
+        "ppl_peer": 11.25709611699609,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1500:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 86.67702202928189,
+        "ppl_peer": 86.67702202928189,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1500:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 10.600178888159377,
+        "ppl_peer": 10.600178888159377,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:c1500:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 9.698949320336904,
+        "ppl_peer": 9.698949320336904,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:cfinal:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 71.4243156244777,
+        "ppl_peer": 71.4243156244777,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:cfinal:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 9.343686357571281,
+        "ppl_peer": 9.343686357571281,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C1-100-0.35:cfinal:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 8.620356108548506,
+        "ppl_peer": 8.620356108548506,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c500:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 11.795805834756646,
+        "ppl_peer": 11.795805834756646,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c500:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 7.608795727383028,
+        "ppl_peer": 7.608795727383028,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c500:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 6.432138319178137,
+        "ppl_peer": 6.432138319178137,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1000:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 11.886853221160518,
+        "ppl_peer": 11.886853221160518,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1000:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 7.607302191867457,
+        "ppl_peer": 7.607302191867457,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1000:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 6.493033349086704,
+        "ppl_peer": 6.493033349086704,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1500:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 11.84958483830085,
+        "ppl_peer": 11.84958483830085,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1500:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 7.547925168413488,
+        "ppl_peer": 7.547925168413488,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:c1500:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 6.485425659752965,
+        "ppl_peer": 6.485425659752965,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:cfinal:v1_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 11.814224220848939,
+        "ppl_peer": 11.814224220848939,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:cfinal:v3_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 7.542720163746337,
+        "ppl_peer": 7.542720163746337,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      },
+      "ctrl-C2-25-0.035:cfinal:k2_general": {
+        "what": "язык по шагам контрольной руки — сверка с S3v",
+        "ppl_measured": 6.483910128241409,
+        "ppl_peer": 6.483910128241409,
+        "abs_delta": 0.0,
+        "within_tolerance": true
+      }
+    },
+    "worst_abs_delta": 0.0,
+    "expected_checks": 40,
+    "ok": true,
+    "why": "сверяются чужие отчёты того же прибора: домен — S3m, язык — S3t/S3q, язык по шагам — S3v; расхождение означало бы, что прогон не детерминирован или свод читает другие состояния"
+  },
+  "arms": [
+    {
+      "arm": "calib-25-0.35",
+      "kind": "calib",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.35",
+      "kind": "calib",
+      "state": "c500",
+      "step": 500,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.823445076176857,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.523027167287806,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 6.614113302398967,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.7119456677780318,
+      "v1_domain_learned": true,
+      "k1_ppl": 18.534599844653552,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.469736764530292,
+      "k1_pass": false,
+      "k2_ppl": 16.186575067650917,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.6277181933983305,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.523027167287806,
+        "domain_change_pct": -47.697,
+        "language_k1_ratio": 2.469736764530292,
+        "language_k2_ratio": 2.6277181933983305,
+        "language_change_pct": {
+          "k1": 146.974,
+          "k2": 162.772
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.35",
+      "kind": "calib",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.492549624291929,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.4933081077613765,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 6.324580377454743,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.6807802337782276,
+      "v1_domain_learned": true,
+      "k1_ppl": 16.77426467313503,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.2351719761111277,
+      "k1_pass": false,
+      "k2_ppl": 14.74480497645111,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.3936621634161264,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.4933081077613765,
+        "domain_change_pct": -50.669,
+        "language_k1_ratio": 2.2351719761111277,
+        "language_k2_ratio": 2.3936621634161264,
+        "language_change_pct": {
+          "k1": 123.517,
+          "k2": 139.366
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.35",
+      "kind": "calib",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.82933083561908,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.4337417445873392,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 5.543005356175126,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.5966512016611449,
+      "v1_domain_learned": true,
+      "k1_ppl": 13.237621522205469,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.763914021470443,
+      "k1_pass": true,
+      "k2_ppl": 12.508957639987637,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.030696143789906,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.4337417445873392,
+        "domain_change_pct": -56.626,
+        "language_k1_ratio": 1.763914021470443,
+        "language_k2_ratio": 2.030696143789906,
+        "language_change_pct": {
+          "k1": 76.391,
+          "k2": 103.07
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.35",
+      "kind": "calib",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.3489838785484505,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.3905998406137369,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.850528362483078,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.5221127150712352,
+      "v1_domain_learned": true,
+      "k1_ppl": 11.409872955368016,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.520366393268579,
+      "k1_pass": true,
+      "k2_ppl": 10.748038263184394,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.7448296238995402,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.3905998406137369,
+        "domain_change_pct": -60.94,
+        "language_k1_ratio": 1.520366393268579,
+        "language_k2_ratio": 1.7448296238995402,
+        "language_change_pct": {
+          "k1": 52.037,
+          "k2": 74.483
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.7",
+      "kind": "calib",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r (75/25)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.7",
+      "kind": "calib",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r (75/25)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 7.287333325736772,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.6545048947116362,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 8.545719268655036,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.9198644675711073,
+      "v1_domain_learned": true,
+      "k1_ppl": 26.339253775841275,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 3.5097074631073286,
+      "k1_pass": false,
+      "k2_ppl": 23.996526254212366,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 3.8955806495824423,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.6545048947116362,
+        "domain_change_pct": -34.55,
+        "language_k1_ratio": 3.5097074631073286,
+        "language_k2_ratio": 3.8955806495824423,
+        "language_change_pct": {
+          "k1": 250.971,
+          "k2": 289.558
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.7",
+      "kind": "calib",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r (75/25)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 6.100764838865706,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.5479343773695913,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 7.3685538855986525,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.7931539386750744,
+      "v1_domain_learned": true,
+      "k1_ppl": 20.381631114469435,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.715853814293155,
+      "k1_pass": false,
+      "k2_ppl": 19.162946016885446,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 3.110900340388544,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.5479343773695913,
+        "domain_change_pct": -45.207,
+        "language_k1_ratio": 2.715853814293155,
+        "language_k2_ratio": 3.110900340388544,
+        "language_change_pct": {
+          "k1": 171.585,
+          "k2": 211.09
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-25-0.7",
+      "kind": "calib",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r (75/25)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.142101861551874,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.46183297607719237,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 5.899026932489226,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.6349734993454613,
+      "v1_domain_learned": true,
+      "k1_ppl": 15.611452742253395,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.0802272025523267,
+      "k1_pass": false,
+      "k2_ppl": 14.977957061554418,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.431511923065351,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.46183297607719237,
+        "domain_change_pct": -53.817,
+        "language_k1_ratio": 2.0802272025523267,
+        "language_k2_ratio": 2.431511923065351,
+        "language_change_pct": {
+          "k1": 108.023,
+          "k2": 143.151
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.35",
+      "kind": "calib",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.35",
+      "kind": "calib",
+      "state": "c500",
+      "step": 500,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.985416180159118,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.5375744475643698,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 6.387175396164822,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.6875179853645154,
+      "v1_domain_learned": true,
+      "k1_ppl": 15.257630612116028,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.0330803782222215,
+      "k1_pass": false,
+      "k2_ppl": 13.902544140974085,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.2569300807043846,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.5375744475643698,
+        "domain_change_pct": -46.243,
+        "language_k1_ratio": 2.0330803782222215,
+        "language_k2_ratio": 2.2569300807043846,
+        "language_change_pct": {
+          "k1": 103.308,
+          "k2": 125.693
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.35",
+      "kind": "calib",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 6.0262463068539915,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.5412415664649299,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 7.132615693257288,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.7677574620468484,
+      "v1_domain_learned": true,
+      "k1_ppl": 12.949552761804886,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.7255288383946286,
+      "k1_pass": true,
+      "k2_ppl": 12.739113052005484,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.0680594254563935,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.5412415664649299,
+        "domain_change_pct": -45.876,
+        "language_k1_ratio": 1.7255288383946286,
+        "language_k2_ratio": 2.0680594254563935,
+        "language_change_pct": {
+          "k1": 72.553,
+          "k2": 106.806
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.35",
+      "kind": "calib",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.008099778734944,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.4497977067701764,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 5.622942155653829,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.6052556291154285,
+      "v1_domain_learned": true,
+      "k1_ppl": 11.222741939238693,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.495431171888452,
+      "k1_pass": true,
+      "k2_ppl": 10.645119471777724,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.7281218534483127,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.4497977067701764,
+        "domain_change_pct": -55.02,
+        "language_k1_ratio": 1.495431171888452,
+        "language_k2_ratio": 1.7281218534483127,
+        "language_change_pct": {
+          "k1": 49.543,
+          "k2": 72.812
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.35",
+      "kind": "calib",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.479908334927121,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.4023586958364924,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.967359547674651,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.5346884682154011,
+      "v1_domain_learned": true,
+      "k1_ppl": 9.744301181980813,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.2984288344771562,
+      "k1_pass": true,
+      "k2_ppl": 9.413869849428322,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.5282415810781378,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.4023586958364924,
+        "domain_change_pct": -59.764,
+        "language_k1_ratio": 1.2984288344771562,
+        "language_k2_ratio": 1.5282415810781378,
+        "language_change_pct": {
+          "k1": 29.843,
+          "k2": 52.824
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.7",
+      "kind": "calib",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.7",
+      "kind": "calib",
+      "state": "c500",
+      "step": 500,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 8.760060593012984,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.7867764900842986,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 10.261900446414554,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.1045948613163923,
+      "v1_domain_learned": false,
+      "k1_ppl": 24.555261690591387,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 3.271990389229219,
+      "k1_pass": false,
+      "k2_ppl": 23.24387107924371,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 3.773395092208225,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.7867764900842986,
+        "domain_change_pct": -21.322,
+        "language_k1_ratio": 3.271990389229219,
+        "language_k2_ratio": 3.773395092208225,
+        "language_change_pct": {
+          "k1": 227.199,
+          "k2": 277.34
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.7",
+      "kind": "calib",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 8.592595309393399,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.771735755301907,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 11.006766880978452,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.1847725672182088,
+      "v1_domain_learned": false,
+      "k1_ppl": 19.063310251813764,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.5401874643726203,
+      "k1_pass": false,
+      "k2_ppl": 19.065909271600958,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 3.0951474575244102,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.771735755301907,
+        "domain_change_pct": -22.826,
+        "language_k1_ratio": 2.5401874643726203,
+        "language_k2_ratio": 3.0951474575244102,
+        "language_change_pct": {
+          "k1": 154.019,
+          "k2": 209.515
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.7",
+      "kind": "calib",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 6.439866355215141,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.5783904567520181,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 7.559093594633222,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.813663705318722,
+      "v1_domain_learned": true,
+      "k1_ppl": 15.39352029241203,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 2.0511876879111393,
+      "k1_pass": false,
+      "k2_ppl": 15.123735867611868,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.4551775607489277,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 0.5783904567520181,
+        "domain_change_pct": -42.161,
+        "language_k1_ratio": 2.0511876879111393,
+        "language_k2_ratio": 2.4551775607489277,
+        "language_change_pct": {
+          "k1": 105.119,
+          "k2": 145.518
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "calib-50-0.7",
+      "kind": "calib",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "checkpoint": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 5.405920610323565,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.48552760546623763,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 6.204108412656972,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.6678125857345554,
+      "v1_domain_learned": true,
+      "k1_ppl": 12.343895124865169,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.6448249146409124,
+      "k1_pass": true,
+      "k2_ppl": 12.208278305742509,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.981884053914646,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.48552760546623763,
+        "domain_change_pct": -51.447,
+        "language_k1_ratio": 1.6448249146409124,
+        "language_k2_ratio": 1.981884053914646,
+        "language_change_pct": {
+          "k1": 64.482,
+          "k2": 98.188
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "kind": "ctrl",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "kind": "ctrl",
+      "state": "c500",
+      "step": 500,
+      "is_base": false,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 37.255575814960444,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 3.346074021353589,
+      "v2_domain_learned": false,
+      "v1_domain_ppl": 34.02087970552691,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 3.6620204119518758,
+      "v1_domain_learned": false,
+      "k1_ppl": 13.870402697663478,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.8482321586856976,
+      "k1_pass": true,
+      "k2_ppl": 12.525053032667635,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 2.033309059493096,
+      "k2_pass": false,
+      "conjunction": false,
+      "pairing": {
+        "domain_ratio": 3.346074021353589,
+        "domain_change_pct": 234.607,
+        "language_k1_ratio": 1.8482321586856976,
+        "language_k2_ratio": 2.033309059493096,
+        "language_change_pct": {
+          "k1": 84.823,
+          "k2": 103.331
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "kind": "ctrl",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 49.71448017154952,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 4.465058637486438,
+      "v2_domain_learned": false,
+      "v1_domain_ppl": 46.63077454342398,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 5.019354281288706,
+      "v1_domain_learned": false,
+      "k1_ppl": 12.610566020579006,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.6803588307057185,
+      "k1_pass": true,
+      "k2_ppl": 11.25709611699609,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.8274697487167186,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 4.465058637486438,
+        "domain_change_pct": 346.506,
+        "language_k1_ratio": 1.6803588307057185,
+        "language_k2_ratio": 1.8274697487167186,
+        "language_change_pct": {
+          "k1": 68.036,
+          "k2": 82.747
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "kind": "ctrl",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 44.052520071683105,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 3.9565350893818385,
+      "v2_domain_learned": false,
+      "v1_domain_ppl": 42.10343172754028,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 4.532029381192828,
+      "v1_domain_learned": false,
+      "k1_ppl": 10.600178888159377,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.4124746004827706,
+      "k1_pass": true,
+      "k2_ppl": 9.698949320336904,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.5745211991653485,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 3.9565350893818385,
+        "domain_change_pct": 295.654,
+        "language_k1_ratio": 1.4124746004827706,
+        "language_k2_ratio": 1.5745211991653485,
+        "language_change_pct": {
+          "k1": 41.247,
+          "k2": 57.452
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "kind": "ctrl",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 37.5705421684676,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 3.374362424096449,
+      "v2_domain_learned": false,
+      "v1_domain_ppl": 35.353403566087,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 3.8054537863684472,
+      "v1_domain_learned": false,
+      "k1_ppl": 9.343686357571281,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.2450468802643453,
+      "k1_pass": true,
+      "k2_ppl": 8.620356108548506,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.399423070373633,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 3.374362424096449,
+        "domain_change_pct": 237.436,
+        "language_k1_ratio": 1.2450468802643453,
+        "language_k2_ratio": 1.399423070373633,
+        "language_change_pct": {
+          "k1": 24.505,
+          "k2": 39.942
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "kind": "ctrl",
+      "state": "base",
+      "step": 0,
+      "is_base": true,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "checkpoint": null,
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 11.134115855539092,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 1.0,
+      "v2_domain_learned": null,
+      "v1_domain_ppl": 9.29019390347789,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 1.0,
+      "v1_domain_learned": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 1.0,
+        "domain_change_pct": 0.0,
+        "language_k1_ratio": 1.0,
+        "language_k2_ratio": 1.0,
+        "language_change_pct": {
+          "k1": 0.0,
+          "k2": 0.0
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "kind": "ctrl",
+      "state": "c500",
+      "step": 500,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.675633685676342,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.4199375816042249,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.813173524657845,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.5180918261411076,
+      "v1_domain_learned": true,
+      "k1_ppl": 7.608795727383028,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0138725788104612,
+      "k1_pass": true,
+      "k2_ppl": 6.432138319178137,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0441892008110791,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.4199375816042249,
+        "domain_change_pct": -58.006,
+        "language_k1_ratio": 1.0138725788104612,
+        "language_k2_ratio": 1.0441892008110791,
+        "language_change_pct": {
+          "k1": 1.387,
+          "k2": 4.419
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "kind": "ctrl",
+      "state": "c1000",
+      "step": 1000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.433832283281431,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.39822041918808054,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.567607904055595,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.4916590494785753,
+      "v1_domain_learned": true,
+      "k1_ppl": 7.607302191867457,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0136735650954172,
+      "k1_pass": true,
+      "k2_ppl": 6.493033349086704,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0540748608293042,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.39822041918808054,
+        "domain_change_pct": -60.178,
+        "language_k1_ratio": 1.0136735650954172,
+        "language_k2_ratio": 1.0540748608293042,
+        "language_change_pct": {
+          "k1": 1.367,
+          "k2": 5.407
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "kind": "ctrl",
+      "state": "c1500",
+      "step": 1500,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.298157277838116,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.38603489793038515,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.498120682515288,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.4841794185621212,
+      "v1_domain_learned": true,
+      "k1_ppl": 7.547925168413488,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0057615724426625,
+      "k1_pass": true,
+      "k2_ppl": 6.485425659752965,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.052839833432314,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.38603489793038515,
+        "domain_change_pct": -61.397,
+        "language_k1_ratio": 1.0057615724426625,
+        "language_k2_ratio": 1.052839833432314,
+        "language_change_pct": {
+          "k1": 0.576,
+          "k2": 5.284
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "kind": "ctrl",
+      "state": "cfinal",
+      "step": 2000,
+      "is_base": false,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/checkpoint_final.pt",
+      "language_source": "этот прогон: v3_general (K1), k2_general (K2)",
+      "v2_domain_ppl": 4.270826802595055,
+      "v2_domain_base": 11.134115855539092,
+      "v2_domain_ratio": 0.3835802373540391,
+      "v2_domain_learned": true,
+      "v1_domain_ppl": 4.472755708355447,
+      "v1_domain_base": 9.29019390347789,
+      "v1_domain_ratio": 0.4814491231104465,
+      "v1_domain_learned": true,
+      "k1_ppl": 7.542720163746337,
+      "k1_base": 7.50468637420902,
+      "k1_ceiling": 15.00937274841804,
+      "k1_ratio": 1.0050680051957968,
+      "k1_pass": true,
+      "k2_ppl": 6.483910128241409,
+      "k2_base": 6.1599356842437585,
+      "k2_ceiling": 12.319871368487517,
+      "k2_ratio": 1.0525938030207573,
+      "k2_pass": true,
+      "conjunction": true,
+      "pairing": {
+        "domain_ratio": 0.3835802373540391,
+        "domain_change_pct": -61.642,
+        "language_k1_ratio": 1.0050680051957968,
+        "language_k2_ratio": 1.0525938030207573,
+        "language_change_pct": {
+          "k1": 0.507,
+          "k2": 5.259
+        },
+        "reading": "домен: <0 % — выучен, >0 % — испорчен; язык: чем больше + %, тем сильнее разрушен (потолок каждой компоненты — 2× её базы)"
+      }
+    }
+  ],
+  "arms_params": {
+    "calib-25-0.35": {
+      "report": "runs/s3w-domain-20260916/calib-25-0.35.json",
+      "report_sha256": "c1b4691e1bea6ec796d423598d63fde982483ff848c456035f1af63326d56e14",
+      "kind": "calib",
+      "vary": "референс по домену для C2: тот же корпус и сид, пик LR×0.35",
+      "corpus": "v12r (75/25 — тот же кэш, что у C2)",
+      "gap": null,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.35,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820",
+      "pipeline": "runs/calib-25-0.35-20260916-0820/laguna_pipeline_calib.py",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "ed5f520ec844e319616930cfd9bb95afe9248cd10f4ff77f30110b6bb47b3a7e",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "55877ac6a36e5adfc4365e29f4ce7e95f11d116cb1b34b78dd479a8f85d3424a",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "d4bedb351e908bdcbc255af0afdb43a7ae039f1d21e85e339cd48b3cec99bbc5",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+          "sha256": "1f9f29f19d262e7be0dad0c3663d93138cf3a39a068157a2716f7f39605294ad",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "calib-25-0.7": {
+      "report": "runs/s3w-domain-20260916/calib-25-0.7.json",
+      "report_sha256": "40b14086cdbdb435e3faa6361663434c2a0f8670a121432f93f47e36eba984b6",
+      "kind": "calib",
+      "vary": "удвоенный пик LR (×0.7) при 25 % replay",
+      "corpus": "v12r (75/25)",
+      "gap": "чекпойнт шага 500 отсутствует: рука шла первой (08:20) по ревизии патча `numbered_ckpt_every`, где номерной снимок писался как `checkpoint_500.pt` и был удалён ретенцией пайплайна; последующие руки пишут `calib_checkpoint_{step}.pt` вне ретенции",
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.7,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820",
+      "pipeline": "runs/calib-25-0.7-20260916-0820/laguna_pipeline_calib.py",
+      "pipeline_sha256": "ee8341d0f1630e2daf701401323d96408a82ee02f0d852e84e36c420255645fd",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1000.pt",
+          "sha256": "8bc59417e52ed6577a57e8a1abb8e58ff508b5f9e46bd90273a55d8106218fc3",
+          "bytes": 2963139903,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_1500.pt",
+          "sha256": "22f5c3395b4e3465194a8293a51190125292f531ed3634dfb17ef92ba599aa9d",
+          "bytes": 2963139903,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+          "sha256": "237fd02afbdd479c83ee40abebdb614288eea25a4dc6cb849accdb054755efd2",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "calib-50-0.35": {
+      "report": "runs/s3w-domain-20260916/calib-50-0.35.json",
+      "report_sha256": "2042a9f01ae7e04b195becc5c56a261321aeca30168ef3debd79179ee17b6f9e",
+      "kind": "calib",
+      "vary": "50 % replay вместо 25 % при пике LR×0.35",
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "gap": null,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.35,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820",
+      "pipeline": "runs/calib-50-0.35-20260916-0820/laguna_pipeline_calib.py",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "82930e02da7b01ec661971f89c436060e1a044cdcd0a36e417aeacd47f75f56b",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "57321f2af44b5bf20025ae6daf34a7eaa036d37abefa7ef2f3d49cd6ca04ee34",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "190b1e81c48eb29864e74d964d4eb8a47d8f5c40d510c2f8faf6d0684a407d2d",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+          "sha256": "c1866d6f77b78d44a80cf64bdd46f335eaac9d5268e51babb2694fb0aa3981fa",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "calib-50-0.7": {
+      "report": "runs/s3w-domain-20260916/calib-50-0.7.json",
+      "report_sha256": "e375b7b0aa715f69854e8724c570722673fbe94f70e206972838c1c52637003e",
+      "kind": "calib",
+      "vary": "оба фактора сразу: 50 % replay и пик LR×0.7",
+      "corpus": "v12r50 (50/50, собран S3m)",
+      "gap": null,
+      "replay_share_pct": 50,
+      "peak_lr_scale": 0.7,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820",
+      "pipeline": "runs/calib-50-0.7-20260916-0820/laguna_pipeline_calib.py",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "5c9b519b4d0128aadb42ca24e79c677293876bfa52d06bd454f4b1d735471783",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "b93b757c93e0c5372c3b4e5bcf1fe503fd22bb4b992ce36a9b4fb5f92e5cd037",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "3dad65626a3a6b3441f6853e53673b2f55150e3a85fe65a1932c4affa3c2bd3b",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+          "sha256": "b1f650d6fdc5716f7601c631bb647ab2f8384fb17c7af0fe3c224c41d5bdbabf",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "ctrl-C1-100-0.35": {
+      "report": "runs/s3w-domain-20260916/ctrl-C1-100-0.35.json",
+      "report_sha256": "7217e1cd83b4c2f71967fb2068b52b24e6b5bdfb2756621ce55027e685fd172f",
+      "kind": "ctrl",
+      "vary": "протокол без домена: 100 % общий язык, пик LR×0.35",
+      "corpus": "ctrl100 (0/100 — домена в обучении нет вовсе)",
+      "gap": null,
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632",
+      "pipeline": "calib/ctrl-C1-100-0.35-20260916-1632/laguna_pipeline_calib.py",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "9fd6f61d56256089fa7ccc2b2f37e552edc24df0dc3762383dddba2fb944ea41",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "1ab9427c19af838c4009e93332e0ebf1743261afece021a566031697a295e65a",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "9de5164a1904157da3a7495214b3b53e12120fdbe01542a23bbc983782a43438",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/checkpoint_final.pt",
+          "sha256": "061f0acae7765219ed989231b6184539a706e00f2cce756b9ff2cde6dfe49fe7",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "ctrl-C2-25-0.035": {
+      "report": "runs/s3w-domain-20260916/ctrl-C2-25-0.035.json",
+      "report_sha256": "becd26d18afd5f57a07efb676df57ae5a12fcb13688a0ab4018ac6740352d2b2",
+      "kind": "ctrl",
+      "vary": "низкий пик LR (×0.035) при том же миксе v12r, что у `calib-25-0.35`",
+      "corpus": "v12r (75/25 — тот же кэш, что у 25-0.35)",
+      "gap": null,
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632",
+      "pipeline": "calib/ctrl-C2-25-0.035-20260916-1632/laguna_pipeline_calib.py",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "loader": "laguna_pipeline_v8.py:_load_ckpt_with_resize (из копии пайплайна прогона)",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "e830be45453685a160c825974f1acfc87629cf3a185d3216f5eb646462e7b112",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "9919cf450bbc5be24372c2720e50333dcab3c5f668e687edebadf4a9ea316f43",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "275f7ef1e13c905ab66066fd53daa86d7ba8c690685568359167d4cc74857870",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/checkpoint_final.pt",
+          "sha256": "a1662b3cb94544057473ed5d9f26ccbee617fdbec6129c2e572f1dbedca80d68",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v1_domain: 9.290194 против 9.290194 (0.00e+00); v2_domain: 11.134116 против 11.134116 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    }
+  },
+  "curves": {
+    "calib-25-0.35": {
+      "domain_deciding": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 5.823445076176857
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.3489838785484505
+        },
+        "rel_change": -0.2531939733853219,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 5.823445076176857
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.3489838785484505
+        }
+      },
+      "domain_historical": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 6.614113302398967
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.850528362483078
+        },
+        "rel_change": -0.26663966268558315,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 6.614113302398967
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.850528362483078
+        }
+      },
+      "k1": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 18.534599844653552
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 11.409872955368016
+        },
+        "rel_change": -0.384401441034656,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 18.534599844653552
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 11.409872955368016
+        }
+      },
+      "k2": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 16.186575067650917
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 10.748038263184394
+        },
+        "rel_change": -0.33599058366185874,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 16.186575067650917
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 10.748038263184394
+        }
+      },
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "calib-25-0.7": {
+      "domain_deciding": {
+        "points": 3,
+        "first": {
+          "step": 1000,
+          "ppl": 7.287333325736772
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 5.142101861551874
+        },
+        "rel_change": -0.29437811724743757,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 7.287333325736772
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 5.142101861551874
+        }
+      },
+      "domain_historical": {
+        "points": 3,
+        "first": {
+          "step": 1000,
+          "ppl": 8.545719268655036
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 5.899026932489226
+        },
+        "rel_change": -0.30970972167008226,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 8.545719268655036
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 5.899026932489226
+        }
+      },
+      "k1": {
+        "points": 3,
+        "first": {
+          "step": 1000,
+          "ppl": 26.339253775841275
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 15.611452742253395
+        },
+        "rel_change": -0.4072932788789775,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 26.339253775841275
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 15.611452742253395
+        }
+      },
+      "k2": {
+        "points": 3,
+        "first": {
+          "step": 1000,
+          "ppl": 23.996526254212366
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 14.977957061554418
+        },
+        "rel_change": -0.3758281134993371,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 23.996526254212366
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 14.977957061554418
+        }
+      },
+      "steps": [
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "calib-50-0.35": {
+      "domain_deciding": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 5.985416180159118
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.479908334927121
+        },
+        "rel_change": -0.25152935066112214,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 6.0262463068539915
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.479908334927121
+        }
+      },
+      "domain_historical": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 6.387175396164822
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.967359547674651
+        },
+        "rel_change": -0.22229166422182478,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 7.132615693257288
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.967359547674651
+        }
+      },
+      "k1": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 15.257630612116028
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 9.744301181980813
+        },
+        "rel_change": -0.3613489912226018,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 15.257630612116028
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 9.744301181980813
+        }
+      },
+      "k2": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 13.902544140974085
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 9.413869849428322
+        },
+        "rel_change": -0.3228671131002978,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 13.902544140974085
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 9.413869849428322
+        }
+      },
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "calib-50-0.7": {
+      "domain_deciding": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 8.760060593012984
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 5.405920610323565
+        },
+        "rel_change": -0.3828900436333371,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 8.760060593012984
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 5.405920610323565
+        }
+      },
+      "domain_historical": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 10.261900446414554
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 6.204108412656972
+        },
+        "rel_change": -0.395423055889745,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 11.006766880978452
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 6.204108412656972
+        }
+      },
+      "k1": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 24.555261690591387
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 12.343895124865169
+        },
+        "rel_change": -0.4973014223833393,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 24.555261690591387
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 12.343895124865169
+        }
+      },
+      "k2": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 23.24387107924371
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 12.208278305742509
+        },
+        "rel_change": -0.4747743065635808,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 23.24387107924371
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 12.208278305742509
+        }
+      },
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "ctrl-C1-100-0.35": {
+      "domain_deciding": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 37.255575814960444
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 37.5705421684676
+        },
+        "rel_change": 0.008454207098328448,
+        "trend": "стоит",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 49.71448017154952
+        },
+        "min": {
+          "step": 500,
+          "ppl": 37.255575814960444
+        }
+      },
+      "domain_historical": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 34.02087970552691
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 35.353403566087
+        },
+        "rel_change": 0.039167824938507234,
+        "trend": "стоит",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 46.63077454342398
+        },
+        "min": {
+          "step": 500,
+          "ppl": 34.02087970552691
+        }
+      },
+      "k1": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 13.870402697663478
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 9.343686357571281
+        },
+        "rel_change": -0.3263579608149906,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 13.870402697663478
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 9.343686357571281
+        }
+      },
+      "k2": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 12.525053032667635
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 8.620356108548506
+        },
+        "rel_change": -0.31175092943199234,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 12.525053032667635
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 8.620356108548506
+        }
+      },
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    },
+    "ctrl-C2-25-0.035": {
+      "domain_deciding": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 4.675633685676342
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.270826802595055
+        },
+        "rel_change": -0.08657797216266117,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 4.675633685676342
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.270826802595055
+        }
+      },
+      "domain_historical": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 4.813173524657845
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 4.472755708355447
+        },
+        "rel_change": -0.07072627125501318,
+        "trend": "падает",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 4.813173524657845
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 4.472755708355447
+        }
+      },
+      "k1": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 7.608795727383028
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 7.542720163746337
+        },
+        "rel_change": -0.008684102715347586,
+        "trend": "стоит",
+        "trend_band": 0.05,
+        "max": {
+          "step": 500,
+          "ppl": 7.608795727383028
+        },
+        "min": {
+          "step": 2000,
+          "ppl": 7.542720163746337
+        }
+      },
+      "k2": {
+        "points": 4,
+        "first": {
+          "step": 500,
+          "ppl": 6.432138319178137
+        },
+        "last": {
+          "step": 2000,
+          "ppl": 6.483910128241409
+        },
+        "rel_change": 0.00804892657685996,
+        "trend": "стоит",
+        "trend_band": 0.05,
+        "max": {
+          "step": 1000,
+          "ppl": 6.493033349086704
+        },
+        "min": {
+          "step": 500,
+          "ppl": 6.432138319178137
+        }
+      },
+      "steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ]
+    }
+  },
+  "lr_pair_comparison": {
+    "pair": {
+      "low_lr_arm": "ctrl-C2-25-0.035",
+      "reference_arm": "calib-25-0.35"
+    },
+    "what": "один корпус `v12r` (75/25), один сид, одна упаковка, тождественные копии пайплайна — варьируется ровно пик LR (×0.035 против ×0.35)",
+    "per_step": [
+      {
+        "step": 500,
+        "domain": {
+          "low_lr": 0.4199375816042249,
+          "lr_035": 0.523027167287806,
+          "ratio_of_ratios": 0.8028982199564139
+        },
+        "domain_historical": {
+          "low_lr": 0.5180918261411076,
+          "lr_035": 0.7119456677780318,
+          "ratio_of_ratios": 0.7277125904257018
+        },
+        "k1": {
+          "low_lr": 1.0138725788104612,
+          "lr_035": 2.469736764530292,
+          "ratio_of_ratios": 0.41051847847569495
+        },
+        "k2": {
+          "low_lr": 1.0441892008110791,
+          "lr_035": 2.6277181933983305,
+          "ratio_of_ratios": 0.39737487963298984
+        }
+      },
+      {
+        "step": 1000,
+        "domain": {
+          "low_lr": 0.39822041918808054,
+          "lr_035": 0.4933081077613765,
+          "ratio_of_ratios": 0.8072448291904177
+        },
+        "domain_historical": {
+          "low_lr": 0.4916590494785753,
+          "lr_035": 0.6807802337782276,
+          "ratio_of_ratios": 0.7221993605042581
+        },
+        "k1": {
+          "low_lr": 1.0136735650954172,
+          "lr_035": 2.2351719761111277,
+          "ratio_of_ratios": 0.4535103231112717
+        },
+        "k2": {
+          "low_lr": 1.0540748608293042,
+          "lr_035": 2.3936621634161264,
+          "ratio_of_ratios": 0.4403607480367974
+        }
+      },
+      {
+        "step": 1500,
+        "domain": {
+          "low_lr": 0.38603489793038515,
+          "lr_035": 0.4337417445873392,
+          "ratio_of_ratios": 0.8900109402604487
+        },
+        "domain_historical": {
+          "low_lr": 0.4841794185621212,
+          "lr_035": 0.5966512016611449,
+          "ratio_of_ratios": 0.8114949189980856
+        },
+        "k1": {
+          "low_lr": 1.0057615724426625,
+          "lr_035": 1.763914021470443,
+          "ratio_of_ratios": 0.5701874128786812
+        },
+        "k2": {
+          "low_lr": 1.052839833432314,
+          "lr_035": 2.030696143789906,
+          "ratio_of_ratios": 0.5184625167344779
+        }
+      },
+      {
+        "step": 2000,
+        "domain": {
+          "low_lr": 0.3835802373540391,
+          "lr_035": 0.3905998406137369,
+          "ratio_of_ratios": 0.98202865815647
+        },
+        "domain_historical": {
+          "low_lr": 0.4814491231104465,
+          "lr_035": 0.5221127150712352,
+          "ratio_of_ratios": 0.9221172157141572
+        },
+        "k1": {
+          "low_lr": 1.0050680051957968,
+          "lr_035": 1.520366393268579,
+          "ratio_of_ratios": 0.6610696011472856
+        },
+        "k2": {
+          "low_lr": 1.0525938030207573,
+          "lr_035": 1.7448296238995402,
+          "ratio_of_ratios": 0.60326451855414
+        }
+      }
+    ],
+    "final": {
+      "step": 2000,
+      "domain": {
+        "low_lr": 0.3835802373540391,
+        "lr_035": 0.3905998406137369,
+        "ratio_of_ratios": 0.98202865815647
+      },
+      "domain_historical": {
+        "low_lr": 0.4814491231104465,
+        "lr_035": 0.5221127150712352,
+        "ratio_of_ratios": 0.9221172157141572
+      },
+      "k1": {
+        "low_lr": 1.0050680051957968,
+        "lr_035": 1.520366393268579,
+        "ratio_of_ratios": 0.6610696011472856
+      },
+      "k2": {
+        "low_lr": 1.0525938030207573,
+        "lr_035": 1.7448296238995402,
+        "ratio_of_ratios": 0.60326451855414
+      }
+    },
+    "reading": "`ratio_of_ratios` — отношение «низкий LR : ×0.35» по каждому столбцу. По домену > 1 означает, что при низком LR домен взят **хуже** (PPL ближе к базовой); по языку < 1 означает, что язык разрушен **слабее**. Направления чтения противоположны, поэтому в вердикте язык перевёрнут в `language_preserved_better_by` — там > 1 всегда «лучше для решения»"
+  },
+  "removed_checkpoint": {
+    "arm": "calib-25-0.7",
+    "missing_step": 500,
+    "why": "чекпойнт шага 500 отсутствует: рука шла первой (08:20) по ревизии патча `numbered_ckpt_every`, где номерной снимок писался как `checkpoint_500.pt` и был удалён ретенцией пайплайна; последующие руки пишут `calib_checkpoint_{step}.pt` вне ретенции",
+    "consequence": "профиль руки начинается с шага 1000; ступенька в (0, 500] на ней не проверяется. Восстановить точку нельзя — это снимок весов, а не пересчитываемое число",
+    "not_hidden": "пропуск объявлен в arms_params и в этом блоке, а не пропущен молча"
+  },
+  "verdict": {
+    "answer": "сопоставимо",
+    "question": "выучивает ли LR×0.035 (C2) домен — сопоставимо / хуже / лучше, чем LR×0.35 при том же миксе (рука 25-0.35)",
+    "criterion": {
+      "D1_domain_learned": "отношение PPL к базе < 1.0 в финале на решающем наборе",
+      "D2_comparable": "отношение отношений ≤ ×2.0 (полоса ADR-022 п.3)",
+      "binary": "да, AD-11: ответ — одно из трёх слов, без средних"
+    },
+    "low_lr_domain_comparable": true,
+    "domain_learned_by_low_lr": true,
+    "numbers": {
+      "domain_deciding_set": "v2_domain",
+      "base_ppl": 11.134115855539092,
+      "low_lr": {
+        "arm": "ctrl-C2-25-0.035",
+        "peak_lr_scale": 0.035,
+        "ppl": 4.270826802595055,
+        "ratio": 0.3835802373540391,
+        "learned": true
+      },
+      "reference": {
+        "arm": "calib-25-0.35",
+        "peak_lr_scale": 0.35,
+        "ppl": 4.3489838785484505,
+        "ratio": 0.3905998406137369,
+        "learned": true
+      },
+      "ratio_of_ratios": 0.98202865815647,
+      "comparability_factor": 2.0,
+      "comparability_basis": "полоса ×2 — та же шкала, которой контур уже пользуется для деградации (ADR-022 п.3); новое число под этот вопрос не вводится",
+      "language_at_same_step": {
+        "low_lr": {
+          "k1_ratio": 1.0050680051957968,
+          "k2_ratio": 1.0525938030207573,
+          "conjunction": true
+        },
+        "reference": {
+          "k1_ratio": 1.520366393268579,
+          "k2_ratio": 1.7448296238995402,
+          "conjunction": true
+        },
+        "ratio_of_ratios": {
+          "k1": 0.6610696011472856,
+          "k2": 0.60326451855414
+        }
+      }
+    },
+    "domain_trend_by_arm": {
+      "calib-25-0.35": "падает",
+      "calib-25-0.7": "падает",
+      "calib-50-0.35": "падает",
+      "calib-50-0.7": "падает",
+      "ctrl-C1-100-0.35": "стоит",
+      "ctrl-C2-25-0.035": "падает"
+    },
+    "pair_by_step": [
+      {
+        "step": 500,
+        "domain": {
+          "low_lr": 0.4199375816042249,
+          "lr_035": 0.523027167287806,
+          "ratio_of_ratios": 0.8028982199564139
+        },
+        "domain_historical": {
+          "low_lr": 0.5180918261411076,
+          "lr_035": 0.7119456677780318,
+          "ratio_of_ratios": 0.7277125904257018
+        },
+        "k1": {
+          "low_lr": 1.0138725788104612,
+          "lr_035": 2.469736764530292,
+          "ratio_of_ratios": 0.41051847847569495
+        },
+        "k2": {
+          "low_lr": 1.0441892008110791,
+          "lr_035": 2.6277181933983305,
+          "ratio_of_ratios": 0.39737487963298984
+        }
+      },
+      {
+        "step": 1000,
+        "domain": {
+          "low_lr": 0.39822041918808054,
+          "lr_035": 0.4933081077613765,
+          "ratio_of_ratios": 0.8072448291904177
+        },
+        "domain_historical": {
+          "low_lr": 0.4916590494785753,
+          "lr_035": 0.6807802337782276,
+          "ratio_of_ratios": 0.7221993605042581
+        },
+        "k1": {
+          "low_lr": 1.0136735650954172,
+          "lr_035": 2.2351719761111277,
+          "ratio_of_ratios": 0.4535103231112717
+        },
+        "k2": {
+          "low_lr": 1.0540748608293042,
+          "lr_035": 2.3936621634161264,
+          "ratio_of_ratios": 0.4403607480367974
+        }
+      },
+      {
+        "step": 1500,
+        "domain": {
+          "low_lr": 0.38603489793038515,
+          "lr_035": 0.4337417445873392,
+          "ratio_of_ratios": 0.8900109402604487
+        },
+        "domain_historical": {
+          "low_lr": 0.4841794185621212,
+          "lr_035": 0.5966512016611449,
+          "ratio_of_ratios": 0.8114949189980856
+        },
+        "k1": {
+          "low_lr": 1.0057615724426625,
+          "lr_035": 1.763914021470443,
+          "ratio_of_ratios": 0.5701874128786812
+        },
+        "k2": {
+          "low_lr": 1.052839833432314,
+          "lr_035": 2.030696143789906,
+          "ratio_of_ratios": 0.5184625167344779
+        }
+      },
+      {
+        "step": 2000,
+        "domain": {
+          "low_lr": 0.3835802373540391,
+          "lr_035": 0.3905998406137369,
+          "ratio_of_ratios": 0.98202865815647
+        },
+        "domain_historical": {
+          "low_lr": 0.4814491231104465,
+          "lr_035": 0.5221127150712352,
+          "ratio_of_ratios": 0.9221172157141572
+        },
+        "k1": {
+          "low_lr": 1.0050680051957968,
+          "lr_035": 1.520366393268579,
+          "ratio_of_ratios": 0.6610696011472856
+        },
+        "k2": {
+          "low_lr": 1.0525938030207573,
+          "lr_035": 1.7448296238995402,
+          "ratio_of_ratios": 0.60326451855414
+        }
+      }
+    ],
+    "price_of_low_lr": {
+      "domain_taken_less_by": 0.98202865815647,
+      "language_preserved_better_by": {
+        "k1": 1.5127000216989268,
+        "k2": 1.6576476309210533
+      },
+      "reading": "первое число > 1 = низкий LR взял меньше домена; второе > 1 = низкий LR сохранил язык лучше. Обмен описан обеими половинами; компоненты языка не усредняются (ADR-027 п.2)"
+    },
+    "basis_for_decision": "низкий LR берёт домен в пределах полосы ×2.0 от ×0.35 (отношение отношений 0.982) — снижение пика LR от домена не отказывает, и вопрос «полный CPT на ×0.035» получает вторую половину цены, а не только первую",
+    "why": [
+      "D1 «домен выучен»: у ctrl-C2-25-0.035 отношение к базе 0.3836 на `v2_domain` — выучен",
+      "D2 «сопоставимо»: отношение отношений 0.9820 при полосе ×2.0 — сопоставимо",
+      "Обе метрики на одном шаге: язык у ctrl-C2-25-0.035 — K1 ×1.005, K2 ×1.053 против ×1.520 и ×1.745 у calib-25-0.35; компоненты не усредняются (ADR-027 п.2)"
+    ],
+    "reading_of_domain_ratio": {
+      "strict": "если «домен выучен» читать строго — отношение < 1: выполнено",
+      "with_base_band": "если допускать полосу до базы: отношение ≤ 1.0 — выполнено",
+      "note": "порог домена контур не задавал: ADR-022 п.3 задаёт потолок деградации **языка**, а у домена опора — сама база"
+    },
+    "not_averaged": "K1 и K2 не усредняются; домен и язык не сводятся к одному числу — вердикт по стадии остаётся конъюнкцией, а этот замер называет вторую половину её цены",
+    "reading_notes": [
+      "`curves[*].trend` — движение **внутри руки** (первая сохранённая точка → последняя); `arms[*].*_ratio` — отношение к **нетронутой базе**. Это разные вопросы, и они расходятся там, где важно: у руки C1 (в обучении домена нет) домен от своего пика падает, но отношение к базе остаётся больше единицы — то есть порча домена не откатывается, а продолжается с более низкого уровня",
+      "`arms[*].pairing` сводит обе метрики на **одной** точке одного состояния: домен по решающему набору, язык — обеими компонентами без усреднения"
+    ]
+  },
+  "checks": [
+    {
+      "name": "instrument_identity",
+      "verdict": "ok",
+      "tolerance": 0.0001,
+      "detail": "пять исторических чисел (v1_general, v1_domain, v2_domain, v3_general, k2_general) воспроизведены базовым состоянием каждой из 6 рук; худшее абсолютное расхождение 0.000e+00"
+    },
+    {
+      "name": "cross_run_reproduction",
+      "verdict": "ok",
+      "tolerance": 0.0001,
+      "detail": "числа чекпойнтов совпали с чужими отчётами того же прибора (домен — S3m, язык — S3t/S3q, язык по шагам — S3v); худшее расхождение 0.000e+00"
+    },
+    {
+      "name": "base_agreement",
+      "verdict": "ok",
+      "tolerance": 1e-06,
+      "detail": "база в отчёте каждой руки совпала с базой эталона по всем пяти наборам — отношения считаны от одной шкалы"
+    },
+    {
+      "name": "domain_set_purity",
+      "verdict": "ok",
+      "detail": "дословное пересечение доменных наборов с обучающими корпусами нулевое (0 документов); ненулевые 12-граммы названы числом и объяснены общим шаблоном карточек — см. purity и open_questions"
+    },
+    {
+      "name": "run_manifest",
+      "verdict": "ok",
+      "detail": "runs/s3w-domain-20260916/run_manifest.json: манифест AD-2 для каталога пробы (C-012): числа взяты из отчётов прибора, а не вписаны"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/s3w-domain-by-arms.json",
+      "role": "evidence замера (этот файл)",
+      "sha256": null,
+      "note": "хеш не приводится: файл пишется этим же вызовом"
+    },
+    {
+      "path": "tools/assemble_s3w_evidence.py",
+      "role": "свод",
+      "sha256": "19acf624cb47dd9f31bb6c563531928fc351336de1517c124e595e02f25601bd"
+    },
+    {
+      "path": "tools/calib_ppl_probe.py",
+      "role": "прибор (не переписан)",
+      "sha256": "d6082bdeb3185e82be7d75d3141c3349db65ddeae2c22464919166f3a6a116df"
+    },
+    {
+      "path": "tools/ppl_probe.py",
+      "role": "методика замера",
+      "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+    },
+    {
+      "path": "tools/check_eval_set_purity.py",
+      "role": "гейт чистоты доменных наборов",
+      "sha256": "452f50120372b07a5c7a98b8363b88b6414a60efc88c4f6a2af8d60925dcc29a"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/calib-25-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "c1b4691e1bea6ec796d423598d63fde982483ff848c456035f1af63326d56e14"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/calib-25-0.7.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "40b14086cdbdb435e3faa6361663434c2a0f8670a121432f93f47e36eba984b6"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/calib-50-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "2042a9f01ae7e04b195becc5c56a261321aeca30168ef3debd79179ee17b6f9e"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/calib-50-0.7.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "e375b7b0aa715f69854e8724c570722673fbe94f70e206972838c1c52637003e"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/ctrl-C1-100-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "7217e1cd83b4c2f71967fb2068b52b24e6b5bdfb2756621ce55027e685fd172f"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/ctrl-C2-25-0.035.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "becd26d18afd5f57a07efb676df57ae5a12fcb13688a0ab4018ac6740352d2b2"
+    },
+    {
+      "path": "evidence/s3w-purity-v2domain.json",
+      "role": "гейт чистоты v2_domain",
+      "sha256": "6c46a2a7a302f3800010e9a1209755daf7ec7339d1b59e74bb5fccfc28abed88"
+    },
+    {
+      "path": "evidence/s3w-purity-v1domain.json",
+      "role": "гейт чистоты v1_domain",
+      "sha256": "dee021acf07da881d1fea1109162cdf3d708dc309aa10854ee231337a3a242ce"
+    },
+    {
+      "path": "runs/s3w-domain-20260916/run_manifest.json",
+      "role": "манифест прогона (AD-2)",
+      "sha256": "7f95fa9170b0558c9b07339925474aa0bf835667d92b18cfa227361d0e5e0442"
+    }
+  ],
+  "assumptions": [
+    "Прибор и параметры — те же, что дали базы: tools/calib_ppl_probe.py, bfloat16 / batch 4 / max_len 1024, те же наборы; тождество доказано числом в этих же прогонах (пять эталонов), а не заявлено",
+    "Решающий доменный набор — `v2_domain` (200 документов); `v1_domain` приводится как историческая шкала и решающим не является",
+    "Отношение домена считается к базовой модели на **том же** наборе: сдвиг набора сокращается, абсолютный уровень оптимистичен из-за общего шаблона карточек (ограничение названо в карточке набора)",
+    "Полоса сопоставимости ×2 взята из действующей шкалы контура (ADR-022 п.3), а не подобрана под ответ",
+    "Полоса «тренд стоит» — 5 %, уже принятый в контуре допуск совпадения замера (`ppl_probe.py:REPRO_TOLERANCE_PCT`)",
+    "Язык считается в этом же прогоне теми же наборами, что в S3q/S3t/S3v, и дополнительно сверяется с их отчётами — числа K1/K2 здесь не новый источник, а воспроизведение",
+    "Домен и язык не сводятся к одному числу: вердикт стадии остаётся конъюнкцией K1 и K2 (ADR-027 п.2), а домен — вторая половина её цены"
+  ],
+  "open_questions": [
+    "У `calib-25-0.7` нет чекпойнта шага 500 — данные утеряны ретенцией пайплайна до правки патча (см. `arms_params['calib-25-0.7'].gap`). Восстановить точку нельзя: это снимок весов, а не пересчитываемое число. Профиль этой руки начинается с шага 1000, и «ступенька в (0, 500]» на ней не проверяется — вопрос тот же, что оставлен открытым в S3n и S3v",
+    "Ни у одной руки нет точек внутри (0, 500]: чекпойнты пишутся каждые 500 шагов. Максимум обвала домена локализован интервалом, а не шагом",
+    "У доменных наборов нулевое **документное** пересечение с обоими обучающими корпусами (гейт), но ненулевое по 12-граммам: 1733 окна из 49962 (3.47 %) у `v2_domain`, 78 из 1006 (7.75 %) у `v1_domain` — целиком за счёт доменного корпуса. Примеры совпавших окон — формульные обороты карточек ('group relative policy optimization (grpo)', 'swiglu', 'the kitti qa dataset'), то есть тот самый общий шаблон, который карточка `gen-eval-v2-card.json` называет не-гейтом. Гейт ADR-025 п.1 сформулирован для наборов `general_eval*` и на доменный набор формально не распространяется; распространять ли его (и с какой оговоркой) — вопрос к архитектору, а не решение этого свода",
+    "PPL по домену меряет **обобщение внутри домена**, а не «домен вне распределения»: карточки набора того же семейства и шаблона, что обучающие (ограничение названо в `gen-eval-v2-card.json → limits`). Общие шаблонные обороты снижают PPL независимо от забывания, поэтому абсолютный уровень домена оптимистичен — но отношение к базе считается на том же наборе, и сдвиг сокращается",
+    "Домен-метрика не имеет потолка: ADR-022 п.3 задаёт потолок деградации языка, а у домена порог — сама база (отношение 1.0). Считать ли «домен выучен» требованием отношения < 1 или допускать полосу — вопрос к владельцу; здесь ответ дан на обоих прочтениях (см. `verdict.reading_of_domain_ratio`)",
+    "Полномасштабный CPT на стенде идёт на миксе `v12r` (25 % replay, ADR-029 п.2) при пике LR×0.35 — ровно конфигурация руки `calib-25-0.35`. Решение «перейти на ×0.035» относится к этой же конфигурации, поэтому пара C2 ↔ `25-0.35` переносится на него без поправок; но перенос — допущение о переносимости профиля с 2 000 шагов на полный бюджет, а не измеренный факт",
+    "Каталог `runs/s3t-arms-20260916/` не несёт `run_manifest.json` (правило C-012 / AD-2 красное) — дефект внесён дельтой S3t (коммит 5b408ab) и этим сводом не правится: чужой каталог прогона задним числом не переписывается",
+    "Тесты инструментов зелёные по всем разделам, включая раздел S3w, кроме ОДНОГО давнего красного вне этой дельты: `tools/tests/run_tool_tests.sh` сверяет `datasets/rl_tasks_revpool_v2.jsonl` с карточкой `data/rev-envs-v2-card.json`, а пул на сетевом диске пересобран (9 162 строки, sha256 e678eb68… против 9 197 и a5d6496a… в карточке, коммит S3f 35f933d). Артефакт живёт вне git (AD-4, общий сетевой диск) и пересобран не этим замером; карточку задним числом не правим, дефект называем. На вердикт S3w он не влияет: домен и язык меряются на своих наборах, пул ревизии в них не входит"
+  ],
+  "reproduction": [
+    "# замер всех шести рук (локальная машина, стенд не задействован)",
+    "SETS=v1_general,v1_domain,v2_domain,v3_general,k2_general",
+    "for arm in calib-25-0.35 calib-25-0.7 calib-50-0.35 calib-50-0.7; do",
+    "  D=/home/user/gb10-shared/calib/$arm-20260916-0820",
+    "  P=runs/$arm-20260916-0820/laguna_pipeline_calib.py",
+    "  python3 tools/calib_ppl_probe.py --pipeline $P \\",
+    "    --state base=base \\",
+    "    --state c500=ckpt:$D/checkpoints/calib_checkpoint_500.pt \\",
+    "    --state c1000=ckpt:$D/checkpoints/calib_checkpoint_1000.pt \\",
+    "    --state c1500=ckpt:$D/checkpoints/calib_checkpoint_1500.pt \\",
+    "    --state cfinal=ckpt:$D/checkpoints/checkpoint_final.pt \\",
+    "    --state base_untouched=base --sets $SETS \\",
+    "    --dtype bfloat16 --device cuda --max-len 1024 --batch 4 \\",
+    "    --out runs/s3w-domain-20260916/$arm.json",
+    "done",
+    "# у `calib-25-0.7` нет точки 500 (ретенция старой ревизии патча) и другие",
+    "# имена файлов: checkpoint_1000.pt / checkpoint_1500.pt / checkpoint_final.pt",
+    "# контрольные руки — то же, но пайплайн берётся из прогона на сетевом диске:",
+    "#   --pipeline /home/user/gb10-shared/calib/ctrl-<рука>-20260916-1632/laguna_pipeline_calib.py",
+    "#   --state c500=ckpt:$D/checkpoints/calib_checkpoint_500.pt   (и далее как выше)",
+    "# гейт чистоты доменных наборов (обязателен до применения шкалы)",
+    "python3 tools/check_eval_set_purity.py --set datasets/domain_eval_v2.txt \\",
+    "        --report evidence/s3w-purity-v2domain.json",
+    "python3 tools/check_eval_set_purity.py --set datasets/domain_eval.txt \\",
+    "        --report evidence/s3w-purity-v1domain.json",
+    "# свод",
+    "python3 tools/assemble_s3w_evidence.py"
+  ],
+  "rollback": "откат — git reset --hard HEAD && git clean -fd; чекпойнты рук на gb10-shared не удаляются: это исходные данные решения, а не артефакт этого свода. Стенд не задействован — полный CPT на нём не останавливался и не трогался"
+}

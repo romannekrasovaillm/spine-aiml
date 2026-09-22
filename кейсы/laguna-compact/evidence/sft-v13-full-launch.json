@@ -1,0 +1,285 @@
+{
+  "schema": "sft-v13-full-launch/1",
+  "node": "S3ay",
+  "date": "2026-09-21T14:52:08.573080+00:00",
+  "branch": "arch/sft-v13-arm",
+  "question": "запущена ли полная SFT-стадия на ИСПРАВЛЕННОМ входе (v13_fixed) с пониженным пиком LR 2e-6, чем доказан прочитанный набор и как устроен ранний гейт, решающий «продолжать ли 40 часов» за ~35 минут",
+  "status": "partial",
+  "status_basis": "каталог стадии собран и проверен; стартер живёт отсоединённо и ждёт освобождения стенда (фаза стартера: 'wait_free'); стадия на момент записи НЕ стартовала — стенд занят короткой рукой темпа и её пробой. Ход работы закрывается фактами старта (ADR-023 п.11), а не ожиданием 40 часов",
+  "author_note": "Обучение этим узлом не запускалось: прогон поднимает отсоединённый стартер после освобождения стенда. Локальная 4080 не занималась. Чужие прогоны (остановленный sft-20260919-0810, идущая рука sft-v13lr2e6-20260921-1748, её проба v13-arm-probe-20260921-1905) читались только чтением — ни один их файл не менялся. Замороженные копии пайплайнов чужих прогонов не правились.",
+  "decision": {
+    "source": "решение владельца (21.09.2026): запустить полную стадию на исправленном входе с пониженным темпом",
+    "two_causes": [
+      {
+        "cause": "стадия читала v12 (44 949) при объявленном v13_fixed (44 105)",
+        "fix": "S3av: вход — параметр цепочки, страж C-030 (ADR-051)",
+        "tested_by": "набор объявлен и прочитан совпадают; страж прогнан"
+      },
+      {
+        "cause": "пик LR 1e-5 срывал поведение к 500-му шагу",
+        "fix": "S3ax: пик 2e-6 при сохранённой форме расписания",
+        "tested_by": "S3aw: на v12 постоянный LR 2e-6 дал 10/104 = 0.0962 усечений против 31/104 = 0.2981 (p = 2.5e-4)"
+      }
+    ],
+    "combination_note": "комбинация «v13_fixed + пониженный темп» полной стадией не измерялась; её и проверяет ранний гейт на точке 500"
+  },
+  "run_dir": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748",
+  "hyperparameters": {
+    "peak_lr": 2.0000000000000003e-06,
+    "peak_lr_base": 1e-05,
+    "peak_lr_scale": 0.2,
+    "lr_min_final": 2e-07,
+    "warmup_steps": 100,
+    "schedule": "CosineAnnealingLR(T_max=max_steps, eta_min=2e-7)",
+    "form_preserved": "штатная форма расписания сохранена; понижен только пик — поэтому различие с контролем это масштаб, а не форма",
+    "steps": 66157,
+    "epochs": 3,
+    "batch": 2,
+    "seed": 42,
+    "max_len": 8192,
+    "max_samples": 50000,
+    "loss_mask": "prefix_only",
+    "model": "Qwen/Qwen2.5-0.5B",
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+    "optimizer": "AdamW(lr=2e-06, weight_decay=0.01, betas=(0.9,0.95))",
+    "clip_grad_norm": 1.0,
+    "how_set": "пик вшит в КОПИЮ пайплайна множителем (patch_pipeline_sft.py --peak-lr-scale 0.2): у пика SFT нет флага в пайплайне, он задан в коде run_sft. Декларация и факт сверяются стражем tools/check_stage_lr.py",
+    "in_command_line": {
+      "has_tempo_flag": false,
+      "why": "темп — свойство копии, а не флага: второй путь его задания сделал бы «чем задан темп» неоднозначным. Число видно в pipeline_patch.json, в full_sft_params.json, в логе стадии и пинуется хешем копии"
+    }
+  },
+  "input_proof": {
+    "why": "C-030 / ADR-051: объявленный набор обязан совпасть с фактически прочитанным",
+    "declared_by": "full_sft_params.json (объявление) + команда цепочки (--sft-data-sha256)",
+    "fact_recorded_by": "блок sft_input манифеста стадии (checkpoints/run_manifest.json), который пишет сам пайплайн до первого шага",
+    "measured_now": {
+      "sft_jsonl": {
+        "path": "datasets/sft_train_v13_fixed.jsonl",
+        "declared_sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+        "measured_sha256": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+        "bytes": 473807562,
+        "match": true
+      },
+      "tok_cache": {
+        "path": "datasets/tok/sft_train_v13_fixed_8192_qwen25.npz",
+        "declared_sha256": "dc3d4838d15b83c3f1abefb549473e1efd1dc822000a675e34f548f759b94d75",
+        "measured_sha256": "dc3d4838d15b83c3f1abefb549473e1efd1dc822000a675e34f548f759b94d75",
+        "bytes": 2890465888,
+        "match": true
+      },
+      "examples_declared": 44105,
+      "examples_measured_lines": 44105,
+      "examples_match": true
+    },
+    "stage_refusal": "пайплайн сверяет объявленный sha256 с прочитанным jsonl и отказывает ДО первого шага при расхождении (SystemExit)",
+    "guard": "tools/check_dataset_identity.py --unreachable-not-verified (C-030)",
+    "guard_state_before_run": "стадия ещё не писала манифест — вердикт по набору будет вынесен сторожем сразу после старта (фаза verify_input)"
+  },
+  "starters_and_guards": {
+    "starter": {
+      "tool": "tools/start_full_stage.py",
+      "sha256": "8196951c66d64f1b5fda58f6212922d9c4a7005dc5e804a2ad7f98333929d1c8",
+      "phase_now": "wait_free",
+      "state": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748/starter_state.json",
+      "log": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748/starter.out.log",
+      "wait_condition": {
+        "arm_probe_chain_done": "/home/user/gb10-shared/v13-arm-probe-20260921-1905/CHAIN_DONE",
+        "why": "между выходом контейнера руки и стартом её пробы есть окно, в котором стенд выглядит свободным; CHAIN_DONE его закрывает",
+        "no_foreign_containers": "docker ps, кроме llm-platform-*",
+        "memory_gb_min": 50.0,
+        "memory_source": "/proc/meminfo MemAvailable",
+        "stable_polls": 3
+      }
+    },
+    "tempo_guard": {
+      "tool": "tools/check_stage_lr.py",
+      "verdict_now": {
+        "passed": true,
+        "verdict": "OK",
+        "tool": "check_stage_lr.py",
+        "run_dir": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748",
+        "pipeline_sha256": "a1d4ac1ca4f16e85e2c7afe093a3faff2a297a943656b441034d97a9a21045c5",
+        "actual": {
+          "peak_lr": 2.0000000000000003e-06,
+          "peak_lr_scale": 0.2,
+          "eta_min_present": true,
+          "warmup_unchanged": true,
+          "schedule_T_max": "args.max_steps"
+        },
+        "declared": {
+          "peak_lr": 2.0000000000000003e-06,
+          "peak_lr_scale": 0.2,
+          "lr_min": 2e-07,
+          "schedule": "CosineAnnealingLR(T_max=max_steps, eta_min=2e-7)",
+          "warmup_steps": 100
+        },
+        "findings": []
+      }
+    },
+    "sleep_guard": {
+      "wrapped": "guard/guard_cuda_run.sh вокруг всей цепочки",
+      "files": {
+        "guard_cuda_run.sh": "15f1404d1b8c875a4e8e3252d36f4f5ad166ee5f6da700b3b4955fdd1a19714e",
+        "check_gpu_sleep_guard.py": "fc0003426f90296b0ff07a43fb2f219b497fc8da823d74a70dc36c4feb120791"
+      },
+      "source": "/home/user/gb10-shared/sft-lr2e6-20260921-1453/guard/guard_cuda_run.sh",
+      "why": "сон площадки убивает контекст CUDA (Xid 31, S3 decode-diagnosis); на стенде цели сна замаскированы, systemd-inhibit не берётся — запрет держит обвязка, и она же пишет расписку о состоянии устройства"
+    },
+    "resource_protocol_AD9": "перед каждой стадией цепочка зовёт check_resource_owner.sh --stage sft (порог 50 ГБ, хозяин объявлен), и стартер проверяет тот же порог ДО запуска",
+    "early_gate_watchdog": {
+      "tool": "tools/early_gate_watch.py",
+      "sha256": "a2f5a20574dcc51db313443361f063005df6b99ae8c1f085836bf60fa736a896",
+      "started": "поднимется стартером после запуска",
+      "phases": [
+        "verify_input (C-030 — остановка при чужом наборе)",
+        "wait_checkpoint (шаг ≥ 500 и файл точки)",
+        "wait_memory",
+        "probe",
+        "compare",
+        "verdict"
+      ]
+    }
+  },
+  "early_gate": {
+    "declared_before_run": true,
+    "declaration": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748/early_gate.json",
+    "when": {
+      "step": 500,
+      "artifact": "checkpoints/sft_probe_500.pt",
+      "how_detected": "logs/loss_trace.jsonl: последний шаг ≥ 500, и файл точки на месте"
+    },
+    "probe": {
+      "tool": "tools/probe_language_split.py",
+      "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+      "site": "gb10-fast",
+      "prompts": "wide",
+      "n_probes": 104,
+      "max_new_tokens": 4096,
+      "batch_size": 8,
+      "stop_at_turn_end": true,
+      "decoding": "greedy + штатный запрет повторов 4-грамм (ADR-041)",
+      "compare_rule": "по тому же протоколу снята и рука — числа сравнимы только при совпадении прибора, набора, бюджета и площадки",
+      "concurrency_note": "проба снимается ПРИ ЖИВОЙ стадии (остановить её на 35 минут значило бы потерять больше, чем стоит замер). Рука мерилась на свободном устройстве. Это различие условий названо, а не скрыто; грубое искажение видно по опоре cfinal, снятой на свободном устройстве"
+    },
+    "metrics": [
+      "truncated_share",
+      "natural_unclosed_think_share",
+      "natural_looped_share"
+    ],
+    "mdd": 0.15,
+    "warn_delta": 0.05,
+    "rule": "ОСТАНОВИТЬ стадию, если хотя бы одна метрика хуже опоры на 0.15 или больше (объявленный допуск MDD при n = 104); ПРЕДУПРЕДИТЬ (не останавливая) при ухудшении от 0.05 до 0.15; иначе — продолжать. Провал САМОГО замера (проба не снята) остановкой не является: «не проверено» и «хуже значимо» — разные вещи",
+    "reference_candidates": [
+      {
+        "tag": "arm_v13_lr2e6_500",
+        "why": "короткая рука: набор v13_fixed + LR 2e-6, шаг 500, та же площадка — прямое сравнение полной стадии (тот же вход, тот же темп на точке)",
+        "path": "/home/user/gb10-shared/v13-arm-probe-20260921-1905/report_arm_v13_lr2e6_500.json",
+        "states_key": "arm_v13_lr2e6_500",
+        "present_at_assembly": false
+      },
+      {
+        "tag": "arm_v12_lr2e6_500",
+        "why": "повтор руки сравнения в той же сессии: отвечает, переносится ли число через границу сессий на одной площадке",
+        "path": "/home/user/gb10-shared/v13-arm-probe-20260921-1905/report_arm_v12_lr2e6_500.json",
+        "states_key": "arm_v12_lr2e6_500",
+        "present_at_assembly": false
+      },
+      {
+        "tag": "arm_lr2e6_500_prev_session",
+        "why": "прежний замер той же руки (v12 + LR 2e-6 @500) на этой площадке, измеренный 21.09.2026; опора, если повтор в новой сессии не состоялся",
+        "path": "/home/user/gb10-shared/lr-sens-20260921-1500/report_arm_lr2e6_500.json",
+        "states_key": "arm_lr2e6_500",
+        "present_at_assembly": true
+      },
+      {
+        "tag": "cfinal",
+        "why": "CPT-финал на этой площадке — уровень «до SFT»: без него нельзя отличить срыв обучения от дефекта входа",
+        "path": "/home/user/gb10-shared/lr-sens-20260921-1500/report_cfinal.json",
+        "states_key": "cfinal",
+        "present_at_assembly": true
+      }
+    ],
+    "reference_note": "первая доступная опора; предпочтительная — рука «v13 + LR 2e-6» на точке 500 (тот же набор и темп, та же площадка)",
+    "on_fail": {
+      "tool": "stop_stage_run.py",
+      "invocation": "python3 <run>/stop_stage_run.py --run-dir <run> --reason 'early-gate: <метрика> хуже руки на <Δ>'",
+      "effect": "маркер var/STOPPED + docker stop -t 120; стадия записывается как stopped, а не failed (ADR-016)"
+    },
+    "on_probe_failure": "вердикт not_verified, стадия НЕ останавливается, факт докладывается: отсутствие числа не есть плохое число",
+    "arithmetic_checked": {
+      "how": "арифметика гейта проверена синтетическими отчётами (5 случаев) до запуска",
+      "cases": [
+        "повтор опоры → continue",
+        "ухудшение внутри допуска → continue + warning",
+        "усечения +0.18 → fail",
+        "незакрытые +0.20 → fail",
+        "петли +0.20 → fail"
+      ],
+      "note": "проверка выполнена на объявлении ЭТОГО прогона — том же, что читает сторож"
+    }
+  },
+  "artifacts": {
+    "run_dir": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748",
+    "stages_tsv": "sft\tsft\tsft\tcheckpoints/sft_checkpoint_final.pt\t66157\t2\t-\tsft-v13-2e6-20260921-1748",
+    "stage_artifact": "checkpoints/sft_checkpoint_final.pt",
+    "chain_command": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748/chain_command.txt",
+    "ship_sha256": {
+      "pilot_chain.sh": "993fdf25d02924841d9a8145cd8c1bb3237f6cb4e7540a8e0f1251a9999521f9",
+      "check_resource_owner.sh": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114",
+      "write_run_manifest.py": "ccc7e83d3f5b7aaac00a0807a686ddeba5ef8caf31d303164fdf327b25cdcd96",
+      "smoke_mem_sampler.sh": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938",
+      "verify_think_mask.py": "3178a62994d22b94059c510776cb993346886721da3ad5dbc8c6cc75be1f9ea3",
+      "laguna_pipeline_sft.py": "a1d4ac1ca4f16e85e2c7afe093a3faff2a297a943656b441034d97a9a21045c5",
+      "pipeline_patch.json": "3ed08c05c1cc43221d2d8fe176262d270560c01f532705c0c1f4cea1903a1a8c",
+      "guard/guard_cuda_run.sh": "15f1404d1b8c875a4e8e3252d36f4f5ad166ee5f6da700b3b4955fdd1a19714e",
+      "guard/check_gpu_sleep_guard.py": "fc0003426f90296b0ff07a43fb2f219b497fc8da823d74a70dc36c4feb120791",
+      "early_gate_watch.py": "a2f5a20574dcc51db313443361f063005df6b99ae8c1f085836bf60fa736a896",
+      "stop_stage_run.py": "e7410f2e4856ad278e130cd4ee1648def0e4a106504ad673312bde0151a9f156",
+      "probe_language_split.py": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276"
+    },
+    "pipeline_patch": {
+      "adr": "ADR-052",
+      "peak_lr_scale": 0.2,
+      "peak_lr": 2.0000000000000003e-06,
+      "peak_lr_base": 1e-05,
+      "eta_min": 2e-07,
+      "schedule": "CosineAnnealingLR(T_max=args.max_steps, eta_min=2e-7)",
+      "warmup_steps": 100,
+      "what_changed": "только множитель пика",
+      "where_verified": "числа печатает сама копия при старте стадии: log.info(\"SFT LR: пик …\") в run_sft",
+      "guard": "tools/check_stage_lr.py — объявленный темп против копии пайплайна"
+    },
+    "full_stage_patch": "/home/user/gb10-shared/sft-v13-2e6-20260921-1748/full_stage_patch.json"
+  },
+  "live_state_at_assembly": {
+    "chain_status": null,
+    "containers_on_stand": [
+      "laguna-sft-v13lr2e6-20260921-1748-sft",
+      "llm-platform-supervisor",
+      "llm-platform-gateway",
+      "llm-platform-runtime",
+      "llm-platform-ollama"
+    ],
+    "tmux_sessions": [
+      "sft-v13lr2e6-20260921-1748: 1 windows (created Mon Sep 21 11:40:03 2026)",
+      "v13-arm-probe: 1 windows (created Mon Sep 21 11:41:41 2026)"
+    ],
+    "watchdog_state_exists": false,
+    "note": "снимок на момент сборки записи; стадия поднимется по факту освобождения стенда"
+  },
+  "limitations": [
+    "проба раннего гейта снимается ПРИ ЖИВОЙ стадии (устройство занято обучением), а опора-рука мерилась на свободном устройстве: это различие условий названо, и грубое искажение видно по опоре cfinal, снятой на свободном устройстве",
+    "опоры arm_v13_lr2e6_500 и arm_v12_lr2e6_500 на момент сборки ещё не сняты (проба руки идёт после её обучения); до их появления гейт опирается на опору предыдущей сессии — какая опора взята, записывается в early_gate_verdict.json",
+    "короткая рука шла ПОСТОЯННЫМ LR 2e-6 (eta_min == peak_lr), полная стадия — косинусом от пика 2e-6: на точке 500 это 1.998e-6 против 2e-6 (0.06 %), поэтому сравнение на точке осмысленно, но за точкой формы расходятся",
+    "число темпа не передаётся флагом командной строки: оно вшито в копию пайплайна множителем и сверяется стражем темпа (объявление против копии) — командная строка сама темпа не называет"
+  ],
+  "how_to_check": {
+    "stage_running": "ssh gb10-fast 'tmux ls; docker ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep {ts}'",
+    "starter_alive": "python3 -c \"import json;print(json.load(open('/home/user/gb10-shared/sft-v13-2e6-20260921-1748/starter_state.json'))['phase'])\"",
+    "input_proof": "python3 tools/check_dataset_identity.py --json  # C-030; ждёт /home/user/gb10-shared/sft-v13-2e6-20260921-1748/checkpoints/run_manifest.json",
+    "early_gate": "cat /home/user/gb10-shared/sft-v13-2e6-20260921-1748/early_gate_verdict.json  (и /home/user/gb10-shared/sft-v13-2e6-20260921-1748/input_identity_verdict.json)",
+    "live_progress": "tail /home/user/gb10-shared/sft-v13-2e6-20260921-1748/logs/loss_trace.jsonl; tail -f /home/user/gb10-shared/sft-v13-2e6-20260921-1748/chain.log",
+    "watchdog_log": "tail -f /home/user/gb10-shared/sft-v13-2e6-20260921-1748/early_gate_watch.log"
+  }
+}

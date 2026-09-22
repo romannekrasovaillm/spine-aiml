@@ -1,0 +1,1236 @@
+{
+  "schema": "s3al-decoding-protocol/1",
+  "completeness": {
+    "delta_status": "partial",
+    "missing": [
+      "язык измерен пилотом (S3ak), а не замером S3al",
+      "выборка 24 < 100",
+      "гейты тождества прибора не подтверждены"
+    ],
+    "why": "статус выведен из чисел: вердикт по языку при n ≥ 100 — условие полноты дельты, и без него расчёт остаётся частичным, даже если все прочие блоки заполнены"
+  },
+  "stage": "S3al — штатный режим декодирования (запрет повторов 4-грамм) и вердикт по языку на чистых генерациях",
+  "created_at": "2026-09-18T11:23:58.971639+00:00",
+  "status": "measured",
+  "question": "какие выводы о языке и формате SFT-состояний держатся, когда петля снята штатным режимом декодирования",
+  "protocol": {
+    "default_mode": "greedy + запрет повторов 4-грамм (no_repeat_ngram=4)",
+    "standard_no_repeat_ngram": 4,
+    "flag_where_set": {
+      "tool": "tools/probe_language_split.py",
+      "constant": "STANDARD_NO_REPEAT_NGRAM",
+      "resolver": "resolve_no_repeat_ngram()",
+      "cli_standard": "--no-repeat-ngram N (по умолчанию N=4)",
+      "cli_legacy": "--legacy-decoding (снимает запрет; отчёт помечается непригодным для выводов)",
+      "report_field": "protocol.decoding_protocol.allowed_for_conclusions"
+    },
+    "self_check": {
+      "default_resolves_to": 4,
+      "legacy_resolves_to": null,
+      "run_without_ban_is_refused": true,
+      "refusal_names_fix": true,
+      "why": "проверка вызовом прибора, а не чтением текста: «закреплено в конфиге» — утверждение о поведении"
+    },
+    "rules": {
+      "greedy_only_forbidden": "любые выводы о формате и языке по генерациям без запрета повторов n-грамм запрещены (S3al, ADR-040 п.6)",
+      "sampling_is_extra_check": "sampling — дополнительная проверка свободного режима, а не штатный режим: он петлю снижает частично (0.3333), а не снимает",
+      "legacy_is_for_identity": "--legacy-decoding существует для воспроизведения прежних замеров побайтово (мост тождества), а не для новых выводов"
+    },
+    "gates": {
+      "core_vs_s3ai": {
+        "available": false,
+        "why": "нет отчёта: runs/s3al-decoding-protocol-20260918/identity_core_cfinal_batched.json"
+      },
+      "greedy_vs_s3ak": {
+        "available": false,
+        "why": "нет отчёта: runs/s3al-decoding-protocol-20260918/legacy_greedy_extended.json"
+      },
+      "sample_vs_s3ak": {
+        "available": false,
+        "why": "нет отчёта: runs/s3al-decoding-protocol-20260918/legacy_sample_extended.json"
+      }
+    }
+  },
+  "language": {
+    "available": true,
+    "source": "пилот: прежний замер штатного режима на 24 пробах (S3ak)",
+    "is_pilot": true,
+    "state": "sft_resume_6000",
+    "n": 24,
+    "n_clean": 13,
+    "coverage": 0.5417,
+    "coverage_note": "доля чистых (ход дописан, петли нет) среди всех генераций состояния — это число TASK",
+    "cyr_answer_coverage_of_clean": 0.3846,
+    "cyr_answer_coverage_note": "доля чистых генераций, у которых ответная часть вообще есть; это страж критерия ADR-039 (порог 0.5), а не доля чистых",
+    "cyr_answer_clean": 0.6691,
+    "cyr_answer_clean_with_zeros": 0.2573,
+    "cyr_think": 0.8486,
+    "margin_to_0.4": -0.1427,
+    "margin_to_0.4_defined_only": 0.2691,
+    "ci95": {
+      "lo": 0.0655,
+      "hi": 0.459,
+      "mean": 0.2573,
+      "n": 13,
+      "method": "bootstrap percentile",
+      "n_boot": 2000,
+      "seed": 42
+    },
+    "ci95_defined_only": {
+      "lo": 0.4662,
+      "hi": 0.8742,
+      "mean": 0.6691,
+      "n": 5,
+      "method": "bootstrap percentile",
+      "n_boot": 2000,
+      "seed": 42
+    },
+    "zone": "insufficient_coverage",
+    "zone_why": "ответная часть есть лишь у 0.3846 генераций (порог 0.5): число cyr_answer=0.2573 измеряет обрыв генерации, а не язык ответа — недостаточно данных",
+    "verdict_adr039": "insufficient_sample",
+    "verdict_why": "выборка 24 < 100: вердикт ADR-039 не выносится (шаг одной пробы больше запаса до границы)",
+    "decoding": "greedy_nogram4",
+    "decoding_protocol": null,
+    "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+    "checkpoint_sha256": "7638e055e63a077dc88844f26ac825e0dff37bb88c584c5de85c7b9025ef0460",
+    "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json",
+    "all_readings": {
+      "cyr_answer_with_zeros": 0.2056,
+      "cyr_answer_defined": 0.4935,
+      "cyr_think": 0.7559,
+      "looped_share": 0.0,
+      "coverage": 0.4167
+    }
+  },
+  "language_by_state": {
+    "sft_resume_6000": {
+      "available": true,
+      "source": "пилот: прежний замер штатного режима на 24 пробах (S3ak)",
+      "is_pilot": true,
+      "state": "sft_resume_6000",
+      "n": 24,
+      "n_clean": 13,
+      "coverage": 0.5417,
+      "coverage_note": "доля чистых (ход дописан, петли нет) среди всех генераций состояния — это число TASK",
+      "cyr_answer_coverage_of_clean": 0.3846,
+      "cyr_answer_coverage_note": "доля чистых генераций, у которых ответная часть вообще есть; это страж критерия ADR-039 (порог 0.5), а не доля чистых",
+      "cyr_answer_clean": 0.6691,
+      "cyr_answer_clean_with_zeros": 0.2573,
+      "cyr_think": 0.8486,
+      "margin_to_0.4": -0.1427,
+      "margin_to_0.4_defined_only": 0.2691,
+      "ci95": {
+        "lo": 0.0655,
+        "hi": 0.459,
+        "mean": 0.2573,
+        "n": 13,
+        "method": "bootstrap percentile",
+        "n_boot": 2000,
+        "seed": 42
+      },
+      "ci95_defined_only": {
+        "lo": 0.4662,
+        "hi": 0.8742,
+        "mean": 0.6691,
+        "n": 5,
+        "method": "bootstrap percentile",
+        "n_boot": 2000,
+        "seed": 42
+      },
+      "zone": "insufficient_coverage",
+      "zone_why": "ответная часть есть лишь у 0.3846 генераций (порог 0.5): число cyr_answer=0.2573 измеряет обрыв генерации, а не язык ответа — недостаточно данных",
+      "verdict_adr039": "insufficient_sample",
+      "verdict_why": "выборка 24 < 100: вердикт ADR-039 не выносится (шаг одной пробы больше запаса до границы)",
+      "decoding": "greedy_nogram4",
+      "decoding_protocol": null,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "checkpoint_sha256": "7638e055e63a077dc88844f26ac825e0dff37bb88c584c5de85c7b9025ef0460",
+      "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json",
+      "all_readings": {
+        "cyr_answer_with_zeros": 0.2056,
+        "cyr_answer_defined": 0.4935,
+        "cyr_think": 0.7559,
+        "looped_share": 0.0,
+        "coverage": 0.4167
+      }
+    }
+  },
+  "format": {
+    "greedy_vs_standard": {
+      "available": true,
+      "state": "sft_resume_6000",
+      "greedy_report": "runs/s3ak-degeneration-20260917/decoding_greedy.json",
+      "standard_report": "runs/s3ak-degeneration-20260917/decoding_nogram.json",
+      "standard_is_pilot": true,
+      "same_instrument": false,
+      "same_prompt_set": true,
+      "same_tool_sha256": false,
+      "tool_sha256": {
+        "greedy": "dc4a13a7dceefed6836164b4db674bb9cbc29037fef7f90aa387fd28f602017b",
+        "standard": "87ba4d299452a735ef6cb1e61d85bddb25463b0f298d249f46d5c66a23b91136"
+      },
+      "caveat": "отчёты пары сняты разными версиями прибора; гейт тождества генерации (greedy_vs_s3ak) не выполнен — разница режимов и разница приборов формально не разделены",
+      "same_parameters": true,
+      "why_same_matters": "сравнение режимов на разных наборах или параметрах списало бы разницу на набор или бюджет, а не на режим",
+      "rows": [
+        {
+          "metric": "looped_share",
+          "greedy": 0.5417,
+          "standard": 0.0,
+          "delta": -0.5417
+        },
+        {
+          "metric": "natural_stop_share",
+          "greedy": 0.4167,
+          "standard": 0.5417,
+          "delta": 0.125
+        },
+        {
+          "metric": "unclosed_think_share",
+          "greedy": 0.7083,
+          "standard": 0.6667,
+          "delta": -0.0416
+        },
+        {
+          "metric": "tool_call_share",
+          "greedy": 0.2917,
+          "standard": 0.2917,
+          "delta": 0.0
+        },
+        {
+          "metric": "median_tokens",
+          "greedy": 4096,
+          "standard": 2076,
+          "delta": -2020
+        },
+        {
+          "metric": "p90_tokens",
+          "greedy": 4096,
+          "standard": 4096,
+          "delta": 0
+        }
+      ],
+      "greedy": {
+        "available": true,
+        "report": "runs/s3ak-degeneration-20260917/decoding_greedy.json",
+        "tool_sha256": "dc4a13a7dceefed6836164b4db674bb9cbc29037fef7f90aa387fd28f602017b",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "decoding": "greedy",
+        "decoding_protocol": null,
+        "prompts_set": "extended",
+        "prompts_digest": "5b2ccdeec0e20c94b4dd6163d0d637ee58a1133aa2c51cb12134dcfa1eb6d27d",
+        "max_new_tokens": 4096,
+        "stop_at_turn_end": true,
+        "looped_share": 0.5417,
+        "natural_stop_share": 0.4167,
+        "unclosed_think_share": 0.7083,
+        "tool_call_share": 0.2917,
+        "median_tokens": 4096,
+        "p90_tokens": 4096,
+        "natural_stops": {
+          "n": 10,
+          "unclosed_think_share": 0.7,
+          "tool_call_share": 0.3,
+          "cyr_answer_with_zeros": 0.2248
+        },
+        "decomposition": {
+          "n": 24,
+          "groups": {
+            "looped": 13,
+            "truncated_not_looped": 1,
+            "natural_stops": 10
+          },
+          "group_share": {
+            "looped": 0.5417,
+            "truncated_not_looped": 0.0417,
+            "natural_stops": 0.4167
+          },
+          "reading": {
+            "looped": "артефакт протокола (петля; снимается запретом повторов 4-грамм)",
+            "truncated_not_looped": "бюджет (ход оборван лимитом токенов без петли)",
+            "natural_stops": "нечем объяснить, кроме модели (дефект)"
+          },
+          "flags": {
+            "unclosed_think": {
+              "share_all": 0.7083,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.7692,
+                  "contribution": 0.4167
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "natural_stops": {
+                  "share_inside": 0.7,
+                  "contribution": 0.2917
+                }
+              },
+              "sum_of_contributions": 0.7084,
+              "artifact_share_of_total": 0.5883,
+              "budget_share_of_total": 0.0,
+              "real_share_of_total": 0.4118
+            },
+            "no_tool_call": {
+              "share_all": 0.7083,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.7692,
+                  "contribution": 0.4167
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "natural_stops": {
+                  "share_inside": 0.7,
+                  "contribution": 0.2917
+                }
+              },
+              "sum_of_contributions": 0.7084,
+              "artifact_share_of_total": 0.5883,
+              "budget_share_of_total": 0.0,
+              "real_share_of_total": 0.4118
+            },
+            "not_finished": {
+              "share_all": 0.5833,
+              "contributions": {
+                "looped": {
+                  "share_inside": 1.0,
+                  "contribution": 0.5417
+                },
+                "truncated_not_looped": {
+                  "share_inside": 1.0,
+                  "contribution": 0.0417
+                },
+                "natural_stops": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                }
+              },
+              "sum_of_contributions": 0.5834,
+              "artifact_share_of_total": 0.9286,
+              "budget_share_of_total": 0.0715,
+              "real_share_of_total": 0.0
+            }
+          }
+        }
+      },
+      "standard": {
+        "available": true,
+        "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json",
+        "tool_sha256": "87ba4d299452a735ef6cb1e61d85bddb25463b0f298d249f46d5c66a23b91136",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "decoding": "greedy_nogram4",
+        "decoding_protocol": null,
+        "prompts_set": "extended",
+        "prompts_digest": "5b2ccdeec0e20c94b4dd6163d0d637ee58a1133aa2c51cb12134dcfa1eb6d27d",
+        "max_new_tokens": 4096,
+        "stop_at_turn_end": true,
+        "looped_share": 0.0,
+        "natural_stop_share": 0.5417,
+        "unclosed_think_share": 0.6667,
+        "tool_call_share": 0.2917,
+        "median_tokens": 2076,
+        "p90_tokens": 4096,
+        "natural_stops": {
+          "n": 13,
+          "unclosed_think_share": 0.6154,
+          "tool_call_share": 0.2308,
+          "cyr_answer_with_zeros": 0.2573
+        },
+        "decomposition": {
+          "n": 24,
+          "groups": {
+            "looped": 0,
+            "truncated_not_looped": 11,
+            "natural_stops": 13
+          },
+          "group_share": {
+            "looped": 0.0,
+            "truncated_not_looped": 0.4583,
+            "natural_stops": 0.5417
+          },
+          "reading": {
+            "looped": "артефакт протокола (петля; снимается запретом повторов 4-грамм)",
+            "truncated_not_looped": "бюджет (ход оборван лимитом токенов без петли)",
+            "natural_stops": "нечем объяснить, кроме модели (дефект)"
+          },
+          "flags": {
+            "unclosed_think": {
+              "share_all": 0.6667,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.7273,
+                  "contribution": 0.3333
+                },
+                "natural_stops": {
+                  "share_inside": 0.6154,
+                  "contribution": 0.3333
+                }
+              },
+              "sum_of_contributions": 0.6666,
+              "artifact_share_of_total": 0.0,
+              "budget_share_of_total": 0.5,
+              "real_share_of_total": 0.5
+            },
+            "no_tool_call": {
+              "share_all": 0.7083,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.6364,
+                  "contribution": 0.2917
+                },
+                "natural_stops": {
+                  "share_inside": 0.7692,
+                  "contribution": 0.4167
+                }
+              },
+              "sum_of_contributions": 0.7084,
+              "artifact_share_of_total": 0.0,
+              "budget_share_of_total": 0.4118,
+              "real_share_of_total": 0.5883
+            },
+            "not_finished": {
+              "share_all": 0.4583,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "truncated_not_looped": {
+                  "share_inside": 1.0,
+                  "contribution": 0.4583
+                },
+                "natural_stops": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                }
+              },
+              "sum_of_contributions": 0.4583,
+              "artifact_share_of_total": 0.0,
+              "budget_share_of_total": 0.9999,
+              "real_share_of_total": 0.0
+            }
+          }
+        },
+        "pilot": true
+      },
+      "sample_without_ban": {
+        "available": true,
+        "report": "runs/s3ak-degeneration-20260917/decoding_sample.json",
+        "tool_sha256": "87ba4d299452a735ef6cb1e61d85bddb25463b0f298d249f46d5c66a23b91136",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "decoding": "sample_T0.7_top_p0.9",
+        "decoding_protocol": null,
+        "prompts_set": "extended",
+        "prompts_digest": "5b2ccdeec0e20c94b4dd6163d0d637ee58a1133aa2c51cb12134dcfa1eb6d27d",
+        "max_new_tokens": 4096,
+        "stop_at_turn_end": true,
+        "looped_share": 0.3333,
+        "natural_stop_share": 0.625,
+        "unclosed_think_share": 0.75,
+        "tool_call_share": 0.3333,
+        "median_tokens": 172,
+        "p90_tokens": 4096,
+        "natural_stops": {
+          "n": 15,
+          "unclosed_think_share": 0.8,
+          "tool_call_share": 0.1333,
+          "cyr_answer_with_zeros": 0.1309
+        },
+        "decomposition": {
+          "n": 24,
+          "groups": {
+            "looped": 8,
+            "truncated_not_looped": 2,
+            "natural_stops": 14
+          },
+          "group_share": {
+            "looped": 0.3333,
+            "truncated_not_looped": 0.0833,
+            "natural_stops": 0.5833
+          },
+          "reading": {
+            "looped": "артефакт протокола (петля; снимается запретом повторов 4-грамм)",
+            "truncated_not_looped": "бюджет (ход оборван лимитом токенов без петли)",
+            "natural_stops": "нечем объяснить, кроме модели (дефект)"
+          },
+          "flags": {
+            "unclosed_think": {
+              "share_all": 0.75,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.875,
+                  "contribution": 0.2917
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "natural_stops": {
+                  "share_inside": 0.7857,
+                  "contribution": 0.4583
+                }
+              },
+              "sum_of_contributions": 0.75,
+              "artifact_share_of_total": 0.3889,
+              "budget_share_of_total": 0.0,
+              "real_share_of_total": 0.6111
+            },
+            "no_tool_call": {
+              "share_all": 0.6667,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.5,
+                  "contribution": 0.1667
+                },
+                "truncated_not_looped": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                },
+                "natural_stops": {
+                  "share_inside": 0.8571,
+                  "contribution": 0.5
+                }
+              },
+              "sum_of_contributions": 0.6667,
+              "artifact_share_of_total": 0.25,
+              "budget_share_of_total": 0.0,
+              "real_share_of_total": 0.75
+            },
+            "not_finished": {
+              "share_all": 0.375,
+              "contributions": {
+                "looped": {
+                  "share_inside": 0.875,
+                  "contribution": 0.2917
+                },
+                "truncated_not_looped": {
+                  "share_inside": 1.0,
+                  "contribution": 0.0833
+                },
+                "natural_stops": {
+                  "share_inside": 0.0,
+                  "contribution": 0.0
+                }
+              },
+              "sum_of_contributions": 0.375,
+              "artifact_share_of_total": 0.7779,
+              "budget_share_of_total": 0.2221,
+              "real_share_of_total": 0.0
+            }
+          }
+        }
+      },
+      "sample_with_ban": {
+        "available": false,
+        "why": "нет состояния sft_resume_6000 в runs/s3al-decoding-protocol-20260918/standard_sample_extended.json"
+      }
+    },
+    "artifact_share": {
+      "available": true,
+      "verdict": "real_defect",
+      "why": "у дописанных ходов без петли незакрытый <think> есть в 0.6154 (≥ 0.5) — это дефект модели, а не артефакт протокола: петли в этом режиме нет по построению",
+      "rule": {
+        "real_defect_if": "доля признака среди дописанных ходов без петли ≥ 0.5",
+        "artifact_if": "≤ 0.2",
+        "arithmetic": "вклады групп складываются в долю по всем генерациям (looped + truncated_not_looped + natural_stops)"
+      },
+      "greedy_unclosed_think_all": 0.7083,
+      "greedy_artifact_share": 0.5883,
+      "greedy_budget_share": 0.0,
+      "greedy_real_share": 0.4118,
+      "greedy_unclosed_think_natural_stops": 0.7,
+      "standard_unclosed_think_all": 0.6667,
+      "standard_unclosed_think_natural_stops": 0.6154,
+      "standard_looped_share": 0.0,
+      "groups": {
+        "looped": 13,
+        "truncated_not_looped": 1,
+        "natural_stops": 10
+      }
+    },
+    "real_defects": {
+      "rule": "дефект считается реальным, если признак есть у ходов, которые нечем объяснить, кроме модели (ход дописан, петли нет)",
+      "primary_flag": "unclosed_think",
+      "verdict": "real_defect",
+      "numbers": {
+        "greedy_all": 0.7083,
+        "standard_all": 0.6667,
+        "greedy_natural_stops": 0.7,
+        "standard_natural_stops": 0.6154
+      }
+    }
+  },
+  "loops_in_data": {
+    "available": true,
+    "schema": "s3al-loop-repetition/1",
+    "tool": "tools/analyze_loop_repetition.py",
+    "tool_sha256": null,
+    "verdict_recheck": {
+      "available": true,
+      "same_rules": true,
+      "same_fired": true,
+      "stored_fired": [
+        "length_controlled"
+      ],
+      "recomputed_fired": [
+        "length_controlled"
+      ],
+      "why": "вердикт отчёта пересчитан по записанным в нём числах текущей ревизией прибора: отчёт пишется один раз, а правило вердикта живёт в коде"
+    },
+    "report": "runs/s3al-decoding-protocol-20260918/loops_in_data.json",
+    "dataset": {
+      "path": "datasets/sft_train_v12.jsonl",
+      "bytes": 486352008,
+      "sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "n_examples": 44949,
+      "n_unique_normalized": 19011,
+      "duplicates_share": 0.5771,
+      "n_bad_lines": 0
+    },
+    "length_controlled": {
+      "reading": "looped — по прозе, тем же прибором и порогом, что у генераций",
+      "buckets": [
+        {
+          "bucket": "<256",
+          "n": 5553,
+          "n_duplicated": 3769,
+          "n_unique": 1784,
+          "looped_share_duplicated": 0.0,
+          "looped_share_unique": 0.0,
+          "difference": 0.0,
+          "median_words": 204
+        },
+        {
+          "bucket": "256-511",
+          "n": 7352,
+          "n_duplicated": 4332,
+          "n_unique": 3020,
+          "looped_share_duplicated": 0.0,
+          "looped_share_unique": 0.0,
+          "difference": 0.0,
+          "median_words": 332
+        },
+        {
+          "bucket": "512-1023",
+          "n": 28260,
+          "n_duplicated": 28256,
+          "n_unique": 4,
+          "looped_share_duplicated": 0.0138,
+          "looped_share_unique": 0.0,
+          "difference": 0.0138,
+          "median_words": 789
+        },
+        {
+          "bucket": "1024-2047",
+          "n": 3039,
+          "n_duplicated": 3039,
+          "n_unique": 0,
+          "looped_share_duplicated": 0.0589,
+          "looped_share_unique": null,
+          "difference": null,
+          "median_words": 1411
+        },
+        {
+          "bucket": "2048-4095",
+          "n": 745,
+          "n_duplicated": 745,
+          "n_unique": 0,
+          "looped_share_duplicated": 0.1087,
+          "looped_share_unique": null,
+          "difference": null,
+          "median_words": 2118
+        },
+        {
+          "bucket": "≥4096",
+          "n": 0,
+          "n_duplicated": 0,
+          "n_unique": 0,
+          "looped_share_duplicated": null,
+          "looped_share_unique": null,
+          "difference": null,
+          "median_words": null
+        }
+      ],
+      "overall": {
+        "looped_share_duplicated": 0.0162,
+        "looped_share_unique": 0.0,
+        "difference": 0.0162,
+        "n_duplicated": 40141,
+        "n_unique": 4808
+      },
+      "pooled_matched_difference": 0.0,
+      "pooled_weights": "min(число дубликатов, число одиночек) в корзине",
+      "buckets_with_contrast": 1,
+      "n_buckets": 6
+    },
+    "provenance": {
+      "loop_units": {
+        "n_units": 177,
+        "found_in_dataset": 29,
+        "found_share": 0.1638,
+        "taught_as_pattern": 0,
+        "taught_share": 0.0,
+        "occurrences_median": 0,
+        "occurrences_p90": 12,
+        "examples_median": 0,
+        "top": [
+          {
+            "unit": "<think> Для ответа на",
+            "state": "sft_1000",
+            "tag": "general_reasoning",
+            "reps_in_generation": 34,
+            "occurrences": 1366,
+            "examples": 1233,
+            "max_in_example": 2
+          },
+          {
+            "unit": "Для ответа на вопрос",
+            "state": "sft_2000",
+            "tag": "general_language",
+            "reps_in_generation": 67,
+            "occurrences": 1366,
+            "examples": 1233,
+            "max_in_example": 2
+          },
+          {
+            "unit": "В отличие от стандартного",
+            "state": "sft_1000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 34,
+            "occurrences": 754,
+            "examples": 649,
+            "max_in_example": 4
+          },
+          {
+            "unit": "с первого поискового запроса.",
+            "state": "sft_4500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 168,
+            "occurrences": 276,
+            "examples": 276,
+            "max_in_example": 1
+          },
+          {
+            "unit": "с первого поискового запроса.",
+            "state": "sft_4500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 47,
+            "occurrences": 276,
+            "examples": 276,
+            "max_in_example": 1
+          },
+          {
+            "unit": "Нужно вызвать инструмент ещё",
+            "state": "sft_1500",
+            "tag": "domain_tool",
+            "reps_in_generation": 150,
+            "occurrences": 126,
+            "examples": 126,
+            "max_in_example": 1
+          },
+          {
+            "unit": "который может быть использован",
+            "state": "sft_1500",
+            "tag": "domain_tool",
+            "reps_in_generation": 54,
+            "occurrences": 76,
+            "examples": 70,
+            "max_in_example": 2
+          },
+          {
+            "unit": "для оценки безопасности, а",
+            "state": "sft_3000",
+            "tag": "domain_tool",
+            "reps_in_generation": 38,
+            "occurrences": 76,
+            "examples": 62,
+            "max_in_example": 2
+          },
+          {
+            "unit": "могут быть использованы для",
+            "state": "sft_500",
+            "tag": "domain_tool",
+            "reps_in_generation": 276,
+            "occurrences": 61,
+            "examples": 61,
+            "max_in_example": 1
+          },
+          {
+            "unit": "Нужно упомянуть slug-и. Нужно",
+            "state": "sft_1500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 40,
+            "occurrences": 34,
+            "examples": 34,
+            "max_in_example": 1
+          },
+          {
+            "unit": "grpo использует advantage_estimation как",
+            "state": "sft_3500",
+            "tag": "domain_tool",
+            "reps_in_generation": 84,
+            "occurrences": 30,
+            "examples": 30,
+            "max_in_example": 1
+          },
+          {
+            "unit": "что модель не может",
+            "state": "sft_3000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 64,
+            "occurrences": 28,
+            "examples": 28,
+            "max_in_example": 1
+          },
+          {
+            "unit": "позволяет модели обучаться на",
+            "state": "sft_500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 30,
+            "occurrences": 24,
+            "examples": 24,
+            "max_in_example": 1
+          },
+          {
+            "unit": "- Набор данных D",
+            "state": "sft_1000",
+            "tag": "domain_tool",
+            "reps_in_generation": 539,
+            "occurrences": 18,
+            "examples": 18,
+            "max_in_example": 1
+          },
+          {
+            "unit": "- Набор данных D",
+            "state": "sft_1000",
+            "tag": "domain_tool",
+            "reps_in_generation": 532,
+            "occurrences": 18,
+            "examples": 18,
+            "max_in_example": 1
+          },
+          {
+            "unit": "- Набор данных D",
+            "state": "sft_2000",
+            "tag": "domain_tool",
+            "reps_in_generation": 530,
+            "occurrences": 18,
+            "examples": 18,
+            "max_in_example": 1
+          },
+          {
+            "unit": "Нужно дать финальный ответ.",
+            "state": "sft_2000",
+            "tag": "domain_tool",
+            "reps_in_generation": 56,
+            "occurrences": 14,
+            "examples": 14,
+            "max_in_example": 1
+          },
+          {
+            "unit": "что приводит к коллапсу",
+            "state": "sft_6000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 31,
+            "occurrences": 12,
+            "examples": 8,
+            "max_in_example": 2
+          },
+          {
+            "unit": "что приводит к коллапсу",
+            "state": "sft_resume_6000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 31,
+            "occurrences": 12,
+            "examples": 8,
+            "max_in_example": 2
+          },
+          {
+            "unit": "ответов на основе их",
+            "state": "sft_2500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": 150,
+            "occurrences": 10,
+            "examples": 10,
+            "max_in_example": 1
+          }
+        ]
+      },
+      "control_units": {
+        "n_units": 527,
+        "found_in_dataset": 186,
+        "found_share": 0.3529,
+        "taught_as_pattern": 0,
+        "taught_share": 0.0,
+        "occurrences_median": 0,
+        "occurrences_p90": 2438,
+        "examples_median": 0,
+        "top": [
+          {
+            "unit": "</think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 47755,
+            "examples": 36250,
+            "max_in_example": 2
+          },
+          {
+            "unit": "<think> The user asks",
+            "state": "sft_1500",
+            "tag": "instruction",
+            "reps_in_generation": null,
+            "occurrences": 26003,
+            "examples": 23388,
+            "max_in_example": 3
+          },
+          {
+            "unit": "<think> The user asks",
+            "state": "sft_3000",
+            "tag": "instruction",
+            "reps_in_generation": null,
+            "occurrences": 26003,
+            "examples": 23388,
+            "max_in_example": 3
+          },
+          {
+            "unit": "<think> The user asks",
+            "state": "sft_4000",
+            "tag": "instruction",
+            "reps_in_generation": null,
+            "occurrences": 26003,
+            "examples": 23388,
+            "max_in_example": 3
+          },
+          {
+            "unit": "<think> The user asks",
+            "state": "sft_6000",
+            "tag": "instruction",
+            "reps_in_generation": null,
+            "occurrences": 26003,
+            "examples": 23388,
+            "max_in_example": 3
+          },
+          {
+            "unit": "<think> The user asks",
+            "state": "sft_resume_6000",
+            "tag": "instruction",
+            "reps_in_generation": null,
+            "occurrences": 26003,
+            "examples": 23388,
+            "max_in_example": 3
+          },
+          {
+            "unit": "## Отличие от альтернативы",
+            "state": "sft_4500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 9526,
+            "examples": 5248,
+            "max_in_example": 4
+          },
+          {
+            "unit": "complexity: low - estimated_time:",
+            "state": "sft_2500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 5248,
+            "examples": 3658,
+            "max_in_example": 4
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_1000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_3000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_3000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_3500",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_4000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_4000",
+            "tag": "domain_knowledge",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          },
+          {
+            "unit": "<think> <tool_call>{\"name\": \"search_concepts\", \"query\":",
+            "state": "sft_4000",
+            "tag": "domain_tool",
+            "reps_in_generation": null,
+            "occurrences": 4476,
+            "examples": 4476,
+            "max_in_example": 1
+          }
+        ]
+      },
+      "ratio_median_occurrences": null,
+      "reading": "юнит петли — самая частая 4-грамма зацикленной генерации (top4gram той же метрики); контроль — уникальные 4-граммы той же генерации. «Найден в наборе» без контроля ничего не значит: русская фраза из четырёх частых слов найдётся всегда, поэтому сравнивать надо с контролем"
+    },
+    "verdict": {
+      "rules_evaluated": [
+        {
+          "rule": "если внутри корзин длины разница долей петлевых (дубликат − одиночка) ≤ 0.01 хотя бы в 4 корзинах из 6 И общая разница > 0.01 — контраст объясняется длиной, а не дубликатностью",
+          "key": "length_controlled",
+          "observed": {
+            "pooled_matched_difference": 0.0,
+            "overall_difference": 0.0162,
+            "buckets_with_contrast": 1,
+            "n_buckets": 6
+          },
+          "fired": true
+        },
+        {
+          "rule": "если доля юнитов петель, встречающихся в наборе повтором (reps ≥ 8 внутри одного примера) ≥ 0.3 — образец петли в наборе есть",
+          "key": "taught_pattern",
+          "observed": {
+            "taught_share": 0.0,
+            "n_taught": 0,
+            "n_units": 177
+          },
+          "fired": false
+        },
+        {
+          "rule": "если доля юнитов петель, найденных в наборе хотя бы раз, ≥ 0.5 при медианной кратности в наборе ≥ 2× медианной кратности контроля — юниты петли в наборе есть и они там частотнее контроля",
+          "key": "memorized_fragment",
+          "observed": {
+            "found_share": 0.1638,
+            "ratio_median_occurrences": null
+          },
+          "fired": false
+        }
+      ],
+      "fired": [
+        {
+          "key": "length_controlled",
+          "name": "длина объясняет контраст «дубликат против одиночки»",
+          "consequence": "дедупликация как средство от петель данных не подтверждается: она уберёт длинные тексты вместе с петлями"
+        }
+      ],
+      "not_fired": [
+        "taught_pattern",
+        "memorized_fragment"
+      ],
+      "note": "вердикт считается правилами выше; несработавшее правило остаётся в отчёте — иначе отрицательный результат выглядел бы как отсутствие вопроса"
+    },
+    "caveats": [
+      "петлевость примера — свойство ТЕКСТА набора, а не модели: прибор не утверждает, что зацикливание генераций вызвано данными",
+      "юниты взяты из greedy-генераций прежних замеров (S3ak): штатный режим (запрет повторов 4-грамм) петлю снимает механически, и юнитов в нём нет по построению — вопрос «откуда петля» задаётся там, где петля есть",
+      "дубликат — совпадение нормализованного текста, а не смысловое",
+      "контроль берётся из той же генерации, что и юнит, но контрольных юнитов в 3 раза больше — доли сравнимы, абсолютные числа нет",
+      "порог петель 8 повторов 4-граммы грубый намеренно (тот же, что у генераций): задача — отделить вырождение от длинного честного текста"
+    ],
+    "reading": "подготовка решения, а не решение: прибор даёт числа, на которых решение о работе с данными принимается или отклоняется"
+  },
+  "fitness_gate": {
+    "available": true,
+    "command": "arch-be control check --json .",
+    "summary": "Правил: 21, нарушений: 2 (error: 2, warn: 0)",
+    "passed": false,
+    "violations": [
+      "AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки",
+      "AD-1: отчёт результата несёт ось, mean±std по сидам, k-из-k, n попыток и анти-метрики дегенерации"
+    ],
+    "baseline": {
+      "how": "тот же гейт на дереве HEAD: git archive HEAD | tar -x -C <tmp>; скопирован только .arch-handoff/ (он не в git)",
+      "available": true,
+      "summary": "Правил: 21, нарушений: 2 (error: 2, warn: 0)",
+      "violations": [
+        "AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки",
+        "AD-1: отчёт результата несёт ось, mean±std по сидам, k-из-k, n попыток и анти-метрики дегенерации"
+      ]
+    },
+    "new_violations": [],
+    "no_new_violations": true,
+    "why_state_dependent": "AD-9 (память стенда) читает **живую** стадию на GB10: в одном и том же дереве проверка даёт то 32.5 ГБ (отказ), то 60.4–66.3 ГБ (можно стартовать) — это состояние стенда, а не результат дельты",
+    "reports": [
+      "runs/s3al-decoding-protocol-20260918/fitness_gate.json",
+      "runs/s3al-decoding-protocol-20260918/fitness_gate_baseline_head.json"
+    ]
+  },
+  "tests": {
+    "available": true,
+    "log": "runs/s3al-decoding-protocol-20260918/tool_tests.log",
+    "log_sha256": "aa9fed542dc05a013c6bddb6b82aa1bbc8adaa9fb23c8cc878531fe97c940586",
+    "tally": "  - пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1",
+    "failures": [
+      "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1"
+    ],
+    "known_red": [
+      "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1"
+    ],
+    "known_red_source": "evidence/s3aj-format-validity.json",
+    "failures_outside_known_red": [],
+    "s3al_checks": 11
+  },
+  "blocked": {
+    "what": "замер языка при штатном режиме на n ≥ 100",
+    "why": "локальная RTX 4080 SUPER перестала принимать CUDA-контексты после ошибки драйвера Xid 31 (MMU fault, 18.09.2026 06:13): cuInit -> CUDA_ERROR_UNKNOWN; прогон на CPU измерен и отклонён (2.8 ток/с, то есть ~20 ч на одно состояние); стенд GB10 не занимался (AD-5)",
+    "unblocks": "локальное устройство снова принимает CUDA-контекст (`nvidia-smi -i 0 -r` не поможет: карта объявлена primary, сброс запрещён; помогает перезагрузка модулей `nvidia_uvm` или машины) — цепочка runs/s3al-decoding-protocol-20260918/chain.sh готова и запускается одной командой",
+    "resume": [
+      "bash runs/s3al-decoding-protocol-20260918/chain.sh",
+      "python3 tools/assemble_s3al_evidence.py --out evidence/s3al-decoding-protocol.json"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "tools/probe_language_split.py",
+      "sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+      "role": "прибор: штатный режим и отказ на прогон без запрета повторов",
+      "exists": true
+    },
+    {
+      "path": "tools/analyze_loop_repetition.py",
+      "sha256": "8b0f717330df13d006400951acaeaf11c01f25b96bb4d92b8d9ff6cf103cf05e",
+      "role": "прибор: повторы в данных (длина + происхождение юнитов петель)",
+      "exists": true
+    },
+    {
+      "path": "tools/assemble_s3al_evidence.py",
+      "sha256": "738fa8b551ccefa8b6e96ef04ec1c1c265696e3485a7e82ef69048b7a8056142",
+      "role": "свод (этот файл собран им)",
+      "exists": true
+    },
+    {
+      "path": "tools/tests/run_tool_tests.sh",
+      "sha256": "8b3968d9cd9379539a788ed259dbd8da85f2c99ae642975162acc2d259a7b3ae",
+      "role": "тесты приборов (зелёный и красный путь)",
+      "exists": true
+    },
+    {
+      "path": "docs/specs/SFT-STAGE-PLAN.md",
+      "sha256": "cc8973e0e9f07d46e773fbe9ee34b74e692aba934e84df6d144573b50320f14d",
+      "role": "план стадии: раздел 11",
+      "exists": true
+    },
+    {
+      "path": "runs/s3al-decoding-protocol-20260918/chain.sh",
+      "sha256": "f0764a61bf6d80bb0aa80a9cb64a061db09c85a4064761f1f72c6a0608b7521b",
+      "role": "цепочка замеров (объявлена целиком, ждёт устройства)",
+      "exists": true
+    },
+    {
+      "path": "runs/s3al-decoding-protocol-20260918/loops_in_data.json",
+      "sha256": "206a0dbf257431f2d49e8cf48e4634304f3b460489d40bb6f89d23ac1e182d71",
+      "role": "числа повторов в данных",
+      "exists": true
+    },
+    {
+      "path": "runs/s3al-decoding-protocol-20260918/device_check_cpu.json",
+      "sha256": "497134dadba774ff54a28967d9d75a6a841913a42be052d265cfa003c9b81a43",
+      "role": "проверка подмены устройства (CPU отклонён числом)",
+      "exists": true
+    },
+    {
+      "path": "runs/s3al-decoding-protocol-20260918/tool_tests.log",
+      "sha256": "aa9fed542dc05a013c6bddb6b82aa1bbc8adaa9fb23c8cc878531fe97c940586",
+      "role": "прогон тестов",
+      "exists": true
+    }
+  ],
+  "open_questions": [
+    "вердикт по языку при n ≥ 100 не получен, пока устройство недоступно: числа пилота (24 пробы) лежат в language, и они не вердикт",
+    "агентная проба (`tools/passrate_probe.py`) декодирует своим циклом (temperature 1.0, top_k 20) и запрета повторов не знает: распространяется ли штатный режим на неё — решение архитектора, а не прибора",
+    "порог «реальный дефект» 0.5 взят тем же, что граница «русского ответа» в ADR-039; если у формата должна быть своя граница, её надо объявить отдельно",
+    "штатный режим закреплён константой прибора и разделом 11 плана; нужен ли на него отдельный ADR (или этого достаточно) — решение архитектора"
+  ]
+}

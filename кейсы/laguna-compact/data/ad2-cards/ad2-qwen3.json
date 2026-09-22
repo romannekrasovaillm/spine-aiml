@@ -1,0 +1,313 @@
+{
+ "card": "ad2-ladder-qwen3",
+ "schema": "ad2-model-card/1",
+ "date": "2026-09-22",
+ "constraint": "AD-2 (прогон без манифеста не является доказательством) + AD-7 (состав данных — версионируемый конфиг). Новый файл: существующие карточки и наборы не правятся (AD-7)",
+ "family": "qwen3",
+ "ladder_role": "позиции волны В-1 (класс ≤1B): qwen3-06b; прочие позиции семейства: qwen3-17b — В-5, qwen3-4b — В-5, qwen3-8b — В-5",
+ "bases": [
+  {
+   "short": "qwen3-06b",
+   "hf_id": "Qwen/Qwen3-0.6B",
+   "wave": "В-1 (класс ≤1B)",
+   "verdict": "есть",
+   "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B",
+   "layout": "hf-hub (snapshots/)",
+   "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+   "weights_bytes": 1503300328,
+   "params_estimate_b": 0.752,
+   "weights_sha256": {
+    "model.safetensors": {
+     "bytes": 1503300328,
+     "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+     "blob_name_equals_sha256": true
+    }
+   },
+   "config": {
+    "model_type": "qwen3",
+    "architectures": [
+     "Qwen3ForCausalLM"
+    ],
+    "transformers_version": "4.51.0",
+    "vocab_size": 151936,
+    "hidden_size": 1024,
+    "num_hidden_layers": 28,
+    "max_position_embeddings": 40960,
+    "modality": []
+   },
+   "integrity": {
+    "safetensors_headers_valid": true,
+    "index_present": false,
+    "index_matches_shards": false,
+    "sha256_taken_here": true,
+    "blob_names_carry_sha256": "проверено равенством",
+    "no_incomplete_files": true
+   },
+   "tokenizer_facts": {
+    "vocab_size_dict": 151643,
+    "added_tokens": 26,
+    "special_v12_native_single_id": [
+     "</think>",
+     "</tool_call>",
+     "</tool_response>",
+     "<think>",
+     "<tool_call>",
+     "<tool_response>"
+    ],
+    "special_v12_added_by_pipeline": [],
+    "special_declared_single_id": [],
+    "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+   },
+   "source": "evidence/ladder-weights-inventory.json (прибор tools/inventory_stand_weights.py, read-only замер на стенде)"
+  },
+  {
+   "short": "qwen3-17b",
+   "hf_id": "Qwen/Qwen3-1.7B",
+   "wave": "В-5",
+   "verdict": "есть",
+   "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B",
+   "layout": "hf-hub (snapshots/)",
+   "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+   "weights_bytes": 4063515592,
+   "params_estimate_b": 2.032,
+   "weights_sha256": {
+    "model-00001-of-00002.safetensors": {
+     "bytes": 3441185608,
+     "sha256": "169ad53ec313c3a34b06c0809216e4fc072cce444a5d4ff2b59690d064130ed5",
+     "blob_name_equals_sha256": true
+    },
+    "model-00002-of-00002.safetensors": {
+     "bytes": 622329984,
+     "sha256": "912becff8d60672aa8628ef08c05898d9adf17c2ad4ae3caf99b065622fdeff9",
+     "blob_name_equals_sha256": true
+    }
+   },
+   "config": {
+    "model_type": "qwen3",
+    "architectures": [
+     "Qwen3ForCausalLM"
+    ],
+    "transformers_version": "4.51.0",
+    "vocab_size": 151936,
+    "hidden_size": 2048,
+    "num_hidden_layers": 28,
+    "max_position_embeddings": 40960,
+    "modality": []
+   },
+   "integrity": {
+    "safetensors_headers_valid": true,
+    "index_present": true,
+    "index_matches_shards": true,
+    "sha256_taken_here": true,
+    "blob_names_carry_sha256": "проверено равенством",
+    "no_incomplete_files": true
+   },
+   "tokenizer_facts": {
+    "vocab_size_dict": 151643,
+    "added_tokens": 26,
+    "special_v12_native_single_id": [
+     "</think>",
+     "</tool_call>",
+     "</tool_response>",
+     "<think>",
+     "<tool_call>",
+     "<tool_response>"
+    ],
+    "special_v12_added_by_pipeline": [],
+    "special_declared_single_id": [],
+    "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+   },
+   "source": "evidence/ladder-weights-inventory.json (прибор tools/inventory_stand_weights.py, read-only замер на стенде)"
+  },
+  {
+   "short": "qwen3-4b",
+   "hf_id": "Qwen/Qwen3-4B",
+   "wave": "В-5",
+   "verdict": "есть",
+   "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-4B",
+   "layout": "hf-hub (snapshots/)",
+   "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+   "weights_bytes": 8044982000,
+   "params_estimate_b": 4.022,
+   "weights_sha256": {
+    "model-00001-of-00003.safetensors": {
+     "bytes": 3957900840,
+     "sha256": "328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223",
+     "blob_name_equals_sha256": true
+    },
+    "model-00002-of-00003.safetensors": {
+     "bytes": 3987450520,
+     "sha256": "6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5",
+     "blob_name_equals_sha256": true
+    },
+    "model-00003-of-00003.safetensors": {
+     "bytes": 99630640,
+     "sha256": "e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1",
+     "blob_name_equals_sha256": true
+    }
+   },
+   "config": {
+    "model_type": "qwen3",
+    "architectures": [
+     "Qwen3ForCausalLM"
+    ],
+    "transformers_version": "4.51.0",
+    "vocab_size": 151936,
+    "hidden_size": 2560,
+    "num_hidden_layers": 36,
+    "max_position_embeddings": 40960,
+    "modality": []
+   },
+   "integrity": {
+    "safetensors_headers_valid": true,
+    "index_present": true,
+    "index_matches_shards": true,
+    "sha256_taken_here": true,
+    "blob_names_carry_sha256": "проверено равенством",
+    "no_incomplete_files": true
+   },
+   "tokenizer_facts": {
+    "vocab_size_dict": 151643,
+    "added_tokens": 26,
+    "special_v12_native_single_id": [
+     "</think>",
+     "</tool_call>",
+     "</tool_response>",
+     "<think>",
+     "<tool_call>",
+     "<tool_response>"
+    ],
+    "special_v12_added_by_pipeline": [],
+    "special_declared_single_id": [],
+    "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+   },
+   "source": "evidence/ladder-weights-inventory.json (прибор tools/inventory_stand_weights.py, read-only замер на стенде)"
+  },
+  {
+   "short": "qwen3-8b",
+   "hf_id": "Qwen/Qwen3-8B",
+   "wave": "В-5",
+   "verdict": "нет (пустой снапшот)",
+   "note": "весов нет: /home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen3-8B — пустой снапшот (файлов нет вовсе)"
+  }
+ ],
+ "tokenizer": {
+  "tag": "qwen3",
+  "hf_id": "Qwen/Qwen3-0.6B",
+  "hf_id_source": "run_v12_ladder.sh:194 (case в преток-блоке)",
+  "tokenizer_json_sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+  "vocab_size": 151643,
+  "added_tokens": 26,
+  "special_v12_single_id_natively": [
+   "</think>",
+   "</tool_call>",
+   "</tool_response>",
+   "<think>",
+   "<tool_call>",
+   "<tool_response>"
+  ],
+  "special_v12_added_by_pipeline": [],
+  "contract": "AD-3 / C-008: 6 токенов формата v12 обязаны маппиться в единый id в обучающем кэше. Токены, которых нет в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens) — единый id обеспечен им, а не HF-репозиторием",
+  "one_tokenizer_per_family": true
+ },
+ "sets": {
+  "cpt_mix": {
+   "name": "cpt_corpus_v12r",
+   "path": "/home/user/gb10-shared/datasets/cpt_corpus_v12r.txt",
+   "cache": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy",
+   "sha256_by_tag": {
+    "cpt_corpus_v12r_8192_qwen25.npy": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+    "cpt_corpus_v12r_8192_qwen3.npy": "13f2812c47027715ca0b1cf39c5ef6ce2521006f04b5b7de7248effcd682e029",
+    "cpt_corpus_v12r_8192_qwen35.npy": "301c8ae65c8f8770e090eb119fa8a8947cfa884e14d625d1b6b717e0a8b440ff",
+    "cpt_corpus_v10.1_8192_qwen25.npy": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+   },
+   "mix": {
+    "domain_chunks": 7332,
+    "replay_chunks": 2444,
+    "chunks": 9776,
+    "tokens": 80084992,
+    "tokens_human": "≈80.1M",
+    "chunk_len": 8192,
+    "mix_domain_ratio": 0.75,
+    "mix_replay_ratio": 0.25,
+    "seed": 42,
+    "shuffle": "numpy RandomState(42).shuffle по оси чанков (chunk-level, после конкатенации домен+реплей)",
+    "arithmetic": "7332 × 8192 = 60063744 домен; 2444 × 8192 = 20021248 реплей; сумма 80084992"
+   },
+   "card": "data/corpus-card.json (не правится)"
+  },
+  "sft": {
+   "name": "sft-dataset-v13-fixed",
+   "path": "/home/user/gb10-shared/datasets/sft_train_v13_fixed.jsonl",
+   "sha256_full": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+   "examples": 44105,
+   "max_len": 8192,
+   "normalizer": "tools/normalize_sft_dataset.py (правила R1–R7, журнал правок, --verify)",
+   "card": "data/sft-card-v13.json (не правится)"
+  },
+  "eval_tasks": {
+   "name": "eval_ood_clean",
+   "path": "/home/user/gb10-shared/datasets/eval_ood_clean.jsonl",
+   "sha256": "f94fb8556cabf3d5386fec1569dfd5e4e796b15c97dfc935bf7bd8f9879bb1d6",
+   "tasks": 192,
+   "task_type": "ood_pair",
+   "verifier": "multi_slug_match",
+   "role": "набор задач оси лесенки (judge_mean/slug_accuracy)"
+  },
+  "eval_ppl": {
+   "k1": {
+    "path": "general_eval_v3.txt",
+    "docs": 200,
+    "role": "общий язык в жанре реплея"
+   },
+   "k2": {
+    "path": "general_eval_k2.txt",
+    "docs": 200,
+    "role": "общий язык вне распределения"
+   },
+   "domain": {
+    "path": "domain_eval_v3.txt",
+    "docs": 200,
+    "role": "домен, отношение к базе < 1"
+   }
+  }
+ },
+ "tokens_cache": {
+  "present": [
+   {
+    "path": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy",
+    "name": "cpt_corpus_v12r_8192_qwen3.npy",
+    "exists": true,
+    "bytes": 320340096,
+    "sha256": "13f2812c47027715ca0b1cf39c5ef6ce2521006f04b5b7de7248effcd682e029",
+    "sha256_note": "снят прибором",
+    "stage": "cpt",
+    "role": "CPT-микс v12r (домен+реплей), вход CPT-стадии"
+   }
+  ],
+  "missing": [
+   {
+    "stage": "sft",
+    "name": "sft_train_v13_fixed_8192_qwen3.npz",
+    "role": "SFT-набор v13_fixed, вход SFT-стадии",
+    "state": "не собран (цена Н-1 плана §7)"
+   }
+  ],
+  "audited_at_tok_dir": "/home/user/gb10-shared/datasets/tok",
+  "legacy_recipe_cache": {
+   "path": "/home/user/gb10-shared/datasets/tok/sft_train_v12_8192_qwen3.npz",
+   "name": "sft_train_v12_8192_qwen3.npz",
+   "exists": true,
+   "bytes": 2945778272,
+   "sha256": "84df9a9173b9407cd5fd1e41693f639edb27616a49d9cbaa4a64beec20daef17",
+   "sha256_note": "снят прибором",
+   "note": "исторический рецепт (`run_v12_ladder.sh` зовёт сегодня именно его): наличие этого файла НЕ закрывает вход волны — вход объявлен как v13_fixed (§7 Н-1 плана)"
+  }
+ },
+ "limits": [
+  "Карточка описывает ПРЕДМЕТ стадии (база/набор/токенизатор), а не прогон: тождество конкретного прогона доказывает манифест (C-012).",
+  "sha256 кэшей снят прибором: да.",
+  "Наличие весов на стенде проверено в двух сторах; отсутствие в общем сторе не означает отсутствия на стенде и наоборот.",
+  "Архитектура qwen3_5: загрузка в стек (transformers/vLLM) карточкой НЕ доказана — это load-test фазы В-1 (требует стенда)."
+ ]
+}

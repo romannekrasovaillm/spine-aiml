@@ -1,0 +1,24 @@
+# Fitness-правила учебного ML-эксперимента (офлайн-демо).
+# Подмножество инвариантов пресета ml-researcher (aiml/presets/ml-researcher/SPINE-ML.md):
+# ML-06 (воспроизводимость) и ML-09 (бюджет прогона).
+# Прогон: arch-ml control check . --constraints CONSTRAINTS.yaml
+constraints:
+  - id: ML-06a
+    name: seed_declared
+    type: must_contain
+    glob: "train*.py"
+    pattern: "(?i)seed\\s*="
+    severity: critical
+
+  - id: ML-06b
+    name: run_manifest_present
+    type: file_exists
+    path: "run-manifest.yaml"
+    severity: critical
+
+  - id: ML-09a
+    name: budget_declared
+    type: must_contain
+    glob: "run-manifest.yaml"
+    pattern: "budget"
+    severity: critical

@@ -1674,7 +1674,7 @@ workspace "Чужая система" {
         shop = softwareSystem "Магазин" {
             web = container "Web UI" "фронт" "React"
         }
-        pay = softwareSystem "Платёжный провайдер" {
+        pay = softwareSystem "Провайдер инференса" {
             tags "External"
         }
         shop -> pay "charges card"
@@ -1702,11 +1702,11 @@ workspace "Чужая система" {
         assert_eq!(by_title.len(), 3, "person пропущен: {report:?}");
         assert_eq!(by_title["Магазин"].kind, EntityKind::Sys);
         assert_eq!(by_title["Web UI"].kind, EntityKind::Cmp);
-        assert_eq!(by_title["Платёжный провайдер"].kind, EntityKind::Int);
+        assert_eq!(by_title["Провайдер инференса"].kind, EntityKind::Int);
         // ID синтезированы по типу в порядке документа.
         assert_eq!(by_title["Магазин"].id, "SYS-001");
         assert_eq!(by_title["Web UI"].id, "CMP-001");
-        assert_eq!(by_title["Платёжный провайдер"].id, "INT-001");
+        assert_eq!(by_title["Провайдер инференса"].id, "INT-001");
         // Статус по умолчанию; описание — в тело.
         assert_eq!(by_title["Магазин"].status, "imported");
         // Чужие описания связей → depends_on; битая связь — предупреждение.

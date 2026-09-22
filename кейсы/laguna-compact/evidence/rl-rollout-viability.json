@@ -1,0 +1,516 @@
+{
+  "schema": "rl-rollout-viability/1",
+  "status": "diagnosis_complete_measurement_partial",
+  "status_note": "условие отказа, корень и починка установлены; измерение режима сэмплирования не снято (устройство мертво), поэтому числа есть только по штатному режиму — и это названо в answer и not_checked, а не подразумевается",
+  "created_at": "2026-09-21T10:36:02.347178+00:00",
+  "tool": "tools/assemble_rl_rollout_viability.py",
+  "tool_sha256": "0a4d0ecb29a8b7530a723f40cf7dfa13b9850154120fd1d53f0d822e656c0990",
+  "question": "при каком условии падал режим сэмплирования V3, что это было — прибор, окружение или модель — и пригодны ли траектории rollout'а для RL",
+  "answer": {
+    "thresholds": {
+      "viable_at_or_above": 0.8,
+      "partial_at_or_above": 0.5,
+      "note": "пороги объявлены до счёта (см. константы свода)"
+    },
+    "sample_arm_measured": false,
+    "rows": [
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/greedy_format_wide_4096_pair.json",
+        "state": "sft_v13_21500",
+        "budget": 4096,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 35,
+        "share": 0.33653846153846156,
+        "truncated_share": 0.47115384615384615,
+        "natural_stop_share": 0.5288461538461539,
+        "unclosed_think_share_among_natural": 0.36363636363636365,
+        "looped_share": 0.057692307692307696,
+        "saturated": true,
+        "format_verdict_issuable": false
+      },
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/greedy_format_wide_4096_pair.json",
+        "state": "cfinal",
+        "budget": 4096,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 66,
+        "share": 0.6346153846153846,
+        "truncated_share": 0.04807692307692308,
+        "natural_stop_share": 0.9519230769230769,
+        "unclosed_think_share_among_natural": 0.3333333333333333,
+        "looped_share": 0.009615384615384616,
+        "saturated": false,
+        "format_verdict_issuable": true
+      },
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+        "state": "cfinal",
+        "budget": 8192,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 68,
+        "share": 0.6538461538461539,
+        "truncated_share": 0.019230769230769232,
+        "natural_stop_share": 0.9807692307692307,
+        "unclosed_think_share_among_natural": 0.3333333333333333,
+        "looped_share": 0.009615384615384616,
+        "saturated": false,
+        "format_verdict_issuable": true
+      },
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+        "state": "sft_v13_21500",
+        "budget": 8192,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 36,
+        "share": 0.34615384615384615,
+        "truncated_share": 0.4423076923076923,
+        "natural_stop_share": 0.5576923076923077,
+        "unclosed_think_share_among_natural": 0.3793103448275862,
+        "looped_share": 0.17307692307692307,
+        "saturated": true,
+        "format_verdict_issuable": false
+      }
+    ],
+    "rows_pinned_checkpoint": [
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/greedy_format_wide_4096_pair.json",
+        "state": "sft_v13_21500",
+        "budget": 4096,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 35,
+        "share": 0.33653846153846156,
+        "truncated_share": 0.47115384615384615,
+        "natural_stop_share": 0.5288461538461539,
+        "unclosed_think_share_among_natural": 0.36363636363636365,
+        "looped_share": 0.057692307692307696,
+        "saturated": true,
+        "format_verdict_issuable": false
+      },
+      {
+        "report": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+        "state": "sft_v13_21500",
+        "budget": 8192,
+        "decoding": "greedy_nogram4",
+        "n": 104,
+        "reached": 36,
+        "share": 0.34615384615384615,
+        "truncated_share": 0.4423076923076923,
+        "natural_stop_share": 0.5576923076923077,
+        "unclosed_think_share_among_natural": 0.3793103448275862,
+        "looped_share": 0.17307692307692307,
+        "saturated": true,
+        "format_verdict_issuable": false
+      }
+    ],
+    "verdict": "not_established_sample_arm_not_measured",
+    "text": "Режим сэмплирования на пиннутом чекпойнте 21 500 НЕ ИЗМЕРЕН (устройство мертво: 999 = CUDA_ERROR_UNKNOWN на нижней точке входа драйвера (libcuda.so.1, ctypes), nvidia-smi при этом отвечает), поэтому вердикт о пригодности rollout'ов не выносится. Что известно числом: в штатном режиме (greedy_nogram4, бюджет 4096) до ответа без петель доходят 35 из 104 ходов (0.3365) — ниже порога «годны» 0.8 и ниже порога «годны частично» 0.5; в бюджет упёрлось 0.4712 ходов, то есть по ADR-050 п.4.3 прибор на этом бюджете измеряет бюджет, а не модель. Сэмплирование петлю исторически снижает, а не снимает (S3ak: 0.5417 без запрета → 0.3333 при сэмплировании, другой чекпойнт), поэтому ждать от него числа выше штатного режима оснований нет, но это ожидание, а не измерение",
+    "loop_origin": {
+      "verdict": "own_degeneration",
+      "text": "петли не воспроизводят набор: найдено 3/125 = 0.024 против контроля 7/313 = 0.0224, разрыв 0.0016 ≤ 0.05",
+      "n_loops": 125,
+      "by_region": {
+        "all": 125,
+        "answer": 8,
+        "think": 119,
+        "tool_call": 3
+      },
+      "meaning": "петли штатного режима — собственная дегенерация весов, а не воспроизведение набора: смена режима декодирования их не вылечит, а лишь ослабит (S3ak)"
+    }
+  },
+  "crash": {
+    "facts_source": {
+      "path": "runs/sft-decode-diagnosis-20260920/repro/crash_facts.json",
+      "sha256": "21ad32a641cbc2c8e61e8e6d7ee4e2a6c0dd975e2d07ac91d5b48ceacacfd8c8"
+    },
+    "instrument": {
+      "path": "tools/probe_language_split.py",
+      "sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+      "declared_in_facts": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+      "matches_declared": true,
+      "matches_pinned_instrument": true
+    },
+    "log": {
+      "path": "runs/sft-decode-diagnosis-20260920/v3_sample_t07_p09_rp11.log",
+      "present": true,
+      "sha256": "e2399fbe432b100a2e19b8c1502990a739b06a43085161342f3a891089edb519",
+      "sha256_matches": true,
+      "has_launch_failure": true,
+      "probes_in_log": 24,
+      "probes_declared": 24,
+      "probes_match": true
+    },
+    "journal": {
+      "verifiable": true,
+      "window": "2026-09-21 05:03:00…05:04:00",
+      "lines_checked": [
+        {
+          "line": "Preparing to enter system sleep state S3",
+          "present": true
+        },
+        {
+          "line": "Waking up from system sleep state S3",
+          "present": true
+        },
+        {
+          "line": "Xid (PCI:0000:01:00): 31",
+          "present": true
+        }
+      ],
+      "all_present": true,
+      "raw": [
+        "сен 21 05:03:37 roman-B550-GAMING-X-V2 kernel: ACPI: PM: Preparing to enter system sleep state S3",
+        "сен 21 05:03:37 roman-B550-GAMING-X-V2 kernel: ACPI: PM: Waking up from system sleep state S3",
+        "сен 21 05:03:44 roman-B550-GAMING-X-V2 kernel: NVRM: Xid (PCI:0000:01:00): 31, pid=2340175, name=python3, Ch 00000022, intr 00000000. MMU Fault: ENGINE HOST3 HUBCLIENT_ESC faulted @ 0x2_00224000. Fault is of type FAULT_PDE ACCESS_TYPE_VIRT_READ",
+        "сен 21 05:03:46 roman-B550-GAMING-X-V2 kernel: NVRM: Xid (PCI:0000:01:00): 31, pid='<unknown>', name=<unknown>, Ch 00000013, intr 00000000. MMU Fault: ENGINE HOST2 HUBCLIENT_ESC faulted @ 0x1_21041000. Fault is of type FAULT_PDE ACCESS_TYPE_VIRT_READ"
+      ]
+    },
+    "run": "runs/sft-decode-diagnosis-20260920",
+    "arm": "V3",
+    "arm_cli": "--decoding sample --temperature 0.7 --top-p 0.9 --repetition-penalty 1.1 --max-new-tokens 8192 --batch-size 8 --stop-at-turn-end --prompts wide",
+    "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+    "checkpoint_sha256": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360",
+    "started_at": "2026-09-20 20:30:46",
+    "died_at": "2026-09-21 05:03:46",
+    "python_exception": "RuntimeError: CUDA error: unspecified launch failure",
+    "python_exception_note": "cudaErrorLaunchFailure, а не cudaErrorAssert: в тексте исключения torch сам предлагает «Compile with TORCH_USE_CUDA_DSA to enable device-side assertions» — то есть device-side assert в этой сборке НЕ включён, и отказ пришёл как ошибка запуска ядра",
+    "traceback_site": "transformers/generation/logits_process.py:869, NoRepeatNGramLogitsProcessor._get_ngrams → prev_input_ids[idx].tolist()",
+    "traceback_site_note": "torch предупреждает в самом исключении: «CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect». `.tolist()` — точка синхронизации, а не место отказа: это первое место, где асинхронная ошибка обязана всплыть",
+    "suspend_window": {
+      "entry": "2026-09-21 05:03:37",
+      "exit": "2026-09-21 05:03:37",
+      "kernel_lines": [
+        "ACPI: PM: Preparing to enter system sleep state S3",
+        "ACPI: PM: Waking up from system sleep state S3"
+      ],
+      "mechanism": "systemd-suspend.service (sleep.target → suspend.target), «Operation 'suspend' finished.» — systemd-logind[1300] в 05:03:45; служба потребила 7.35 с CPU",
+      "mechanism_note": "сон шёл через logind/systemd, а не прямой записью в /sys/power/state. Это и есть тот путь, который блокирует `systemd-inhibit --what=sleep --mode=block`: значит у обвязки есть чем снять условие отказа. Прямая запись в /sys/power/state обошла бы запрет — этот случай обвязка не покрывает и не обещает покрыть",
+      "note": "вход и выход в одну секунду: попытка S3, оборванная сразу после отключения не-загрузочных CPU"
+    },
+    "xid_lines": [
+      "NVRM: Xid (PCI:0000:01:00): 31, pid=2340175, name=python3, Ch 00000022, intr 00000000. MMU Fault: ENGINE HOST3 HUBCLIENT_ESC faulted @ 0x2_00224000. Fault is of type FAULT_PDE ACCESS_TYPE_VIRT_READ",
+      "NVRM: Xid (PCI:0000:01:00): 31, pid='<unknown>', name=<unknown>, Ch 00000013, intr 00000000. MMU Fault: ENGINE HOST2 HUBCLIENT_ESC faulted @ 0x1_21041000. Fault is of type FAULT_PDE ACCESS_TYPE_VIRT_READ"
+    ],
+    "xid_times": [
+      "2026-09-21 05:03:44",
+      "2026-09-21 05:03:46"
+    ],
+    "xid_reading": "Xid 31 — аппаратный MMU fault: обращение по виртуальному адресу, для которого нет записи в таблице страниц (FAULT_PDE, ACCESS_TYPE_VIRT_READ). Так выглядит ядро, ушедшее по отображениям контекста CUDA, которых уже нет. Первая строка названа против pid=2340175 (python3) — единственного процесса с живым контекстом CUDA в этот момент: прогон V3 работал до 05:03:46, а финализатор шага 4 начинается в 05:03:46 и позже (chain.log)",
+    "suspend_rarity": "за 2026-09-18…21 в журнале ядра ровно один вход в S3 — этот; совпадение с отказом прогона секунда в секунду",
+    "device_after": {
+      "cuInit": 999,
+      "cuInit_note": "999 = CUDA_ERROR_UNKNOWN на нижней точке входа драйвера (libcuda.so.1, ctypes), nvidia-smi при этом отвечает",
+      "n_devices": 0,
+      "torch_2_5_1": "RuntimeError: CUDA unknown error (torch 2.5.1+cu121)",
+      "torch_2_4_0": "RuntimeError: CUDA unknown error (torch 2.4.0+cu121, другая сборка — отказ не в torch)",
+      "nvidia_smi_after": "карта отвечает, вычислительных процессов 0, Addressing Mode: Unknown Error"
+    },
+    "recovery": {
+      "needed": "перезагрузка модулей ядра NVIDIA или reboot",
+      "command": "sudo rmmod nvidia_uvm nvidia_drm nvidia_modeset nvidia && sudo modprobe nvidia",
+      "why_not_done": "sudo в этой оболочке требует пароль; reboot общего хоста затронул бы параллельные сессии флота — решение владельца машины, не агента"
+    },
+    "probes_completed": 24,
+    "probes_total": 104,
+    "exit_code": 1
+  },
+  "bisection": {
+    "by_probe_index": {
+      "performed": false,
+      "why": "посылка бисекции («падает на определённой пробе») опровергнута фактом: момент отказа задан уходом машины в сон, а не номером пробы. 24 сделанные пробы — это три полных батча по 8, успевшие до 05:03; четвёртый батч (пробы 24…31) стартовал и был оборван отказом устройства. Число 24 объясняется пропускной способностью режима (3 батча за 8 ч 33 мин при бюджете 8192 с запретом 4-грамм), а не тем, что 26-я проба особенная",
+      "check": "число строк-проб в логе = 24 (проверяется сводом)"
+    },
+    "by_decoding_params": {
+      "performed": false,
+      "why": "убирать rp/top-p/температуру имеет смысл, если отказ зависит от параметров сэмплирования. Здесь параметры ни при чём: отказ устройства произошёл в момент S3, а другие плечи в это время не шли (V2 закончился в 20:30, за 8 ч 33 мин до S3, потому и не упал — не потому, что greedy устойчивее). Проверка «падает ли на другом промпте/сиде» также неотделима от устройства: оно мертво с 05:03",
+      "consequence": "бисекция по параметрам вынесена в условия перезапуска (см. rerun_plan), а не выдана за выполненную"
+    },
+    "rerun_plan": {
+      "when": "после восстановления устройства (recovery.command)",
+      "harness": "runs/sft-decode-diagnosis-20260920/repro/repro_decode_crash.py — один батч прибора `generate_all` с тем же сидом (seed = 42 + индекс начала батча), с читающими наблюдателями (NaN/инф в баллах, выход id за диапазон словаря) и построчным сбросом трассы на диск: падение процесса не даёт исключения, которое можно поймать",
+      "guard": "tools/guard_cuda_run.sh вокруг вызова — запрет сна и расписка о состоянии устройства",
+      "what_it_will_settle": "воспроизводится ли отказ на целом устройстве без S3 (ожидание: нет) и нет ли в баллах NaN/инф на этом батче — то есть остаётся ли у прибора или модели хоть какая-то собственная роль"
+    }
+  },
+  "fix": {
+    "instrument_changed": false,
+    "instrument_changed_note": "прибор `tools/probe_language_split.py` не тронут: его sha256 равен 99dafa8d… — тому же, что в решающем отчёте S3aq и в объявленном входе дельты. Правка прибора сломала бы сопоставимость чисел стадии (ADR-041), поэтому причина снята обвязкой, а не правкой замера",
+    "what": "tools/guard_cuda_run.sh — обвязка CUDA-прогона: (1) запрет сна systemd-inhibit --what=sleep --mode=block на время полезной нагрузки (самопроверкой механизма: пустой запуск обязан быть виден в списке держателей), (2) предполётная проверка устройства драйверным cuInit, (3) расписка JSON: состояние устройства до/после, счётчик Xid до/после, число дошедших проб по логу прибора, вердикт и коды возврата",
+    "covers_this_failure": "сон 21.09.2026 шёл через systemd-suspend.service (logind), а logind уважает запрет сна с режимом block — то есть у обвязки есть чем снять именно это условие. Отказ до старта на непригодном устройстве закрывает второй, уже случившийся эффект: следующий прогон не потратит часы на мёртвой карте",
+    "why_this_and_not_restart": "перезапуск лечит следствие и оставляет причину: следующий многочасовой прогон на той же машине умрёт так же. Запрет сна снимает условие отказа, не меняя ни одного измеренного числа",
+    "invocation": "tools/guard_cuda_run.sh --out runs/<run>/guard.json --why \"проба ADR-041\" --probe-log runs/<run>/v3.log -- /usr/bin/python3 tools/probe_language_split.py --prompts wide ...",
+    "red_path": "новый Xid за время прогона или переход устройства «цело → испорчено» → вердикт device_faulted, код 5: числа прогона недействительны",
+    "guard": {
+      "path": "tools/guard_cuda_run.sh",
+      "sha256": "2aaba226d7a6a87d2841fac6fb5d4606545e32238a1f1ff64672ce810a0d162e"
+    }
+  },
+  "metrics": {
+    "source": "tools/analyze_rollout_reach.py (числа не пересчитываются сводом)",
+    "reach": {
+      "schema": "rollout-reach/1",
+      "created_at": "2026-09-21T10:27:28.447534+00:00",
+      "tool": "tools/analyze_rollout_reach.py",
+      "tool_sha256": "7246b6eefd14b7157247cd4187f264a681304d4e267aa0b1b0ffa1f8fda0c4a8",
+      "question": "сколько ходов доходят до ответа без петель — то есть сколько траекторий rollout'а годны для RL",
+      "rule": "stop_reason == turn_end И не metrics.looped И не metrics.unclosed_think (закрытый блок рассуждения обязателен: по правилу прибора незакрытый <think> означает отсутствие ответной части, ADR-045 п.5)",
+      "counts_by": "поля прибора (stop_reason, hit_limit, metrics.looped, metrics.unclosed_think); инструмент их не переизмеряет",
+      "saturation_limit": 0.2,
+      "reports": [
+        {
+          "report": "runs/sft-decode-diagnosis-20260920/reference/greedy_format_wide_4096_pair.json",
+          "report_sha256": "b3479e75463565a05a2de72e6d1f09d2b7c36c94f8ff974405080ad4060703c9",
+          "schema": "probe-language-split/1",
+          "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+          "device": "cuda",
+          "protocol": {
+            "prompts_set": "wide",
+            "n_prompts": 104,
+            "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+            "decoding": "greedy_nogram4",
+            "decoding_params": {
+              "decoding": "greedy",
+              "temperature": 0.7,
+              "top_p": 0.9,
+              "repetition_penalty": null,
+              "no_repeat_ngram": 4,
+              "seed": 42
+            },
+            "batch_size": 8,
+            "max_new_tokens": 4096,
+            "stop_at_turn_end": true,
+            "instrument": 2
+          },
+          "states": {
+            "sft_v13_21500": {
+              "n": 104,
+              "reached_answer_no_loop": 35,
+              "reached_answer_no_loop_share": 0.33653846153846156,
+              "truncated": 49,
+              "truncated_share": 0.47115384615384615,
+              "natural_stop": 55,
+              "natural_stop_share": 0.5288461538461539,
+              "looped": 6,
+              "looped_share": 0.057692307692307696,
+              "looped_among_natural": 0,
+              "looped_share_among_natural": 0.0,
+              "unclosed_think_among_natural": 20,
+              "unclosed_think_share_among_natural": 0.36363636363636365,
+              "stop_reasons": {
+                "turn_end": 55,
+                "limit_in_think": 12,
+                "limit_in_tool_call": 32,
+                "limit_in_tool_response": 1,
+                "limit_in_answer": 4
+              },
+              "lengths": {
+                "median": 1027,
+                "p90": 4096,
+                "max": 4096,
+                "budget": 4096
+              },
+              "saturation": {
+                "limit": 0.2,
+                "share": 0.47115384615384615,
+                "saturated": true,
+                "note": "в бюджет упёрлось ≥ 20 % ходов: прибор измеряет бюджет, а не модель (ADR-050 п.4.3) — вердикт по формату не выносится, а reach читается как нижняя оценка"
+              },
+              "format_verdict_issuable": false,
+              "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+              "checkpoint_sha256": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360"
+            },
+            "cfinal": {
+              "n": 104,
+              "reached_answer_no_loop": 66,
+              "reached_answer_no_loop_share": 0.6346153846153846,
+              "truncated": 5,
+              "truncated_share": 0.04807692307692308,
+              "natural_stop": 99,
+              "natural_stop_share": 0.9519230769230769,
+              "looped": 1,
+              "looped_share": 0.009615384615384616,
+              "looped_among_natural": 0,
+              "looped_share_among_natural": 0.0,
+              "unclosed_think_among_natural": 33,
+              "unclosed_think_share_among_natural": 0.3333333333333333,
+              "stop_reasons": {
+                "turn_end": 99,
+                "limit_in_think": 3,
+                "limit_in_tool_response": 2
+              },
+              "lengths": {
+                "median": 1164,
+                "p90": 2233,
+                "max": 4096,
+                "budget": 4096
+              },
+              "saturation": {
+                "limit": 0.2,
+                "share": 0.04807692307692308,
+                "saturated": false,
+                "note": "доля усечённых ниже порога сатурации: ряд пригоден для вердикта по формату (ADR-050 п.4.3)"
+              },
+              "format_verdict_issuable": true,
+              "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt",
+              "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086"
+            }
+          }
+        },
+        {
+          "report": "runs/sft-decode-diagnosis-20260920/reference/s3aq_format_wide_8192.json",
+          "report_sha256": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a",
+          "schema": "probe-language-split/1",
+          "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+          "device": "cuda",
+          "protocol": {
+            "prompts_set": "wide",
+            "n_prompts": 104,
+            "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+            "decoding": "greedy_nogram4",
+            "decoding_params": {
+              "decoding": "greedy",
+              "temperature": 0.7,
+              "top_p": 0.9,
+              "repetition_penalty": null,
+              "no_repeat_ngram": 4,
+              "seed": 42
+            },
+            "batch_size": 8,
+            "max_new_tokens": 8192,
+            "stop_at_turn_end": true,
+            "instrument": 2
+          },
+          "states": {
+            "cfinal": {
+              "n": 104,
+              "reached_answer_no_loop": 68,
+              "reached_answer_no_loop_share": 0.6538461538461539,
+              "truncated": 2,
+              "truncated_share": 0.019230769230769232,
+              "natural_stop": 102,
+              "natural_stop_share": 0.9807692307692307,
+              "looped": 1,
+              "looped_share": 0.009615384615384616,
+              "looped_among_natural": 0,
+              "looped_share_among_natural": 0.0,
+              "unclosed_think_among_natural": 34,
+              "unclosed_think_share_among_natural": 0.3333333333333333,
+              "stop_reasons": {
+                "turn_end": 102,
+                "limit_in_tool_response": 1,
+                "limit_in_think": 1
+              },
+              "lengths": {
+                "median": 1164,
+                "p90": 2233,
+                "max": 8192,
+                "budget": 8192
+              },
+              "saturation": {
+                "limit": 0.2,
+                "share": 0.019230769230769232,
+                "saturated": false,
+                "note": "доля усечённых ниже порога сатурации: ряд пригоден для вердикта по формату (ADR-050 п.4.3)"
+              },
+              "format_verdict_issuable": true,
+              "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt",
+              "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086"
+            },
+            "sft_v13_21500": {
+              "n": 104,
+              "reached_answer_no_loop": 36,
+              "reached_answer_no_loop_share": 0.34615384615384615,
+              "truncated": 46,
+              "truncated_share": 0.4423076923076923,
+              "natural_stop": 58,
+              "natural_stop_share": 0.5576923076923077,
+              "looped": 18,
+              "looped_share": 0.17307692307692307,
+              "looped_among_natural": 0,
+              "looped_share_among_natural": 0.0,
+              "unclosed_think_among_natural": 22,
+              "unclosed_think_share_among_natural": 0.3793103448275862,
+              "stop_reasons": {
+                "turn_end": 58,
+                "limit_in_think": 10,
+                "limit_in_tool_call": 32,
+                "limit_in_tool_response": 1,
+                "limit_in_answer": 3
+              },
+              "lengths": {
+                "median": 1027,
+                "p90": 8192,
+                "max": 8192,
+                "budget": 8192
+              },
+              "saturation": {
+                "limit": 0.2,
+                "share": 0.4423076923076923,
+                "saturated": true,
+                "note": "в бюджет упёрлось ≥ 20 % ходов: прибор измеряет бюджет, а не модель (ADR-050 п.4.3) — вердикт по формату не выносится, а reach читается как нижняя оценка"
+              },
+              "format_verdict_issuable": false,
+              "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+              "checkpoint_sha256": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360"
+            }
+          }
+        }
+      ],
+      "refused": []
+    },
+    "prior_evidence": {
+      "source": "evidence/s3ak-degeneration.json",
+      "source_sha256": "b4da4570edb74dbb9be40407ec644645e47cf573b29b8bcb9d0afe6591940eb7",
+      "mode": "sample_T0.7_top_p0.9",
+      "state": "sft_resume_6000",
+      "n": 24,
+      "looped_share": 0.3333,
+      "natural_stop_share": 0.625,
+      "unclosed_think_share_natural_stops": 0.8,
+      "mismatches_with_this_delta": [
+        "другой чекпойнт (sft_resume_6000, не 21 500)",
+        "другой набор промптов (n=24, не 104)",
+        "режим сэмплирования без запрета 4-грамм и без repetition_penalty (не тот режим, что просит TASK)"
+      ],
+      "reading": "переносить эти числа на чекпойнт 21 500 нельзя: они говорят о направлении (сэмплирование петлю ослабляет, но не снимает), а не о величине"
+    }
+  },
+  "not_checked": [
+    "чекпойнт 32 600 не мерился — он на стенде GB10, а стенд занят замером тренда петель (loop-trend-20260921) и не трогается",
+    "RL-среда не поднималась: ни rollout'ов, ни награды, ни одного шага обучения — вопрос «годны ли траектории» решается по замерам проб, а не по прогону RL",
+    "режим сэмплирования на пиннутом чекпойнте 21 500 не измерен (устройство мертво); числа greedy — контроль, а не замена измерения",
+    "числа S3ak по сэмплированию сняты на другом чекпойнте (sft_resume_6000), другом наборе промптов (24) и без запрета 4-грамм — переносить их на 21 500 нельзя",
+    "бисекция по номеру пробы и по параметрам декодирования не выполнялась (см. bisection)",
+    "NaN/инф в баллах и выход id за диапазон словаря не проверялись: проверка требует живого прогона, а устройство мертво с 05:03 — наблюдатели под это готовы в repro_decode_crash.py, но их показания не сняты",
+    "проба изоляции (AD-5) и стоимость шага RL на этой машине не перемерялись"
+  ],
+  "artifacts": {
+    "crash_facts": {
+      "path": "runs/sft-decode-diagnosis-20260920/repro/crash_facts.json",
+      "sha256": "21ad32a641cbc2c8e61e8e6d7ee4e2a6c0dd975e2d07ac91d5b48ceacacfd8c8"
+    },
+    "reach_survey": {
+      "path": "runs/sft-decode-diagnosis-20260920/reach_survey.json",
+      "sha256": "e7aeedceae547ff6cfb0d5d05be70e6991569d9f593ffc218425aea3a9aa4790"
+    },
+    "loop_origin": {
+      "path": "runs/sft-decode-diagnosis-20260920/loop_origin_greedy4096.json",
+      "sha256": "604e3d27bf1ce03fe73e62cba786b30625b8f34a539a25c3587da9e940b9d202",
+      "tool": "reference/analyze_loop_origin_s3ar.py",
+      "tool_sha256": "396de79711dd964d83c176914550600f622fbbae01b85e70d2462490bc1a37e7",
+      "tool_provenance": "инструмент взят из ветви arch/sft-loop-origin (коммит 718df3e, S3ar) и не скопирован в эту ветвь: копия дала бы два расходящихся носителя одного инструмента (дрейф флота)"
+    },
+    "crash_log": "runs/sft-decode-diagnosis-20260920/v3_sample_t07_p09_rp11.log",
+    "crash_log_sha256": "e2399fbe432b100a2e19b8c1502990a739b06a43085161342f3a891089edb519",
+    "instrument_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "guard": {
+      "path": "tools/guard_cuda_run.sh",
+      "sha256": "2aaba226d7a6a87d2841fac6fb5d4606545e32238a1f1ff64672ce810a0d162e"
+    }
+  },
+  "input_errors": []
+}

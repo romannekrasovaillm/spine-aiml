@@ -3,7 +3,7 @@ id: AD-7
 type: ad
 title: "Состав корпуса и eval-набор — версионируемый конфиг"
 status: "PROPOSED"
-affects: [C-009, C-010]
+affects: []
 verified_by: [C-009, C-010]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

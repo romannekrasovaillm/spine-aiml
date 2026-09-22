@@ -176,23 +176,20 @@ pub fn run_hook(
             }
         }
     };
-    match exited {
-        Some(status) => {
-            // Нормальное завершение: читающий поток дождётся EOF (пайп держит
-            // только сам процесс) и отдаст stdout.
-            let stdout = reader
-                .and_then(|handle| handle.join().ok())
-                .unwrap_or_default();
-            outcome(hook, status.code().unwrap_or(-1), first_line(&stdout))
-        }
-        None => {
-            // Процесс убит: потомок-внук мог унаследовать пайп и держать его
-            // открытым, поэтому читающий поток НЕ дожидаемся — иначе таймаут
-            // превратился бы в ожидание внука. На таймауте stdout не нужен:
-            // `line` — причина.
-            drop(reader);
-            outcome(hook, -1, format!("таймаут {} с", HOOK_TIMEOUT.as_secs()))
-        }
+    if let Some(status) = exited {
+        // Нормальное завершение: читающий поток дождётся EOF (пайп держит
+        // только сам процесс) и отдаст stdout.
+        let stdout = reader
+            .and_then(|handle| handle.join().ok())
+            .unwrap_or_default();
+        outcome(hook, status.code().unwrap_or(-1), first_line(&stdout))
+    } else {
+        // Процесс убит: потомок-внук мог унаследовать пайп и держать его
+        // открытым, поэтому читающий поток НЕ дожидаемся — иначе таймаут
+        // превратился бы в ожидание внука. На таймауте stdout не нужен:
+        // `line` — причина.
+        drop(reader);
+        outcome(hook, -1, format!("таймаут {} с", HOOK_TIMEOUT.as_secs()))
     }
 }
 
@@ -266,7 +263,10 @@ mod tests {
             plugin: "test".into(),
             event: "intent".into(),
             program,
-            prefix: prefix.iter().map(|s| s.to_string()).collect(),
+            prefix: prefix
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
         }
     }
 

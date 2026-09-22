@@ -10,6 +10,7 @@
 //! Журналы — append-only JSONL в `state/governance/` (путь — `paths.state_dir`).
 //! EU AI Act — только фрейминг; комплаенс-чеклистов здесь нет.
 
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -85,7 +86,6 @@ pub fn govern_record(
         .append(true)
         .open(&path)
         .map_err(|e| HarnessError::io(&path, e))?;
-    use std::io::Write as _;
     writeln!(f, "{line}").map_err(|e| HarnessError::io(&path, e))?;
     Ok(path)
 }
@@ -144,7 +144,6 @@ pub fn accept_set(state_dir: &Path, spec_version: &str, tests: Vec<String>) -> R
         .append(true)
         .open(&path)
         .map_err(|e| HarnessError::io(&path, e))?;
-    use std::io::Write as _;
     writeln!(f, "{line}").map_err(|e| HarnessError::io(&path, e))?;
     Ok(path)
 }

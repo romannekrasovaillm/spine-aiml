@@ -1,0 +1,366 @@
+{
+  "schema": "calib-protocol-audit/1",
+  "node": "calib-protocol-audit",
+  "plan": ".arch-fleet/laguna-analysis.plan.toml",
+  "date": "2026-09-16",
+  "status": "complete",
+  "scope_note": "Сокращённый объём по указанию владельца (бюджет ~20 мин, предыдущий прогон срезан по таймауту): пп.1–3 и вердикт выполнены полностью; п.4 (сверка с ADR-022) выполнен по документам и артефактам, но без прогона flex-паритета (это отдельный стендовый замер, инвариант «стенд не задействовать»).",
+  "artifacts": {
+    "evidence": "evidence/calib-protocol-audit.json",
+    "run_dir": "runs/calib-audit-20260916/",
+    "leak_tool": "runs/calib-audit-20260916/leak_check.py",
+    "leak_raw": "runs/calib-audit-20260916/leak_check.json"
+  },
+
+  "arms": [
+    {
+      "arm": "calib-25-0.35-20260916-0820",
+      "params": {
+        "replay_share_pct": 25, "peak_lr_scale": 0.35, "peak_lr_effective": 1.75e-4,
+        "corpus": "v12r", "corpus_chunks": 9776, "corpus_tokens": 80084992,
+        "dataset_npy": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "cpt_data_manifest": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+        "cpt_data_manifest_sha256": null,
+        "model": "Qwen/Qwen2.5-0.5B", "seed": 42, "steps": 2000, "batch": 1,
+        "max_len": 8192, "max_samples": 50000, "rl_steps": 500,
+        "attn": "flex", "flex_compile": 0, "laguna_mem_fraction": 0.6,
+        "cpt_gen_eval_every": 0,
+        "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+        "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+        "pipeline_patched_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+        "runner": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "tokens_seen": 16384000, "corpus_coverage_pct": 20.45,
+        "domain_tokens_seen": 12288000, "replay_tokens_seen": 4096000,
+        "wall_secs": 4950
+      },
+      "integrity_ok": true,
+      "integrity": {
+        "ship_json_ok": true, "ship_mismatched_field": [],
+        "ship_hashes_reverified": "8/9 совпали; chain_command.txt не совпал (см. differences)",
+        "run_manifest_stages_done": true, "pipeline_complete": true,
+        "checkpoint_final_present": true,
+        "checkpoint_final_bytes": 2963141069,
+        "checkpoint_final_sha256_prefix": "1f9f29f19d262e7b",
+        "intermediate_points_present": [500, 1000, 1500, 2000],
+        "loss_trace_steps": 2000,
+        "grid_member": true
+      }
+    },
+    {
+      "arm": "calib-25-0.7-20260916-0820",
+      "params": {
+        "replay_share_pct": 25, "peak_lr_scale": 0.7, "peak_lr_effective": 3.50e-4,
+        "corpus": "v12r", "corpus_chunks": 9776, "corpus_tokens": 80084992,
+        "dataset_npy": "datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "dataset_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+        "cpt_data_manifest": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+        "cpt_data_manifest_sha256": null,
+        "model": "Qwen/Qwen2.5-0.5B", "seed": 42, "steps": 2000, "batch": 1,
+        "max_len": 8192, "max_samples": 50000, "rl_steps": 500,
+        "attn": "flex", "flex_compile": 0, "laguna_mem_fraction": 0.6,
+        "cpt_gen_eval_every": 0,
+        "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+        "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+        "pipeline_patched_sha256": "ee8341d0f1630e2daf701401323d96408a82ee02f0d852e84e36c420255645fd",
+        "runner": "tools/run_mix_lr_calib.py@49389b65e452",
+        "tokens_seen": 16384000, "corpus_coverage_pct": 20.45,
+        "domain_tokens_seen": 12288000, "replay_tokens_seen": 4096000,
+        "wall_secs": 4936
+      },
+      "integrity_ok": false,
+      "integrity": {
+        "ship_json_ok": null,
+        "ship_json": "ОТСУТСТВУЕТ — AD-2-манифеста хешей доставленных файлов у руки нет",
+        "run_manifest_stages_done": true, "pipeline_complete": true,
+        "checkpoint_final_present": true,
+        "checkpoint_final_bytes": 2963141069,
+        "checkpoint_final_sha256_prefix": "237fd02afbdd479c",
+        "intermediate_points_present": [1000, 1500, 2000],
+        "checkpoint_500": "ОТСУТСТВУЕТ — удалён штатной ретенцией пайплайна (глоб checkpoint_[0-9]*.pt, keep_last=2); см. differences",
+        "loss_trace_steps": 2000,
+        "grid_member": false,
+        "grid_note": "нет в grid-20260916-0820/status.tsv (там только 25-0.35, 50-0.7, 50-0.35); цепочка запускалась отдельно, chain.log: «ЦЕПОЧКА ЗАВЕРШЕНА … done»"
+      }
+    },
+    {
+      "arm": "calib-50-0.35-20260916-0820",
+      "params": {
+        "replay_share_pct": 50, "peak_lr_scale": 0.35, "peak_lr_effective": 1.75e-4,
+        "corpus": "v12r50", "corpus_chunks": 6986, "corpus_tokens": 57229312,
+        "dataset_npy": "datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "cpt_data_manifest": "/workspace/shared/datasets/cpt_corpus_v12r50.txt",
+        "cpt_data_manifest_sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe",
+        "model": "Qwen/Qwen2.5-0.5B", "seed": 42, "steps": 2000, "batch": 1,
+        "max_len": 8192, "max_samples": 50000, "rl_steps": 500,
+        "attn": "flex", "flex_compile": 0, "laguna_mem_fraction": 0.6,
+        "cpt_gen_eval_every": 0,
+        "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+        "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+        "pipeline_patched_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+        "runner": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "tokens_seen": 16384000, "corpus_coverage_pct": 28.64,
+        "domain_tokens_seen": 8192000, "replay_tokens_seen": 8192000,
+        "wall_secs": 5012
+      },
+      "integrity_ok": true,
+      "integrity": {
+        "ship_json_ok": true, "ship_mismatched_field": [],
+        "ship_hashes_reverified": "8/9 совпали; chain_command.txt не совпал (см. differences)",
+        "run_manifest_stages_done": true, "pipeline_complete": true,
+        "checkpoint_final_present": true,
+        "checkpoint_final_bytes": 2963141069,
+        "checkpoint_final_sha256_prefix": "c1866d6f77b78d44",
+        "intermediate_points_present": [500, 1000, 1500, 2000],
+        "loss_trace_steps": 2000,
+        "grid_member": true
+      }
+    },
+    {
+      "arm": "calib-50-0.7-20260916-0820",
+      "params": {
+        "replay_share_pct": 50, "peak_lr_scale": 0.7, "peak_lr_effective": 3.50e-4,
+        "corpus": "v12r50", "corpus_chunks": 6986, "corpus_tokens": 57229312,
+        "dataset_npy": "datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+        "dataset_sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+        "cpt_data_manifest": "/workspace/shared/datasets/cpt_corpus_v12r50.txt",
+        "cpt_data_manifest_sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe",
+        "model": "Qwen/Qwen2.5-0.5B", "seed": 42, "steps": 2000, "batch": 1,
+        "max_len": 8192, "max_samples": 50000, "rl_steps": 500,
+        "attn": "flex", "flex_compile": 0, "laguna_mem_fraction": 0.6,
+        "cpt_gen_eval_every": 0,
+        "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm",
+        "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+        "pipeline_patched_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+        "runner": "tools/run_mix_lr_calib.py@7103e92dae3d",
+        "tokens_seen": 16384000, "corpus_coverage_pct": 28.64,
+        "domain_tokens_seen": 8192000, "replay_tokens_seen": 8192000,
+        "wall_secs": 5102
+      },
+      "integrity_ok": true,
+      "integrity": {
+        "ship_json_ok": true, "ship_mismatched_field": [],
+        "ship_hashes_reverified": "8/9 совпали; chain_command.txt не совпал (см. differences)",
+        "run_manifest_stages_done": true, "pipeline_complete": true,
+        "checkpoint_final_present": true,
+        "checkpoint_final_bytes": 2963141069,
+        "checkpoint_final_sha256_prefix": "b1f650d6fdc5716f",
+        "intermediate_points_present": [500, 1000, 1500, 2000],
+        "loss_trace_steps": 2000,
+        "grid_member": true
+      }
+    }
+  ],
+
+  "differences": [
+    {
+      "id": "D1",
+      "kind": "artifact_provenance",
+      "severity": "high",
+      "arms": ["calib-25-0.7-20260916-0820"],
+      "what": "Рука 25-0.7 отработала на ДРУГОЙ ревизии калибровочного пайплайна: laguna_pipeline_calib.py sha ee8341d0f163 (119566 B) против 1571cbd1043d (119810 B) у остальных трёх; runner 49389b65e452 против 7103e92dae3d; pipeline_patch.json: «numbered_ckpt_every=500 (keep_last=0)» против «calib_ckpt_every=500 (keep_last=0; имя calib_checkpoint_{step}.pt — вне ретенции…)».",
+      "impact": "Путь ОБУЧЕНИЯ идентичен: diff двух ревизий — единственный хунк (791,793c791,796), и он про сохранение чекпойнта (имя файла + ретенция). Ни optimizer, ни данные, ни маска не затронуты. Значит loss-траектория и веса сравнимы; артефактная полнота — нет.",
+      "evidence": "diff calib-25-0.7/laguna_pipeline_calib.py calib-25-0.35/laguna_pipeline_calib.py → 1 хунк, 11 строк"
+    },
+    {
+      "id": "D2",
+      "kind": "missing_artifact",
+      "severity": "high",
+      "arms": ["calib-25-0.7-20260916-0820"],
+      "what": "Отсутствует точка шага 500: в checkpoints/ лежат только checkpoint_1000.pt, checkpoint_1500.pt, checkpoint_final.pt. Причина названа в самом пайплайне («факт руки 25-0.7, 16.09»): штатная ретенция глобит checkpoint_[0-9]*.pt и держит два последних по mtime — на шаге 1500 она удалила точку 500.",
+      "impact": "Прямое: у руки 25-0.7 нет одного из четырёх равноотстоящих замеров PPL, которые и есть продукт калибровки. Дополнительно: именно на этот файл ссылается PPL-прибор как на свой smoke-вход (runs/calib-ppl-20260916-0820/smoke.json → checkpoint_500.pt) — ссылка висит на несуществующий файл, замер невоспроизводим.",
+      "evidence": "ls calib-25-0.7-20260916-0820/checkpoints/ ; pipeline_patch.json 25-0.7 vs 25-0.35"
+    },
+    {
+      "id": "D3",
+      "kind": "missing_manifest",
+      "severity": "medium",
+      "arms": ["calib-25-0.7-20260916-0820"],
+      "what": "Нет ship.json и нет chain_command.txt (у остальных трёх рук есть).",
+      "impact": "AD-2 (манифест с хешами доставленного) для этой руки не выполнен: состав и хеши доставленных в контейнер файлов не зафиксированы. Полная команда запуска восстанавливается только из cpt.log (она там есть целиком)."
+    },
+    {
+      "id": "D4",
+      "kind": "provenance_gap",
+      "severity": "medium",
+      "arms": ["calib-25-0.35-20260916-0820", "calib-25-0.7-20260916-0820"],
+      "what": "Объявленный --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt НЕ существовал: манифест v12r лежит в корне shared (/home/user/gb10-shared/cpt_corpus_v12r.txt), а не в datasets/. Внутренний checkpoints/run_manifest.json фиксирует его хеш как null — файл не найден и не захвачен.",
+      "impact": "Обучающие данные при этом ПИННИРОВАНЫ: реальный вход — токен-кэш cpt_corpus_v12r_8192_qwen25.npy, sha 203aab53… (в outer run_manifest.json). То есть обучение идентифицируемо, но объявленный в команде манифест корпуса у 25 %-рук не проверяем, у 50 %-рук (c447009a…) — проверяем. Асимметрия доказательной базы между осями микса."
+    },
+    {
+      "id": "D5",
+      "kind": "protocol_axis",
+      "severity": "medium",
+      "arms": ["все четыре"],
+      "what": "При равном числе шагов (2000 × batch 1 × max_len 8192 = 16.384M токенов у ВСЕХ рук) корпуса покрыты по-разному: v12r — 2000/9776 = 20.45 %, v12r50 — 2000/6986 = 28.64 %. Домен-токенов увидено 12.288M (25 %) против 8.192M (50 %).",
+      "impact": "«Доля replay» — не единственное, что отличает 25 % от 50 %: одновременно меняется бюджет доменных токенов (×0.67) и доля прохода по корпусу (×1.4). Контраст 25/50 — двухфакторный, а не «чистое соотношение». Смесь при этом настоящая, чанк-уровневая: shuffle RandomState(42) по оси чанков и в v12r, и в v12r50 (перемешано, не конкатенация). Композиционно v12r50 = первые 3493 домен-чанка + первые 3493 реплей-чанка того же потока, что v12r, т.е. домен 50 %-рук — подмножество домена 25 %-рук.",
+      "evidence": "build_mix_v12r50.py:197-202; mix-v12r50-build.json; numpy shapes (9776,8192) и (6986,8192)"
+    },
+    {
+      "id": "D6",
+      "kind": "hash_mismatch",
+      "severity": "low",
+      "arms": ["calib-25-0.35-20260916-0820", "calib-50-0.35-20260916-0820", "calib-50-0.7-20260916-0820"],
+      "what": "При перепроверке хешей ship.json у всех трёх рук с ship.json 8 записей из 9 совпали, а chain_command.txt — нет (напр. 25-0.35: на диске dd14c926…, в манифесте c319f431…). Поле mismatched самого ship.json пусто, ok=true.",
+      "impact": "Затронут только текст команды запуска, не обучающий вход. Но провенанс-запись не воспроизводится побайтово с диска: файл, судя по всему, перезаписан после расчёта ship.json. На выводы калибровки не влияет."
+    },
+    {
+      "id": "D7",
+      "kind": "protocol_deviation",
+      "severity": "high",
+      "arms": ["все четыре"],
+      "what": "ADR-022 п.1 требует СНАЧАЛА короткий (200 шагов) диагностический замер flex против штатного SDPA с одинаковыми данными/сидом/LR, и только при невиновности flex — «переходим к калибровке микса» (п.2). Порядок нарушен: все четыре руки калибровки отыграны ПОД LAGUNA_ATTN=flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0 во всех четырёх docker-командах). Следа flex-диагностики в контуре нет: каталогов/артефактов с такой парой не найдено, а evidence/ppl-baseline-v1v2.json прямо фиксирует вопрос открытым («Локально flex не воспроизводится: нужен стенд или отдельная проверка паритета flex против SDPA»).",
+      "impact": "Разбирается ниже в verdict.blocked_conclusions: между-руковый контраст flex не ломает (он константа во всех четырёх), но АБСОЛЮТНЫЕ утверждения о причине форгеттинга и о прохождении/непрохождении порога 2× базы остаются подвешенными."
+    },
+    {
+      "id": "D8",
+      "kind": "protocol_deviation",
+      "severity": "medium",
+      "arms": ["все четыре"],
+      "what": "ADR-022 п.2 называет сетку «2–3 конфига доли replay (25 / 40 / 50 %)». Фактически отыграны доли 25 % и 50 % (40 % пропущена), зато добавлена вторая ось — peak_lr_scale 0.35/0.7 (фактические пики 1.75e-4 и 3.50e-4).",
+      "impact": "Сетка стала 2×2 вместо 3×1: ось LR добавлена правомерно (LR назван одной из трёх гипотез в ADR-022 Context), но промежуточная точка 40 % не проверена — вывод о монотонности «больше replay → хуже» опирается на две точки по микс-оси, без середины."
+    },
+    {
+      "id": "D9",
+      "kind": "process_precondition",
+      "severity": "low",
+      "arms": ["calib-25-0.7-20260916-0820"],
+      "what": "Рука 25-0.7 отработала ДО старта сетки (14:20 UTC+3 / created_at 05:20Z) и вне grid-20260916-0820/status.tsv, в котором есть только 25-0.35, 50-0.7, 50-0.35.",
+      "impact": "Порядок гонки сетки: 25-0.35 → 50-0.7 → 50-0.35 (по 4983/5102/5012 с). 25-0.7 запускалась как одиночный прогон и была переиспользована в сетке; отсюда D1/D2/D3. Стенд у всех четырёх один (spark-44c3)."
+    },
+    {
+      "id": "D10",
+      "kind": "instrumentation",
+      "severity": "low",
+      "arms": ["все четыре"],
+      "what": "Различие в составе intermediate-чекпойнтов по именам: 25-0.7 пишет checkpoint_{step}.pt, остальные три — calib_checkpoint_{step}.pt.",
+      "impact": "Само по себе безобидно (D2 — следствие), но означает, что любой внешний инструмент, глоббящий checkpoint_*.pt, у трёх рук найдёт точки, а у четвёртой — нет, и наоборот. При снятии PPL по сетке это надо учитывать явно."
+    }
+  ],
+
+  "identical_confirmed": {
+    "note": "Проверено по docker-командам из logs/cpt.log (все 82 слова, 10 -e-переменных) — расхождения ТОЛЬКО по --name (имя контейнера), --peak_lr_scale и --cpt_data:",
+    "model": "Qwen/Qwen2.5-0.5B",
+    "seed": 42,
+    "max_steps": 2000,
+    "batch_size": 1,
+    "max_len": 8192,
+    "max_samples": 50000,
+    "rl_steps": 500,
+    "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0)",
+    "laguna_mem_fraction": 0.6,
+    "cpt_gen_eval_every": 0,
+    "image": "nvcr.io/nvidia/pytorch:26.07-py3-vllm (совпадает с run_manifest.image)",
+    "pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d (одна база у всех четырёх)",
+    "init_weights": "Qwen/Qwen2.5-0.5B (base_model_id во всех run_manifest.json)",
+    "datasets_extra": "sft_train_v12.jsonl / rl_tasks_revpool_v1.jsonl / eval_ood_clean.jsonl — одинаковые хеши во всех четырёх внутренних манифестах",
+    "steps_actually_run": "2000 шагов у всех четырёх (loss_trace.jsonl: steps 0..1999, lr=0.0 на шаге 0)",
+    "host": "spark-44c3 (все четыре chain.log)"
+  },
+
+  "loss_trajectories": {
+    "note": "ADR-022 п.4: вердикт только по траектории, не по сводке окон. Траектории есть у всех четырёх (2000 точек). Абсолютные уровни между миксами несравнимы (разная доля домена) — сравнимы только внутри одной микс-оси.",
+    "calib-25-0.35": {"n": 2000, "first_third_mean": 2.1055, "last_third_mean": 1.7227, "min": 1.0210, "max": 3.7950, "last": 2.2834},
+    "calib-25-0.7":  {"n": 2000, "first_third_mean": 2.5244, "last_third_mean": 1.9662, "min": 1.2087, "max": 4.7553, "last": 2.5012},
+    "calib-50-0.35": {"n": 2000, "first_third_mean": 2.3515, "last_third_mean": 1.9388, "min": 1.3166, "max": 3.8578, "last": 1.4977},
+    "calib-50-0.7":  {"n": 2000, "first_third_mean": 2.7594, "last_third_mean": 2.1720, "min": 1.4744, "max": 4.7515, "last": 1.6754},
+    "observation": "У всех четырёх последняя треть ниже первой (loss убывает по траектории). При этом пробы (logs/probes_cpt.json) у 50 %-рук показывают распад и зацикливание, а у 25 %-рук связный текст — то есть «loss убывает» НЕ различает эти состояния. Это ровно тот дефект методики, который ADR-022 п.4 зафиксировал как инженерный долг S2, и он воспроизвёлся в сетке."
+  },
+
+  "leak_check": {
+    "question": "Пересекается ли набор измерения PPL общего языка (general_eval.txt, sha 11b3164d…) с источниками обучающих корпусов рук?",
+    "eval_set": {
+      "path": "/home/user/gb10-shared/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "sha_matches_spec": true,
+      "documents": 47,
+      "bytes": 19948,
+      "chars_in_documents": 14005,
+      "eval_shingles_12gram": 1754
+    },
+    "sources": [
+      {
+        "role": "домен (обе оси микса — весь домен обеих рук)",
+        "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+        "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+        "units": 168528,
+        "exact_document_hits": 0,
+        "shingle_windows_scanned": 26366434,
+        "shared_shingle_windows": 0,
+        "max_consecutive_shared_windows": 0
+      },
+      {
+        "role": "replay (общий язык, обе оси)",
+        "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+        "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+        "units": 160305,
+        "exact_document_hits": 0,
+        "shingle_windows_scanned": 10098215,
+        "shared_shingle_windows": 0,
+        "max_consecutive_shared_windows": 0
+      }
+    ],
+    "overlap_docs": 0,
+    "method": "Два уровня: (B) точное совпадение blake2b-16 нормализованного документа (lower + схлопнутые пробелы) eval против единиц корпуса — домен по '\\n---\\n' (как в билдере), реплей по пустой строке; (INFO) скользящие 12-граммы по словам, 36.46M окон, ищется любое непрерывное общее совпадение ≥12 слов.",
+    "method_limits": [
+      "Порог 12 слов: совпадения короче 12 слов (типичные штампы, заголовки, имена) не считаются утечкой и не ловятся — это нижняя граница, а не полное доказательство непохожести.",
+      "Сравнение идёт со ВСЕМИ источниками целиком, а не с обученным префиксом: это консервативнее (руки видят только ~20–29 % корпуса), поэтому «0» тем более означает отсутствие утечки.",
+      "Проверены только два названных источника; sft_train_v12.jsonl / rl_tasks_revpool_v1.jsonl не сканировались (в руки как обучающие данные не входят)."
+    ],
+    "verdict": "CLEAN (0 совпадающих документов, 0 общих 12-граммовых окон из 36.46M)"
+  },
+
+  "adr022_conformance": {
+    "п.1_flex_диагностика": "НЕ выполнена до калибровки (см. D7); следов пары flex/SDPA по 200 шагов в контуре нет",
+    "п.2_сетка": "Выполнена частично и расширена: 25/50 % вместо 25/40/50 %, добавлена ось peak_lr_scale 0.35/0.7 (см. D8)",
+    "п.3_критерий_2x_базы": "На момент аудита НЕ применён ни к одной руке: per-arm PPL не снят. Единственный замер — smoke-состояние base + smoke25-0.7-c500 (runs/calib-ppl-20260916-0820/smoke.json): base воспроизводит числа S3h (ppl_general 11.93 / ppl_domain 9.29) — прибор откалиброван; у руки 25-0.7 на шаге 500 ppl_general = 204.44 (×17 базы), ppl_domain = 10.14 (хуже базы 9.29). Порог 23.9 (2× 11.93) этой точкой уже пробит на 500-м шаге из 2000.",
+    "п.4_вердикт_по_траектории": "Траектории сняты (loss_trace.jsonl, 2000 точек на руку) — требование соблюдено; см. loss_trajectories",
+    "п.5_база_до_первого_шага": "В пайплайне не починено (arms шли с CPT_GEN_EVAL_EVERY=0, внутрипрогонной базы нет); де-факто база снята отдельным прибором до калибровки и воспроизвела S3h — то есть для этой сетки дефект обойдён, но не устранён"
+  },
+
+  "verdict": {
+    "comparison_clean": false,
+    "comparison_clean_scope": "Не чистое в трёх смыслах и по-разному для разных выводов. (а) Контраст МЕЖДУ руками по осям «доля replay» и «пик LR» — сравним: инвокация обучения идентична во всех четырёх (проверено по 82-словным docker-командам: расходятся только --name, --peak_lr_scale, --cpt_data), данные пиннированы хешами npy, сид/шаги/батч/длина/образ/attention-режим совпадают. (б) Рука 25-0.7 как полноправный член сетки — НЕ сравнима по артефактам: другая ревизия пайплайна, нет ship.json и chain_command.txt, утрачена точка 500, запускалась вне сетки (D1–D3, D9). (в) АБСОЛЮТНЫЕ выводы (причина форгеттинга, прохождение порога 2× базы) — не обеспечены: предпосылка ADR-022 п.1 (flex) не проверена, per-arm PPL не снят.",
+    "integrity_summary": "3 руки из 4 целостны (ship.json ok, все промежуточные точки 500/1000/1500/2000, стадии done, checkpoint_final на месте; у каждой свой sha256 финального чекпойнта). Рука 25-0.7 — неполна (нет ship.json, нет точки 500). Плюс общий дефект провенанса: у 25 %-рук объявленный --cpt-data-манифест отсутствовал (hash=null), у 50 %-рук — на месте.",
+    "leak_summary": "Утечки нет: 0 совпадающих документов и 0 общих 12-граммовых окон (36.46M просмотрено) между general_eval.txt и cpt_corpus_v10.1.txt / general_replay_ru.txt. PPL «общего языка» на этом наборе не измеряет запоминание обучающего материала.",
+    "blocked_conclusions": [
+      "НЕЛЬЗЯ: «коллапс (зацикливание/распад проб) — свойство микса с 50 % replay». Формально между-руковый контраст flex не ломает (flex — константа во всех четырёх руках), но при unresolved-предпосылке ADR-022 п.1 нельзя исключить взаимодействие «flex × состав корпуса», и, главное, нельзя утверждать, что 50 %-руки отличаются от 25 %-рук ТОЛЬКО долей replay — они отличаются ещё и бюджетом доменных токенов (12.29M против 8.19M, см. D5). Наблюдаемая картина согласуется и с «половина вики размывает доменный режим», и с «домена дали в 1.5 раза меньше».",
+      "НЕЛЬЗЯ: «25 % replay язык сохраняет». Это опровергается единственным имеющимся абсолютным замером: рука 25-0.7 на шаге 500 имеет ppl_general 204.44 при базе 11.93 (×17), то есть обвал общего языка происходит и в 25 %-руке и уже к 500-му шагу — раньше и глубже, чем в остановленном пилоте (99.7…189 за 9776 шагов). Пробы на 2000 шагах у 25 %-рук выглядят связными — то есть связность проб НЕ является свидетельством сохранности языка. Оговорка: это единичное smoke-состояние (n=1 чекпойнт, 24 документа, 3682 токена), и сам чекпойнт утрачен (D2) — перепроверить нельзя.",
+      "НЕЛЬЗЯ: «рука 25-0.7 — полноценная четвёртая точка сетки». Её loss сравним (путь обучения идентичен), но равноотстоящий ряд замеров PPL у неё неполон (нет шага 500), манифеста доставки нет, и запускалась она вне сетки. Для выбора конфига полного CPT её можно использовать как опровергающее свидетельство, но не как равноправную точку сравнения.",
+      "НЕЛЬЗЯ: «loss убывает ⇒ стадия валидна». В сетке воспроизведён дефект ADR-022 п.4: у всех четырёх рук последняя треть loss ниже первой, при этом пробы 50 %-рук показывают распад. Сводка/тренд loss не различает обучение и деградацию — ровно поэтому ADR-022 и требует траекторию И порог 2× базы совместно.",
+      "НЕЛЬЗЯ: делать выбор конфига полного CPT по этой сетке до (а) закрытия flex-вопроса ADR-022 п.1, (б) снятия per-arm PPL по всем четырём рукам на v1 и v2, (в) восстановления/перегонки точки 500 для руки 25-0.7. Сейчас нет ни одного числа, которым сетка различала бы руки по форгеттингу, — кроме smoke-точки на утраченном чекпойнте."
+    ],
+    "what_can_be_concluded": [
+      "Утечки в наборе измерения нет — PPL общего языка пригоден как метрика (см. leak_check).",
+      "Инвокация обучения по рукам идентична, кроме двух заявленных осей: сравнение по осям «доля replay» и «пик LR» методически правомерно (при оговорке D5 про домен-токены).",
+      "Loss-траектории сняты по шагам и различают руки: пик LR ×0.7 даёт более высокий и более шумный loss при том же миксе (first/last third 2.52/1.97 против 2.11/1.72 на 25 %; 2.76/2.17 против 2.35/1.94 на 50 %); при равном LR 50 %-рука имеет более высокий loss, чем 25 %-рука (уровни между миксами несравнимы по величине, но форма различается).",
+      "Прибор PPL откалиброван: состояние base воспроизводит числа S3h (11.93 / 9.29) — то есть дальнейшие замеры будут сопоставимы с базой, от которой считается порог 2× (23.9).",
+      "Пайплайн калибровки содержит исправленный дефект ретенции: ревизия 1571cbd1 (три руки) точки 500/1000/1500 сохраняет, дефект остался только в артефактах руки 25-0.7."
+    ],
+    "recommended_next": [
+      "Закрыть ADR-022 п.1 (flex против SDPA, 200 шагов) ДО любых выводов о причине — это предусловие самого ADR и снимает половину неопределённости вердикта.",
+      "Снять PPL всех имеющихся точек (25-0.35: 500/1000/1500/2000; 25-0.7: 1000/1500/2000; 50-*: 500/1000/1500/2000) на v1 и v2 одним прибором (tools/calib_ppl_probe.py) — тогда сетка станет различающей, а точка 500 у 25-0.7 — единственная дыра, которую надо либо перегнать, либо явно объявить пропущенной.",
+      "Если нужен вывод о монотонности по микс-оси — добавить долю 40 % (ADR-022 п.2 называет её явно); при этом фиксировать домен-токены, а не только долю, чтобы факторы не смешивались (D5).",
+      "Перевести PPL-критерий (2× базы) в решение о закрытии направления «replay 50 %» — сейчас оснований закрывать его нет: картина может объясняться не долей replay, а срезанным домен-бюджетом."
+    ],
+    "confidence": "high по целостности и утечке (проверено по файлам и хешам); high по перечню расхождений (перепроверены docker-команды, диффы пайплайнов, манифесты); medium по интерпретации smoke-замера 204.44 (n=1, чекпойнт утрачен)."
+  },
+
+  "open_questions": [
+    "flex: искажает ли LAGUNA_ATTN=flex обучение CPT на 0.5B? Ответ требует стендовой пары 200 шагов flex/SDPA (ADR-022 п.1) — в этом узле не выполнялось (инвариант «стенд GB10 не задействовать»).",
+    "Почему рука 25-0.7 на шаге 500 имеет ppl_general 204 при базе 11.93? Это ранний провал общего языка в 25 %-руке, или дефект конкретной точки/загрузки чекпойнта? Сам чекпойнт удалён (D2) — вопрос нельзя закрыть на существующих артефактах, только перегонкой руки.",
+    "Что именно отличает 25 % от 50 %: доля replay или домен-бюджет (12.29M против 8.19M токенов при равном общем бюджете 16.384M)? Сетка эти два фактора не разделяет.",
+    "Почему cpt_corpus_v12r.txt не оказался в datasets/ (D4) и был ли он там в момент прогона 25 %-рук — то есть является ли hash=null следствием опечатки в пути или файл отсутствовал физически?",
+    "Почему chain_command.txt не совпадает с записью в ship.json у трёх рук (D6) — перезапись после расчёта хешей? На обучающие входы не влияет, но провенанс-запись перестаёт быть воспроизводимой.",
+    "Достаточен ли объём 2000 шагов (16.384M токенов, 20–29 % корпуса), чтобы судить о форгеттинге, если обвал общего языка фиксируется уже на шаге 500?"
+  ],
+
+  "invariants_respected": {
+    "AD-12": "Доказательства в evidence/ + runs/calib-audit-20260916/ (leak_check.py, leak_check.json), финальный git-коммит",
+    "AD-4": "Все данные читались из ~/gb10-shared по месту; копий корпусов и чекпойнтов не создавалось (хеши считались потоково)",
+    "AD-2": "Сверка манифестов с хешами выполнена; найденные расхождения перечислены (D4, D6), а не сглажены",
+    "стенд GB10": "Не задействован: только чтение артефактов и логов; ни одного запуска docker/тренировки",
+    "артефакты калибровки": "Не изменялись: calib_params.json, run_manifest.json, ship.json, checkpoints, loss_trace.jsonl — только чтение. В репозиторий добавлены новые файлы (runs/calib-audit-20260916/*, evidence/calib-protocol-audit.json)"
+  }
+}

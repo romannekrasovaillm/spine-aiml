@@ -1,0 +1,705 @@
+{
+  "schema": "instrument-hash-audit/2",
+  "date": "2026-09-20",
+  "delta": "grounded-instrument-registry",
+  "carrier": "docs/specs/INSTRUMENT-VERSIONS.md",
+  "snapshot_note": "Снимок аудита на дату. Носитель соответствия «прибор ↔ редакция ↔ число» — docs/specs/INSTRUMENT-VERSIONS.md; все числа снимка пересобираемы из git-истории приборов, дерева и носителей замороженных чисел (ADR-023 п.13), расхождение с реестром ловит tools/check_instrument_versions.py. Разделы приборов — в порядке константы INSTRUMENTS стража.",
+  "instruments": [
+    {
+      "instrument": "tools/ppl_probe.py",
+      "tree_sha256": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+      "actual_revision": "P-4",
+      "revisions": [
+        {
+          "id": "P-1",
+          "sha256": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+          "status": "историческая",
+          "registry_commit": "59601db01384ace9036e7676fd23531a7a7248f4",
+          "size_bytes": 82355,
+          "commits": [
+            {
+              "commit": "09427f487fa6fa23e16d2eb224232612b12f37d1",
+              "date": "2026-09-16",
+              "subject": "feat(laguna-compact): S3h — PPL-калибровка наборов v1/v2 на RTX 4080"
+            },
+            {
+              "commit": "59601db01384ace9036e7676fd23531a7a7248f4",
+              "date": "2026-09-16",
+              "subject": "feat(laguna-compact): S3h — PPL-калибровка наборов v1/v2 на RTX 4080"
+            }
+          ],
+          "date": "2026-09-16",
+          "sets": [
+            "v1_general",
+            "v1_domain",
+            "v2_general",
+            "v2_domain"
+          ],
+          "measure_sha256": "91a3d50801fb34d03f71dc639ad8248a9c408e78a67e1c497303e780898a0c44"
+        },
+        {
+          "id": "P-2",
+          "sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824",
+          "status": "историческая",
+          "registry_commit": "8128c78645f19e258d1af9784f9d0daf1194edfb",
+          "size_bytes": 82936,
+          "commits": [
+            {
+              "commit": "8128c78645f19e258d1af9784f9d0daf1194edfb",
+              "date": "2026-09-16",
+              "subject": "feat(laguna-compact): S3q-2 — перемер четырёх рук S3m на новом наборе: вердикт о потолке зависит от жанра набора"
+            }
+          ],
+          "date": "2026-09-16",
+          "sets": [
+            "v1_general",
+            "v1_domain",
+            "v2_general",
+            "v2_domain",
+            "v3_general"
+          ],
+          "measure_sha256": "91a3d50801fb34d03f71dc639ad8248a9c408e78a67e1c497303e780898a0c44"
+        },
+        {
+          "id": "P-3",
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "status": "историческая",
+          "registry_commit": "5b408ab02aa97de456d5ed9e11406daf9228dd5e",
+          "size_bytes": 83623,
+          "commits": [
+            {
+              "commit": "5b408ab02aa97de456d5ed9e11406daf9228dd5e",
+              "date": "2026-09-16",
+              "subject": "feat(laguna-compact): S3t — компонента K2 собрана, измерена и сведена; конъюнкция K1∧K2 посчитана"
+            },
+            {
+              "commit": "77107cff8897df94557ce33484f494a7cd0b1391",
+              "date": "2026-09-16",
+              "subject": "feat(laguna-compact): S3u — полный CPT на замороженном миксе v12r (LR×0.35) запущен автономно с промежуточными замерами K1/K2"
+            }
+          ],
+          "date": "2026-09-16",
+          "sets": [
+            "v1_general",
+            "v1_domain",
+            "v2_general",
+            "v2_domain",
+            "v3_general",
+            "k2_general"
+          ],
+          "measure_sha256": "91a3d50801fb34d03f71dc639ad8248a9c408e78a67e1c497303e780898a0c44"
+        },
+        {
+          "id": "P-4",
+          "sha256": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+          "status": "актуальная",
+          "registry_commit": "f201dd9472fc93e0cfd9b62070a09b765ce9d607",
+          "size_bytes": 84189,
+          "commits": [
+            {
+              "commit": "f201dd9472fc93e0cfd9b62070a09b765ce9d607",
+              "date": "2026-09-19",
+              "subject": "feat(laguna-compact): S3ao — домен-набор v3 из другого корпуса (чистый от обучения)"
+            }
+          ],
+          "date": "2026-09-19",
+          "sets": [
+            "v1_general",
+            "v1_domain",
+            "v2_general",
+            "v2_domain",
+            "v3_general",
+            "k2_general",
+            "v3_domain"
+          ],
+          "measure_sha256": "91a3d50801fb34d03f71dc639ad8248a9c408e78a67e1c497303e780898a0c44"
+        }
+      ],
+      "frozen_numbers": [],
+      "branch_tips": {
+        "arch/g8-s4-protocol": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/laguna-anchor-test": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/laguna-canon": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+        "arch/laguna-control-arms": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/laguna-eval-set": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+        "arch/laguna-fleet-2": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+        "arch/laguna-fleet-analysis": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+        "arch/laguna-mix-lr-calibration": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+        "arch/laguna-protocol-diag": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+        "arch/laguna-replay50": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+        "arch/laguna-sft-prep": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+        "arch/rl-env-probe": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/sft-decode-diagnosis": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/sft-length-policy": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "arch/sft-loop-origin": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "backup/pre-filterrepo-20260917": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484",
+        "main": "931a6ff01b9b437beeff86f6008540435fe4021dd558fce4a445ec8a75cb9164",
+        "origin/main": "73c6b3a855f4aaf305a29d37bff53b19ad7108ae490e99f2a81384a4f7913484"
+      },
+      "citations": [
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-ppl-20260916-2149/state.json",
+          "line": 794,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-ppl-20260916-2149/state.json",
+          "line": 811,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-20260916-1933/full_cpt_params.json",
+          "line": 73,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-20260916-2149/full_cpt_params.json",
+          "line": 73,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-ppl-20260916-1933/state.json",
+          "line": 236,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/full-cpt-ppl-20260916-1933/state.json",
+          "line": 253,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/sft-ppl-20260916-2246/state.json",
+          "line": 248,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "runs/sft-ppl-20260916-2246/state.json",
+          "line": 265,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "docs/specs/EVAL-SETS.md",
+          "line": 11,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "docs/specs/EVAL-SETS.md",
+          "line": 12,
+          "sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824",
+          "revision": "P-2"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3aa-sft-launch.json",
+          "line": 458,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3q-baseline-v3.json",
+          "line": 23,
+          "sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824",
+          "revision": "P-2"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3q-eval-set.json",
+          "line": 339,
+          "sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824",
+          "revision": "P-2"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3t-baseline-k2.json",
+          "line": 24,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3t-k2-set.json",
+          "line": 638,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3u-full-cpt.json",
+          "line": 113,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3v-control-arms-ppl.json",
+          "line": 1108,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3w-domain-by-arms.json",
+          "line": 3374,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3x-switch-lr.json",
+          "line": 693,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        },
+        {
+          "instrument": "tools/ppl_probe.py",
+          "file": "evidence/s3z-canonization.json",
+          "line": 384,
+          "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72",
+          "revision": "P-3"
+        }
+      ],
+      "citations_total": 20,
+      "citations_files": [
+        "docs/specs/EVAL-SETS.md",
+        "evidence/s3aa-sft-launch.json",
+        "evidence/s3q-baseline-v3.json",
+        "evidence/s3q-eval-set.json",
+        "evidence/s3t-baseline-k2.json",
+        "evidence/s3t-k2-set.json",
+        "evidence/s3u-full-cpt.json",
+        "evidence/s3v-control-arms-ppl.json",
+        "evidence/s3w-domain-by-arms.json",
+        "evidence/s3x-switch-lr.json",
+        "evidence/s3z-canonization.json",
+        "runs/full-cpt-20260916-1933/full_cpt_params.json",
+        "runs/full-cpt-20260916-2149/full_cpt_params.json",
+        "runs/full-cpt-ppl-20260916-1933/state.json",
+        "runs/full-cpt-ppl-20260916-2149/state.json",
+        "runs/sft-ppl-20260916-2246/state.json"
+      ],
+      "uncited_revisions": [
+        "P-1",
+        "P-4"
+      ]
+    },
+    {
+      "instrument": "tools/probe_pool_v2_reachability.py",
+      "tree_sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+      "actual_revision": "R-1",
+      "revisions": [
+        {
+          "id": "R-1",
+          "sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+          "status": "актуальная",
+          "registry_commit": "c5e53ed48c73903a4b9682234a76542e07317e2d",
+          "size_bytes": 12930,
+          "commits": [
+            {
+              "commit": "c5e53ed48c73903a4b9682234a76542e07317e2d",
+              "date": "2026-09-20",
+              "subject": "docs(laguna-compact): pool-v2-reproducibility — пул ревизии v2 воспроизводится кодом (sha256 совпал байт-в-байт), п.5 ADR-021 вынесен в evidence"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": "195ac91d3f8798116852a7c55842e6d3fac4f41701c20d5915847086edb87128"
+        }
+      ],
+      "frozen_numbers": [],
+      "branch_tips": {
+        "arch/laguna-control-arms": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+        "arch/rl-env-probe": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+        "arch/sft-decode-diagnosis": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+        "arch/sft-length-policy": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+        "arch/sft-loop-origin": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+        "main": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9"
+      },
+      "citations": [
+        {
+          "instrument": "tools/probe_pool_v2_reachability.py",
+          "file": "evidence/pool-v2-reproducibility.json",
+          "line": 129,
+          "sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+          "revision": "R-1"
+        },
+        {
+          "instrument": "tools/probe_pool_v2_reachability.py",
+          "file": "evidence/pool-v2-reproducibility.json",
+          "line": 293,
+          "sha256": "99aee52e67152735f862c5aad521d5fb86ccf04fc8a883deb8b6b4d15bcaccd9",
+          "revision": "R-1"
+        }
+      ],
+      "citations_total": 2,
+      "citations_files": [
+        "evidence/pool-v2-reproducibility.json"
+      ],
+      "uncited_revisions": []
+    },
+    {
+      "instrument": "tools/grounded_runner.py",
+      "tree_sha256": "a02649063ede2b20b8fbbff0879c83e4e643ea072eda6cabaafdacbf2919244b",
+      "actual_revision": "G-5",
+      "revisions": [
+        {
+          "id": "G-1",
+          "sha256": "3a56b1fa689a7f913ff7ca0f85d47194c20eff166803eaaa5e5d61b6bf8e5ba4",
+          "status": "историческая",
+          "registry_commit": "76038e5de4de65fb79508d4b9bf4b4a2c7267c2f",
+          "size_bytes": 55261,
+          "commits": [
+            {
+              "commit": "76038e5de4de65fb79508d4b9bf4b4a2c7267c2f",
+              "date": "2026-09-20",
+              "subject": "feat(laguna-compact): S4-skeleton — заземлённый walking skeleton (5 задач × 3 инструмента) и страж ADR-049 п.5"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": ""
+        },
+        {
+          "id": "G-2",
+          "sha256": "8a657d492f8a2fb9f22fe755ccabb95c63f3a49084f42c005aed4f046121a0fe",
+          "status": "историческая",
+          "registry_commit": "48847e9dbc5f284d4f9aa4e1ebc02da78076e270",
+          "size_bytes": 61556,
+          "commits": [
+            {
+              "commit": "48847e9dbc5f284d4f9aa4e1ebc02da78076e270",
+              "date": "2026-09-20",
+              "subject": "fix(laguna-compact): политика хеша набора — байткод вне канонической карты; краснота C-026 снята"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": ""
+        },
+        {
+          "id": "G-3",
+          "sha256": "a7bcb4da943b0f46bf0682812d5d868be00c3a7ec60b4cfd02dcb2b3d1f5fce9",
+          "status": "историческая",
+          "registry_commit": "ef08d5faefe3a7d604de0d2c83ddb56d40c5ca65",
+          "size_bytes": 105492,
+          "commits": [
+            {
+              "commit": "ef08d5faefe3a7d604de0d2c83ddb56d40c5ca65",
+              "date": "2026-09-20",
+              "subject": "feat(laguna-compact): контракт среды заземлённой оси доказан пробой на стенде (S4-skeleton, ADR-049 п.1 G4)"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": ""
+        },
+        {
+          "id": "G-4",
+          "sha256": "ab0b9a68fda219bbc6c0901e2f5c7ed230b4ccd5be9a5760ad2932fe69222eb0",
+          "status": "историческая",
+          "registry_commit": "e0920228cba25ba67e05e1afbd4ac8338cd48afb",
+          "size_bytes": 143707,
+          "commits": [
+            {
+              "commit": "e0920228cba25ba67e05e1afbd4ac8338cd48afb",
+              "date": "2026-09-20",
+              "subject": "feat(laguna-compact): sidecar-мок — проба изоляции исполнена ВНУТРИ контейнера стадии (ADR-049 п.10, поправка)"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": ""
+        },
+        {
+          "id": "G-5",
+          "sha256": "a02649063ede2b20b8fbbff0879c83e4e643ea072eda6cabaafdacbf2919244b",
+          "status": "актуальная",
+          "registry_commit": "da84cb9f7176fe822659f5eda7b9c184647b540d",
+          "size_bytes": 160921,
+          "commits": [
+            {
+              "commit": "da84cb9f7176fe822659f5eda7b9c184647b540d",
+              "date": "2026-09-20",
+              "subject": "feat(laguna-compact): предпроверка same-path монтирования и цена тяга образа (ADR-049 п.10)"
+            }
+          ],
+          "date": "2026-09-20",
+          "sets": [],
+          "measure_sha256": ""
+        }
+      ],
+      "frozen_numbers": [
+        {
+          "id": "F-1",
+          "what": "базовый шаг RL, с (унаследовано)",
+          "value": "123.87",
+          "carriers": [
+            {
+              "file": "tools/grounded_runner.py",
+              "target": "BASE_STEP_S"
+            },
+            {
+              "file": "evidence/s3-rl-probe.json",
+              "target": "measurements.step_seconds.mean"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "стоимость RL: 123.87 с/шаг"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "шаг **123.87 с**"
+            }
+          ]
+        },
+        {
+          "id": "F-2",
+          "what": "цена мока-sidecar на батч, с",
+          "value": "0.7729",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.measured.total_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "0.77 с** (подъём 0.65 с + снятие 0.12 с)"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "0.773 с на батч"
+            }
+          ]
+        },
+        {
+          "id": "F-3",
+          "what": "подъём мока-sidecar, с",
+          "value": "0.6515",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.measured.start_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "подъём 0.65 с + снятие 0.12 с"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "0.652 с + снятие 0.121 с"
+            }
+          ]
+        },
+        {
+          "id": "F-4",
+          "what": "снятие мока-sidecar, с",
+          "value": "0.1214",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.measured.stop_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "снятие 0.12 с)"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "снятие 0.121 с)"
+            }
+          ]
+        },
+        {
+          "id": "F-5",
+          "what": "цена мока на rollout при R = 8, с",
+          "value": "0.0966",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.per_rollout_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "0.097 с на rollout при R = 8"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "0.097 с на rollout"
+            }
+          ]
+        },
+        {
+          "id": "F-6",
+          "what": "снятие батч-контейнера при `-t 0`, с",
+          "value": "0.2751",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.baseline_batch_container_s.total_s_with_t0"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "(0.275 с), но"
+            }
+          ]
+        },
+        {
+          "id": "F-7",
+          "what": "grace-период `docker stop -t 1`, с",
+          "value": "1.0932",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "teardown.measurements.t1.stop_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "README.md",
+              "target": "(1.09 с), который снятие уже не платит"
+            },
+            {
+              "file": "tools/README.md",
+              "target": "(1.093 с), который снятие уже не платит"
+            }
+          ]
+        },
+        {
+          "id": "F-8",
+          "what": "цена мока к цене батч-контейнера, ×",
+          "value": "2.81",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.comparison.ratio_to_batch_container_t0"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "это ×2.8 от"
+            }
+          ]
+        },
+        {
+          "id": "F-9",
+          "what": "повтор пробы цены: максимум, с",
+          "value": "0.787",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.measured.probe_repeats[0].total_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "три повтора: 0.751–0.787 с на батч"
+            }
+          ]
+        },
+        {
+          "id": "F-10",
+          "what": "повтор пробы цены: минимум, с",
+          "value": "0.7514",
+          "carriers": [
+            {
+              "file": "evidence/grounded-skeleton.json",
+              "target": "cost.sidecar_mock.measured.probe_repeats[1].total_s"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "три повтора: 0.751–0.787 с на батч"
+            }
+          ]
+        },
+        {
+          "id": "F-11",
+          "what": "порт мока в сети прогона",
+          "value": "18099",
+          "carriers": [
+            {
+              "file": "tools/grounded_runner.py",
+              "target": "MOCK_PORT"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "mock-sidecar@172.19.0.2:18099"
+            }
+          ]
+        },
+        {
+          "id": "F-12",
+          "what": "образ sidecar'ов (мок и канарейка)",
+          "value": "python:3.12-alpine",
+          "carriers": [
+            {
+              "file": "tools/grounded_runner.py",
+              "target": "DEFAULT_SIDECAR_IMAGE"
+            }
+          ],
+          "citations": [
+            {
+              "file": "tools/README.md",
+              "target": "--sidecar-image python:3.12-alpine"
+            }
+          ]
+        }
+      ],
+      "branch_tips": {
+        "arch/laguna-control-arms": "a02649063ede2b20b8fbbff0879c83e4e643ea072eda6cabaafdacbf2919244b"
+      },
+      "citations": [],
+      "citations_total": 0,
+      "citations_files": [],
+      "uncited_revisions": [
+        "G-1",
+        "G-2",
+        "G-3",
+        "G-4",
+        "G-5"
+      ]
+    }
+  ],
+  "unattributed_rows": [],
+  "totals": {
+    "instruments": 3,
+    "citations": 22,
+    "citations_files": 17
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "card": "ox-merged-datasets",
+  "artifact": "три файла ox-серии с суффиксом «merged» на gb10-shared (RL-задачи + teacher reasoning + teacher multiturn), появились 20.09.2026 без карточки AD-2 и без гейта пересечения с обучением",
+  "date": "2026-09-20",
+  "constraint": "AD-2 (карточка набора) + AD-7 (состав данных под стражем); узел флота ox-card-and-gate (docs/specs/WORK-BACKLOG.md §2)",
+  "status": "только аудит: карточка + замер + рекомендация. Файлы НЕ изменены и НЕ подключены к RL-пулу (AD-7: состав заморожен). Судьба наборов — owner-гейт (docs/specs/WORK-BACKLOG.md §4 «Судьба ox-датасетов»)",
+  "files": {
+    "rl_tasks_ox_merged.jsonl": {
+      "path": "datasets/rl_tasks_ox_merged.jsonl",
+      "ssot": "/home/user/gb10-shared/datasets/rl_tasks_ox_merged.jsonl",
+      "bytes": 6285789,
+      "lines": 14339,
+      "sha256_full": "7a4b4dd519c9919f2386b18689f870cff02d445e995c3e9eb3a1ab80fdcf5aef",
+      "hash_note": "полный хеш всего файла, sha256sum 20.09.2026; повторный замер после сдвига mtime (12:34) дал то же значение — содержимое стабильно",
+      "mtime": "2026-09-20 11:53:53 +0300 (перезаписан тем же содержимым 12:34 — mtime плавает, хеш нет)",
+      "schema": {
+        "format": "JSONL, формат rl_tasks_v3 (HANDOFF_oxalpha_v10.1.md)",
+        "first_record": {
+          "task_type": "explain_relation",
+          "prompt": "Объясни связь между концептами 'memory_compression' и 'leakyrelu_filtering_for_reward_gaps…'",
+          "expected_relation": "related",
+          "verifier": "keyword_match",
+          "keywords": ["memory_compression", "leakyrelu_filtering_for_reward_gaps", "related"],
+          "reward": 1.0
+        },
+        "key_census": {
+          "task_type": 14339,
+          "prompt": 14339,
+          "verifier": 14339,
+          "reward": 14339,
+          "expected_relation": 9200,
+          "keywords": 9200,
+          "expected_slugs": 3939,
+          "expected_answer_keywords": 1200,
+          "max_steps": 939,
+          "n_min_steps": 500,
+          "note": "поля verifier-специфичны: keywords/expected_relation — у explain_relation+ood_pair, expected_slugs — у multi_hop/chain/formula, expected_answer_keywords — у compare_concepts; полей id/source нет — идентификатор задачи = номер строки (line:N)"
+        },
+        "unique_prompts": 14339
+      },
+      "composition_by_task_type": {
+        "explain_relation": 9000,
+        "multi_hop_search": 2439,
+        "chain_reasoning": 1300,
+        "compare_concepts": 1200,
+        "formula_chain": 200,
+        "ood_pair": 200
+      },
+      "provenance": {
+        "resolution": "СОСТАВ ПОЛНОСТЬЮ РАСШИФРОВАН по нормализованным промптам (norm из tools/check_eval_leakage.py): rl_tasks_ox.jsonl (3639, вошли все) ∪ tasks_oxalpha.jsonl (10000 семян, вошли все) ∪ rl_tasks_env_types.jsonl (700, вошли все); источники попарно не пересекаются, 3639+10000+700 = 14339 сходится точно",
+        "not_from": "rl_tasks_oxalpha.jsonl (27009 уникальных промптов) — пересечение всего 5; rl_tasks.jsonl (старый пул) — 6",
+        "builder": "НЕИЗВЕСТЕН: скрипт/журнал сборки merged-файлов не найден ни в репозитории (grep «ox_merged» пуст), ни на gb10-shared; владельца сборки установить до использования"
+      }
+    },
+    "teacher_reasoning_ox_merged.jsonl": {
+      "path": "datasets/teacher_reasoning_ox_merged.jsonl",
+      "ssot": "/home/user/gb10-shared/datasets/teacher_reasoning_ox_merged.jsonl",
+      "bytes": 49729116,
+      "lines": 5529,
+      "sha256_full": "35eb11ce200fe9261c4bf852240d328beac108b075fa35e4ac73df0077627ef3",
+      "mtime": "2026-09-20 11:53:52 +0300 (перезаписан тем же содержимым 12:34)",
+      "schema": {
+        "format": "JSONL траекторий: {messages:[{role,content}…], task_type, n_turns, n_tool_calls, source, model}",
+        "first_record": "messages: system(1925 симв.) + user(231) + assistant(3336, формат <think>…</think><tool_call>…</tool_call><tool_response>…</tool_response> + ответ); task_type=compare_concepts, n_turns=2, n_tool_calls=1, source=oxalpha_reasoning, model=stealth/ox-alpha",
+        "key_census": "все 6 ключей присутствуют во всех 5529 записях (полный проход)"
+      },
+      "composition_by_task_type": {
+        "explain_relation": 3629,
+        "compare_concepts": 1777,
+        "multi_hop_search": 123
+      },
+      "provenance": {
+        "resolution": "ПОДМНОЖЕСТВО teacher_reasoning_ox.jsonl (6734 записи): все 5529 хешей messages входят в него (5529/5529); схема записей идентична",
+        "not_from": "teacher_reasoning_oxalpha_full.jsonl (9553, OXALPHA_HANDOFF.md): 0 общих user-текстов — несмотря на тег source=oxalpha_reasoning, merged-файл собран НЕ из задокументированного полного набора oxalpha",
+        "builder": "НЕИЗВЕСТЕН (см. выше); критерий отбора 5529 из 6734 не задокументирован"
+      }
+    },
+    "teacher_multiturn_ox_merged.jsonl": {
+      "path": "datasets/teacher_multiturn_ox_merged.jsonl",
+      "ssot": "/home/user/gb10-shared/datasets/teacher_multiturn_ox_merged.jsonl",
+      "bytes": 38443875,
+      "lines": 4368,
+      "sha256_full": "eebfa819f618c332e9744e2678071775c719c5c142e5f35d89ef7f219eb14b61",
+      "mtime": "2026-09-20 11:53:53 +0300 (перезаписан тем же содержимым 12:34)",
+      "schema": {
+        "format": "как у reasoning: {messages, task_type, n_turns, n_tool_calls, source, model}; мультитёрн (первая запись: 7 сообщений, n_turns=3, n_tool_calls=2, user-повторы несут вывод инструмента)",
+        "key_census": "все 6 ключей присутствуют во всех 4368 записях (полный проход); source=oxalpha_multiturn у 100 % записей, model=stealth/ox-alpha у 100 %"
+      },
+      "composition_by_task_type": {
+        "explain_relation": 2811,
+        "compare_concepts": 1326,
+        "multi_hop_search": 231
+      },
+      "provenance": {
+        "resolution": "ПОДМНОЖЕСТВО teacher_multiturn_ox.jsonl (4646 записей): все 4368 хешей messages входят в него (4368/4368)",
+        "not_from": "teacher_multiturn_oxalpha_final.jsonl (7218, OXALPHA_HANDOFF.md): 0 общих user-текстов",
+        "builder": "НЕИЗВЕСТЕН (см. выше)"
+      }
+    }
+  },
+  "source_lineage": {
+    "teacher_series": "модель-учитель stealth/ox-alpha (OpenRouter, канал vpn-egress 127.0.0.1:12080), генерация 24–26.08.2026, все траектории прошли verify_task (верификатор из laguna_pipeline_v8.py); документировано в datasets/OXALPHA_HANDOFF.md и ~/gb10-shared/HANDOFF_oxalpha_v10.1.md",
+    "seeds": "концепты ~/library (Ariadna), пары/цепочки концептов — tasks_oxalpha.jsonl (10000 семян)",
+    "env_types": "rl_tasks_env_types.jsonl (700) — задачи с полями max_steps/n_min_steps (среды E-серии)",
+    "ox_series": "teacher_reasoning_ox.jsonl (6734) / teacher_multiturn_ox.jsonl (4646) от 25.08.2026 — отдельная от oxalpha_full/final генерация того же учителя (user-тексты не пересекаются)"
+  },
+  "license": {
+    "declared": "наследуется от источников (учитель контура stealth/ox-alpha, семена — внутренняя библиотека концептов)",
+    "license_status": "internal_only",
+    "license_unresolved": true,
+    "license_note": "отдельного решения о лицензии нет; условия использования стелс-модели ox-alpha в контуре не задекларированы. Внутреннее использование разрешено; публикация производных — только owner-гейтом с новым ADR (ADR-005, AD-8)"
+  },
+  "overlap_gate": {
+    "overlap_with_training": true,
+    "tool": "tools/check_sft_rl_overlap.py",
+    "command": "python3 tools/check_sft_rl_overlap.py --sft datasets/sft_train_v13_fixed.jsonl --rl datasets/rl_tasks_ox_merged.jsonl --evidence evidence/ox-datasets-audit.json --json",
+    "date": "2026-09-20",
+    "exit_code": 1,
+    "exit_meaning": "измерение состоялось, есть сигнал (совпадения найдены); данные не изменены (AD-7)",
+    "comparison": "пользовательские тексты SFT (role=user) ↔ поле prompt RL-задачи; норма lower + схлопнутые пробелы",
+    "numbers": {
+      "rl_tasks": 14339,
+      "rl_unique_prompts": 14339,
+      "rl_matched_tasks": 8581,
+      "rl_matched_share_pct": 59.84,
+      "sft_examples": 44105,
+      "sft_matched_prompts": 29800,
+      "sft_matched_share_pct": 67.57,
+      "sft_rl_pairs": 29800
+    },
+    "evidence": "evidence/ox-datasets-audit.json (поле sft_rl_overlap; matched_rl_lines — 8581 строка пула, 1-based)",
+    "interpretation": "ИНТЕРПРЕТАЦИЯ (не факт замера): совпадение ожидаемо структурно — 10000 из 14339 задач пула суть семена tasks_oxalpha, чьи teacher-траектории вошли в SFT v12→v13 (состав v13: teacher_oxalpha_reasoning 22200 + teacher_oxalpha_multiturn 7292 + oxalpha_* 4797); RL на этом пуле оптимизировал бы заученные на SFT промпты",
+    "eval_purity": "пересечений промптов пула с измерительными наборами НЕ найдено: eval_ood_clean (192) — 0, eval_ood (200) — 0, eval_ood_oxalpha (3000) — 0 (замер этой же нормой 20.09.2026)",
+    "gate_context": "для пула ревизии действует C-017: 0 совпадений с SFT (образец фильтрации — ADR-007, runs/rev-pool)"
+  },
+  "recommendation": {
+    "rl_pool": "НЕ подключать rl_tasks_ox_merged к RL против моделей линии SFT v12/v13: 8581 задача (59.84 %) дословно совпадает с SFT-промптами. Кандидатный чистый остаток после фильтрации по matched_rl_lines (образец ADR-007): 5758 задач — решение и фильтрация отдельной дельтой по owner-решению",
+    "sft": "teacher_*_ox_merged как SFT-добавка для линии v13 не нужна: это подмножества teacher_*_ox.jsonl, а oxalpha-материал уже вошёл в v12/v13; повторное включение усилило бы дубли (ADR-033 п.1)",
+    "provenance_debt": "установить строителя merged-файлов (скрипт/журнал не найдены) и критерий отбора 5529/6734 и 4368/4646 — до любого использования",
+    "constraint": "AD-7: файлы остаются замороженными; эта карточка — замер и рекомендация, а не разрешение на использование"
+  },
+  "notes": [
+    "Файлы данных в кейс не копируются: читаются через симлинк datasets/ → /home/user/gb10-shared/datasets (AD-4, C-011).",
+    "Хеши сняты фактически sha256sum 20.09.2026 в два захода (до и после сдвига mtime 12:34) — значения идентичны; зафиксированные хеши отвечают содержимому, а не моменту записи.",
+    "Имена с «merged» вводят в заблуждение дважды: teacher-файлы собраны не из *_oxalpha_full/final (0 общих user-текстов), а rl_tasks — не из rl_tasks_oxalpha.jsonl (5 совпадений из 14339).",
+    "Замеры состава (key census, task_type, подмножества) — полные проходы по файлам без модификации; исходные файлы не менялись."
+  ]
+}

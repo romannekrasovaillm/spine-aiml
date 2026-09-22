@@ -1,0 +1,1946 @@
+{
+  "schema": "s3ak-degeneration/1",
+  "stage": "S3ak — разбор вырождения (петли) SFT-состояний и достоверный вердикт по языку",
+  "created_at": "2026-09-18T03:23:44.984014+00:00",
+  "status": "measured",
+  "question": "отчего SFT-состояния зацикливаются (декодирование / шаг обучения / данные / прибор) и на каком языке они отвечают при выборке ≥100 генераций",
+  "protocol": {
+    "device": "локальная RTX 4080 SUPER 16GB (НЕ стенд GB10 — замеры не занимают стенд, AD-5); сетевой диск — только чтение",
+    "stop_at_turn_end": true,
+    "max_new_tokens": 4096,
+    "batch_size": 8,
+    "batch_identity": {
+      "available": true,
+      "compared": 5,
+      "byte_identical": true,
+      "run": "runs/s3ak-degeneration-20260917/identity_core_cfinal_batched.json",
+      "reference": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+      "why": "пакетный greedy (batch 8) обязан побайтово совпасть с непересобранным замером S3ai: иначе ускорение замера сменило бы измеряемое состояние"
+    },
+    "batch_caveat": "у пакетного прогона хвост последовательности, кончившейся раньше соседей, добит паддингом, и паддинг здесь — тот же id, что eos (151643): концевой <|endoftext|> дописанной генерации неотличим от добивки и срезается вместе с ней. На метрики это не влияет (язык считается по ходу без служебных токенов, причина конца — по лимиту и региону обрыва), но n_new_tokens такой генерации на 1 меньше, чем был бы у непересобранного прогона",
+    "seed": 42,
+    "loop_max4gram_rep": 8,
+    "bootstrap": {
+      "n_boot": 2000,
+      "seed": 42,
+      "method": "bootstrap percentile"
+    },
+    "instrument": 2,
+    "decoding_modes": [
+      "greedy",
+      "greedy_nogram4",
+      "greedy_rp1.1",
+      "sample_T0.7_top_p0.9"
+    ],
+    "prompt_sets": [
+      "wide"
+    ],
+    "clean_rule": "вердикт по языку — stop_reason=turn_end И looped=false"
+  },
+  "artifacts": [
+    {
+      "state": "sft_resume_6000",
+      "mode": "greedy",
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "report": "runs/s3ak-degeneration-20260917/decoding_greedy.json"
+    },
+    {
+      "state": "sft_resume_6000",
+      "mode": "greedy_nogram4",
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json"
+    },
+    {
+      "state": "sft_resume_6000",
+      "mode": "greedy_rp1.1",
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "report": "runs/s3ak-degeneration-20260917/decoding_rp.json"
+    },
+    {
+      "state": "sft_resume_6000",
+      "mode": "sample_T0.7_top_p0.9",
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "report": "runs/s3ak-degeneration-20260917/decoding_sample.json"
+    },
+    {
+      "state": "sft_500",
+      "step": 500,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_1000",
+      "step": 1000,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_1000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_1500",
+      "step": 1500,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_1500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_2000",
+      "step": 2000,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_2000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_2500",
+      "step": 2500,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_2500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_3000",
+      "step": 3000,
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_3500",
+      "step": 3500,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_3500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_4000",
+      "step": 4000,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_4500",
+      "step": 4500,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_5000",
+      "step": 5000,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_5000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_5500",
+      "step": 5500,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_5500.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    },
+    {
+      "state": "sft_6000",
+      "step": 6000,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "report": "runs/s3ak-degeneration-20260917/by_step.json"
+    }
+  ],
+  "degeneration": {
+    "by_decoding": [
+      {
+        "mode": "greedy",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "constrains_repetition": false,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "truncated_not_looped_share": 0.0417,
+        "truncated_share": 0.5833,
+        "unclosed_think_share": 0.7083,
+        "unclosed_think_share_natural_stops": 0.7,
+        "looped_share_natural_stops": 0.0,
+        "tool_call_share": 0.2917,
+        "median_tokens": 4096,
+        "max4gram_rep_median": 31,
+        "max4gram_rep_max": 1005,
+        "decode_params": {
+          "decoding": "greedy",
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "repetition_penalty": null,
+          "no_repeat_ngram": null,
+          "seed": 42
+        },
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "report": "runs/s3ak-degeneration-20260917/decoding_greedy.json"
+      },
+      {
+        "mode": "greedy_nogram4",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "constrains_repetition": true,
+        "looped_share": 0.0,
+        "looped_n": 0,
+        "natural_stop_share": 0.5417,
+        "truncated_not_looped_share": 0.4583,
+        "truncated_share": 0.4583,
+        "unclosed_think_share": 0.6667,
+        "unclosed_think_share_natural_stops": 0.6154,
+        "looped_share_natural_stops": 0.0,
+        "tool_call_share": 0.2917,
+        "median_tokens": 2076,
+        "max4gram_rep_median": 1,
+        "max4gram_rep_max": 2,
+        "decode_params": {
+          "decoding": "greedy",
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "repetition_penalty": null,
+          "no_repeat_ngram": 4,
+          "seed": 42
+        },
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json"
+      },
+      {
+        "mode": "greedy_rp1.1",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "constrains_repetition": false,
+        "looped_share": 0.5833,
+        "looped_n": 14,
+        "natural_stop_share": 0.4167,
+        "truncated_not_looped_share": 0.0,
+        "truncated_share": 0.5833,
+        "unclosed_think_share": 0.5417,
+        "unclosed_think_share_natural_stops": 0.7,
+        "looped_share_natural_stops": 0.0,
+        "tool_call_share": 0.3333,
+        "median_tokens": 4096,
+        "max4gram_rep_median": 15,
+        "max4gram_rep_max": 1015,
+        "decode_params": {
+          "decoding": "greedy",
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "repetition_penalty": 1.1,
+          "no_repeat_ngram": null,
+          "seed": 42
+        },
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "report": "runs/s3ak-degeneration-20260917/decoding_rp.json"
+      },
+      {
+        "mode": "sample_T0.7_top_p0.9",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "constrains_repetition": false,
+        "looped_share": 0.3333,
+        "looped_n": 8,
+        "natural_stop_share": 0.625,
+        "truncated_not_looped_share": 0.0833,
+        "truncated_share": 0.375,
+        "unclosed_think_share": 0.75,
+        "unclosed_think_share_natural_stops": 0.8,
+        "looped_share_natural_stops": 0.0667,
+        "tool_call_share": 0.3333,
+        "median_tokens": 172,
+        "max4gram_rep_median": 2,
+        "max4gram_rep_max": 3870,
+        "decode_params": {
+          "decoding": "sample",
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "repetition_penalty": null,
+          "no_repeat_ngram": null,
+          "seed": 42
+        },
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "report": "runs/s3ak-degeneration-20260917/decoding_sample.json"
+      }
+    ],
+    "mode_applied": {
+      "compared_against": "greedy",
+      "why": "режим, не изменивший ни одного ответа, — не режим, а незамеченная ошибка передачи параметра; сравнение по текстам проб",
+      "modes": {
+        "greedy_nogram4@sft_resume_6000": {
+          "n": 24,
+          "responses_changed": 23,
+          "applied": true,
+          "repetition_worse_than_greedy": 1,
+          "repetition_better_than_greedy": 18,
+          "reading": "повторяемость 4-грамм против greedy: сколько проб стало хуже и сколько лучше (порог петли — тот же, 8)"
+        },
+        "greedy_rp1.1@sft_resume_6000": {
+          "n": 24,
+          "responses_changed": 24,
+          "applied": true,
+          "repetition_worse_than_greedy": 14,
+          "repetition_better_than_greedy": 10,
+          "reading": "повторяемость 4-грамм против greedy: сколько проб стало хуже и сколько лучше (порог петли — тот же, 8)"
+        },
+        "sample_T0.7_top_p0.9@sft_resume_6000": {
+          "n": 24,
+          "responses_changed": 24,
+          "applied": true,
+          "repetition_worse_than_greedy": 9,
+          "repetition_better_than_greedy": 12,
+          "reading": "повторяемость 4-грамм против greedy: сколько проб стало хуже и сколько лучше (порог петли — тот же, 8)"
+        }
+      }
+    },
+    "by_step": [
+      {
+        "step": 500,
+        "state": "sft_500",
+        "n": 24,
+        "looped_share": 0.4583,
+        "looped_n": 11,
+        "natural_stop_share": 0.5417,
+        "median_tokens": 662,
+        "unclosed_think_natural": 0.1538,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_500.pt",
+        "checkpoint_sha256": "b3bbf305cbcb215707a0a7230decac9ca4ec6ff749c400e09978ba1b7299ce31",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 1000,
+        "state": "sft_1000",
+        "n": 24,
+        "looped_share": 0.6667,
+        "looped_n": 16,
+        "natural_stop_share": 0.2917,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.2857,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_1000.pt",
+        "checkpoint_sha256": "87f3c3caaaf469f611350f59995d576ea1cf0f64eda5b8605303e7807154c0a4",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 1500,
+        "state": "sft_1500",
+        "n": 24,
+        "looped_share": 0.5833,
+        "looped_n": 14,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 1.0,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_1500.pt",
+        "checkpoint_sha256": "184bfe606d226dd976f60a8271023bf8bf4c0d561ed3b234e82cf5aa63c5c440",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 2000,
+        "state": "sft_2000",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.4,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_2000.pt",
+        "checkpoint_sha256": "e9d596087fbc5a03bf193aac70f58c14951e3043cc5a3fbb2f3f570fa9daa417",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 2500,
+        "state": "sft_2500",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.8,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_2500.pt",
+        "checkpoint_sha256": "20b123b78005500baf22f7d44c257430267dab9c168757b59f0024326b2f3000",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 3000,
+        "state": "sft_3000",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.9,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+        "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 3500,
+        "state": "sft_3500",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.5,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_3500.pt",
+        "checkpoint_sha256": "84534f8b134a6abea95797d7a9579fd540a807c040170c5239b3a9aac204e266",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 4000,
+        "state": "sft_4000",
+        "n": 24,
+        "looped_share": 0.6667,
+        "looped_n": 16,
+        "natural_stop_share": 0.3333,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.5,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4000.pt",
+        "checkpoint_sha256": "2f8cd784214ef923d5cae9e99b068769362dfb775c523e9bb7e3af1bb169911f",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 4500,
+        "state": "sft_4500",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.6,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4500.pt",
+        "checkpoint_sha256": "c53d885294aa84088db08859742df6b49d7cc0bd6b8deda6207990ddf19cd9a2",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 5000,
+        "state": "sft_5000",
+        "n": 24,
+        "looped_share": 0.6667,
+        "looped_n": 16,
+        "natural_stop_share": 0.2917,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.4286,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_5000.pt",
+        "checkpoint_sha256": "1e920f31fcddbb5a3035958992a6265eba1d5a5b4ee11b114a3d1b834b8b16f7",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 5500,
+        "state": "sft_5500",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.6,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_5500.pt",
+        "checkpoint_sha256": "30f8b0575f407c98c98cb85b48a3d0e64f0273b5f306b76fbf5001a132648fd3",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      },
+      {
+        "step": 6000,
+        "state": "sft_6000",
+        "n": 24,
+        "looped_share": 0.5417,
+        "looped_n": 13,
+        "natural_stop_share": 0.4167,
+        "median_tokens": 4096,
+        "unclosed_think_natural": 0.7,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "checkpoint_sha256": "7638e055e63a077dc88844f26ac825e0dff37bb88c584c5de85c7b9025ef0460",
+        "report": "runs/s3ak-degeneration-20260917/by_step.json"
+      }
+    ],
+    "by_step_caveat": "кривая склеена из ДВУХ прогонов: шаги 500…3000 — первый прогон sft-20260916-2246, шаги 3500…6000 — возобновлённый sft-resume-20260917-1215, который стартовал с чекпойнта 3000, но поток данных проходит с начала (DataLoader(shuffle=True) без генератора; смещение потока не реализовано — runs/sft-resume-20260917-1215/full_sft_params.json, resume.data_order_note). Число шагов оптимизации от одних и тех же весов от этого не меняется, но «шаг 4000» здесь — не тот же пример, что «шаг 4000» непрерывного прогона",
+    "loops_in_data": {
+      "schema": "s3ak-loops-in-data/1",
+      "stage": "S3ak — петли в данных SFT (причина «данные» в разборе вырождения)",
+      "created_at": "2026-09-17T12:59:02.141829+00:00",
+      "status": "measured",
+      "question": "есть ли в обучающем наборе SFT примеры с высокой внутренней повторяемостью, и пришли ли петли из дубликатов (57.71 %) или существуют сами по себе (у генераций SFT не кончилось 0.5833, а зациклилось по этой же метрике 0.5417)",
+      "method": {
+        "summary": "по каждой строке jsonl берутся все assistant-сообщения и считаются три чтения: (а) весь assistant-текст, (б) проза — вне блоков <tool_call>/<tool_response>, (в) проза без <think> (диагностика). Петлевость — по импортируемой метрике probe_control.degenerate_metrics[\"max4gram_rep\"] и импортируемому порогу probe_language_split.LOOP_MAX4GRAM_REP (тот же порог, по которому мерились генерации). Пример петлевой, если петлевое хотя бы одно его assistant-сообщение; max4gram_rep примера — максимум по сообщениям. Вердикт и перекрёстная таблица — по прозе (б): размеченный JSON вызова и определения из tool_response сами дают повторы 4-грамм, не будучи петлёй в прозе, и чтение по всему тексту мерило бы разметку, а не вырождение",
+        "reading_a": "весь assistant-текст (все сообщения роли assistant подряд)",
+        "reading_b": "проза: вне блоков <tool_call>…</tool_call> и <tool_response>…</tool_response>; вырезание — probe_language_split._blocks (импорт)",
+        "reading_c": "диагностика: probe_language_split.split_segments()[\"prose\"] (то же, что (б), но и без блоков <think>) — «проза» прибора S3ai означает именно это; расхождение (б)/(в) = вклад рассуждения в повторы",
+        "verdict_reading": "reading_b (объявлено до прогона)",
+        "threshold": {
+          "loop_max4gram_rep": 8,
+          "source": "probe_language_split.LOOP_MAX4GRAM_REP (импорт)",
+          "expected": 8,
+          "rule": "max4gram_rep >= порога → петля",
+          "not_redefined": "порог не переопределяется: расхождение с ожидаемым значением — отказ (код 1)"
+        },
+        "metric": {
+          "from": "probe_control.degenerate_metrics (импорт)",
+          "field": "max4gram_rep",
+          "undefined_when": "слов < 8 → max4gram_rep=None → не петля, считается отдельно (n_prose_no_value)"
+        },
+        "percentile_method": "nearest-rank (probe_language_split._pct), не интерполяция: нужно «сколько реально бывает»",
+        "duplicates": "дубликат — совпадение НОРМАЛИЗОВАННОГО текста: все сообщения по порядку, «роль+содержимое», пробелы сжаты в один; метод отличается от ADR-033, контроль ADR-033 пересчитывается тем же проходом отдельно",
+        "example_looped_rule": "пример петлевой, если петлевое хотя бы одно его assistant-сообщение; при одном assistant-сообщении (96.8 % набора) правило вырождается в обычное"
+      },
+      "artifact_path": "datasets/sft_train_v12.jsonl",
+      "artifact_sha256": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+      "artifact_bytes": 486352008,
+      "tool": "tools/analyze_sft_loops.py",
+      "tool_sha256": "8834b5aee936afba4b3f498cf4f51257792520c8854f1486d20dfbac1e9859af",
+      "n_examples": 44949,
+      "n_assistant_messages": 47815,
+      "n_examples_multi_assistant": 1436,
+      "n_unique_normalized": 19011,
+      "n_unique_normalized_duplicated_hashes": 14203,
+      "duplicates": 0.5771,
+      "duplicates_detail": {
+        "method": "нормализация: все сообщения по порядку, «роль+содержимое», пробелы сжаты в один; sha256 нормализованного текста; дубликат — хеш встречается больше одного раза",
+        "n_examples": 44949,
+        "n_unique_normalized": 19011,
+        "extra_rows": 25938,
+        "duplicates_share": 0.5771,
+        "loops_share_uniqueness_conflicts": 0,
+        "adr033_method_recheck": {
+          "method": "[[role, content]] → json.dumps(ensure_ascii=False, sort_keys=True) → sha256 (метод ADR-033)",
+          "n_unique_normalized": 19011,
+          "duplicates_share": 0.5771,
+          "reference": 0.5771,
+          "matches_reference": true
+        }
+      },
+      "duplicates_note": "совпало с контролем ADR-033 (0.5771): пересчёт подтвердил известное число — обе нормализации дали одну долю",
+      "max4gram_rep_prose": {
+        "n": 44607,
+        "median": 2,
+        "p90": 4,
+        "max": 656,
+        "min": 1,
+        "mean": 3.0064,
+        "percentile_method": "nearest-rank (LS._pct)"
+      },
+      "max4gram_rep_all": {
+        "n": 44949,
+        "median": 3,
+        "p90": 4,
+        "max": 697,
+        "min": 1,
+        "mean": 3.4742,
+        "percentile_method": "nearest-rank (LS._pct)"
+      },
+      "max4gram_rep_prose_no_think": {
+        "n": 40077,
+        "median": 1,
+        "p90": 2,
+        "max": 15,
+        "min": 1,
+        "mean": 1.3274,
+        "percentile_method": "nearest-rank (LS._pct)"
+      },
+      "n_prose_no_value": 342,
+      "n_all_no_value": 0,
+      "loops_share_all": 0.0157,
+      "loops_share_prose": 0.0145,
+      "loops_share_prose_no_think": 0.0001,
+      "loops_share_among_duplicated": 0.0162,
+      "loops_share_among_unique": 0.0,
+      "loops_share_unique_examples": 0.0083,
+      "loop_location": {
+        "note": "чтение (б) вырезает блоки инструмента, но <think> в нём остаётся; чтение (в) убирает и рассуждение. Разрез отвечает на вопрос «в рассуждении или в ответе» и показывает, насколько вердикт зависит от выбора границы прозы",
+        "looped_prose_total": 650,
+        "looped_prose_and_no_think_total": 6,
+        "looped_prose_lost_without_think": 644,
+        "looped_prose_no_think_undefined": 450
+      },
+      "text_multiplicity": {
+        "note": "сколько строк файла приходится на один уникальный текст: сравнить кратность петлевых текстов с общей. Если у петлевых она выше — петли размножены дубликатами сильнее среднего, и доля петлевых строк завышена повторами одного и того же петлевого текста; если равна — повторы к петлям отношения не имеют",
+        "rows_per_unique_text_overall": 2.364,
+        "unique_texts_looped": 158,
+        "rows_per_looped_unique_text": 4.114,
+        "looped_rows_in_duplicated_texts": 650
+      },
+      "cross_table": {
+        "reading": "prose (вердикт) — доля петлевых среди строк",
+        "n_duplicated_rows": 40141,
+        "n_unique_rows": 4808,
+        "loops_share_among_duplicated": 0.0162,
+        "loops_share_among_unique": 0.0,
+        "diagnostic_all_reading": {
+          "n_duplicated_rows": 40141,
+          "n_unique_rows": 4808,
+          "loops_share_among_duplicated": 0.0176,
+          "loops_share_among_unique": 0.0
+        },
+        "diagnostic_prose_no_think_reading": {
+          "n_duplicated_rows": 40141,
+          "n_unique_rows": 4808,
+          "loops_share_among_duplicated": 0.0001,
+          "loops_share_among_unique": 0.0
+        },
+        "note": "если петли есть и среди уникальных строк — дедупликация петлю не снимет; если только среди дубликатов — снимет"
+      },
+      "lengths": {
+        "unit": "символы и слова; чтение (а) — весь assistant-текст",
+        "looped_prose": {
+          "n": 650,
+          "chars": {
+            "n": 650,
+            "median": 7542,
+            "p90": 16023,
+            "max": 17850,
+            "min": 4410,
+            "mean": 9642.9492,
+            "percentile_method": "nearest-rank (LS._pct)"
+          },
+          "words": {
+            "n": 650,
+            "median": 1025,
+            "p90": 2166,
+            "max": 2428,
+            "min": 553,
+            "mean": 1309.0015,
+            "percentile_method": "nearest-rank (LS._pct)"
+          }
+        },
+        "not_looped_prose": {
+          "n": 44299,
+          "chars": {
+            "n": 44299,
+            "median": 6955,
+            "p90": 9026,
+            "max": 18744,
+            "min": 167,
+            "mean": 6697.5075,
+            "percentile_method": "nearest-rank (LS._pct)"
+          },
+          "words": {
+            "n": 44299,
+            "median": 856,
+            "p90": 1155,
+            "max": 2461,
+            "min": 20,
+            "mean": 836.1787,
+            "percentile_method": "nearest-rank (LS._pct)"
+          }
+        },
+        "looped_prose_prose_chars": {
+          "n": 650,
+          "chars": {
+            "n": 650,
+            "median": 6720,
+            "p90": 15098,
+            "max": 16754,
+            "min": 4004,
+            "mean": 8767.6631,
+            "percentile_method": "nearest-rank (LS._pct)"
+          },
+          "words": {
+            "n": 650,
+            "median": 936,
+            "p90": 2070,
+            "max": 2320,
+            "min": 538,
+            "mean": 1216.0754,
+            "percentile_method": "nearest-rank (LS._pct)"
+          }
+        },
+        "not_looped_prose_prose_chars": {
+          "n": 44299,
+          "chars": {
+            "n": 44299,
+            "median": 5739,
+            "p90": 7573,
+            "max": 17582,
+            "min": 8,
+            "mean": 5449.2246,
+            "percentile_method": "nearest-rank (LS._pct)"
+          },
+          "words": {
+            "n": 44299,
+            "median": 728,
+            "p90": 991,
+            "max": 2354,
+            "min": 1,
+            "mean": 697.2523,
+            "percentile_method": "nearest-rank (LS._pct)"
+          }
+        }
+      },
+      "top_loops": [
+        {
+          "line_no": 3454,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 6684,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 16445,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 25997,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 26519,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 30744,
+          "max4gram_rep_prose": 656,
+          "max4gram_rep_all": 656,
+          "chars_prose": 5541,
+          "words_prose": 906,
+          "chars_all": 6501,
+          "words_all": 1023,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> './../../../../../Hista/Fреймворк/HISTO-RL/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H ISTO-Bench/Fреймворк/Fреймворк/Hidden-State-Value-Objective (HISTO-LLM) ../../../../../H IS"
+        },
+        {
+          "line_no": 14311,
+          "max4gram_rep_prose": 627,
+          "max4gram_rep_all": 627,
+          "chars_prose": 6955,
+          "words_prose": 1244,
+          "chars_all": 8045,
+          "words_all": 1366,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> \"A population equation for a variable v, defined as: E_i = Σ (w_1(v) + αw_2(v) - σdBv) x_i.\" ### Ключевая идея SEM позволяет восстановить граф, объединяющий пространство переменных в непересек"
+        },
+        {
+          "line_no": 16020,
+          "max4gram_rep_prose": 627,
+          "max4gram_rep_all": 627,
+          "chars_prose": 6955,
+          "words_prose": 1244,
+          "chars_all": 8045,
+          "words_all": 1366,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> \"A population equation for a variable v, defined as: E_i = Σ (w_1(v) + αw_2(v) - σdBv) x_i.\" ### Ключевая идея SEM позволяет восстановить граф, объединяющий пространство переменных в непересек"
+        },
+        {
+          "line_no": 23345,
+          "max4gram_rep_prose": 627,
+          "max4gram_rep_all": 627,
+          "chars_prose": 6955,
+          "words_prose": 1244,
+          "chars_all": 8045,
+          "words_all": 1366,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> \"A population equation for a variable v, defined as: E_i = Σ (w_1(v) + αw_2(v) - σdBv) x_i.\" ### Ключевая идея SEM позволяет восстановить граф, объединяющий пространство переменных в непересек"
+        },
+        {
+          "line_no": 27647,
+          "max4gram_rep_prose": 627,
+          "max4gram_rep_all": 627,
+          "chars_prose": 6955,
+          "words_prose": 1244,
+          "chars_all": 8045,
+          "words_all": 1366,
+          "n_assistant_messages": 1,
+          "prose_head_200": "<think> \"A population equation for a variable v, defined as: E_i = Σ (w_1(v) + αw_2(v) - σdBv) x_i.\" ### Ключевая идея SEM позволяет восстановить граф, объединяющий пространство переменных в непересек"
+        }
+      ],
+      "top_loops_note": "только метаданные (индекс строки 1-based, метрика, длины, первые 200 символов прозы); сортировка — по max4gram_rep прозы убыв., при равенстве — по номеру строки; полные тексты не выгружаются (объём)",
+      "comparison_to_generations": {
+        "sft_states_truncated_share_s3aj": 0.5833,
+        "sft_states_looped_share_s3aj": 0.5417,
+        "cfinal_looped_share_s3aj": 0.2917,
+        "loops_share_in_data_prose": 0.0145,
+        "loops_share_in_data_all": 0.0157,
+        "duplicates_share_adr033": 0.5771,
+        "note": "числа отвечают на разные вопросы. 0.5833 — доля генераций, не кончившихся до лимита токенов (не то же самое, что зациклилась); 0.5417 — доля зацикленных по метрике 4-грамм, и только она однородна долям по данным. У данных петля — свойство текста примера, у генераций — свойство выхода модели. Совпадение или расхождение долей само по себе ничего не доказывает; вердикт о причине — вне этого прибора"
+      },
+      "partial": false,
+      "caveats": [
+        "петлевость примера — свойство ТЕКСТА набора, а не модели: прибор не утверждает, что зацикливание генераций вызвано данными",
+        "порог 8 повторов 4-граммы — грубый намеренно (тот же, что у генераций): задача — отделить вырождение от длинного честного текста, а не измерить степень; сами max4gram_rep лежат рядом, порог можно пересмотреть без перепрогона",
+        "«проза» в задаче S3ak (вне блоков инструмента) и «проза» в приборе S3ai (ещё и без <think>) — разные сегменты; вердикт считается по первому, второй лежит рядом диагностикой",
+        "дубликат — совпадение нормализованного текста, а не смысловое: два разных по смыслу примера с одинаковым текстом сюда попадут (и это правильно — дословный повтор)",
+        "метрика undefined при <8 словах в сегменте: у короткой прозы петля неразличима в принципе, такие примеры сосчитаны отдельно и в долю петель не входят",
+        "чтение (б) вырезает только блоки инструмента, поэтому <think> в нём остаётся: вердикт по (б) — это «повторяется где угодно, кроме вызовов инструмента», в том числе в рассуждении; разрез по (в) лежит рядом (loop_location) и вердикт под ним не меняется — меняется величина",
+        "max4gram_rep механически растёт с длиной текста, а петлевые примеры длиннее не-петлевых (медиана 1025 против 856 слов) — поэтому контраст «среди дубликатов против среди одиночек» НЕ контролируется по длине, и его нельзя читать как «дубликат вызывает петлю»"
+      ],
+      "open_questions": [
+        "1436 примеров имеют больше одного assistant-сообщения: для них «пример петлевой» = «петлево хотя бы одно сообщение» (объявлено заранее), и это влияет на долю.",
+        "644 петлевых примеров перестают быть петлевыми, если вырезать <think>, — петля живёт в рассуждении, а не в ответе. Сверить с S3aj: у SFT-состояний 11 из 14 усечений пришлись на <think> (runs/s3aj-format-validity-20260917/probe_full_4096.json), то есть место петли у данных и у генераций совпадает; причинность этим не доказана — нужен разрез «петля в рассуждении против петли в ответе» на обеих сторонах.",
+        "контраст «среди дубликатов против среди одиночек» не контролирован по длине (метрика растёт с длиной): нужен пересчёт в подобранных по длине парах, прежде чем говорить, что петли идут от дубликатов."
+      ],
+      "report": "runs/s3ak-degeneration-20260917/loops_in_data.json",
+      "available": true
+    },
+    "verdict_cause": {
+      "primary": "decoding",
+      "causes_confirmed": [
+        "decoding"
+      ],
+      "causes_excluded": [],
+      "statements": [
+        {
+          "cause": "decoding",
+          "partial": true,
+          "combined_with": "own_tendency",
+          "evidence": "на greedy зациклено 0.5417, в свободном режиме sample_T0.7_top_p0.9 — 0.3333: смена режима снимает 0.2084, остаётся 0.3333",
+          "consequence": "вырождение — комбинация: часть петель создана greedy-протоколом (артефакт, лечится протоколом генерации), часть — собственная склонность модели (остаётся при sampling, лечится данными или стадией)"
+        }
+      ],
+      "rules_evaluated": [
+        {
+          "rule": "декодирование: greedy ≥ 0.3 И хотя бы один не-greedy режим БЕЗ механического запрета повторов ≤ 0.1",
+          "observed": {
+            "greedy_looped_share": 0.5417,
+            "best_other_mode": "sample_T0.7_top_p0.9",
+            "best_other_looped_share": 0.3333,
+            "reduction": 0.2084,
+            "all_modes": {
+              "greedy": 0.5417,
+              "greedy_nogram4": 0.0,
+              "greedy_rp1.1": 0.5833,
+              "sample_T0.7_top_p0.9": 0.3333
+            }
+          },
+          "fired": false,
+          "reading": "лучший свободный режим снизил долю петель с 0.5417 до 0.3333 — это множитель, а не причина: порог «петля исчезла» 0.1 не достигнут"
+        },
+        {
+          "rule": "шаг обучения: на шаге 500 петель ≤ 0.15 И на шаге 6000 петель ≥ 0.4",
+          "observed": {
+            "step_500": 0.4583,
+            "step_6000": 0.5417
+          },
+          "fired": false
+        },
+        {
+          "rule": "шаг обучения (усугубление): прирост петель от шага 500 к 6000 ≥ 0.2",
+          "observed": {
+            "growth": 0.0834,
+            "from": 0.4583,
+            "to": 0.5417
+          },
+          "fired": false
+        },
+        {
+          "rule": "данные: доля примеров-петель (по прозе) ≥ 0.3",
+          "observed": {
+            "loops_share_prose": 0.0145,
+            "loops_share_all": 0.0157,
+            "n_examples": 44949
+          },
+          "fired": false
+        },
+        {
+          "rule": "прибор: остаток «обрыва без петли» ≤ 0.05",
+          "observed": {
+            "max_truncated_not_looped_share": 0.4583
+          },
+          "fired": false
+        }
+      ],
+      "repetition_penalty": {
+        "available": true,
+        "mode": "greedy_rp1.1",
+        "greedy_looped_share": 0.5417,
+        "penalised_looped_share": 0.5833,
+        "delta": 0.0416,
+        "helps": false,
+        "reading": "штраф за повторы не снизил долю петель (со штрафом их не меньше, чем без него) — протокольное лечение в этой форме не работает, и надежда на него не отменяет разбора данных"
+      },
+      "unclosed_think": {
+        "available": true,
+        "mode": "sample_T0.7_top_p0.9",
+        "unclosed_think_share_all": 0.75,
+        "unclosed_think_share_natural_stops": 0.8,
+        "looped_share_natural_stops": 0.0667,
+        "reducible_to_loop": false,
+        "reading": "незакрытый <think> и петля — разные признаки: среди дописавших ход зацикленных почти нет, а незакрытых <think> большинство; сводить одно к другому нельзя"
+      },
+      "note": "вердикт считается правилами выше; если ни одно правило не сработало — причина не названа, и это тоже результат"
+    }
+  },
+  "language": {
+    "state": "sft_resume_6000",
+    "n_required": 100,
+    "deciding": {
+      "available": true,
+      "state": "sft_resume_6000",
+      "n": 104,
+      "prompts_set": "wide",
+      "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+      "decoding": "greedy",
+      "max_new_tokens": 4096,
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+      "checkpoint_sha256": "7638e055e63a077dc88844f26ac825e0dff37bb88c584c5de85c7b9025ef0460",
+      "report": "runs/s3ak-degeneration-20260917/language_wide.json",
+      "cyr_answer_with_zeros": 0.1509,
+      "cyr_answer_defined": 0.7115,
+      "cyr_think": 0.9522,
+      "coverage": 0.2121,
+      "n_clean": 33,
+      "clean_share_of_all": 0.3173,
+      "margin_to_0.4": -0.2491,
+      "ci95": {
+        "lo": 0.0617,
+        "hi": 0.2563,
+        "mean": 0.1509,
+        "n": 33,
+        "method": "bootstrap percentile",
+        "n_boot": 2000,
+        "seed": 42
+      },
+      "ci_covers_0.4": false,
+      "ci95_defined_only": {
+        "lo": 0.6609,
+        "hi": 0.7622,
+        "mean": 0.7115,
+        "n": 7,
+        "method": "bootstrap percentile",
+        "n_boot": 2000,
+        "seed": 42
+      },
+      "ci_defined_covers_0.4": false,
+      "ci_defined_note": "интервал по генерациям, у которых ответная часть есть (defined_only): отвечает на «на каком языке модель отвечает, когда отвечает»; вердикт критерия считается по основному чтению (with_zeros), а не по этому",
+      "zone": "insufficient_coverage",
+      "zone_why": "ответная часть есть лишь у 0.2121 генераций (порог 0.5): число cyr_answer=0.1509 измеряет обрыв генерации, а не язык ответа — недостаточно данных",
+      "all_cyr_answer_with_zeros": 0.2728,
+      "all_cyr_answer_defined": 0.6447,
+      "all_cyr_think": 0.9103,
+      "all_coverage": 0.4231,
+      "all_ci95": {
+        "lo": 0.2018,
+        "hi": 0.3462,
+        "mean": 0.2728,
+        "n": 104,
+        "method": "bootstrap percentile",
+        "n_boot": 2000,
+        "seed": 42
+      },
+      "all_zone": "insufficient_coverage",
+      "legacy_cyr_answer_with_zeros": 0.2722,
+      "legacy_cyr_answer_defined": 0.6434,
+      "legacy_cyr_think": 0.892,
+      "legacy_zone": "insufficient_coverage",
+      "looped_share": 0.6346,
+      "excluded_looped": 66,
+      "excluded_by_limit": 5,
+      "lengths_clean": {
+        "n": 33,
+        "median": 74,
+        "p90": 514,
+        "min": 7,
+        "max": 738,
+        "mean": 155.8182,
+        "percentile_method": "nearest-rank",
+        "budget": 4096,
+        "median_over_budget": 0.0181
+      },
+      "lengths_all": {
+        "n": 104,
+        "median": 4096,
+        "p90": 4096,
+        "min": 7,
+        "max": 4096,
+        "mean": 2845.75,
+        "percentile_method": "nearest-rank",
+        "budget": 4096,
+        "median_over_budget": 1.0
+      },
+      "budget_covers_p90": true,
+      "budget_note": "p90 — по дописанным ходам без петли; у зацикленных длина равна бюджету по построению, и учёт их сделал бы проверку «бюджет ≥ p90» тавтологией"
+    },
+    "states": {
+      "cfinal": {
+        "available": true,
+        "state": "cfinal",
+        "n": 104,
+        "prompts_set": "wide",
+        "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+        "decoding": "greedy",
+        "max_new_tokens": 4096,
+        "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "report": "runs/s3ak-degeneration-20260917/language_wide.json",
+        "cyr_answer_with_zeros": 0.4391,
+        "cyr_answer_defined": 0.6148,
+        "cyr_think": 0.2106,
+        "coverage": 0.7143,
+        "n_clean": 63,
+        "clean_share_of_all": 0.6058,
+        "margin_to_0.4": 0.0391,
+        "ci95": {
+          "lo": 0.3508,
+          "hi": 0.5267,
+          "mean": 0.4391,
+          "n": 63,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": true,
+        "ci95_defined_only": {
+          "lo": 0.5302,
+          "hi": 0.6921,
+          "mean": 0.6148,
+          "n": 45,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_defined_covers_0.4": false,
+        "ci_defined_note": "интервал по генерациям, у которых ответная часть есть (defined_only): отвечает на «на каком языке модель отвечает, когда отвечает»; вердикт критерия считается по основному чтению (with_zeros), а не по этому",
+        "zone": "intermediate",
+        "zone_why": "ответная часть кириллица 0.4391 в зоне [0.4; 0.5) — не решение, а повод увеличить выборку",
+        "all_cyr_answer_with_zeros": 0.3316,
+        "all_cyr_answer_defined": 0.4478,
+        "all_cyr_think": 0.1486,
+        "all_coverage": 0.7404,
+        "all_ci95": {
+          "lo": 0.2554,
+          "hi": 0.4009,
+          "mean": 0.3316,
+          "n": 104,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "all_zone": "refuted",
+        "legacy_cyr_answer_with_zeros": 0.3284,
+        "legacy_cyr_answer_defined": 0.4378,
+        "legacy_cyr_think": 0.1398,
+        "legacy_zone": "refuted",
+        "looped_share": 0.3654,
+        "excluded_looped": 38,
+        "excluded_by_limit": 3,
+        "lengths_clean": {
+          "n": 63,
+          "median": 422,
+          "p90": 1745,
+          "min": 1,
+          "max": 2199,
+          "mean": 765.7619,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 0.103
+        },
+        "lengths_all": {
+          "n": 104,
+          "median": 1511,
+          "p90": 4096,
+          "min": 1,
+          "max": 4096,
+          "mean": 1955.3173,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 0.3689
+        },
+        "budget_covers_p90": true,
+        "budget_note": "p90 — по дописанным ходам без петли; у зацикленных длина равна бюджету по построению, и учёт их сделал бы проверку «бюджет ≥ p90» тавтологией"
+      },
+      "sft3000": {
+        "available": true,
+        "state": "sft3000",
+        "n": 104,
+        "prompts_set": "wide",
+        "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+        "decoding": "greedy",
+        "max_new_tokens": 4096,
+        "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+        "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+        "report": "runs/s3ak-degeneration-20260917/language_wide.json",
+        "cyr_answer_with_zeros": 0.0741,
+        "cyr_answer_defined": 0.6667,
+        "cyr_think": 0.9692,
+        "coverage": 0.1111,
+        "n_clean": 27,
+        "clean_share_of_all": 0.2596,
+        "margin_to_0.4": -0.3259,
+        "ci95": {
+          "lo": 0.0,
+          "hi": 0.1852,
+          "mean": 0.0741,
+          "n": 27,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": false,
+        "ci95_defined_only": {
+          "lo": 0.0,
+          "hi": 1.0,
+          "mean": 0.6667,
+          "n": 3,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_defined_covers_0.4": true,
+        "ci_defined_note": "интервал по генерациям, у которых ответная часть есть (defined_only): отвечает на «на каком языке модель отвечает, когда отвечает»; вердикт критерия считается по основному чтению (with_zeros), а не по этому",
+        "zone": "insufficient_coverage",
+        "zone_why": "ответная часть есть лишь у 0.1111 генераций (порог 0.5): число cyr_answer=0.0741 измеряет обрыв генерации, а не язык ответа — недостаточно данных",
+        "all_cyr_answer_with_zeros": 0.1549,
+        "all_cyr_answer_defined": 0.7669,
+        "all_cyr_think": 0.8462,
+        "all_coverage": 0.2019,
+        "all_ci95": {
+          "lo": 0.0941,
+          "hi": 0.2269,
+          "mean": 0.1549,
+          "n": 104,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "all_zone": "insufficient_coverage",
+        "legacy_cyr_answer_with_zeros": 0.1528,
+        "legacy_cyr_answer_defined": 0.757,
+        "legacy_cyr_think": 0.8257,
+        "legacy_zone": "insufficient_coverage",
+        "looped_share": 0.7212,
+        "excluded_looped": 75,
+        "excluded_by_limit": 2,
+        "lengths_clean": {
+          "n": 27,
+          "median": 49,
+          "p90": 101,
+          "min": 8,
+          "max": 193,
+          "mean": 57.8889,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 0.012
+        },
+        "lengths_all": {
+          "n": 104,
+          "median": 4096,
+          "p90": 4096,
+          "min": 8,
+          "max": 4096,
+          "mean": 3047.6442,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 1.0
+        },
+        "budget_covers_p90": true,
+        "budget_note": "p90 — по дописанным ходам без петли; у зацикленных длина равна бюджету по построению, и учёт их сделал бы проверку «бюджет ≥ p90» тавтологией"
+      },
+      "sft_resume_6000": {
+        "available": true,
+        "state": "sft_resume_6000",
+        "n": 104,
+        "prompts_set": "wide",
+        "prompts_digest": "b3b94f8ca4a8e0a1d8e8e31c1d3bf43905c400641056f685f875477706c89e19",
+        "decoding": "greedy",
+        "max_new_tokens": 4096,
+        "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_6000.pt",
+        "checkpoint_sha256": "7638e055e63a077dc88844f26ac825e0dff37bb88c584c5de85c7b9025ef0460",
+        "report": "runs/s3ak-degeneration-20260917/language_wide.json",
+        "cyr_answer_with_zeros": 0.1509,
+        "cyr_answer_defined": 0.7115,
+        "cyr_think": 0.9522,
+        "coverage": 0.2121,
+        "n_clean": 33,
+        "clean_share_of_all": 0.3173,
+        "margin_to_0.4": -0.2491,
+        "ci95": {
+          "lo": 0.0617,
+          "hi": 0.2563,
+          "mean": 0.1509,
+          "n": 33,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": false,
+        "ci95_defined_only": {
+          "lo": 0.6609,
+          "hi": 0.7622,
+          "mean": 0.7115,
+          "n": 7,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_defined_covers_0.4": false,
+        "ci_defined_note": "интервал по генерациям, у которых ответная часть есть (defined_only): отвечает на «на каком языке модель отвечает, когда отвечает»; вердикт критерия считается по основному чтению (with_zeros), а не по этому",
+        "zone": "insufficient_coverage",
+        "zone_why": "ответная часть есть лишь у 0.2121 генераций (порог 0.5): число cyr_answer=0.1509 измеряет обрыв генерации, а не язык ответа — недостаточно данных",
+        "all_cyr_answer_with_zeros": 0.2728,
+        "all_cyr_answer_defined": 0.6447,
+        "all_cyr_think": 0.9103,
+        "all_coverage": 0.4231,
+        "all_ci95": {
+          "lo": 0.2018,
+          "hi": 0.3462,
+          "mean": 0.2728,
+          "n": 104,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "all_zone": "insufficient_coverage",
+        "legacy_cyr_answer_with_zeros": 0.2722,
+        "legacy_cyr_answer_defined": 0.6434,
+        "legacy_cyr_think": 0.892,
+        "legacy_zone": "insufficient_coverage",
+        "looped_share": 0.6346,
+        "excluded_looped": 66,
+        "excluded_by_limit": 5,
+        "lengths_clean": {
+          "n": 33,
+          "median": 74,
+          "p90": 514,
+          "min": 7,
+          "max": 738,
+          "mean": 155.8182,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 0.0181
+        },
+        "lengths_all": {
+          "n": 104,
+          "median": 4096,
+          "p90": 4096,
+          "min": 7,
+          "max": 4096,
+          "mean": 2845.75,
+          "percentile_method": "nearest-rank",
+          "budget": 4096,
+          "median_over_budget": 1.0
+        },
+        "budget_covers_p90": true,
+        "budget_note": "p90 — по дописанным ходам без петли; у зацикленных длина равна бюджету по построению, и учёт их сделал бы проверку «бюджет ≥ p90» тавтологией"
+      }
+    },
+    "by_decoding": [
+      {
+        "mode": "greedy",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "clean_n": 10,
+        "clean_share_of_all": 0.4167,
+        "cyr_answer_with_zeros": 0.2248,
+        "cyr_answer_defined_only": 0.7493,
+        "coverage": 0.3,
+        "cyr_think_with_zeros": 0.8979,
+        "margin_to_0.4": -0.1752,
+        "ci95": {
+          "lo": 0.0,
+          "hi": 0.4496,
+          "mean": 0.2248,
+          "n": 10,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": true,
+        "zone": "insufficient_coverage",
+        "report": "runs/s3ak-degeneration-20260917/decoding_greedy.json",
+        "protocol_note": "не критерий ADR-039: критерий объявлен на greedy; режим показан как дополнительный замер — в нём ходы кончаются и язык вообще измерим"
+      },
+      {
+        "mode": "greedy_nogram4",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "clean_n": 13,
+        "clean_share_of_all": 0.5417,
+        "cyr_answer_with_zeros": 0.2573,
+        "cyr_answer_defined_only": 0.6691,
+        "coverage": 0.3846,
+        "cyr_think_with_zeros": 0.8486,
+        "margin_to_0.4": -0.1427,
+        "ci95": {
+          "lo": 0.0655,
+          "hi": 0.459,
+          "mean": 0.2573,
+          "n": 13,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": true,
+        "zone": "insufficient_coverage",
+        "report": "runs/s3ak-degeneration-20260917/decoding_nogram.json",
+        "protocol_note": "не критерий ADR-039: критерий объявлен на greedy; режим показан как дополнительный замер — в нём ходы кончаются и язык вообще измерим"
+      },
+      {
+        "mode": "greedy_rp1.1",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "clean_n": 10,
+        "clean_share_of_all": 0.4167,
+        "cyr_answer_with_zeros": 0.2091,
+        "cyr_answer_defined_only": 0.697,
+        "coverage": 0.3,
+        "cyr_think_with_zeros": 0.8111,
+        "margin_to_0.4": -0.1909,
+        "ci95": {
+          "lo": 0.0,
+          "hi": 0.4182,
+          "mean": 0.2091,
+          "n": 10,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": true,
+        "zone": "insufficient_coverage",
+        "report": "runs/s3ak-degeneration-20260917/decoding_rp.json",
+        "protocol_note": "не критерий ADR-039: критерий объявлен на greedy; режим показан как дополнительный замер — в нём ходы кончаются и язык вообще измерим"
+      },
+      {
+        "mode": "sample_T0.7_top_p0.9",
+        "state": "sft_resume_6000",
+        "n": 24,
+        "clean_n": 14,
+        "clean_share_of_all": 0.5833,
+        "cyr_answer_with_zeros": 0.1403,
+        "cyr_answer_defined_only": 0.6545,
+        "coverage": 0.2143,
+        "cyr_think_with_zeros": 0.8988,
+        "margin_to_0.4": -0.2597,
+        "ci95": {
+          "lo": 0.0,
+          "hi": 0.2991,
+          "mean": 0.1403,
+          "n": 14,
+          "method": "bootstrap percentile",
+          "n_boot": 2000,
+          "seed": 42
+        },
+        "ci_covers_0.4": false,
+        "zone": "insufficient_coverage",
+        "report": "runs/s3ak-degeneration-20260917/decoding_sample.json",
+        "protocol_note": "не критерий ADR-039: критерий объявлен на greedy; режим показан как дополнительный замер — в нём ходы кончаются и язык вообще измерим"
+      }
+    ],
+    "s3aj_reference": {
+      "state": "sft_resume_4500",
+      "cyr_answer_with_zeros": 0.3919,
+      "cyr_answer_defined": 0.6719,
+      "cyr_think": 0.7896,
+      "coverage": 0.5833,
+      "margin_to_0.4": 0.0081,
+      "n": 24,
+      "zone": "refuted",
+      "why": "прежний вердикт держался на запасе 0.008 при 24 генерациях (четверть шага одной генерации) — именно это и перемеряется"
+    },
+    "n": 104,
+    "cyr_answer_with_zeros": 0.1509,
+    "cyr_answer_defined": 0.7115,
+    "cyr_think": 0.9522,
+    "coverage": 0.2121,
+    "margin_to_0.4": -0.2491,
+    "ci95": {
+      "lo": 0.0617,
+      "hi": 0.2563,
+      "mean": 0.1509,
+      "n": 33,
+      "method": "bootstrap percentile",
+      "n_boot": 2000,
+      "seed": 42
+    },
+    "ci_covers_0.4": false,
+    "zone": "insufficient_coverage",
+    "n_clean": 33,
+    "ci95_defined_only": {
+      "lo": 0.6609,
+      "hi": 0.7622,
+      "mean": 0.7115,
+      "n": 7,
+      "method": "bootstrap percentile",
+      "n_boot": 2000,
+      "seed": 42
+    },
+    "ci_defined_covers_0.4": false,
+    "all_cyr_answer_with_zeros": 0.2728,
+    "all_cyr_answer_defined": 0.6447,
+    "all_cyr_think": 0.9103,
+    "all_coverage": 0.4231,
+    "looped_share": 0.6346,
+    "budget_covers_p90": true,
+    "lengths_clean": {
+      "n": 33,
+      "median": 74,
+      "p90": 514,
+      "min": 7,
+      "max": 738,
+      "mean": 155.8182,
+      "percentile_method": "nearest-rank",
+      "budget": 4096,
+      "median_over_budget": 0.0181
+    },
+    "legacy_cyr_answer_with_zeros": 0.2722,
+    "legacy_zone": "insufficient_coverage"
+  },
+  "instrument_fix": {
+    "changes": [
+      "правило 4: служебные токены <|…|> (в т.ч. <|im_end|>, <|im_start|>, <|endoftext|>) больше не считаются буквами — у них есть латинские буквы (im_end, im_start, endoftext), и у короткого русского ответа они составляли заметную долю букв ответа",
+      "правило 5: язык считается по ходу модели — до первого <|im_end|>; всё, что генерация напечатала после собственного конца хода, — её продолжение после ответа, а не ответ",
+      "чтение v1 сохранено рядом (metrics.legacy, aggregate.legacy_reading) и воспроизводится побитово: перечитывание прежних отчётов доказывает, что прежние числа шли из того же текста, а не из другой арифметики"
+    ],
+    "affected_prior_measurements": [
+      {
+        "source": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json",
+        "state": "cfinal",
+        "delta_cyr_answer": 0.0063,
+        "delta_cyr_think": 0.0
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json",
+        "state": "sft3000",
+        "delta_cyr_answer": 0.0,
+        "delta_cyr_think": 0.0
+      },
+      {
+        "source": "runs/s3ai-probes-20260917/probe_lang_baselines.json",
+        "state": "cfinal",
+        "delta_cyr_answer": 0.0084,
+        "delta_cyr_think": 0.0207
+      },
+      {
+        "source": "runs/s3ai-probes-20260917/probe_lang_baselines.json",
+        "state": "sft3000",
+        "delta_cyr_answer": -0.1099,
+        "delta_cyr_think": 0.0027
+      },
+      {
+        "source": "runs/s3ai-probes-20260917/probe_lang_point_4000.json",
+        "state": "sftresume_4000",
+        "delta_cyr_answer": 0.0327,
+        "delta_cyr_think": 0.0551
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/derived/probe_sftresume_1024_recut.json",
+        "state": "sftresume_4000",
+        "delta_cyr_answer": 0.0,
+        "delta_cyr_think": 0.0
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+        "state": "cfinal",
+        "delta_cyr_answer": 0.0103,
+        "delta_cyr_think": 0.0001
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+        "state": "sft3000",
+        "delta_cyr_answer": 0.0,
+        "delta_cyr_think": 0.0285
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+        "state": "sft_resume_4500",
+        "delta_cyr_answer": 0.0048,
+        "delta_cyr_think": 0.0104
+      }
+    ],
+    "reaudits": [
+      {
+        "source": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json",
+        "label": "S3aj перечитанный замер 1024 (probe_baselines_1024_recut.json)",
+        "source_sha256": "0352e0d7945b2bf07dc64d841492c7ae172f1d0c3b528c5e8c4c745402f9f67a",
+        "states": {
+          "cfinal": {
+            "n": 24,
+            "cyr_answer_v1": 0.3074,
+            "cyr_answer_v2": 0.3137,
+            "delta": 0.0063,
+            "cyr_answer_defined_v1": 0.4099,
+            "cyr_answer_defined_v2": 0.4183,
+            "cyr_think_v1": 0.0681,
+            "cyr_think_v2": 0.0681,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 20,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.75,
+                "cyr_answer_v2": 0.8919,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 21,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.2047,
+                "cyr_answer_v2": 0.2134,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.5636,
+                "cyr_answer_v2": 0.5636,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 1,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.1887,
+                "cyr_answer_v2": 0.1887,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 2,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.1246,
+                "cyr_answer_v2": 0.1246,
+                "special_tokens_stripped": []
+              }
+            ]
+          },
+          "sft3000": {
+            "n": 24,
+            "cyr_answer_v1": 0.0942,
+            "cyr_answer_v2": 0.0942,
+            "delta": 0.0,
+            "cyr_answer_defined_v1": 0.5654,
+            "cyr_answer_defined_v2": 0.5654,
+            "cyr_think_v1": 0.837,
+            "cyr_think_v2": 0.837,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8592,
+                "cyr_answer_v2": 0.8592,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 8,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.6947,
+                "cyr_answer_v2": 0.6947,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 10,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.7078,
+                "cyr_answer_v2": 0.7078,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 12,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.0,
+                "cyr_answer_v2": 0.0,
+                "special_tokens_stripped": []
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source": "runs/s3ai-probes-20260917/probe_lang_baselines.json",
+        "label": "runs/s3ai-probes-20260917/probe_lang_baselines.json",
+        "source_sha256": "97587bd2e6916062705fb59b9abdb9ca618babc4bb39c7ff3c7597630db18fd4",
+        "states": {
+          "cfinal": {
+            "n": 24,
+            "cyr_answer_v1": 0.3053,
+            "cyr_answer_v2": 0.3137,
+            "delta": 0.0084,
+            "cyr_answer_defined_v1": 0.407,
+            "cyr_answer_defined_v2": 0.4183,
+            "cyr_think_v1": 0.0474,
+            "cyr_think_v2": 0.0681,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 20,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.5077,
+                "cyr_answer_v2": 0.8919,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 16,
+                "tag": "general_reasoning",
+                "cyr_answer_v1": 0.1907,
+                "cyr_answer_v2": 0.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 21,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.2047,
+                "cyr_answer_v2": 0.2134,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.5636,
+                "cyr_answer_v2": 0.5636,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 1,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.1887,
+                "cyr_answer_v2": 0.1887,
+                "special_tokens_stripped": []
+              }
+            ]
+          },
+          "sft3000": {
+            "n": 24,
+            "cyr_answer_v1": 0.2041,
+            "cyr_answer_v2": 0.0942,
+            "delta": -0.1099,
+            "cyr_answer_defined_v1": 0.6998,
+            "cyr_answer_defined_v2": 0.5654,
+            "cyr_think_v1": 0.8343,
+            "cyr_think_v2": 0.837,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8592,
+                "cyr_answer_v2": 0.8592,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 8,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.6947,
+                "cyr_answer_v2": 0.6947,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 10,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.7078,
+                "cyr_answer_v2": 0.7078,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 12,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.0,
+                "cyr_answer_v2": 0.0,
+                "special_tokens_stripped": []
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source": "runs/s3ai-probes-20260917/probe_lang_point_4000.json",
+        "label": "runs/s3ai-probes-20260917/probe_lang_point_4000.json",
+        "source_sha256": "b9d7f3803263bed0b7a544d1df8a7aa985179d824ecbffe22e573991921d34d2",
+        "states": {
+          "sftresume_4000": {
+            "n": 24,
+            "cyr_answer_v1": 0.19,
+            "cyr_answer_v2": 0.2227,
+            "delta": 0.0327,
+            "cyr_answer_defined_v1": 0.6515,
+            "cyr_answer_defined_v2": 0.7636,
+            "cyr_think_v1": 0.6925,
+            "cyr_think_v2": 0.7476,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 18,
+                "tag": "general_reasoning",
+                "cyr_answer_v1": 0.1907,
+                "cyr_answer_v2": 0.8434,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 4,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.871,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 19,
+                "tag": "general_reasoning",
+                "cyr_answer_v1": 0.876,
+                "cyr_answer_v2": 0.8791,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 2,
+                "tag": "general_language",
+                "cyr_answer_v1": 1.0,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 5,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8982,
+                "cyr_answer_v2": 0.8982,
+                "special_tokens_stripped": []
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/derived/probe_sftresume_1024_recut.json",
+        "label": "S3aj перечитанный замер 1024 (probe_sftresume_1024_recut.json)",
+        "source_sha256": "ec05eacd9e25e2a03539dd3daba355e7f0d715cf48d329871da6815f65c80682",
+        "states": {
+          "sftresume_4000": {
+            "n": 24,
+            "cyr_answer_v1": 0.2227,
+            "cyr_answer_v2": 0.2227,
+            "delta": 0.0,
+            "cyr_answer_defined_v1": 0.7636,
+            "cyr_answer_defined_v2": 0.7636,
+            "cyr_think_v1": 0.7476,
+            "cyr_think_v2": 0.7476,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 2,
+                "tag": "general_language",
+                "cyr_answer_v1": 1.0,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 4,
+                "tag": "instruction",
+                "cyr_answer_v1": 1.0,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 5,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8982,
+                "cyr_answer_v2": 0.8982,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 12,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.7247,
+                "cyr_answer_v2": 0.7247,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 13,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.0,
+                "cyr_answer_v2": 0.0,
+                "special_tokens_stripped": []
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+        "label": "S3aj полный замер (4096 + остановка на конце хода)",
+        "source_sha256": "93e1495690222d84797ccbd31e1e3c8815b21f43795488615063bc8a61c96474",
+        "states": {
+          "cfinal": {
+            "n": 24,
+            "cyr_answer_v1": 0.3661,
+            "cyr_answer_v2": 0.3764,
+            "delta": 0.0103,
+            "cyr_answer_defined_v1": 0.4881,
+            "cyr_answer_defined_v2": 0.5019,
+            "cyr_think_v1": 0.0672,
+            "cyr_think_v2": 0.0673,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 20,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.6735,
+                "cyr_answer_v2": 0.8919,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 21,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.6395,
+                "cyr_answer_v2": 0.6467,
+                "special_tokens_stripped": [
+                  "<|im_start|>"
+                ]
+              },
+              {
+                "i": 4,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.9302,
+                "cyr_answer_v2": 0.9351,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 15,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.8711,
+                "cyr_answer_v2": 0.8743,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 7,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8193,
+                "cyr_answer_v2": 0.8223,
+                "special_tokens_stripped": []
+              }
+            ]
+          },
+          "sft3000": {
+            "n": 24,
+            "cyr_answer_v1": 0.1001,
+            "cyr_answer_v2": 0.1001,
+            "delta": 0.0,
+            "cyr_answer_defined_v1": 0.6007,
+            "cyr_answer_defined_v2": 0.6007,
+            "cyr_think_v1": 0.8057,
+            "cyr_think_v2": 0.8342,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.908,
+                "cyr_answer_v2": 0.908,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 8,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.787,
+                "cyr_answer_v2": 0.787,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 10,
+                "tag": "domain_knowledge",
+                "cyr_answer_v1": 0.7077,
+                "cyr_answer_v2": 0.7077,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 12,
+                "tag": "general_language",
+                "cyr_answer_v1": 0.0,
+                "cyr_answer_v2": 0.0,
+                "special_tokens_stripped": []
+              }
+            ]
+          },
+          "sft_resume_4500": {
+            "n": 24,
+            "cyr_answer_v1": 0.3919,
+            "cyr_answer_v2": 0.3967,
+            "delta": 0.0048,
+            "cyr_answer_defined_v1": 0.6719,
+            "cyr_answer_defined_v2": 0.68,
+            "cyr_think_v1": 0.7896,
+            "cyr_think_v2": 0.8,
+            "legacy_reproduced": true,
+            "top_movers": [
+              {
+                "i": 18,
+                "tag": "general_reasoning",
+                "cyr_answer_v1": 0.9315,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 23,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.9757,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 3,
+                "tag": "general_reasoning",
+                "cyr_answer_v1": 0.9805,
+                "cyr_answer_v2": 1.0,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 22,
+                "tag": "instruction",
+                "cyr_answer_v1": 0.8118,
+                "cyr_answer_v2": 0.8141,
+                "special_tokens_stripped": []
+              },
+              {
+                "i": 0,
+                "tag": "domain_tool",
+                "cyr_answer_v1": 0.8447,
+                "cyr_answer_v2": 0.8447,
+                "special_tokens_stripped": []
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "c012_closed": {
+    "run": "runs/sft-resume-20260917-1215",
+    "manifest": "runs/sft-resume-20260917-1215/run_manifest.json",
+    "present": true,
+    "sha256": "4aba8cb8e67822c22542fc88afe214c55dcb1f932b2ef686cfef6d85311c429b"
+  },
+  "tests": {
+    "available": true,
+    "tally": "  - пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1",
+    "log": "runs/s3ak-degeneration-20260917/tool_tests.log",
+    "log_sha256": "46411c2c0be3da47efe5083d3c6abe790765de07d7e951f58f3c1a81a84d450f",
+    "passed": false,
+    "failures": [
+      "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1"
+    ],
+    "known_red": [
+      "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1"
+    ],
+    "known_red_source": "evidence/s3aj-format-validity.json",
+    "failures_outside_known_red": [],
+    "s3ak_checks": 9
+  },
+  "refusals": [],
+  "open_questions": [],
+  "contract_check": {
+    "required_keys_present": [],
+    "note": "проверяются ключи контракта TASK; значение null считается отсутствующим, потому что «поле есть, но пустое» и «поля нет» для читателя одно и то же"
+  }
+}

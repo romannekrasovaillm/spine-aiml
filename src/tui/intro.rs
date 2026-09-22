@@ -634,13 +634,13 @@ mod tests {
         assert!(super::super::app::intro_was_seen(&state));
     }
 
-    /// Текст буфера TestBackend одной строкой (как в render.rs::tests).
+    /// Текст буфера `TestBackend` одной строкой (как в `render.rs::tests`).
     fn buffer_text(term: &Terminal<TestBackend>) -> String {
         term.backend()
             .buffer()
             .content()
             .iter()
-            .map(|c| c.symbol())
+            .map(ratatui::buffer::Cell::symbol)
             .collect()
     }
 }

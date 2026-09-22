@@ -122,7 +122,7 @@ pub(crate) fn spawn_progress_reporter(
             if snap.is_empty() || snap == last {
                 continue;
             }
-            last = snap.clone();
+            last.clone_from(&snap);
             if tx
                 .send(ToolProgress {
                     name: name.clone(),

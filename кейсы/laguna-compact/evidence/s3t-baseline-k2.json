@@ -1,0 +1,244 @@
+{
+  "schema": "s3t-baseline-k2/1",
+  "stage": "S3t",
+  "status": "complete",
+  "date": "2026-09-16T17:43:47",
+  "purpose": "база и потолок компоненты K2 меры общего языка (ADR-027 п.2) с доказательством тождества прибора числом в том же прогоне",
+  "adr": [
+    "ADR-027 п.1",
+    "ADR-027 п.2",
+    "ADR-022 п.3",
+    "AD-11"
+  ],
+  "stand": {
+    "host": "roman-B550-GAMING-X-V2",
+    "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+    "torch": "2.4.0+cu121",
+    "transformers": "4.44.2",
+    "note": "локальная машина (RTX 4080 SUPER), НЕ стенд GB10: числа переносятся как свойства наборов (PPL), а не как замеры производительности стенда"
+  },
+  "instrument": {
+    "measure": "tools/ppl_probe.py:measure — та же функция, что дала и 11.9319 (S3h), и 7.5047 (S3q)",
+    "probe_revision": {
+      "path": "tools/ppl_probe.py",
+      "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+    },
+    "tool": {
+      "path": "tools/ppl_probe_k2.py",
+      "sha256": "e58fa45a88c70e09cba02683457383754c8c59f67faaac9bdb5729518a158430",
+      "argv": [
+        "--out",
+        "evidence/s3t-baseline-k2.json"
+      ]
+    },
+    "split": "text.split('\\n---\\n')",
+    "filter": "len(doc.strip()) > 50",
+    "tokenize": "tokenizer.encode(doc, add_special_tokens=False)[:1024]",
+    "keep": "len(enc) > 8",
+    "batch": 4,
+    "max_len": 1024,
+    "dtype": "bfloat16",
+    "ppl": "exp(Σ nll / Σ токенов) по корпусу",
+    "tokenizer_setup": "pipeline (8 спецтокенов + resize), как в S3h/S3q",
+    "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987"
+  },
+  "env_shims": [
+    "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется",
+    "проверка версий transformers снята: Try: `pip install transformers -U` or `pip install -e '.[dev]'` if you're working with git main"
+  ],
+  "datasets": {
+    "v1_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "bytes": 19948,
+      "mtime": "2026-08-09T07:52:37",
+      "raw_parts": 24,
+      "docs_kept": 24,
+      "docs_dropped_short": 0
+    },
+    "v3_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_v3.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval_v3.txt",
+      "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "bytes": 1128535,
+      "mtime": "2026-09-16T16:41:34",
+      "raw_parts": 200,
+      "docs_kept": 200,
+      "docs_dropped_short": 0
+    },
+    "k2_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_k2.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval_k2.txt",
+      "sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "bytes": 793126,
+      "mtime": "2026-09-16T17:43:03",
+      "raw_parts": 200,
+      "docs_kept": 200,
+      "docs_dropped_short": 0
+    }
+  },
+  "ppl": {
+    "v1_general": {
+      "ppl": 11.931923888434497,
+      "docs_counted": 24,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 3682,
+      "doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 214,
+        "batched_ppl": 7.553988266345284,
+        "unbatched_ppl": 7.552729329182918,
+        "rel_delta": 0.00016668638680085663
+      },
+      "seconds": 0.974,
+      "max_len": 1024,
+      "batch": 4,
+      "device": "cuda",
+      "dtype": "bfloat16"
+    },
+    "v3_general": {
+      "ppl": 7.50468637420902,
+      "docs_counted": 200,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 153863,
+      "doc_ppl": {
+        "n": 200,
+        "median": 7.7864792602302,
+        "mean": 7.978652785147524,
+        "min": 2.544579725089472,
+        "max": 17.236785278984303,
+        "stdev": 2.4553184342002625,
+        "max_over_median": 2.213681524462792
+      },
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 1024,
+        "batched_ppl": 4.616055434411977,
+        "unbatched_ppl": 4.618617134824192,
+        "rel_delta": -0.0005546466263462828
+      },
+      "seconds": 4.802,
+      "max_len": 1024,
+      "batch": 4,
+      "device": "cuda",
+      "dtype": "bfloat16"
+    },
+    "k2_general": {
+      "ppl": 6.1599356842437585,
+      "docs_counted": 200,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 141042,
+      "doc_ppl": {
+        "n": 200,
+        "median": 6.200362774908553,
+        "mean": 6.518777612977366,
+        "min": 3.297199734366977,
+        "max": 22.561896553186024,
+        "stdev": 2.0913035419287667,
+        "max_over_median": 3.638802659174855
+      },
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 768,
+        "batched_ppl": 3.8558202167521354,
+        "unbatched_ppl": 3.8671764380299707,
+        "rel_delta": -0.0029365666293779016
+      },
+      "seconds": 4.837,
+      "max_len": 1024,
+      "batch": 4,
+      "device": "cuda",
+      "dtype": "bfloat16"
+    }
+  },
+  "tokenizer_control": {
+    "what": "тот же замер без спецтокенов/расширения embeddings пайплайна — отделяет настройку токенизатора от состояния модели",
+    "ppl": {
+      "v1_general": 11.93192547076342,
+      "v3_general": 7.504687818052754,
+      "k2_general": 6.159937150367147
+    },
+    "delta_pct": {
+      "v1_general": 1.326130587564478e-05,
+      "v3_general": 1.9239228166156863e-05,
+      "k2_general": 2.380095287524142e-05
+    }
+  },
+  "instrument_identity": {
+    "what": "два набора с историческими числами сняты в том же прогоне, что и K2: одно совпадение объяснялось бы совпадением набора, два — только тем, что измеряет та же функция",
+    "checks": {
+      "v1_general": {
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "rel_delta_pct": 0.0,
+        "tolerance_pct": 5.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h",
+        "historical_evidence_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea"
+      },
+      "v3_general": {
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "rel_delta_pct": 0.0,
+        "tolerance_pct": 5.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q",
+        "historical_evidence_sha256": "c7956f168f42fa25f78989de6748144f83b20110801537cb4883358ba1bd0ddc"
+      }
+    },
+    "worst_rel_delta_pct": 0.0,
+    "tolerance_pct": 5.0,
+    "reproduced": true
+  },
+  "component": {
+    "role": "K2",
+    "set": "k2_general",
+    "set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+    "ppl": 6.1599356842437585,
+    "ceiling": 12.319871368487517,
+    "docs_counted": 200,
+    "tokens": 141042,
+    "doc_ppl": {
+      "n": 200,
+      "median": 6.200362774908553,
+      "mean": 6.518777612977366,
+      "min": 3.297199734366977,
+      "max": 22.561896553186024,
+      "stdev": 2.0913035419287667,
+      "max_over_median": 3.638802659174855
+    },
+    "not_to_be_averaged_with": "числа K1 и потолки K1/K2 не усредняются (ADR-027 п.2): компоненты отвечают на разные вопросы, и вердикт стадии — их конъюнкция"
+  },
+  "peer_components": {
+    "K1": {
+      "set": "v3_general",
+      "set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "ppl": 7.50468637420902,
+      "ceiling": 15.00937274841804,
+      "note": "снято в этом же прогоне тем же прибором — для конъюнкции"
+    },
+    "historical": {
+      "set": "v1_general (исторический опорный, не решающий)",
+      "set_sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "ppl": 11.931923888434497,
+      "ceiling": 23.863847776868994
+    }
+  },
+  "seconds_total": 21.3
+}

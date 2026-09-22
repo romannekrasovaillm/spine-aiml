@@ -1,9 +1,9 @@
 [package]
 name = "arch-harness"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.85"
-description = "Доменный харнесс solution-архитектора: TUI, mermaid, рубрики, бенчмарки, MCP, интеграция кодовых харнессов"
+description = "Доменный метахарнесс AI/ML-исследователя: TUI, mermaid, рубрики, бенчмарки, MCP, интеграция кодовых харнессов"
 license = "MIT"
 default-run = "arch-ml"
 
@@ -89,31 +89,22 @@ unused_self = "allow"
 implicit_hasher = "allow"
 # Конфиг-структуры с флагами читаемее иерархии enum'ов.
 struct_excessive_bools = "allow"
-# Волна 2026-09-13 (первый прогон CI после форка AI/ML Edition): классы ниже
-# всплыли суммарно 84 срабатываниями на stable 1.98 — код форка до форка CI
-# не гонял. Допущены как осознанный долг до отдельной зачистки; hard-гейты
+# Волна 2026-09-13 (первый прогон CI после форка AI/ML Edition): 84
+# срабатывания были допущены как осознанный долг. Волна 2026-09-22 (по ревью
+# форка): долг зачищен — useless_conversion (25), format_push_string (13),
+# doc_markdown (12), items_after_statements (6), single_match_else (3),
+# missing_errors_doc (2), missing_panics_doc (1), manual_let_else (1),
+# manual_checked_ops (1), format_collect (1), field_reassign_with_default (1),
+# assigning_clones (1), needless_borrow (1),
+# redundant_closure_for_method_calls (1); regex_creation_in_loops (1) закрыт
+# выносом константных паттернов в LazyLock-статики (control.rs). Hard-гейты
 # (MSRV 1.85, fmt, test, dogfood) остаются строгими.
-# Механические стили (зачистка одной волной, без смены поведения):
-useless_conversion = "allow"          # 25: идентичный .into() при возвратах ManagedError
-format_push_string = "allow"          # 13: format! в push_str при накоплении отчётов
-items_after_statements = "allow"      # 6: локальные fn/struct после выражений
+# Остаются допущенными (не механические — отдельные решения):
 similar_names = "allow"               # 6: соседние binding'и — переименование отдельным решением
-single_match_else = "allow"           # 3: match с двумя рукавами читаемее if let
-doc_markdown = "allow"                # 12: обратные кавычки в doc-комментариях
-missing_errors_doc = "allow"          # 2: секции # Errors в публичных fn
-missing_panics_doc = "allow"          # 1: секция # Panics
-manual_let_else = "allow"             # 1
-manual_checked_ops = "allow"          # 1
-format_collect = "allow"              # 1
-field_reassign_with_default = "allow" # 1
-assigning_clones = "allow"            # 1
 unused_async = "allow"                # 1: async-единообразие семейства fn
-needless_borrow = "allow"             # 1
-redundant_closure_for_method_calls = "allow" # 1
 match_same_arms = "allow"             # 1: рукава разделены осознанно (читаемость)
 struct_field_names = "allow"          # 1: префикс полей — имена предметной области
 missing_fields_in_debug = "allow"     # 1: Debug у concept скрывает поля намеренно
-regex_creation_in_loops = "allow"     # 1: control.rs — реальный кандидат на hoist (perf), не линт-вкус
 
 [profile.release]
 lto = "thin"

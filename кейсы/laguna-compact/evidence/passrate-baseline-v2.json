@@ -1,0 +1,247 @@
+{
+  "stage": "S3j",
+  "date": "2026-09-16T06:00:09+00:00",
+  "purpose": "распределение решаемости задач пула v2 базовой моделью до обучения: полоса pass-rate (ADR-006), проверка «пул не мёртвый» до фазы 2, ожидания по вырожденной награде (ADR-017)",
+  "status": "done",
+  "stand": {
+    "host": "local-rtx4080s",
+    "gpu": "RTX 4080 SUPER 16GB",
+    "gpu_note": "GB10 не задействован; gb10-shared — только чтение",
+    "inference": "transformers (vLLM на стенде нет)"
+  },
+  "pool": {
+    "path": "datasets/rl_tasks_revpool_v2.jsonl",
+    "sha256": "853c357cf8dae3e1ada30b706b9a54c7d5ce5ed7c76c46b67897ae179e006a89",
+    "lines": 9162,
+    "by_task_type": {
+      "chain_reasoning": 278,
+      "explain_relation": 394,
+      "find_concept": 8298,
+      "formula_chain": 192
+    },
+    "sha256_after": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+    "sha256_note": "ПУЛ ПЕРЕПИСАН ВО ВРЕМЯ ПРОБЫ: измерен снимок с sha256 выше"
+  },
+  "protocol": {
+    "harness": "transformers (цикл на KV-кэше, логиты только последней позиции)",
+    "system_prompt": "UNIFIED_SYSTEM_PROMPT (laguna_pipeline_v8.py)",
+    "tool": "search_concepts (импорт из пайплайна)",
+    "verifier": "verify_task (импорт из пайплайна), кредит бинарный (AD-11)",
+    "max_turns": 15,
+    "max_new_tokens": 4096,
+    "temperature": 1.0,
+    "top_k": 20,
+    "stop": [
+      "</tool_call>",
+      "<|im_end|>"
+    ],
+    "prefill": "<think>\\n",
+    "toolcall_force": true,
+    "n_attempts": 1,
+    "pass_at_k": false,
+    "seed": 42,
+    "batch": 32,
+    "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "tokenizer": "Qwen/Qwen2.5-0.5B",
+    "rng_note": "поток RNG не совпадает с vLLM RL-прогона: сопоставимы агрегаты, не построчные траектории"
+  },
+  "probe": {
+    "pool_sha256": "853c357cf8dae3e1ada30b706b9a54c7d5ce5ed7c76c46b67897ae179e006a89",
+    "n_total": 9162,
+    "n_taken": 792,
+    "n_attempts": 1,
+    "strata": {
+      "chain_reasoning": {
+        "in_pool": 278,
+        "taken": 200,
+        "seed": 42
+      },
+      "explain_relation": {
+        "in_pool": 394,
+        "taken": 200,
+        "seed": 42
+      },
+      "find_concept": {
+        "in_pool": 8298,
+        "taken": 200,
+        "seed": 42
+      },
+      "formula_chain": {
+        "in_pool": 192,
+        "taken": 192,
+        "seed": 42
+      }
+    },
+    "by_type": [
+      {
+        "task_type": "chain_reasoning",
+        "n": 200,
+        "in_pool": 278,
+        "pass_rate": 0.0,
+        "pass_rate_ci95": [
+          0.0,
+          0.0188
+        ],
+        "dead_share": 1.0,
+        "trivial_share": 0.0,
+        "median_turns": 1.0,
+        "mean_turns": 1.0,
+        "timeout_share": 0.0,
+        "tool_error_share": 0.0,
+        "tool_call_share": 0.0,
+        "mean_answer_chars": 7209.4,
+        "dead_by_construction_share": 0.0
+      },
+      {
+        "task_type": "explain_relation",
+        "n": 200,
+        "in_pool": 394,
+        "pass_rate": 0.085,
+        "pass_rate_ci95": [
+          0.0537,
+          0.1319
+        ],
+        "dead_share": 0.915,
+        "trivial_share": 0.085,
+        "median_turns": 1.0,
+        "mean_turns": 1.0,
+        "timeout_share": 0.0,
+        "tool_error_share": 0.0,
+        "tool_call_share": 1.0,
+        "mean_answer_chars": 4674.1,
+        "dead_by_construction_share": 0.0
+      },
+      {
+        "task_type": "find_concept",
+        "n": 200,
+        "in_pool": 8298,
+        "pass_rate": 0.03,
+        "pass_rate_ci95": [
+          0.0138,
+          0.0639
+        ],
+        "dead_share": 0.97,
+        "trivial_share": 0.03,
+        "median_turns": 1.0,
+        "mean_turns": 1.0,
+        "timeout_share": 0.0,
+        "tool_error_share": 0.0,
+        "tool_call_share": 0.0,
+        "mean_answer_chars": 5093.2,
+        "dead_by_construction_share": 0.0
+      },
+      {
+        "task_type": "formula_chain",
+        "n": 192,
+        "in_pool": 192,
+        "pass_rate": 0.0,
+        "pass_rate_ci95": [
+          0.0,
+          0.0196
+        ],
+        "dead_share": 1.0,
+        "trivial_share": 0.0,
+        "median_turns": 1.0,
+        "mean_turns": 1.0,
+        "timeout_share": 0.0,
+        "tool_error_share": 0.0,
+        "tool_call_share": 0.0,
+        "mean_answer_chars": 6670.5,
+        "dead_by_construction_share": 0.0
+      }
+    ],
+    "overall": {
+      "n": 792,
+      "pass_rate": 0.029,
+      "pass_rate_ci95": [
+        0.0194,
+        0.0432
+      ],
+      "dead_share": 0.971,
+      "trivial_share": 0.029,
+      "median_turns": 1.0,
+      "tool_error_share": 0.0,
+      "tool_call_share": 0.2525,
+      "timeout_share": 0.0,
+      "dead_by_construction_share": 0.0,
+      "zero_reward_share": 0.2109,
+      "reward_mean": -0.046
+    },
+    "band": {
+      "low": 0.25,
+      "high": 0.8,
+      "measure": "type-level (n_attempts=1)",
+      "types_in_band": [],
+      "tasks_in_band_types": 0,
+      "tasks_total": 792,
+      "in_band_tasks_share": 0.0,
+      "dead_tasks": 769,
+      "trivial_tasks": 23,
+      "note": "полоса названа для агрегата по типу задачи: одна попытка на задачу не даёт per-task оценки вероятности (passk-identifiability, ADR-006)"
+    },
+    "anchor_v1": {
+      "source": "ADR-010 / ADR-017, evidence/s3-rl-probe.json (background)",
+      "model": "исторический SFT-чекпойнт laguna_qwen25-05b (30.07.2026), не база ревизии",
+      "pool": "rl_tasks_revpool_v1.jsonl",
+      "trajectories": 800,
+      "pass_rate": 0.3887,
+      "reward_mean": 0.3782,
+      "zero_reward_share": 0.5063,
+      "hit_timeout": 0,
+      "turns_mean": 1.0
+    },
+    "vs_anchor_v1": {
+      "pass_rate_delta": -0.3597,
+      "zero_reward_share_delta": -0.2954,
+      "comparable": false,
+      "why_not_comparable": "ориентир снят на SFT-чекпойнте и пуле v1, здесь — базовая модель и пул v2: сравнение отвечает «где пул относительно ориентира по порядку величины», а не «стало лучше/хуже»",
+      "reading": "базовый pass-rate ниже ориентира означает, что пул v2 не выродился в тривиальный: награду есть за что давать, и она ещё не взята"
+    }
+  },
+  "artifacts": {
+    "run_dir": "passrate-probe-20260916-0740",
+    "raw_records": "tasks.jsonl"
+  },
+  "not_verified": [
+    "sha256 пула изменился за время пробы — измерен снимок, не текущий файл"
+  ],
+  "limits": [
+    "одна попытка на задачу (n_attempts=1): pass@k не измерен, полоса 0.25–0.80 названа для агрегата по типу задачи, а не для отдельной задачи",
+    "веса — базовая модель без SFT: это нижняя граница решаемости, а не результат RL и не результат SFT-чекпойнта (ориентир ADR-010 снят на историческом SFT)",
+    "поток RNG отличается от vLLM: построчные траектории с RL-прогоном не сопоставимы",
+    "pool_sha256 — снимок, прочитанный в память целиком; пул v2 переписывается параллельной дельтой S3f-fix (отсев лейка)"
+  ],
+  "pool_audit": {
+    "n": 9162,
+    "dead_by_construction": 0,
+    "dead_by_construction_share": 0.0,
+    "by_task_type": {
+      "find_concept": {
+        "n": 8298,
+        "dead_by_construction": 0,
+        "reasons": {}
+      },
+      "explain_relation": {
+        "n": 394,
+        "dead_by_construction": 0,
+        "reasons": {}
+      },
+      "chain_reasoning": {
+        "n": 278,
+        "dead_by_construction": 0,
+        "reasons": {}
+      },
+      "formula_chain": {
+        "n": 192,
+        "dead_by_construction": 0,
+        "reasons": {}
+      }
+    },
+    "definition": "задача считается мёртвой по построению, если верификатор не может выдать 1 ни на каком ответе: нет проверяемой строки (slug-ветка) или ни один keyword не резолвится в определение с >=3 значимыми словами (keyword-ветка)"
+  },
+  "measurements": {
+    "wall_seconds": 3850.8,
+    "seconds_per_task": 4.86,
+    "gen_eval": null
+  }
+}

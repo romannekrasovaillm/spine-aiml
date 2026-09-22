@@ -1,0 +1,374 @@
+{
+  "schema": "s3q-eval-set/1",
+  "stage": "S3q",
+  "status": "complete",
+  "date": "2026-09-16T14:09:25.089185+00:00",
+  "purpose": "расширенный измерительный набор общего языка (ADR-025 п.4), доказательство его чистоты против всех кандидатных миксов (ADR-025 п.1) и новая база PPL с пересчитанным потолком",
+  "adr": [
+    "ADR-025",
+    "ADR-022 п.3",
+    "ADR-018 п.3",
+    "ADR-011 п.4",
+    "AD-11"
+  ],
+  "artifacts": {
+    "set": "/home/user/gb10-shared/datasets/general_eval_v3.txt",
+    "card": "data/gen-eval-v3-card.json",
+    "gate": "tools/check_eval_set_purity.py",
+    "gate_report": "evidence/s3q-purity.json",
+    "builder": "tools/build_general_eval_v3.py",
+    "probe": "tools/ppl_probe_v3.py",
+    "probe_report": "evidence/s3q-baseline-v3.json",
+    "registry": "docs/specs/EVAL-SETS.md",
+    "assembler": "tools/assemble_s3q_evidence.py"
+  },
+  "set": {
+    "path": "/home/user/gb10-shared/datasets/general_eval_v3.txt",
+    "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+    "bytes": 1128535,
+    "docs": 200,
+    "tokens": 154063,
+    "tokens_counted_by_probe": 153863,
+    "tokens_note": "в наборе сумма len(encode(doc)) = 154063; прибор считает предсказанные позиции (len-1 на документ) = 153863; разница ровно 200 — по одной на документ",
+    "source": {
+      "dataset": "wikimedia/wikipedia",
+      "config": "20231101.ru",
+      "split": "train",
+      "selection": "хвост потока того же дампа, что и реплей; детерминированная выборка из объявленного окна смещений по сиду",
+      "window": {
+        "first_offset": 400000,
+        "pages": 12,
+        "stride": 50000,
+        "page": 100,
+        "pool_rows": 1200,
+        "offsets": [
+          400000,
+          450000,
+          500000,
+          550000,
+          600000,
+          650000,
+          700000,
+          750000,
+          800000,
+          850000,
+          900000,
+          950000
+        ],
+        "journal": [
+          {
+            "offset": 400000,
+            "rows": 100
+          },
+          {
+            "offset": 450000,
+            "rows": 100
+          },
+          {
+            "offset": 500000,
+            "rows": 100
+          },
+          {
+            "offset": 550000,
+            "rows": 100
+          },
+          {
+            "offset": 600000,
+            "rows": 100
+          },
+          {
+            "offset": 650000,
+            "rows": 100
+          },
+          {
+            "offset": 700000,
+            "rows": 100
+          },
+          {
+            "offset": 750000,
+            "rows": 100
+          },
+          {
+            "offset": 800000,
+            "rows": 100
+          },
+          {
+            "offset": 850000,
+            "rows": 100
+          },
+          {
+            "offset": 900000,
+            "rows": 100
+          },
+          {
+            "offset": 950000,
+            "rows": 100
+          }
+        ],
+        "why_sparse": "редкие страницы по хвосту потока вместо сплошного окна: снимает тематическую кучность порядка дампа, стоит тех же запросов"
+      },
+      "license": "CC BY-SA 4.0 (Wikimedia, дамп 20231101.ru)"
+    },
+    "doc_chars": {
+      "min": 815,
+      "max": 19389
+    },
+    "doc_tokens": {
+      "min": 301,
+      "max": 1024
+    }
+  },
+  "build": {
+    "filters": {
+      "doc_sep": "'\\n---\\n'",
+      "ppleval_min_chars": 50,
+      "prose_min_chars": 800,
+      "prose_min_sentences": 5,
+      "prose_min_alpha_share": 0.6,
+      "min_doc_tokens": 200,
+      "ppleval_max_tokens": 1024,
+      "note": "фильтры прозы отбирают измеримый текст (стабы и таблицы дают точки с разбросом, а не сигнал); они объявлены константами и не подбирались под результат"
+    },
+    "selection": {
+      "candidates_after_filters": 780,
+      "candidates_clean": 745,
+      "rejects": {
+        "short": 407,
+        "not_prose_sentences": 12,
+        "not_prose_alpha": 1,
+        "overlap_with_training_corpus": 35
+      },
+      "shuffle_seed": 20260916,
+      "purity_scan": {
+        "replay": {
+          "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+          "bytes": 136766843,
+          "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+          "source_docs": 199913,
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 257,
+          "overlap_ngram_occurrences": 373,
+          "doc_hits": [],
+          "window_examples": [
+            "(30 мая 2018 года) — за большой вклад в развитие отечественной культуры",
+            "11 марта 2022 года внесена в санкционный список великобритании «за признание независимости",
+            "1942 года за «образцовое выполнение боевых заданий командования на фронте борьбы с",
+            "1999 года поставлена в док на судоремонтном заводе «янтарь» для переоборудования под",
+            "2-го созыва депутаты верховного совета латвийской сср 3-го созыва депутаты верховного совета",
+            "2018 года) — за большой вклад в развитие отечественной культуры и искусства,",
+            "2019 год, в течение исполнения полномочий депутата государственной думы vi и vii",
+            "2022 года была внесена в санкционный список сша в ответ на «фиктивные",
+            "2022 года, на фоне вторжения россии на украину, включена в санкционный список",
+            "25 февраля 2022 года, на фоне вторжения россии на украину, включена в",
+            "30 сентября 2022 года была внесена в санкционный список сша в ответ",
+            "7-го созыва депутаты верховного совета рсфср 8-го созыва депутаты верховного совета рсфср",
+            "an astronomical observatory of friedrich wilhelm bessel here — фотография могилы фридриха",
+            "astronomical observatory of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма",
+            "bessel here — фотография могилы фридриха вильгельма бесселя на месте бывшей кёнигсбергской",
+            "friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя на месте",
+            "here — фотография могилы фридриха вильгельма бесселя на месте бывшей кёнигсбергской обсерватории",
+            "observatory of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя",
+            "of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя на",
+            "there was an astronomical observatory of friedrich wilhelm bessel here — фотография"
+          ],
+          "seconds": 30.8
+        },
+        "domain": {
+          "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+          "bytes": 299141131,
+          "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+          "source_docs": 172474,
+          "overlap_docs": 0,
+          "overlap_ngram_windows": 0,
+          "overlap_ngram_occurrences": 0,
+          "doc_hits": [],
+          "window_examples": [],
+          "seconds": 123.0
+        }
+      },
+      "order_of_operations": [
+        "sort_by_id",
+        "prose_filters",
+        "dedup_norm",
+        "min_tokens",
+        "purity_scan_docs_and_windows",
+        "seeded_shuffle",
+        "sort_chosen_by_id"
+      ]
+    },
+    "rejected_by_purity": 35,
+    "purity_scan": {
+      "replay": {
+        "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+        "bytes": 136766843,
+        "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+        "source_docs": 199913,
+        "overlap_docs": 0,
+        "overlap_ngram_windows": 257,
+        "overlap_ngram_occurrences": 373,
+        "doc_hits": [],
+        "window_examples": [
+          "(30 мая 2018 года) — за большой вклад в развитие отечественной культуры",
+          "11 марта 2022 года внесена в санкционный список великобритании «за признание независимости",
+          "1942 года за «образцовое выполнение боевых заданий командования на фронте борьбы с",
+          "1999 года поставлена в док на судоремонтном заводе «янтарь» для переоборудования под",
+          "2-го созыва депутаты верховного совета латвийской сср 3-го созыва депутаты верховного совета",
+          "2018 года) — за большой вклад в развитие отечественной культуры и искусства,",
+          "2019 год, в течение исполнения полномочий депутата государственной думы vi и vii",
+          "2022 года была внесена в санкционный список сша в ответ на «фиктивные",
+          "2022 года, на фоне вторжения россии на украину, включена в санкционный список",
+          "25 февраля 2022 года, на фоне вторжения россии на украину, включена в",
+          "30 сентября 2022 года была внесена в санкционный список сша в ответ",
+          "7-го созыва депутаты верховного совета рсфср 8-го созыва депутаты верховного совета рсфср",
+          "an astronomical observatory of friedrich wilhelm bessel here — фотография могилы фридриха",
+          "astronomical observatory of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма",
+          "bessel here — фотография могилы фридриха вильгельма бесселя на месте бывшей кёнигсбергской",
+          "friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя на месте",
+          "here — фотография могилы фридриха вильгельма бесселя на месте бывшей кёнигсбергской обсерватории",
+          "observatory of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя",
+          "of friedrich wilhelm bessel here — фотография могилы фридриха вильгельма бесселя на",
+          "there was an astronomical observatory of friedrich wilhelm bessel here — фотография"
+        ],
+        "seconds": 30.8
+      },
+      "domain": {
+        "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+        "bytes": 299141131,
+        "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+        "source_docs": 172474,
+        "overlap_docs": 0,
+        "overlap_ngram_windows": 0,
+        "overlap_ngram_occurrences": 0,
+        "doc_hits": [],
+        "window_examples": [],
+        "seconds": 123.0
+      }
+    }
+  },
+  "overlap_matrix": [
+    {
+      "mix": "v12r",
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card-v12r50.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "ctrl100",
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/ctrl-build-20260916-1623/mix-ctrl100-build.json",
+      "checked_corpora": [
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "cpt_corpus_v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/mix-v12r50-build.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    }
+  ],
+  "leak_check": {
+    "dataset_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+    "overlap_docs": 0,
+    "overlap_ngram_windows": 0,
+    "window_size": 12,
+    "verdict": "clean",
+    "checked_mixes": [
+      "v12r",
+      "v12r50",
+      "ctrl100",
+      "cpt_corpus_v12r50"
+    ],
+    "checked_at": "2026-09-16T13:42:40.983236+00:00",
+    "gate_report": "evidence/s3q-purity.json",
+    "note": "форма ADR-025 п.2: применение потолка к руке разрешено только при нулях здесь; проверка идёт по корпусу-источнику целиком, что строже проверки по обученному префиксу микса"
+  },
+  "baseline": {
+    "new_ppl": 7.50468637420902,
+    "new_ceiling": 15.00937274841804,
+    "old_ppl": 11.931923888434497,
+    "old_ceiling": 23.863847776868994,
+    "old_set": "v1_general (24 документа; сумма len(encode) = 3 706, прибор считает 3 682 предсказанные позиции)",
+    "v1_remeasured_ppl": 11.931923888434497,
+    "v1_rel_delta_pct": 0.0,
+    "v1_reproduced": true,
+    "instrument": "tools/ppl_probe.py:measure (та же функция, что дала 11.9319)",
+    "probe_revision_sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824",
+    "tokenizer_control_delta_pct": {
+      "v1_general": 1.326130587564478e-05,
+      "v3_general": 1.9239228166156863e-05
+    },
+    "comparability": {
+      "old_ratios_not_comparable": "отношения ×4.63 и ×9.48 (evidence/s3m-ppl-arms.json) сняты на v1_general (24 документа, 3 682 токена) и с новыми числами напрямую несопоставимы: другой набор — другая шкала прибора (ADR-025, «Отрицательные последствия»). Переносится вывод «все руки провалили порог с большим запасом», а не величины",
+      "why_scale_differs": "документ v3 длиннее (медиана токенов втрое выше), у модели больше контекста — PPL на длинном документе ниже, поэтому потолок 23.86 к новым числам неприменим; действующий потолок пересчитан как 2× новой базы и назван в поле baseline.new_ceiling",
+      "arms_not_remeasured_here": "четыре калибровочные руки S3m и контрольные руки S3o на новом наборе этим прогоном не перемерялись — см. next_step в evidence S3q"
+    }
+  },
+  "sources_unchanged": {
+    "v1_general": {
+      "path": "datasets/general_eval.txt",
+      "sha256_now": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "sha256_at_s3m": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "unchanged": true
+    },
+    "v2_general": {
+      "path": "datasets/general_eval_v2.txt",
+      "sha256_now": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "sha256_at_s3m": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "unchanged": true
+    }
+  },
+  "remeasured_arms": {
+    "status": "incomplete",
+    "why": "run_manifest.json: нет 'states'"
+  },
+  "next_step": "Разрешить вопрос жанра: перемер рук показал, что вердикт о потолке зависит от того, из какого жанра измерительный набор (`remeasured_arms.genre_question`). Дискриминирующий опыт назван там же и стоит одного прогона: набор общего языка вне жанра реплея (~200 документов не-википедийной русской прозы) и тот же перемер на нём. До этого вердикт «руки проходят потолок» читать нельзя — контрольные руки S3o (C1, 100 % общего языка) на новом наборе тоже не перемерялись: их чекпойнтов на момент дельты ещё нет",
+  "open_questions": [
+    "Считать ли гейт ADR-025 п.2 обязательным для уже сделанных замеров ретроспективно: числа S3m-2 на v1_general лежат в наборе, который чист (подтверждено гейтом), но их сверка с потолком шла до пересчёта — перечитывать ли вердикт «ни одна рука не проходит» на новом потолке",
+    "Что считать мерой «общего языка»: язык того класса, который защищал реплей (тогда верен v3, и вывод S3m-2 о разрушении языка относится к прозе вне жанра), или язык вообще, вне обучающего распределения (тогда нужен второй набор общего языка вне жанра реплея, и вердикт о потолке читается только по нему). Перемер рук показал, что вердикт зависит от этого выбора: на v3 потолок проходят три руки из четырёх, на v1 — ни одна. Инвариант ADR-025 п.1 (нулевое пересечение документов) выполнен в обоих случаях и этот вопрос не закрывает: он про документы, а не про распределение",
+    "Что делать с наборами v2: ADR-025 п.3 объявляет их условно валидными (годны для миксов без general_replay_ru в реплее), но таких кандидатных миксов сейчас нет ни одного — все три содержат этот источник. Оставлять набор в реестре «условно годным» при отсутствии годного микса или переводить в invalid_for всех"
+  ]
+}

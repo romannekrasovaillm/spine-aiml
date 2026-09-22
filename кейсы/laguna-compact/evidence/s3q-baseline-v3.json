@@ -1,0 +1,160 @@
+{
+  "schema": "s3q-baseline/1",
+  "stage": "S3q",
+  "status": "complete",
+  "date": "2026-09-16T17:09:24",
+  "purpose": "база PPL расширенного набора общего языка и пересчёт потолка ADR-022 п.3 как 2× новой базы (ADR-025 п.4)",
+  "adr": [
+    "ADR-025 п.4",
+    "ADR-022 п.3",
+    "ADR-011 п.4"
+  ],
+  "stand": {
+    "host": "roman-B550-GAMING-X-V2",
+    "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+    "torch": "2.4.0+cu121",
+    "transformers": "4.44.2",
+    "note": "локальная машина (RTX 4080 SUPER), НЕ стенд GB10 — как и замер S3h, с числом которого сверяется v1: числа переносятся как свойства наборов, а не как замеры стенда"
+  },
+  "instrument": {
+    "measure": "tools/ppl_probe.py:measure (та же функция, что дала 11.9319)",
+    "probe_revision": {
+      "path": "tools/ppl_probe.py",
+      "sha256": "b9a705d3080ccf43669d9acb13bf8729076e3fa31ef9bf5f9a84bff89cd73824"
+    },
+    "tool": {
+      "path": "tools/ppl_probe_v3.py",
+      "sha256": "ee33bc8c8fd93e186599d587b7f4e5c9f691ce4803020b579bb73c902e3526f8",
+      "argv": [
+        "--out",
+        "evidence/s3q-baseline-v3.json"
+      ]
+    },
+    "split": "text.split('\\n---\\n')",
+    "filter": "len(doc.strip()) > 50",
+    "tokenize": "tokenizer.encode(doc, add_special_tokens=False)[:1024]",
+    "keep": "len(enc) > 8",
+    "batch": 4,
+    "max_len": 1024,
+    "dtype": "bfloat16",
+    "ppl": "exp(Σ nll / Σ токенов) по корпусу",
+    "tokenizer_setup": "pipeline (8 спецтокенов + resize), как в S3h",
+    "weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "tokenizer": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987"
+  },
+  "env_shims": [
+    "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется",
+    "проверка версий transformers снята: Try: `pip install transformers -U` or `pip install -e '.[dev]'` if you're working with git main"
+  ],
+  "datasets": {
+    "v1_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "bytes": 19948,
+      "mtime": "2026-08-09T07:52:37",
+      "raw_parts": 24,
+      "docs_kept": 24,
+      "docs_dropped_short": 0
+    },
+    "v3_general": {
+      "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/datasets/general_eval_v3.txt",
+      "resolved": "/home/user/gb10-shared/datasets/general_eval_v3.txt",
+      "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "bytes": 1128535,
+      "mtime": "2026-09-16T16:41:34",
+      "raw_parts": 200,
+      "docs_kept": 200,
+      "docs_dropped_short": 0
+    }
+  },
+  "ppl": {
+    "v1_general": {
+      "ppl": 11.931923888434497,
+      "docs_counted": 24,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 3682,
+      "doc_ppl": {
+        "n": 24,
+        "median": 13.204861799053006,
+        "mean": 14.653015440213359,
+        "min": 6.900554594902268,
+        "max": 31.62442295343474,
+        "stdev": 6.900335410892706,
+        "max_over_median": 2.3949075298692413
+      },
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 214,
+        "batched_ppl": 7.553988266345284,
+        "unbatched_ppl": 7.552729329182918,
+        "rel_delta": 0.00016668638680085663
+      },
+      "seconds": 0.811,
+      "max_len": 1024,
+      "batch": 4,
+      "device": "cuda",
+      "dtype": "bfloat16"
+    },
+    "v3_general": {
+      "ppl": 7.50468637420902,
+      "docs_counted": 200,
+      "docs_dropped_short_tokens": 0,
+      "tokens": 153863,
+      "doc_ppl": {
+        "n": 200,
+        "median": 7.7864792602302,
+        "mean": 7.978652785147524,
+        "min": 2.544579725089472,
+        "max": 17.236785278984303,
+        "stdev": 2.4553184342002625,
+        "max_over_median": 2.213681524462792
+      },
+      "mask_check": true,
+      "cross_check": {
+        "doc_index": 0,
+        "n_tokens": 1024,
+        "batched_ppl": 4.616055434411977,
+        "unbatched_ppl": 4.618617134824192,
+        "rel_delta": -0.0005546466263462828
+      },
+      "seconds": 4.825,
+      "max_len": 1024,
+      "batch": 4,
+      "device": "cuda",
+      "dtype": "bfloat16"
+    }
+  },
+  "tokenizer_control": {
+    "what": "тот же замер без спецтокенов/расширения embeddings пайплайна — отделяет настройку токенизатора от состояния модели",
+    "ppl": {
+      "v1_general": 11.93192547076342,
+      "v3_general": 7.504687818052754
+    },
+    "delta_pct": {
+      "v1_general": 1.326130587564478e-05,
+      "v3_general": 1.9239228166156863e-05
+    }
+  },
+  "baseline": {
+    "new_ppl": 7.50468637420902,
+    "new_ceiling": 15.00937274841804,
+    "new_set": "v3_general",
+    "new_set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+    "old_ppl": 11.931923888434497,
+    "old_ceiling": 23.863847776868994,
+    "old_set": "v1_general (24 документа; сумма len(encode) = 3 706, прибор считает 3 682 предсказанные позиции)",
+    "old_base_evidence": "evidence/ppl-baseline-v1v2.json",
+    "old_arms_evidence": "evidence/s3m-ppl-arms.json",
+    "v1_remeasured_ppl": 11.931923888434497,
+    "v1_rel_delta_pct": 0.0,
+    "v1_reproduced": true
+  },
+  "comparability": {
+    "old_ratios_not_comparable": "отношения ×4.63 и ×9.48 (evidence/s3m-ppl-arms.json) сняты на v1_general (24 документа, 3 682 токена) и с новыми числами напрямую несопоставимы: другой набор — другая шкала прибора (ADR-025, «Отрицательные последствия»). Переносится вывод «все руки провалили порог с большим запасом», а не величины",
+    "why_scale_differs": "документ v3 длиннее (медиана токенов втрое выше), у модели больше контекста — PPL на длинном документе ниже, поэтому потолок 23.86 к новым числам неприменим; действующий потолок пересчитан как 2× новой базы и назван в поле baseline.new_ceiling",
+    "arms_not_remeasured_here": "четыре калибровочные руки S3m и контрольные руки S3o на новом наборе этим прогоном не перемерялись — см. next_step в evidence S3q"
+  },
+  "seconds_total": 11.5
+}

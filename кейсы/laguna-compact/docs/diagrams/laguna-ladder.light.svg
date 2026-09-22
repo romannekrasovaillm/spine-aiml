@@ -1,0 +1,1205 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 990 492" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+<style>
+svg{--bg:#f8fafc;--grid:#e2e8f0;--text:#0f172a;--text-muted:#64748b;--text-dim:#94a3b8;--text-faint:#64748b;--panel:#ffffff;--panel-border:#e2e8f0;--lane-fill:rgba(248, 250, 252, 0.65);--lane-stroke:#cbd5e1;--arrow:#94a3b8;--arrow-emphasis:#059669;--mask:#ffffff;--frontend-fill:rgba(34, 211, 238, 0.15);--frontend-stroke:#0891b2;--backend-fill:rgba(52, 211, 153, 0.18);--backend-stroke:#059669;--database-fill:rgba(167, 139, 250, 0.2);--database-stroke:#7c3aed;--cloud-fill:rgba(251, 191, 36, 0.18);--cloud-stroke:#d97706;--security-fill:rgba(251, 113, 133, 0.15);--security-stroke:#e11d48;--messagebus-fill:rgba(251, 146, 60, 0.15);--messagebus-stroke:#ea580c;--external-fill:rgba(148, 163, 184, 0.18);--external-stroke:#64748b;--toolbar-bg:rgba(255, 255, 255, 0.92);--toolbar-border:#cbd5e1;--toolbar-text:#334155;--toolbar-hover:#ffffff;--toolbar-menu-bg:#ffffff}
+html[data-embed="true"] .toolbar,
+    html[data-embed="true"] .header,
+    html[data-embed="true"] .cards,
+    html[data-embed="true"] .diagram-nav,
+    html[data-embed="true"] .overview-map,
+    html[data-embed="true"] .focus-chip,
+    html[data-embed="true"] .route-probe,
+    html[data-embed="true"] .semantic-lens,
+    html[data-embed="true"] .diagram-guide,
+    html[data-embed="true"] .node-finder,
+    html[data-embed="true"] .guided-views{display: none !important;}
+html[data-embed="true"] .diagram-container svg{min-width: 0;}
+html[data-present="true"]:not([data-embed="true"]) .diagram-container > svg{flex: 1 1 auto;
+      height: 100%;
+      min-height: 0;
+      width: 100%;
+      min-width: 0;}
+/* Motion Governor gives the reader a real static state and gives the
+       strongest semantic action the only motion budget. Atmosphere resets to
+       its authored base instead of freezing mid-cycle. Static artifacts never
+       start a decorative pulse or scan. */
+    html:not([data-motion-capable="true"]) svg[data-animation="trace"] [data-animate]{animation: none !important;}
+html[data-motion="still"] .pulse-dot,
+    html[data-motion="still"] .diagram-container::before,
+    html[data-motion="still"] svg[data-animation="trace"] [data-animate],
+    html[data-motion-owner] .pulse-dot,
+    html[data-motion-owner] .diagram-container::before,
+    html[data-motion-owner] svg[data-animation="trace"] [data-animate],
+    html[data-embed="true"] .pulse-dot,
+    html[data-embed="true"] .diagram-container::before,
+    html[data-share-playback="true"] .pulse-dot,
+    html[data-share-playback="true"] .diagram-container::before,
+    html[data-document-hidden="true"] .pulse-dot,
+    html[data-document-hidden="true"] .diagram-container::before,
+    html[data-document-hidden="true"] svg[data-animation="trace"] [data-animate]{animation: none !important;}
+html[data-motion="still"] .guided-view-progress span,
+    html[data-motion="still"] .guided-story-caption,
+    html[data-motion="still"] .story-trail-flow,
+    html[data-motion="still"] .intent-trace-flow,
+    html[data-motion="still"] .route-probe-flow,
+    html[data-motion="still"] .route-journey-flow,
+    html[data-motion="still"] .semantic-lens-flow,
+    html[data-motion="still"] .diagram-guide,
+    html[data-motion="still"] [data-story-step],
+    html[data-motion="still"] .overview-map-live,
+    html[data-motion="still"] .guided-view-stop,
+    html[data-motion="still"] .share-chapter-cue,
+    html[data-motion="still"] .share-chapter-state::before,
+    html[data-motion="still"] .share-chapter-progress span,
+    html[data-document-hidden="true"] .guided-view-progress span,
+    html[data-document-hidden="true"] .story-trail-flow,
+    html[data-document-hidden="true"] .intent-trace-flow,
+    html[data-document-hidden="true"] .route-probe-flow,
+    html[data-document-hidden="true"] .route-journey-flow,
+    html[data-document-hidden="true"] .semantic-lens-flow,
+    html[data-document-hidden="true"] .diagram-guide,
+    html[data-document-hidden="true"] [data-story-step],
+    html[data-document-hidden="true"] .overview-map-live,
+    html[data-document-hidden="true"] .guided-view-stop,
+    html[data-document-hidden="true"] .share-chapter-cue,
+    html[data-document-hidden="true"] .share-chapter-state::before,
+    html[data-document-hidden="true"] .share-chapter-progress span{animation: none !important;}
+html[data-motion="still"] svg[data-story-playing="true"] .story-trail-flow{stroke-dasharray: none;
+      stroke-dashoffset: 0;
+      opacity: 0.55;}
+html[data-motion="still"] .guided-view-chapter,
+    html[data-motion="still"] svg [data-node-id],
+    html[data-motion="still"] svg [data-edge-from],
+    html[data-motion="still"] svg [data-detail],
+    html[data-motion="still"] svg [data-detail-anchor],
+    html[data-motion="still"] svg [data-legend-hit],
+    html[data-motion="still"] svg{transition: none !important;}
+svg{width: 100%;
+      min-width: min(900px, 100%);
+      display: block;
+      transform-origin: 0 0;
+      transition: transform 0.18s ease;}
+.diagram-container.is-camera-moving svg{transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);}
+.diagram-container.is-camera-transaction svg{transition: none;}
+.diagram-container.is-panning svg{transition: none;}
+.overview-map-surface > svg{width: 100%;
+      height: 100%;
+      min-width: 0;
+      transform: none !important;
+      transition: none !important;
+      display: block;
+      overflow: visible;}
+/* Semantic Lens turns the compiled node-kind palette into an analytical
+       legend. One kind reveals its real traffic; two kinds compare only their
+       direct authored relationships. Geometry and the canonical SVG stay put. */
+    .semantic-lens{position: absolute;
+      right: 1rem;
+      bottom: calc(4.15rem + var(--archify-nav-reserve));
+      z-index: 24;
+      width: min(20rem, calc(100% - 2rem));
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--database-stroke) 58%, var(--toolbar-border));
+      border-radius: 0.82rem;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--database-fill) 34%, transparent), transparent 48%),
+        var(--toolbar-menu-bg);
+      color: var(--toolbar-text);
+      box-shadow: 0 18px 52px rgba(0, 0, 0, 0.36);
+      backdrop-filter: blur(18px);
+      animation: archify-lens-in 180ms cubic-bezier(0.22, 1, 0.36, 1);}
+.semantic-lens[hidden]{display: none;}
+.semantic-lens[data-dock-side="left"]{left: 1rem; right: auto;}
+.semantic-lens[data-dock-side="right"]{left: auto; right: 1rem;}
+html[data-preset="blueprint"] .semantic-lens{border-radius: 0.28rem;}
+.semantic-lens-head{display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0.75rem;
+      padding: 0.72rem 0.78rem 0.62rem;
+      border-bottom: 1px solid var(--toolbar-border);}
+.semantic-lens-eyebrow{display: block;
+      color: var(--database-stroke);
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;}
+.semantic-lens-title{display: block;
+      margin-top: 0.16rem;
+      color: var(--text);
+      font-size: 0.82rem;
+      letter-spacing: -0.02em;}
+.semantic-lens-close{width: 1.75rem;
+      height: 1.75rem;
+      padding: 0;
+      border: 0;
+      border-radius: 0.35rem;
+      background: transparent;
+      color: var(--toolbar-text);
+      font: inherit;
+      font-size: 1rem;
+      cursor: pointer;}
+.semantic-lens-close:hover,
+    .semantic-lens-close:focus-visible{background: var(--toolbar-hover);}
+.semantic-lens-instruction{margin: 0;
+      padding: 0.52rem 0.78rem 0.48rem;
+      color: var(--text-faint);
+      font-size: 0.55rem;
+      line-height: 1.45;}
+.semantic-lens-kinds{display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem;
+      max-height: min(15rem, 40vh);
+      padding: 0 0.5rem 0.5rem;
+      overflow-y: auto;
+      scrollbar-width: thin;}
+.semantic-lens-kind{--lens-color: var(--external-stroke);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.42rem;
+      min-width: 0;
+      min-height: 2.15rem;
+      padding: 0.35rem 0.42rem;
+      border: 1px solid color-mix(in srgb, var(--lens-color) 24%, var(--toolbar-border));
+      border-radius: 0.45rem;
+      background: color-mix(in srgb, var(--panel) 76%, transparent);
+      color: var(--toolbar-text);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, opacity 140ms ease;}
+html[data-preset="blueprint"] .semantic-lens-kind{border-radius: 0.12rem;}
+.semantic-lens-kind[data-kind="frontend"],
+    .semantic-lens-kind[data-kind="start"]{--lens-color: var(--frontend-stroke);}
+.semantic-lens-kind[data-kind="backend"],
+    .semantic-lens-kind[data-kind="active"]{--lens-color: var(--backend-stroke);}
+.semantic-lens-kind[data-kind="database"],
+    .semantic-lens-kind[data-kind="success"]{--lens-color: var(--database-stroke);}
+.semantic-lens-kind[data-kind="cloud"],
+    .semantic-lens-kind[data-kind="waiting"]{--lens-color: var(--cloud-stroke);}
+.semantic-lens-kind[data-kind="messagebus"]{--lens-color: var(--messagebus-stroke);}
+.semantic-lens-kind[data-kind="security"],
+    .semantic-lens-kind[data-kind="decision"],
+    .semantic-lens-kind[data-kind="failure"]{--lens-color: var(--security-stroke);}
+.semantic-lens-kind:hover,
+    .semantic-lens-kind:focus-visible,
+    .semantic-lens-kind[aria-pressed="true"]{border-color: color-mix(in srgb, var(--lens-color) 78%, var(--toolbar-border));
+      background: color-mix(in srgb, var(--lens-color) 11%, var(--panel));}
+.semantic-lens-kind:focus-visible,
+    .semantic-lens-close:focus-visible,
+    .semantic-lens-actions button:focus-visible{outline: 2px solid var(--database-stroke);
+      outline-offset: 1px;}
+.semantic-lens-kind:disabled{opacity: 0.34; cursor: default;}
+.semantic-lens-swatch{width: 0.48rem;
+      height: 0.48rem;
+      border-radius: 50%;
+      background: var(--lens-color);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--lens-color) 58%, transparent);}
+.semantic-lens-kind strong{overflow: hidden;
+      color: var(--text);
+      font-size: 0.61rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-lens-kind em{color: var(--lens-color);
+      font-size: 0.54rem;
+      font-style: normal;
+      font-weight: 800;}
+.semantic-lens-status{min-height: 2.5rem;
+      margin: 0;
+      padding: 0.55rem 0.78rem;
+      border-top: 1px solid var(--toolbar-border);
+      color: var(--text-faint);
+      font-size: 0.55rem;
+      line-height: 1.45;}
+.semantic-lens-status strong{color: var(--database-stroke); font-weight: 800;}
+.semantic-lens-actions{display: flex;
+      justify-content: flex-end;
+      gap: 0.28rem;
+      padding: 0 0.62rem 0.62rem;}
+.semantic-lens-actions button{min-height: 1.8rem;
+      padding: 0.28rem 0.48rem;
+      border: 0;
+      border-radius: 0.35rem;
+      background: transparent;
+      color: var(--toolbar-text);
+      font: inherit;
+      font-size: 0.56rem;
+      cursor: pointer;}
+.semantic-lens-actions button:hover{background: var(--toolbar-hover);}
+.semantic-lens-actions #semantic-lens-copy{color: var(--database-stroke);}
+.semantic-passport-detail{display: block;
+      margin-top: 0.12rem;
+      overflow: hidden;
+      color: var(--text-muted);
+      font-size: 0.625rem;
+      line-height: 1.4;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-passport-detail[hidden]{display: none;}
+.semantic-passport-meta{display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+      margin-top: 0.42rem;}
+.semantic-passport-meta span,
+    .semantic-passport-meta code{max-width: 100%;
+      overflow: hidden;
+      padding: 0.14rem 0.34rem;
+      border: 1px solid color-mix(in srgb, var(--toolbar-border) 82%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--panel) 68%, transparent);
+      color: var(--text-faint);
+      font: inherit;
+      font-size: 0.5rem;
+      letter-spacing: 0.04em;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-passport-meta [data-passport="kind"]{border-color: color-mix(in srgb, var(--frontend-stroke) 50%, var(--toolbar-border));
+      color: var(--frontend-stroke);
+      font-weight: 800;
+      text-transform: uppercase;}
+.semantic-passport-meta [data-passport="tag"]{color: var(--cloud-stroke);}
+.semantic-passport-meta [data-passport="brand"]{border-color: color-mix(in srgb, var(--messagebus-stroke) 52%, var(--toolbar-border));
+      color: var(--messagebus-stroke);
+      font-weight: 700;}
+.semantic-passport-meta [hidden]{display: none;}
+html[data-preset="blueprint"] .semantic-passport-meta span,
+    html[data-preset="blueprint"] .semantic-passport-meta code{border-radius: 0.1rem;}
+.semantic-passport-evidence{margin-top: 0.52rem;
+      padding: 0.5rem;
+      border: 1px solid color-mix(in srgb, var(--backend-stroke) 32%, var(--toolbar-border));
+      border-radius: 0.55rem;
+      background: color-mix(in srgb, var(--backend-fill) 18%, var(--panel));}
+.semantic-passport-evidence[hidden]{display: none;}
+html[data-preset="blueprint"] .semantic-passport-evidence{border-radius: 0.18rem;}
+.semantic-passport-evidence-head{display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.55rem;
+      margin-bottom: 0.35rem;}
+.semantic-passport-evidence-status{display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      color: var(--backend-stroke);
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;}
+.semantic-passport-evidence-status::before{content: '';
+      width: 0.38rem;
+      height: 0.38rem;
+      border-radius: 50%;
+      background: var(--backend-stroke);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--backend-stroke) 14%, transparent);}
+.semantic-passport-repository{min-width: 0;
+      overflow: hidden;
+      color: var(--text-faint);
+      font-size: 0.5rem;
+      text-decoration: none;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-passport-repository:hover,
+    .semantic-passport-repository:focus-visible{color: var(--backend-stroke);}
+.semantic-passport-evidence-links{display: grid; gap: 0.22rem;}
+.semantic-passport-source{display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.15rem 0.45rem;
+      align-items: center;
+      padding: 0.34rem 0.4rem;
+      border: 1px solid transparent;
+      border-radius: 0.38rem;
+      color: var(--text-muted);
+      text-decoration: none;}
+.semantic-passport-source:hover,
+    .semantic-passport-source:focus-visible{border-color: color-mix(in srgb, var(--backend-stroke) 42%, transparent);
+      background: color-mix(in srgb, var(--backend-fill) 32%, transparent);
+      color: var(--text);}
+.semantic-passport-source strong{overflow: hidden;
+      font-size: 0.5625rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-passport-source code{color: var(--backend-stroke);
+      font: inherit;
+      font-size: 0.5rem;}
+.semantic-passport-source small{grid-column: 1 / -1;
+      overflow: hidden;
+      color: var(--text-faint);
+      font-size: 0.5rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.semantic-passport-reach{display: grid;
+      gap: 0.28rem;
+      margin-top: 0.52rem;
+      padding-top: 0.48rem;
+      border-top: 1px solid color-mix(in srgb, var(--toolbar-border) 76%, transparent);}
+.semantic-passport-reach[hidden]{display: none;}
+.semantic-passport-reach-label{color: var(--text-faint);
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;}
+.semantic-passport-reach-actions{display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.25rem;}
+.semantic-passport-reach-actions button{display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-width: 0;
+      min-height: 2rem;
+      padding: 0.32rem 0.42rem;
+      border: 1px solid color-mix(in srgb, var(--toolbar-border) 86%, transparent);
+      background: color-mix(in srgb, var(--panel) 70%, transparent);
+      color: var(--text-muted);
+      text-align: left;}
+.semantic-passport-reach-actions button:hover:not(:disabled),
+    .semantic-passport-reach-actions button:focus-visible{border-color: color-mix(in srgb, var(--frontend-stroke) 62%, var(--toolbar-border));
+      color: var(--text);}
+.semantic-passport-reach-actions button:focus-visible{outline: 2px solid var(--frontend-stroke);
+      outline-offset: 1px;}
+.semantic-passport-reach-actions button:disabled{cursor: default;
+      opacity: 0.5;}
+.semantic-passport-reach-actions button[aria-pressed="true"]{border-color: color-mix(in srgb, var(--reach-color, var(--frontend-stroke)) 72%, var(--toolbar-border));
+      background: color-mix(in srgb, var(--reach-fill, var(--frontend-fill)) 48%, transparent);
+      color: var(--text);}
+.semantic-passport-reach-actions strong{color: var(--reach-color, var(--frontend-stroke));
+      font-size: 0.625rem;}
+.semantic-passport-reach-status{color: var(--text-faint);
+      font-size: 0.525rem;
+      line-height: 1.4;}
+.semantic-passport-reach-status[hidden]{display: none;}
+.node-finder{position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 24;
+      display: flex;
+      flex-direction: column;
+      width: min(22rem, calc(100% - 2rem));
+      max-height: calc(100% - 2rem);
+      overflow: hidden;
+      border: 1px solid var(--toolbar-border);
+      border-radius: 0.85rem;
+      background: var(--toolbar-menu-bg);
+      color: var(--toolbar-text);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(16px);}
+.node-finder[hidden]{display: none;}
+.node-finder[data-context="route-source"]{border-color: color-mix(in srgb, var(--frontend-stroke) 68%, var(--toolbar-border));}
+.node-finder[data-context="route-target"]{border-color: color-mix(in srgb, var(--security-stroke) 68%, var(--toolbar-border));}
+html[data-preset="blueprint"] .node-finder{border-radius: 0.3rem;}
+.node-finder-head{display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.7rem 0.8rem 0.45rem;}
+.node-finder-head strong{color: var(--text);
+      font-size: 0.6875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;}
+.node-finder[data-context="route-source"] .node-finder-head strong{color: var(--frontend-stroke);}
+.node-finder[data-context="route-target"] .node-finder-head strong{color: var(--security-stroke);}
+.node-finder-close{width: 1.75rem;
+      height: 1.75rem;
+      border: 0;
+      border-radius: 0.35rem;
+      background: transparent;
+      color: var(--toolbar-text);
+      font: inherit;
+      font-size: 1rem;
+      cursor: pointer;}
+.node-finder-close:hover,
+    .node-finder-close:focus-visible{background: var(--toolbar-hover);}
+.node-finder-close:focus-visible,
+    .node-finder-result:focus-visible{outline: 2px solid var(--frontend-stroke);
+      outline-offset: -2px;}
+.node-finder-search{display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.55rem;
+      margin: 0 0.55rem 0.55rem;
+      padding: 0 0.7rem;
+      min-height: 2.6rem;
+      border: 1px solid var(--toolbar-border);
+      border-radius: 0.55rem;
+      background: color-mix(in srgb, var(--panel) 78%, transparent);
+      transition: border-color 160ms ease-out, box-shadow 160ms ease-out;}
+html[data-preset="blueprint"] .node-finder-search{border-radius: 0.18rem;}
+.node-finder-search > span{color: var(--frontend-stroke); font-size: 0.875rem;}
+.node-finder-search:focus-within{border-color: var(--frontend-stroke);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--frontend-stroke) 20%, transparent);}
+.node-finder-input{appearance: none;
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.75rem;}
+.node-finder-input:focus-visible{outline: none;}
+.node-finder-input::placeholder{color: var(--text-faint);}
+.node-finder kbd{padding: 0.1rem 0.32rem;
+      border: 1px solid var(--toolbar-border);
+      border-radius: 0.25rem;
+      color: var(--text-faint);
+      font: inherit;
+      font-size: 0.5625rem;}
+.node-finder-results{display: grid;
+      flex: 1 1 auto;
+      gap: 0;
+      min-height: 0;
+      max-height: min(18rem, 48vh);
+      margin: 0 0.55rem 0.45rem;
+      padding: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border: 1px solid color-mix(in srgb, var(--toolbar-border) 78%, transparent);
+      border-radius: 0.55rem;
+      background: color-mix(in srgb, var(--panel) 54%, transparent);
+      scroll-padding-block: 0.25rem;
+      scrollbar-width: thin;}
+html[data-preset="blueprint"] .node-finder-results{border-radius: 0.18rem;}
+.node-finder-result{display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.2rem 0.75rem;
+      width: 100%;
+      min-height: 3.25rem;
+      padding: 0.58rem 0.65rem;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 160ms ease-out;}
+.node-finder-result:not(:last-child){border-bottom: 1px solid color-mix(in srgb, var(--toolbar-border) 62%, transparent);}
+.node-finder-result:hover,
+    .node-finder-result:focus-visible{position: relative;
+      z-index: 1;
+      background: color-mix(in srgb, var(--frontend-fill) 48%, var(--toolbar-hover));}
+.node-finder-result strong{overflow: hidden;
+      font-size: 0.75rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.node-finder-result small{grid-column: 1 / -1;
+      overflow: hidden;
+      color: var(--text-faint);
+      font-size: 0.5625rem;
+      letter-spacing: 0.015em;
+      text-overflow: ellipsis;
+      white-space: nowrap;}
+.node-finder-result em{align-self: center;
+      color: var(--frontend-stroke);
+      font-size: 0.625rem;
+      font-style: normal;}
+.node-finder[data-context^="route-"] .node-finder-result em{padding: 0.1rem 0.3rem;
+      border: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+      border-radius: 999px;
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;}
+.node-finder[data-context="route-target"] .node-finder-result em{color: var(--security-stroke);}
+.node-finder-empty{padding: 1.1rem 0.75rem 1.25rem;
+      color: var(--text-faint);
+      font-size: 0.6875rem;
+      text-align: center;}
+.node-finder-status{margin: 0;
+      padding: 0.1rem 0.8rem 0.65rem;
+      color: var(--text-faint);
+      font-size: 0.5625rem;}
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="stay"]{opacity: 1;}
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="enter"]{opacity: 0.78;}
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="leave"]{opacity: 0.26;}
+svg [data-node-id][data-chapter-role]{opacity: 1 !important;}
+svg[data-chapter-preview] [data-node-id],
+      svg[data-chapter-preview] [data-edge-from]{opacity: 1 !important; filter: none !important;}
+.diagram-container svg [data-detail]{opacity: 1 !important;
+        pointer-events: auto !important;}
+.diagram-container svg [data-detail-anchor]{transform: none !important;}
+.diagram-container svg[data-lens-active] [data-node-id],
+      .diagram-container svg[data-lens-active] [data-edge-from],
+      .diagram-container svg[data-legend-preview-active] [data-node-id],
+      .diagram-container svg[data-legend-preview-active] [data-edge-from]{opacity: 1 !important;
+        filter: none !important;}
+.semantic-lens-overlay{display: none !important;}
+.diagram-container svg[data-focus-active] [data-node-id],
+      .diagram-container svg[data-focus-active] [data-edge-from],
+      .diagram-container svg[data-reach-active] [data-node-id],
+      .diagram-container svg[data-reach-active] [data-edge-from],
+      .diagram-container svg[data-story-beat] [data-story-step],
+      .diagram-container svg[data-story-beat] [data-edge-from][data-story-beat-step],
+      .diagram-container svg[data-route-active] [data-node-id],
+      .diagram-container svg[data-route-active] [data-edge-from]{opacity: 1 !important;
+        filter: none !important;
+        animation: none !important;}
+html[data-preset="editorial"] .toolbar button,
+    html[data-preset="editorial"] .preset-menu,
+    html[data-preset="editorial"] .export-menu,
+    html[data-preset="editorial"] .overview-map,
+    html[data-preset="editorial"] .semantic-lens,
+    html[data-preset="editorial"] .route-probe,
+    html[data-preset="editorial"] .focus-chip,
+    html[data-preset="editorial"] .diagram-guide,
+    html[data-preset="editorial"] .node-finder,
+    html[data-preset="editorial"] .guided-views,
+    html[data-preset="editorial"] .share-chapter-cue{border-radius: 0.3rem;}
+.toolbar .export-menu button[data-format="svg"]::before,
+    .toolbar .export-menu button[data-format="webm"]::before{-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5l7 4v7l-7 4-7-4v-7zM3 6.5l7 4 7-4M10 10.5v7' fill='none' stroke='black' stroke-width='1.7'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5l7 4v7l-7 4-7-4v-7zM3 6.5l7 4 7-4M10 10.5v7' fill='none' stroke='black' stroke-width='1.7'/%3E%3C/svg%3E");}
+html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg{min-width: 720px;}
+html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .diagram-nav,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .overview-map,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .focus-chip,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .route-probe,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .semantic-lens,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .diagram-guide,
+      html:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] .node-finder{transform: translateX(var(--archify-scroll-x, 0px));}
+.semantic-lens{right: 0.5rem;
+        bottom: 3.7rem;
+        width: calc(100% - 1rem);
+        max-height: calc(100% - 4.2rem);}
+.semantic-lens[data-dock-side]{left: auto; right: 0.5rem;}
+.semantic-lens-kinds{max-height: min(12rem, 34vh);}
+.node-finder{top: 0.5rem;
+        left: 0.5rem;
+        width: min(22rem, calc(100% - 1rem));
+        max-height: calc(100% - 1rem);}
+.node-finder-results{max-height: min(16rem, 38vh);}
+html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg{width: 720px;
+        height: auto;
+        min-width: 720px;}
+/* ==========================================================
+       SVG SEMANTIC CLASSES — use these instead of inline fill/stroke
+       ========================================================== */
+    .c-grid{stroke: var(--grid); fill: none;}
+.c-mask{fill: var(--mask); stroke: none;}
+.c-frontend{fill: var(--frontend-fill);   stroke: var(--frontend-stroke);}
+.c-backend{fill: var(--backend-fill);    stroke: var(--backend-stroke);}
+.c-database{fill: var(--database-fill);   stroke: var(--database-stroke);}
+.c-cloud{fill: var(--cloud-fill);      stroke: var(--cloud-stroke);}
+.c-security{fill: var(--security-fill);   stroke: var(--security-stroke);}
+.c-messagebus{fill: var(--messagebus-fill); stroke: var(--messagebus-stroke);}
+.c-external{fill: var(--external-fill);   stroke: var(--external-stroke);}
+/* Text helpers */
+    .t-primary{fill: var(--text);}
+.t-muted{fill: var(--text-muted);}
+.t-dim{fill: var(--text-dim);}
+.t-frontend{fill: var(--frontend-stroke);}
+.t-backend{fill: var(--backend-stroke);}
+.t-database{fill: var(--database-stroke);}
+.t-cloud{fill: var(--cloud-stroke);}
+.t-security{fill: var(--security-stroke);}
+.t-messagebus{fill: var(--messagebus-stroke);}
+.t-external{fill: var(--external-stroke);}
+/* Semantic Sigils are small authored role stamps, not icons from a brand
+       pack and not viewer controls. Prefix selectors with svg so the canonical
+       export's SVG-only stylesheet collector keeps them automatically. */
+    svg .semantic-sigil{fill: none;
+      stroke: currentColor;
+      stroke-width: 1.35;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.76;
+      pointer-events: none;}
+svg .semantic-sigil > *{vector-effect: non-scaling-stroke;}
+svg .semantic-sigil .sigil-fill{fill: currentColor; stroke: none;}
+svg .s-frontend{color: var(--frontend-stroke);}
+svg .s-backend{color: var(--backend-stroke);}
+svg .s-database{color: var(--database-stroke);}
+svg .s-cloud{color: var(--cloud-stroke);}
+svg .s-security{color: var(--security-stroke);}
+svg .s-messagebus{color: var(--messagebus-stroke);}
+svg .s-external{color: var(--external-stroke);}
+/* Brand Marks are authored identity badges. Their color is contained
+       inside one neutral plate so vendor color never replaces Archify's
+       semantic node and relationship vocabulary. */
+    svg .brand-mark{pointer-events: none;}
+svg .brand-mark-badge{fill: #fff; stroke: none;}
+svg .brand-mark-frame{fill: none;
+      stroke: #cbd5e1;
+      stroke-width: 0.8;
+      vector-effect: non-scaling-stroke;}
+svg .brand-mark-fallback{fill: none;
+      stroke: #475569;
+      stroke-width: 1.15;
+      stroke-linecap: round;
+      stroke-linejoin: round;}
+svg[data-preset="blueprint"] .brand-mark-badge,
+    svg[data-preset="blueprint"] .brand-mark-frame{rx: 1px;}
+/* Reading Depth is a viewer-only level-of-detail layer. MAP preserves the
+       authored structure and primary labels, READ restores relationship labels
+       and node context, and FULL restores tags and fine annotations. Semantic
+       intent can reveal the relevant detail without moving any geometry. */
+    svg [data-detail]{transition: opacity 160ms ease;}
+svg [data-detail-anchor]{transform-box: fill-box;
+      transform-origin: center;
+      transition: transform 160ms ease;}
+.diagram-container[data-detail-level="map"] svg [data-detail="context"],
+    .diagram-container[data-detail-level="map"] svg [data-detail="fine"],
+    .diagram-container[data-detail-level="read"] svg [data-detail="fine"]{opacity: 0;
+      pointer-events: none;}
+.diagram-container[data-detail-level="map"] svg [data-detail-anchor]{transform: translateY(8px);}
+/* Focus, lens, preview, route, and story states are stronger reader intent than
+       the global zoom level. Reveal only their exact semantic matches. */
+    svg[data-focus-active] [data-focus-match][data-detail],
+    svg[data-focus-active] [data-focus-match] [data-detail],
+    svg[data-reach-active] [data-reach-match][data-detail],
+    svg[data-reach-active] [data-reach-match] [data-detail],
+    svg[data-lens-active] [data-lens-match][data-detail],
+    svg[data-lens-active] [data-lens-match] [data-detail],
+    svg[data-legend-preview-active] [data-legend-preview-match][data-detail],
+    svg[data-legend-preview-active] [data-legend-preview-match] [data-detail],
+    svg[data-intent-trace-active] [data-intent-trace-match][data-detail],
+    svg[data-intent-trace-active] [data-intent-trace-match] [data-detail],
+    svg[data-route-active] [data-route-match][data-detail],
+    svg[data-route-active] [data-route-match] [data-detail],
+    svg[data-story-active] [data-story-step][data-detail],
+    svg[data-story-active] [data-story-step] [data-detail],
+    svg[data-relationship-preview-active] [data-relationship-preview][data-detail],
+    svg[data-relationship-preview-active] [data-relationship-preview] [data-detail],
+    svg [data-node-id]:hover [data-detail],
+    svg [data-node-id]:focus-visible [data-detail]{opacity: 1;
+      pointer-events: auto;}
+svg[data-focus-active] [data-focus-match] [data-detail-anchor],
+    svg[data-reach-active] [data-reach-match] [data-detail-anchor],
+    svg[data-lens-active] [data-lens-match] [data-detail-anchor],
+    svg[data-legend-preview-active] [data-legend-preview-match] [data-detail-anchor],
+    svg[data-intent-trace-active] [data-intent-trace-match] [data-detail-anchor],
+    svg[data-route-active] [data-route-match] [data-detail-anchor],
+    svg[data-story-active] [data-story-step] [data-detail-anchor],
+    svg [data-node-id]:hover [data-detail-anchor],
+    svg [data-node-id]:focus-visible [data-detail-anchor]{transform: none;}
+/* Arrows */
+    .a-default{stroke: var(--arrow); fill: none;}
+.a-emphasis{stroke: var(--arrow-emphasis); fill: none;}
+.a-security{stroke: var(--security-stroke); fill: none; stroke-dasharray: 5,5;}
+.a-dashed{stroke: var(--database-stroke); fill: none; stroke-dasharray: 4,4;}
+/* Arrowhead markers reference these */
+    .m-default{fill: var(--arrow);}
+.m-emphasis{fill: var(--arrow-emphasis);}
+.m-security{fill: var(--security-stroke);}
+.m-dashed{fill: var(--database-stroke);}
+/* Stable semantic exploration hooks emitted by every renderer. */
+    svg [data-node-id]{cursor: pointer;
+      transition: opacity 0.18s ease, filter 0.18s ease;}
+svg [data-edge-from]{transition: opacity 0.18s ease, filter 0.18s ease;}
+svg [data-node-id]:hover,
+    svg [data-node-id]:focus-visible{filter: drop-shadow(0 0 7px var(--frontend-stroke));
+      outline: none;}
+svg [data-node-id]:hover .source-evidence-beacon,
+    svg [data-node-id]:focus-visible .source-evidence-beacon,
+    svg [data-node-id][data-focus-selected] .source-evidence-beacon{opacity: 1;
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent));}
+svg[data-preset="signal-flow"] .source-evidence-beacon{opacity: 0.9;}
+svg[data-preset="blueprint"] .source-evidence-beacon rect{rx: 0.8px;
+      filter: none;}
+svg [data-legend-kind][role="button"]{cursor: pointer;}
+svg [data-legend-kind]:focus{outline: none;}
+svg [data-legend-hit]{fill: transparent;
+      stroke: transparent;
+      stroke-width: 1.4;
+      pointer-events: all;
+      vector-effect: non-scaling-stroke;
+      transition: stroke 150ms ease, stroke-width 150ms ease, filter 150ms ease;}
+svg [data-legend-count-badge]{pointer-events: none;}
+svg [data-legend-count-badge] rect{fill: var(--mask);
+      stroke: var(--panel-border);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;}
+svg [data-legend-count-badge] text{fill: var(--text-muted);
+      font-size: 8px;
+      font-weight: 700;
+      text-anchor: middle;}
+svg [data-legend-kind][role="button"]:hover [data-legend-hit]{stroke: color-mix(in srgb, var(--database-stroke) 58%, transparent);}
+svg [data-legend-kind][role="button"]:focus-visible [data-legend-hit]{stroke: var(--frontend-stroke);
+      stroke-width: 1.8;
+      filter: drop-shadow(0 0 3px var(--frontend-stroke));}
+svg [data-legend-kind][data-legend-selected] [data-legend-hit]{stroke: var(--database-stroke);
+      stroke-width: 2.2;
+      stroke-dasharray: 3 2;}
+svg [data-legend-kind][data-legend-selected] [data-legend-count-badge] rect{stroke: var(--database-stroke);
+      stroke-width: 1.8;}
+svg [data-legend-kind][data-legend-zero]{opacity: 0.44;}
+svg[data-preset="signal-flow"] [data-legend-kind][data-legend-selected] [data-legend-hit]{filter: drop-shadow(0 0 4px var(--database-stroke));}
+svg[data-preset="blueprint"] [data-legend-hit],
+    svg[data-preset="blueprint"] [data-legend-count-badge] rect{rx: 0; filter: none;}
+svg[data-legend-preview-active] [data-node-id],
+    svg[data-legend-preview-active] [data-edge-from]{opacity: 0.11;}
+svg[data-legend-preview-active] [data-legend-preview-match]{opacity: 1;}
+svg[data-legend-preview-active] [data-legend-preview-peer]{opacity: 0.62;}
+svg[data-legend-preview-active] [data-legend-preview-selected]{filter: drop-shadow(0 0 8px var(--database-stroke));}
+svg[data-lens-active] [data-node-id],
+    svg[data-lens-active] [data-edge-from]{opacity: 0.11;}
+svg[data-lens-active] [data-lens-match]{opacity: 1;}
+svg[data-lens-active] [data-lens-peer]{opacity: 0.62;}
+svg[data-lens-active] [data-lens-selected]{filter: drop-shadow(0 0 10px var(--database-stroke));}
+.semantic-lens-overlay{pointer-events: none;}
+.semantic-lens-flow{fill: none;
+      stroke-width: 3.05;
+      stroke-linecap: round;
+      stroke-dasharray: 0.075 0.925;
+      stroke-dashoffset: 0;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.9;
+      animation: archify-semantic-lens-flow 1.35s linear 1 both;
+      animation-delay: var(--lens-flow-delay, 0s);}
+.semantic-lens-flow[data-direction="out"],
+    .semantic-lens-flow[data-direction="forward"]{stroke: var(--frontend-stroke);
+      filter: drop-shadow(0 0 3px var(--frontend-stroke));}
+.semantic-lens-flow[data-direction="in"],
+    .semantic-lens-flow[data-direction="reverse"]{stroke: var(--database-stroke);
+      filter: drop-shadow(0 0 3px var(--database-stroke));}
+.semantic-lens-flow[data-direction="within"]{stroke: var(--messagebus-stroke);
+      filter: drop-shadow(0 0 3px var(--messagebus-stroke));}
+svg[data-preset="signal-flow"] .semantic-lens-flow{stroke-width: 3.7;
+      opacity: 1;}
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="out"],
+    svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="forward"]{filter: drop-shadow(0 0 6px var(--frontend-stroke));}
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="in"],
+    svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="reverse"]{filter: drop-shadow(0 0 6px var(--database-stroke));}
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="within"]{filter: drop-shadow(0 0 6px var(--messagebus-stroke));}
+svg[data-preset="blueprint"] .semantic-lens-flow{stroke-width: 2.45;
+      stroke-linecap: square;
+      filter: none;
+      opacity: 0.78;}
+html[data-embed="true"] .semantic-lens-overlay{display: none;}
+svg[data-focus-active] [data-node-id],
+    svg[data-focus-active] [data-edge-from]{opacity: 0.13;}
+svg[data-focus-active] [data-focus-match]{opacity: 1;}
+svg[data-focus-active] [data-focus-selected]{filter: drop-shadow(0 0 10px var(--frontend-stroke));}
+/* Authored Reachability is a bounded graph query over the relationships
+       already present in the artifact. Upstream walks incoming edges;
+       downstream walks outgoing edges. It never claims runtime causality and
+       changes only viewer emphasis, not canonical geometry or export bytes. */
+    svg[data-reach-active] [data-node-id],
+    svg[data-reach-active] [data-edge-from]{opacity: 0.09;}
+svg[data-reach-active] [data-reach-match]{opacity: 1;}
+svg[data-reach-active="upstream"] [data-reach-origin]{filter: drop-shadow(0 0 11px var(--database-stroke));}
+svg[data-reach-active="downstream"] [data-reach-origin]{filter: drop-shadow(0 0 11px var(--backend-stroke));}
+svg[data-reach-active="upstream"] [data-edge-from][data-reach-match]{filter: drop-shadow(0 0 4px color-mix(in srgb, var(--database-stroke) 72%, transparent));}
+svg[data-reach-active="downstream"] [data-edge-from][data-reach-match]{filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent));}
+svg[data-preset="blueprint"][data-reach-active] [data-reach-origin],
+    svg[data-preset="blueprint"][data-reach-active] [data-edge-from][data-reach-match]{filter: none;}
+svg[data-preset="blueprint"] .relationship-hit-target:focus-visible .relationship-focus-rail{stroke-linecap: square;
+      filter: none;}
+svg[data-relationship-direct-active] [data-node-id],
+    svg[data-relationship-direct-active] [data-edge-from]{opacity: 0.16;}
+svg[data-relationship-direct-active] [data-relationship-preview],
+    svg[data-relationship-direct-active] [data-relationship-preview-node]{opacity: 1;}
+svg[data-focus-active]:not([data-relationship-pin-active]) .relationship-hit-rail,
+    svg[data-story-active] .relationship-hit-rail,
+    svg[data-route-picking] .relationship-hit-rail,
+    svg[data-route-active] .relationship-hit-rail,
+    svg[data-lens-active] .relationship-hit-rail,
+    svg[data-chapter-preview] .relationship-hit-rail{pointer-events: none;}
+/* Relationship Preview is temporary exploration state layered on top of
+       neighborhood focus. It changes emphasis only; exported geometry and the
+       relationship's original solid/dashed visual language stay untouched. */
+    svg[data-relationship-preview-active] [data-focus-match]{opacity: 0.18;}
+svg[data-relationship-preview-active] [data-relationship-preview],
+    svg[data-relationship-preview-active] [data-relationship-preview-node]{opacity: 1;}
+svg[data-relationship-preview-active] [data-relationship-preview]{filter: drop-shadow(0 0 5px var(--arrow-emphasis));}
+svg[data-relationship-preview-active] [data-relationship-preview] path,
+    svg[data-relationship-preview-active] path[data-relationship-preview],
+    svg[data-relationship-preview-active] [data-relationship-preview] line,
+    svg[data-relationship-preview-active] line[data-relationship-preview],
+    svg[data-relationship-preview-active] [data-relationship-preview] polyline,
+    svg[data-relationship-preview-active] polyline[data-relationship-preview]{stroke-width: 2.75;}
+svg[data-relationship-preview-active] [data-relationship-preview-source]{filter: drop-shadow(0 0 7px var(--frontend-stroke));}
+svg[data-relationship-preview-active] [data-relationship-preview-target]{filter: drop-shadow(0 0 7px var(--database-stroke));}
+svg[data-preset="signal-flow"] .relationship-flow-pulse{stroke: var(--frontend-stroke);
+      stroke-width: 3.85;
+      filter: drop-shadow(0 0 7px var(--frontend-stroke));}
+svg[data-preset="blueprint"] .relationship-flow-pulse{stroke-width: 2.5;
+      stroke-linecap: square;
+      filter: none;}
+svg[data-preset="editorial"] .relationship-flow-pulse{stroke: var(--arrow-emphasis);
+      stroke-width: 2.75;
+      filter: none;}
+.semantic-flow-token{color: var(--frontend-stroke);
+      opacity: 0;
+      pointer-events: none;}
+.semantic-flow-token-halo{fill: var(--mask);
+      stroke: currentColor;
+      stroke-width: 1.1;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.96;}
+.semantic-flow-token[data-token-kind="data"]{color: var(--database-stroke);}
+.semantic-flow-token[data-token-kind="event"]{color: var(--messagebus-stroke);}
+.semantic-flow-token[data-token-kind="security"]{color: var(--security-stroke);}
+.semantic-flow-token[data-token-kind="state"]{color: var(--cloud-stroke);}
+svg[data-preset="signal-flow"] .semantic-flow-token{filter: drop-shadow(0 0 5px currentColor);}
+svg[data-preset="blueprint"] .semantic-flow-token{filter: none;}
+svg[data-preset="editorial"] .semantic-flow-token{filter: none;}
+/* Intent Trace is a temporary, pre-click exploration layer. Related
+       topology stays readable while a short viewer-only signal runs over
+       cloned edge geometry; the authored edge remains untouched underneath. */
+    svg[data-intent-trace-active] [data-node-id],
+    svg[data-intent-trace-active] [data-edge-from]{opacity: 0.2;}
+svg[data-intent-trace-active] [data-intent-trace-match]{opacity: 1;}
+svg[data-intent-trace-active] [data-intent-trace-selected]{filter: drop-shadow(0 0 10px var(--frontend-stroke));}
+svg[data-preset="blueprint"] [data-intent-trace-selected],
+    svg[data-preset="blueprint"] .intent-trace-flow{filter: none;
+      stroke-linecap: square;}
+svg[data-preset="editorial"] [data-intent-trace-selected],
+    svg[data-preset="editorial"] .intent-trace-flow{filter: none;}
+/* Route Probe separates a durable two-point query from selection and
+       one-hop hover. Only the chosen shortest directed path stays prominent;
+       the traveling signal is cloned viewer geometry and never authored SVG. */
+    svg[data-route-picking="target"] [data-node-id]{opacity: 0.24;}
+svg[data-route-picking="target"] [data-route-candidate],
+    svg[data-route-picking="target"] [data-route-start]{opacity: 1;}
+svg[data-route-picking] [data-node-id]{cursor: crosshair;}
+svg[data-route-picking] [data-route-start]{filter: drop-shadow(0 0 10px var(--frontend-stroke));}
+svg[data-route-active] [data-node-id],
+    svg[data-route-active] [data-edge-from]{opacity: 0.11;}
+svg[data-route-active] [data-route-match]{opacity: 1;}
+svg[data-route-active] [data-route-start]{filter: drop-shadow(0 0 11px var(--frontend-stroke));}
+svg[data-route-active] [data-route-end]{filter: drop-shadow(0 0 11px var(--security-stroke));}
+svg[data-route-active] [data-route-step]:not([data-route-start]):not([data-route-end]){filter: drop-shadow(0 0 7px var(--backend-stroke));}
+svg[data-route-journey] [data-route-match][data-route-journey-state="past"]{opacity: 0.62;}
+svg[data-route-journey] [data-route-match][data-route-journey-state="future"]{opacity: 0.34;}
+svg[data-route-journey] [data-route-match][data-route-journey-state="current"]{opacity: 1;}
+svg[data-route-journey] [data-node-id][data-route-journey-current]{filter: drop-shadow(0 0 10px var(--backend-stroke));}
+svg[data-route-journey] [data-edge-from][data-route-journey-current]{opacity: 1;
+      filter: drop-shadow(0 0 6px var(--backend-stroke));}
+svg[data-preset="blueprint"] [data-route-start],
+    svg[data-preset="blueprint"] [data-route-end],
+    svg[data-preset="blueprint"] [data-route-step],
+    svg[data-preset="blueprint"] .route-probe-flow{filter: none;
+      stroke-linecap: square;}
+svg[data-preset="blueprint"] .route-journey-flow{filter: none;
+      stroke-linecap: square;}
+svg[data-preset="editorial"] [data-route-start],
+    svg[data-preset="editorial"] [data-route-end],
+    svg[data-preset="editorial"] [data-route-step],
+    svg[data-preset="editorial"] .route-probe-flow,
+    svg[data-preset="editorial"] .route-journey-flow{filter: none;}
+svg[data-preset="editorial"] .c-grid{stroke-dasharray: 1 4;
+      opacity: 0.48;}
+svg[data-preset="editorial"] .c-region{fill: color-mix(in srgb, var(--cloud-fill) 48%, transparent);
+      stroke-dasharray: 9 4;}
+svg[data-preset="editorial"] [data-node-id]:hover,
+    svg[data-preset="editorial"] [data-node-id]:focus-visible,
+    svg[data-preset="editorial"][data-focus-active] [data-focus-selected]{filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 18%, transparent));}
+svg[data-preset="blueprint"] .c-grid{stroke-dasharray: 1 3;
+      opacity: 0.78;}
+svg[data-preset="blueprint"] .c-region{fill: color-mix(in srgb, var(--cloud-fill) 58%, transparent);
+      stroke-dasharray: 12 4 2 4;}
+svg[data-preset="blueprint"] .c-security-group,
+    svg[data-preset="blueprint"] .c-lane{stroke-dasharray: 7 3;}
+svg[data-preset="blueprint"] [data-node-id]:hover,
+    svg[data-preset="blueprint"] [data-node-id]:focus-visible{filter: drop-shadow(0 0 3px var(--frontend-stroke));}
+svg[data-preset="blueprint"][data-focus-active] [data-focus-selected]{filter: drop-shadow(0 0 3px var(--frontend-stroke));}
+svg[data-preset="blueprint"][data-focus-active][data-reach-active] [data-focus-selected][data-reach-origin]{filter: none;}
+svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview],
+    svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-source],
+    svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-target]{filter: drop-shadow(0 0 3px var(--frontend-stroke));}
+svg[data-story-beat] [data-story-step]{opacity: 0.22;
+      filter: saturate(0.42);
+      transition: opacity 180ms ease, filter 180ms ease;}
+svg[data-story-beat] [data-story-step][data-story-beat-state="past"]{opacity: 0.72;
+      filter: saturate(0.82);}
+svg[data-story-beat] [data-story-step][data-story-beat-state="next"]{opacity: 0.5;
+      filter: saturate(0.66);}
+svg[data-story-beat] [data-story-step][data-story-beat-state="active"]{opacity: 1;
+      filter: drop-shadow(0 0 7px var(--frontend-stroke));
+      animation: archify-story-beat-node 360ms cubic-bezier(0.22, 1, 0.36, 1) both;}
+svg[data-story-beat] [data-edge-from][data-story-beat-step]{opacity: 0.16;
+      transition: opacity 160ms ease;}
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="past"]{opacity: 0.58;}
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="next"]{opacity: 0.34;}
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="active"]{opacity: 1;}
+svg[data-story-beat] .story-trail-flow{opacity: 0; transition: opacity 160ms ease;}
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="past"]{opacity: 0.34;}
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="next"]{opacity: 0.2;}
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="active"]{opacity: 0.92;}
+svg[data-story-beat] .story-trail-flow[data-story-pulse="true"]{stroke-dasharray: 2 13;
+      stroke-dashoffset: 30;
+      opacity: 0.92;
+      animation: archify-story-flow 0.78s linear 1 both;}
+svg[data-preset="blueprint"] .story-trail-flow{stroke-linecap: square;
+      filter: none;
+      opacity: 0.5;}
+svg[data-preset="blueprint"][data-story-beat] [data-story-step][data-story-beat-state="active"]{filter: none;
+      animation: none;}
+svg[data-preset="editorial"] .story-trail-flow{filter: none;}
+svg[data-preset="editorial"][data-story-beat] [data-story-step][data-story-beat-state="active"]{filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 16%, transparent));}
+/* Chapter Delta Preview is a static, pre-commit comparison between two
+       chapter focus sets. Symbols in the rail carry the meaning without color;
+       these SVG rules only make exact stable-ID membership easier to scan. */
+    svg[data-chapter-preview] [data-node-id],
+    svg[data-chapter-preview] [data-edge-from]{opacity: 0.1 !important;
+      filter: none !important;
+      transition: none !important;}
+svg[data-chapter-preview] .story-trail-overlay{opacity: 0.08 !important;}
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="stay"]{opacity: 0.76 !important;
+      filter: saturate(0.7) !important;}
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="enter"]{opacity: 1 !important;
+      filter: saturate(1.2) !important;}
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="leave"]{opacity: 0.28 !important;
+      filter: grayscale(0.72) !important;}
+svg[data-preset="blueprint"][data-chapter-preview] [data-node-id]{filter: none !important;}
+/* Dashed boundary variants */
+    .c-security-group{fill: transparent; stroke: var(--security-stroke); stroke-dasharray: 4,4;}
+.c-region{fill: rgba(251, 191, 36, 0.05); stroke: var(--cloud-stroke); stroke-dasharray: 8,4;}
+.c-lane{fill: var(--lane-fill); stroke: var(--lane-stroke); stroke-dasharray: 6,6;}
+/* Optional trace animation, enabled only by meta.animation = "trace".
+       The ordinary viewer performs one ambient pass and then restores the
+       authored solid/security/async line language. WebM samples the same
+       authored geometry into an explicit canvas timeline. */
+    html[data-ambient-motion="running"] svg[data-animation="trace"] [data-animate="edge"]{animation: archify-edge-flow 2.4s linear 1;
+      animation-delay: calc(var(--step, 0) * 160ms);}
+html[data-ambient-motion="running"] svg[data-animation="trace"] [data-animate="node"]{transform-box: fill-box;
+      transform-origin: center;
+      animation: archify-node-pulse 3.6s ease-in-out 1;
+      animation-delay: calc(var(--step, 0) * 160ms);}
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="edge"]{stroke-linecap: round;
+      filter: drop-shadow(0 0 3px var(--arrow-emphasis));
+      animation-duration: 1.75s;}
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="node"]{animation-duration: 3.1s;}
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="edge"]{stroke-linecap: square;
+      filter: none;
+      animation-duration: 2.15s;}
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="node"]{animation-name: archify-blueprint-node-pulse;
+      animation-duration: 3.8s;}
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="edge"]{filter: none;
+      animation-duration: 2.2s;}
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="node"]{animation-name: archify-editorial-node-pulse;
+      animation-duration: 3.5s;}
+/* Embedded proofs are static until a named Story Trail chapter is played.
+       This keeps proof grids calm and ensures ?play=1 stops all viewer motion
+       after one 3.2 second chapter instead of leaving ambient trace loops on. */
+    html[data-embed="true"] svg[data-animation="trace"] [data-animate],
+    html[data-share-playback="true"] svg[data-animation="trace"] [data-animate]{animation: none !important;
+      stroke-dashoffset: 0;}
+svg[data-animation="trace"] [data-animate]{animation: none !important;
+        stroke-dashoffset: 0;}
+.story-trail-flow,
+      .intent-trace-flow,
+      .route-probe-flow,
+      .semantic-lens,
+      .diagram-guide,
+      [data-story-step],
+      .overview-map-live,
+      .guided-view-stop,
+      .share-chapter-cue,
+      .chapter-handoff-anchor,
+      .share-chapter-state::before,
+      .share-chapter-progress span{animation: none !important;}
+.guided-view-chapter,
+      svg[data-chapter-preview] [data-node-id],
+      svg[data-chapter-preview] [data-edge-from]{transition: none !important;}
+svg[data-story-playing="true"] .story-trail-flow{stroke-dasharray: none;
+        stroke-dashoffset: 0;
+        opacity: 0.55;}
+.semantic-lens-flow{animation: none !important;
+        stroke-dasharray: none;
+        stroke-width: 2.2;
+        opacity: 0.34;
+        filter: none;}
+.source-evidence-beacon,
+      svg [data-node-id], svg [data-edge-from], svg [data-detail], svg [data-detail-anchor], svg [data-legend-hit], svg{transition: none !important;}
+</style>
+
+        <title id="archify-diagram-title">Лесенка Лагуна: контур ревизии (состояние 20.09.2026)</title>
+        <desc id="archify-diagram-description">An architecture diagram generated by Archify.</desc>
+        <!-- Definitions -->
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+          </marker>
+          <marker id="arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+          </marker>
+          <marker id="arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+          </marker>
+          <marker id="arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-dashed" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <!-- Background Grid -->
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- Boundaries (behind everything) -->
+
+
+        <!-- Connection paths (before components for correct z-order) -->
+        <path data-edge-from="base" data-edge-to="cpt" data-edge-label="старт" data-edge-key="0" data-edge-id="base-to-cpt" data-composition-points="190,232;230,232" d="M 190 232 L 230 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="corp" data-edge-to="cpt" data-edge-label="микс 75/25" data-edge-key="1" data-edge-id="corp-to-cpt" data-composition-points="305,104;305,200" d="M 305 104 L 305 200" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="cpt" data-edge-to="ckpt" data-edge-label="финал CPT" data-edge-key="2" data-edge-id="cpt-to-ckpt" data-composition-points="380,232;420,232" d="M 380 232 L 420 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="ckpt" data-edge-to="sft" data-edge-label="чекпойнт" data-edge-key="3" data-edge-id="ckpt-to-sft" data-composition-points="570,232;610,232" d="M 570 232 L 610 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sets" data-edge-to="sft" data-edge-label="набор v13" data-edge-key="4" data-edge-id="sets-to-sft" data-composition-points="685,104;685,200" d="M 685 104 L 685 200" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sft" data-edge-to="rl" data-edge-label="финал SFT" data-edge-key="5" data-edge-id="sft-to-rl" data-composition-points="760,232;800,232" d="M 760 232 L 800 232" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sft" data-edge-to="probes" data-edge-label="пробы /500" data-edge-key="6" data-edge-id="sft-to-probes" data-composition-points="685,264;685,360" d="M 685 264 L 685 360" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="probes" data-edge-to="gates" data-edge-label="K1 K2 домен" data-edge-key="7" data-edge-id="probes-to-gates" data-composition-points="760,392;800,392" d="M 760 392 L 800 392" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+
+        <!-- Components -->
+        <g id="node-base" data-node-id="base" data-node-label="Qwen2.5-0.5B" tabindex="0" role="button" aria-label="Focus Qwen2.5-0.5B, база ревизии, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="база ревизии" data-node-context="Architecture component">
+          <title>Qwen2.5-0.5B · база ревизии · Architecture component</title>
+          <rect x="40" y="200" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="40" y="200" width="150" height="64" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(46 206) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="115" y="230" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Qwen2.5-0.5B</text>
+        <text data-detail="context" x="115" y="246" class="t-muted" font-size="9" text-anchor="middle">база ревизии</text>
+        </g>
+
+        <g id="node-cpt" data-node-id="cpt" data-node-label="CPT — пройдена" tabindex="0" role="button" aria-label="Focus CPT — пройдена, 9776 шагов, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="9776 шагов" data-node-context="Architecture component">
+          <title>CPT — пройдена · 9776 шагов · Architecture component</title>
+          <rect x="230" y="200" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="230" y="200" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(236 206) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="305" y="230" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CPT — пройдена</text>
+        <text data-detail="context" x="305" y="246" class="t-muted" font-size="9" text-anchor="middle">9776 шагов</text>
+        </g>
+
+        <g id="node-ckpt" data-node-id="ckpt" data-node-label="Чекпойнт стадии" tabindex="0" role="button" aria-label="Focus Чекпойнт стадии, пиннинг и ретенция, Architecture component" aria-pressed="false" data-node-kind="database" data-node-sublabel="пиннинг и ретенция" data-node-context="Architecture component">
+          <title>Чекпойнт стадии · пиннинг и ретенция · Architecture component</title>
+          <rect x="420" y="200" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="420" y="200" width="150" height="64" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(426 206) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="495" y="230" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Чекпойнт стадии</text>
+        <text data-detail="context" x="495" y="246" class="t-muted" font-size="9" text-anchor="middle">пиннинг и ретенция</text>
+        </g>
+
+        <g id="node-sft" data-node-id="sft" data-node-label="SFT — идёт" tabindex="0" role="button" aria-label="Focus SFT — идёт, ~25k из 66157, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="~25k из 66157" data-node-context="Architecture component">
+          <title>SFT — идёт · ~25k из 66157 · Architecture component</title>
+          <rect x="610" y="200" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="610" y="200" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(616 206) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="685" y="230" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SFT — идёт</text>
+        <text data-detail="context" x="685" y="246" class="t-muted" font-size="9" text-anchor="middle">~25k из 66157</text>
+        </g>
+
+        <g id="node-rl" data-node-id="rl" data-node-label="Agentic-RL — не начата" tabindex="0" role="button" aria-label="Focus Agentic-RL — не начата, среды E1-E8, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="среды E1-E8" data-node-context="Architecture component">
+          <title>Agentic-RL — не начата · среды E1-E8 · Architecture component</title>
+          <rect x="800" y="200" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="800" y="200" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(806 206) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="875" y="230" class="t-primary" font-size="10.7" font-weight="600" text-anchor="middle">Agentic-RL — не начата</text>
+        <text data-detail="context" x="875" y="246" class="t-muted" font-size="9" text-anchor="middle">среды E1-E8</text>
+        </g>
+
+        <g id="node-corp" data-node-id="corp" data-node-label="Корпус v12r" tabindex="0" role="button" aria-label="Focus Корпус v12r, концепты ML/AI, Architecture component" aria-pressed="false" data-node-kind="database" data-node-sublabel="концепты ML/AI" data-node-context="Architecture component">
+          <title>Корпус v12r · концепты ML/AI · Architecture component</title>
+          <rect x="230" y="40" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="230" y="40" width="150" height="64" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(236 46) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="305" y="70" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Корпус v12r</text>
+        <text data-detail="context" x="305" y="86" class="t-muted" font-size="9" text-anchor="middle">концепты ML/AI</text>
+        </g>
+
+        <g id="node-sets" data-node-id="sets" data-node-label="Наборы" tabindex="0" role="button" aria-label="Focus Наборы, SFT v13 и RL-пул, Architecture component" aria-pressed="false" data-node-kind="database" data-node-sublabel="SFT v13 и RL-пул" data-node-context="Architecture component">
+          <title>Наборы · SFT v13 и RL-пул · Architecture component</title>
+          <rect x="610" y="40" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="610" y="40" width="150" height="64" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(616 46) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="685" y="70" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Наборы</text>
+        <text data-detail="context" x="685" y="86" class="t-muted" font-size="9" text-anchor="middle">SFT v13 и RL-пул</text>
+        </g>
+
+        <g id="node-probes" data-node-id="probes" data-node-label="Приборы" tabindex="0" role="button" aria-label="Focus Приборы, PPL v3/K2, GEN-EVAL, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="PPL v3/K2, GEN-EVAL" data-node-context="Architecture component">
+          <title>Приборы · PPL v3/K2, GEN-EVAL · Architecture component</title>
+          <rect x="610" y="360" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="610" y="360" width="150" height="64" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(616 366) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="685" y="390" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Приборы</text>
+        <text data-detail="context" x="685" y="406" class="t-muted" font-size="9" text-anchor="middle">PPL v3/K2, GEN-EVAL</text>
+        </g>
+
+        <g id="node-gates" data-node-id="gates" data-node-label="Гейты стадии" tabindex="0" role="button" aria-label="Focus Гейты стадии, K1 K2 домен, AD-9, Architecture component" aria-pressed="false" data-node-kind="security" data-node-sublabel="K1 K2 домен, AD-9" data-node-context="Architecture component">
+          <title>Гейты стадии · K1 K2 домен, AD-9 · Architecture component</title>
+          <rect x="800" y="360" width="150" height="64" rx="6" class="c-mask"/>
+          <rect x="800" y="360" width="150" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(806 366) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="875" y="390" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Гейты стадии</text>
+        <text data-detail="context" x="875" y="406" class="t-muted" font-size="9" text-anchor="middle">K1 K2 домен, AD-9</text>
+        </g>
+
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="base" data-edge-to="cpt" data-edge-label="старт" data-edge-key="0" data-edge-id="base-to-cpt">
+          <rect x="193" y="212" width="34" height="14" rx="3" class="c-mask"/>
+          <text x="210" y="222" class="t-muted" font-size="8" text-anchor="middle">старт</text>
+        </g>
+        <g data-detail="context" data-edge-from="corp" data-edge-to="cpt" data-edge-label="микс 75/25" data-edge-key="1" data-edge-id="corp-to-cpt">
+          <rect x="276" y="108" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="305" y="118" class="t-muted" font-size="8" text-anchor="middle">микс 75/25</text>
+        </g>
+        <g data-detail="context" data-edge-from="cpt" data-edge-to="ckpt" data-edge-label="финал CPT" data-edge-key="2" data-edge-id="cpt-to-ckpt">
+          <rect x="373.4" y="268" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="400" y="278" class="t-muted" font-size="8" text-anchor="middle">финал CPT</text>
+        </g>
+        <g data-detail="context" data-edge-from="ckpt" data-edge-to="sft" data-edge-label="чекпойнт" data-edge-key="3" data-edge-id="ckpt-to-sft">
+          <rect x="565.8" y="268" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="590" y="278" class="t-muted" font-size="8" text-anchor="middle">чекпойнт</text>
+        </g>
+        <g data-detail="context" data-edge-from="sets" data-edge-to="sft" data-edge-label="набор v13" data-edge-key="4" data-edge-id="sets-to-sft">
+          <rect x="658.4" y="108" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="685" y="118" class="t-muted" font-size="8" text-anchor="middle">набор v13</text>
+        </g>
+        <g data-detail="context" data-edge-from="sft" data-edge-to="rl" data-edge-label="финал SFT" data-edge-key="5" data-edge-id="sft-to-rl">
+          <rect x="753.4" y="268" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="780" y="278" class="t-muted" font-size="8" text-anchor="middle">финал SFT</text>
+        </g>
+        <g data-detail="context" data-edge-from="sft" data-edge-to="probes" data-edge-label="пробы /500" data-edge-key="6" data-edge-id="sft-to-probes">
+          <rect x="656" y="268" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="685" y="278" class="t-muted" font-size="8" text-anchor="middle">пробы /500</text>
+        </g>
+        <g data-detail="context" data-edge-from="probes" data-edge-to="gates" data-edge-label="K1 K2 домен" data-edge-key="7" data-edge-id="probes-to-gates">
+          <rect x="748.6" y="428" width="62.8" height="14" rx="3" class="c-mask"/>
+          <text x="780" y="438" class="t-backend" font-size="8" text-anchor="middle">K1 K2 домен</text>
+        </g>
+
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+
+
+        <!-- Legend -->
+        <g data-legend="" data-legend-bridge="">
+          <text x="40" y="456" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="Backend" data-legend-x="40" data-legend-baseline="476" data-legend-width="78">
+            <rect x="40" y="467" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="476" class="t-muted" font-size="10" font-weight="500">Backend</text>
+          </g>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="Database" data-legend-x="140" data-legend-baseline="476" data-legend-width="83">
+            <rect x="140" y="467" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="162" y="476" class="t-muted" font-size="10" font-weight="500">Database</text>
+          </g>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="Security" data-legend-x="245" data-legend-baseline="476" data-legend-width="83">
+            <rect x="245" y="467" width="16" height="10" rx="2.5" class="c-security" stroke-width="1"/>
+            <text x="267" y="476" class="t-muted" font-size="10" font-weight="500">Security</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="External" data-legend-x="350" data-legend-baseline="476" data-legend-width="83">
+            <rect x="350" y="467" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="372" y="476" class="t-muted" font-size="10" font-weight="500">External</text>
+          </g>
+        </g>
+      </svg>

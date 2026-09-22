@@ -1,0 +1,21 @@
+{
+  "schema": "grounded-task/2",
+  "id": "gs-fs-01",
+  "tool": "filesystem",
+  "network": "none",
+  "max_steps": 6,
+  "workdir": "/work",
+  "prompt": "В каталоге /work/src лежат три файла-источника: name.txt (одна строка — имя сервиса), port.txt (одна строка — целое число) и flags.txt (по одному флагу в строке, порядок значим). Собери из них файл app/config/service.json — строгий JSON-объект ровно с тремя ключами: \"name\" (строка), \"port\" (число, не строка) и \"flags\" (массив строк в исходном порядке). Лишних ключей быть не должно. Работай из каталога /work.",
+  "initial_state": "каталог /work/src с тремя файлами-источниками (name.txt, port.txt, flags.txt); каталога app/ нет, файла service.json нет",
+  "goal_action": "прочитать три источника и собрать из них строгий JSON в app/config/service.json",
+  "success_criterion": "app/config/service.json существует, разбирается строгим JSON-парсером, множество ключей ровно {name, port, flags}, типы совпадают (port — число), значения равны прочитанным верификатором из исходных файлов задачи, порядок flags сохранён",
+  "no_action_probe": "текстовый ответ без вызовов: файла нет → 0; отдельно проверяется, что текстовый ответ, в котором JSON приведён дословно, даёт те же 0",
+  "empty_action_probe": "действие без последствий (true): файла нет → 0",
+  "seed_dir": "seed",
+  "solution": "solution.sh",
+  "verifier": "verify.py",
+  "verifier_reads": ["pristine:src/name.txt", "pristine:src/port.txt", "pristine:src/flags.txt", "snapshot:app/config/service.json"],
+  "timeout_s": 60,
+  "requires": ["sh", "cat"],
+  "leak_check": "собранного JSON в песочнице нет до действия: в src лежат только значения-источники, копировать нечего"
+}

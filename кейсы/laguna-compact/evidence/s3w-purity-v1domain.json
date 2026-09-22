@@ -1,0 +1,147 @@
+{
+  "schema": "eval-set-purity/1",
+  "stage": "S3q",
+  "date": "2026-09-16T17:03:01.078612+00:00",
+  "adr": [
+    "ADR-025 п.1",
+    "ADR-025 п.2",
+    "ADR-025 п.5"
+  ],
+  "tool": {
+    "path": "tools/check_eval_set_purity.py",
+    "sha256": "452f50120372b07a5c7a98b8363b88b6414a60efc88c4f6a2af8d60925dcc29a",
+    "argv": [
+      "--set",
+      "datasets/domain_eval.txt",
+      "--report",
+      "evidence/s3w-purity-v1domain.json"
+    ]
+  },
+  "set": {
+    "path": "datasets/domain_eval.txt",
+    "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+    "bytes": 12811,
+    "docs": 5
+  },
+  "instrument": {
+    "doc_overlap": "нормализованный текст документа набора (lower + схлопнутые пробелы) как подстрока нормализованного документа корпуса",
+    "ngram_overlap": "окна по 12 слов внутри документа; считается, сколько окон корпуса совпало с окнами набора",
+    "window_size": 12,
+    "corpora_checked_in_full": "проверка идёт по корпусу-источнику целиком, а микс — его префикс: ноль по файлу строже нуля по префиксу (докстринг инструмента)",
+    "set_docs_norm": 5,
+    "set_windows": 1006
+  },
+  "corpora": {
+    "domain": {
+      "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+      "bytes": 299141131,
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+      "source_docs": 172474,
+      "overlap_docs": 0,
+      "overlap_ngram_windows": 78,
+      "overlap_ngram_occurrences": 450,
+      "doc_hits": [],
+      "window_examples": [
+        "\"scope principle\" дифференциальной приватности: гарантия покрывает только те данные, которые были использованы",
+        "## gpu-эксперименты - complexity: low - estimated_time: < 2 hours - estimated_vram:",
+        "## gpu-эксперименты - complexity: low - estimated_time: <1 hour - estimated_vram: 2-4",
+        "## уровень α — концепция полностью определена с формальным математическим описанием (уравнения",
+        "## уровень β — эмпирически наблюдаемое явление. ## формальность c — описательное",
+        "## формальность a — дана строгая математическая формулировка теоремы. ## вход -",
+        "## формальность a — концепция имеет строгое математическое определение с формулами в",
+        "- complexity: low - estimated_time: < 2 hours - estimated_vram: 12-16 gb",
+        "- complexity: low - estimated_time: <1 hour - estimated_vram: 2-4 gb -",
+        "- μ_q∥₂ ограничена величиной o(√(v_q log(1/δ) / s) + v_max log(1/δ) /",
+        "- μ_q∥₂ ≤ v_max, с вероятностью не менее 1-δ, ошибка оценки ∥av̂_q",
+        "1-δ, ошибка оценки ∥av̂_q - μ_q∥₂ ограничена величиной o(√(v_q log(1/δ) / s)",
+        "b.1 предоставляет высоковероятностную границу концентрации для оценки santa. при условии равномерной почти",
+        "complexity: low - estimated_time: < 2 hours - estimated_vram: 12-16 gb -",
+        "complexity: low - estimated_time: <1 hour - estimated_vram: 2-4 gb - ablation_params:",
+        "dp-гарантия, полученная во время предобучения vaultgemma, не распространяется на данные, добавленные во",
+        "gpu-эксперименты - complexity: low - estimated_time: < 2 hours - estimated_vram: 12-16",
+        "gpu-эксперименты - complexity: low - estimated_time: <1 hour - estimated_vram: 2-4 gb",
+        "log(1/δ) / s) + v_max log(1/δ) / s), где v_q = tr(σ_q).",
+        "low - estimated_time: < 2 hours - estimated_vram: 12-16 gb - ablation_params:"
+      ],
+      "seconds": 16.0
+    },
+    "replay": {
+      "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "source_docs": 199913,
+      "overlap_docs": 0,
+      "overlap_ngram_windows": 0,
+      "overlap_ngram_occurrences": 0,
+      "doc_hits": [],
+      "window_examples": [],
+      "seconds": 5.4
+    }
+  },
+  "overlap_matrix": [
+    {
+      "mix": "v12r",
+      "composition": {
+        "domain_chunks": 7332,
+        "replay_chunks": 2444
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "verdict": "overlap"
+    },
+    {
+      "mix": "v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "data/corpus-card-v12r50.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "verdict": "overlap"
+    },
+    {
+      "mix": "ctrl100",
+      "composition": {
+        "domain_chunks": 0,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/ctrl-build-20260916-1623/mix-ctrl100-build.json",
+      "checked_corpora": [
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 0,
+      "verdict": "clean"
+    },
+    {
+      "mix": "cpt_corpus_v12r50",
+      "composition": {
+        "domain_chunks": 3493,
+        "replay_chunks": 3493
+      },
+      "chunk_len": 8192,
+      "card": "/home/user/gb10-shared/calib/mix-v12r50-build.json",
+      "checked_corpora": [
+        "domain",
+        "replay"
+      ],
+      "overlap_docs": 0,
+      "overlap_ngram": 78,
+      "verdict": "overlap"
+    }
+  ],
+  "verdict": "overlap"
+}

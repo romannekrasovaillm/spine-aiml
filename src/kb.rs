@@ -2225,9 +2225,11 @@ mod tests {
         // после скоринга»).
         let mut long = String::from("---\ntype: digest\nstatus: draft\n---\n\nkafka шина.\n");
         for i in 0..60 {
-            long.push_str(&format!(
-                "Наполнитель строки номер {i} с уникальным словом филлер{i}.\n"
-            ));
+            // Запись в String не может завершиться ошибкой — игнор безопасен.
+            let _ = writeln!(
+                long,
+                "Наполнитель строки номер {i} с уникальным словом филлер{i}."
+            );
         }
         let dir = write_corpus(&[
             ("a.md", long.as_str()),

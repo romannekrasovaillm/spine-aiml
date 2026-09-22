@@ -1,0 +1,427 @@
+{
+  "tool": "tools/s3ae_sft_remask_evidence.py",
+  "stage": "S3ae",
+  "adr": [
+    "ADR-037 (отказ от маски: лечим данные)",
+    "ADR-036 (маскирование — отменено в п.1)",
+    "ADR-016 (протокол вмешательства)",
+    "ADR-033 (критерий стадии)",
+    "ADR-035 (генеративная компонента)"
+  ],
+  "built_at": "2026-09-17T06:05:56.427432+00:00",
+  "status": "partial",
+  "status_note": "остановка стадии выполнена и её артефакты целы; маска НЕ применена (ADR-037); длинный прогон не запускался — возобновление SFT отдельной дельтой после приёмки нового набора",
+  "decision": {
+    "superseded_by": "ADR-037",
+    "what_changed": "маскирование содержимого <think> в лоссе SFT отменено; лечение — русскоязычные трассы рассуждений (данные, не лосс)",
+    "why": "рассуждение это 46.1 % символов ответов и 86.1 % примеров; корень (язык входа в рассуждение) маска не лечит",
+    "effect_on_this_delta": "пункты «патч + перезапуск» сняты; остались остановка стадии и сохранённые артефакты; инструменты патча и проверки сохранены как готовые и не применялись"
+  },
+  "ported_tools": {
+    "source_branch": "arch/laguna-eval-set",
+    "source_commit": "3499d084c41a274f58435511559701aff2b3b1d6 (S3ab)",
+    "files": {
+      "tools/probe_control.py": "973fdfb275da2cb80af62a0116f87b51d94149fd",
+      "tools/passrate_probe.py": "228aa92a6c00c94a7d9af0ed47edb30ab801c2cd",
+      "tools/check_sft_agentic_share.py": "105ae8a2a21a7e789d831620bae29a2bb6f384da"
+    },
+    "why": "ADR-035 п.7 и ADR-037 п.7 требуют мерить стадию тем же протоколом (пробы S3ab) и тем же прибором agentic-доли; те же файлы лежат в ветке приёмки наборов — перенос без правок, сверка по blob"
+  },
+  "artifacts": {
+    "stopped_run": "/home/user/gb10-shared/sft-20260916-2246",
+    "prepared_not_started_run": "/home/user/gb10-shared/sft-20260917-0905",
+    "mask_test_dir": "/home/user/gb10-shared/sft-masktest-20260917-0925",
+    "patch_tool": "tools/patch_pipeline_sft.py",
+    "verifier": "tools/verify_think_mask.py",
+    "smoke_runner": "tools/run_mask_smoke.py",
+    "stopper": "tools/stop_stage_run.py",
+    "launcher": "tools/launch_sft_stage.py",
+    "adr": "docs/adr/ADR-037-otkaz-ot-maskirovaniya-think-lechim-dannye-russkoyazychnye-trassy-a-ne-loss.md"
+  },
+  "stopped": {
+    "run_dir": "/home/user/gb10-shared/sft-20260916-2246",
+    "stopped_at_step": 3395,
+    "stopped_by": "ADR-036",
+    "purpose": "артефакт «SFT без маски think»",
+    "loss_mask": "prefix_only",
+    "chain_status": "stopped",
+    "stage_status": "stopped",
+    "marker": "ADR-036: маскирование <think> в лоссе — стадия перезапускается",
+    "checkpoints_kept": {
+      "count": 9,
+      "bytes": 26668261971,
+      "names": [
+        "checkpoint_final.pt",
+        "sft_checkpoint_3000.pt",
+        "sft_checkpoint_3200.pt",
+        "sft_probe_1000.pt",
+        "sft_probe_1500.pt",
+        "sft_probe_2000.pt",
+        "sft_probe_2500.pt",
+        "sft_probe_3000.pt",
+        "sft_probe_500.pt"
+      ]
+    },
+    "loss_trace_lines": 3396,
+    "manifest_note": {
+      "stopped_by": "ADR-036",
+      "stopped_at_step": 3395,
+      "purpose": "артефакт «SFT без маски think»",
+      "loss_mask": "prefix_only"
+    },
+    "manifest_stage_status": "stopped",
+    "sft_log_tail": [
+      "05:22:06 [INFO] GEN-EVAL step 3300 [ADR-033 п.3: K1/K2/домен] K1 ×1.0097 ; K2 ×1.0906 ; DOMAIN ×0.3586 | справочно v1_general=12.6 domain_legacy=4.1",
+      "05:22:12 [INFO] SFT val_loss=1.1670 (held-out 500)",
+      "05:24:42 [INFO] SFT step 3350/67423 | loss=1.0561 | ema=1.0293 | gnorm=8.88 | lr=9.94e-06",
+      "05:25:09 [INFO] GEN-EVAL step 3350 [ADR-033 п.3: K1/K2/домен] K1 ×1.0103 ; K2 ×1.0903 ; DOMAIN ×0.3585 | справочно v1_general=12.6 domain_legacy=4.1",
+      "05:25:15 [INFO] SFT val_loss=1.1722 (held-out 500)",
+      "[safe_start] команда завершилась с кодом 143"
+    ],
+    "chain_log_tail": [
+      "    | ",
+      "    | ВЕРДИКТ: МОЖНО СТАРТОВАТЬ — хозяин объявлен флагом паузы REVISION-WINDOW.lock, и контур лесенки его читает (restart_v12.sh); память: доступно 78.1 ГБ ≥ порога 50 ГБ; тренировочных нагрузок 0 ≤ 1",
+      "    | AD-9 OK: хозяин ресурса объявлен, бюджет стадии SFT соблюдён.",
+      "    | {\"tool\": \"check_resource_owner.sh\", \"host\": \"spark-44c3\", \"mode\": \"local\", \"stage\": \"sft\", \"unreachable_not_verified\": false, \"owner_branch\": \"lock-supported\", \"threshold_gb\": 50, \"mem_available_gb\": 78.1, \"mem_total_gb\": 121.7, \"lock_present\": true, \"watchdog_executable\": false, \"cron_readable\": true, \"flag_supported\": true, \"restart_script\": \"/home/user/gb10-shared/restart_v12.sh\", \"flag_support_error\": \"\", \"cron_watchdog_lines\": 0, \"cron_disabled_lines\": 7, \"cron_autostart_lines\": 1, \"cron_autostart_blocking\": false, \"cron_autostart_defused\": true, \"cron_autostart\": \"@reboot sleep 300 && nohup bash /home/user/gb10-shared/restart_v12.sh > /home/user/experiments/reboot_autostart.log 2>&1 &\", \"n_loads\": 0, \"load_tags\": \"\", \"owner_ok\": true, \"memory_ok\": true, \"loads_ok\": true, \"warnings\": [], \"verdict\": \"CAN-START\", \"exit\": 0}",
+      "[2026-09-16T22:48:04-03:00] СТАДИЯ sft: старт (шагов=67423 batch=2 exp=sft-20260916-2246)",
+      "[2026-09-17T02:27:33-03:00] стадия sft остановлена стражем: ADR-036: маскирование <think> в лоссе — стадия перезапускается"
+    ]
+  },
+  "patch": {
+    "file": "tools/patch_pipeline_sft.py",
+    "sha256": "ea11ceb3ebaf7a6468f6396b28ab411bec0afb8c916285c269af513babc5cd79",
+    "applied": false,
+    "why_not_applied": "ADR-037: маскирование <think> отменено (46.1 % сигнала, 86.1 % примеров; корень — язык входа в рассуждение — маска не лечит). Патч сохранён как готовый инструмент, к длинному прогону не применялся",
+    "pipeline": {
+      "path": "/home/user/gb10-shared/sft-20260917-0905/laguna_pipeline_sft.py",
+      "sha256": "9c7fad6b252d39bb4efccf61181de0469834fd83e0f4e6d0a473020ef1999591",
+      "in_run_manifest": null,
+      "sha256_source": "инвентарь снятого каталога"
+    },
+    "rule": null,
+    "switch": null,
+    "think_mask_verified": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "а: рассуждения (<think>-содержимое и незакрытые регионы) обнулены — кроме вызовов инструмента и делимитеров",
+          "ok": true
+        },
+        {
+          "name": "а2: выключенный переключатель даёт ровно немаскирующую копию",
+          "ok": true
+        },
+        {
+          "name": "а3: id токенайзера получены (не None) — маска сравнивает числа",
+          "ok": true
+        },
+        {
+          "name": "а4: маска действительно сработала (что-то обнулено)",
+          "ok": true
+        },
+        {
+          "name": "б: целевых токенов стало меньше",
+          "ok": true
+        },
+        {
+          "name": "в1: делимитеры <think>/</think> остались целями",
+          "ok": true
+        },
+        {
+          "name": "в2: ответная часть сохранена полностью",
+          "ok": true
+        },
+        {
+          "name": "в3: новых целей не появилось (нет утечки)",
+          "ok": true
+        },
+        {
+          "name": "в4: сэмплов без целей не осталось",
+          "ok": true
+        },
+        {
+          "name": "г: вызовы инструмента сохранены",
+          "ok": true
+        }
+      ],
+      "samples": 1500,
+      "reasoning_must_mask_positions": 672777,
+      "reasoning_left_unmasked": 0,
+      "tool_call_kept": [
+        95855,
+        95855
+      ],
+      "answer_kept": [
+        931647,
+        931647
+      ],
+      "delims_kept": [
+        1891,
+        1891
+      ],
+      "empty_after": 0,
+      "leaked_positions": 0,
+      "switch_off_equals_unmasked_copy": true,
+      "tokenizer_ids": {
+        "available": true,
+        "model": "Qwen/Qwen2.5-0.5B",
+        "ids": {
+          "think": [
+            151665,
+            151666
+          ],
+          "tool_call": [
+            151657,
+            151658
+          ],
+          "tool_response": [
+            151667,
+            151668
+          ],
+          "role": [
+            151644,
+            77091,
+            872
+          ]
+        },
+        "matches_pinned": true,
+        "null_ids": []
+      },
+      "language": {
+        "cyrillic_share_of_masked_targets": 0.2599,
+        "cyrillic_share_of_kept_targets": 0.6563,
+        "masked_tokens": 672777,
+        "kept_tokens": 1027547,
+        "masked_chars": 2717296,
+        "kept_chars": 3470180,
+        "note": "чем ниже доля кириллицы в снятом, тем точнее маска бьёт по англоязычному рассуждению (ADR-036)"
+      },
+      "how": "tools/verify_think_mask.py в том же образе и на том же кэше токенов, что стадия; класс SFTDataset берётся из пропатченной копии"
+    },
+    "target_tokens_before": 1700324,
+    "target_tokens_after": 1027547,
+    "masked_share": 0.39567576532472637,
+    "mask_report_from_smoke_run": {
+      "tag": "start",
+      "samples": 512,
+      "think_mask_enabled": true,
+      "target_tokens_before": 583430,
+      "target_tokens_after": 340276,
+      "masked_share": 0.4167663644310371,
+      "empty_fallback_events": 0
+    },
+    "smoke": {
+      "verdict": "PASS",
+      "mode": "evaluate",
+      "check_evolution": {
+        "first_editor_bug": "проверка «NaN в лоссе нет» искала подстроку «nan» и ловила баннер PyTorch («Ronan Collobert») — прогон помечен FAIL при чистом лоссе (1.2861 на шаге 0, «SFT complete»)",
+        "fixed": "регексп по (loss|ema|gnorm|val_loss)=nan + отдельная проверка Traceback/исключения (первый прогон падал ValueError на шаге 0 — NaN-проверка этот отказ не видит)",
+        "negative_path_verified": "тот же гейт на логе упавшего прогона (0910) — FAIL по двум проверкам: «дошёл до конца» и «нет Traceback»"
+      },
+      "test_dir": "/home/user/gb10-shared/sft-masktest-20260917-0925",
+      "steps": 12,
+      "checks": [
+        {
+          "name": "отчёт о маске напечатан прогоном",
+          "ok": true
+        },
+        {
+          "name": "шаги пройдены (лог шагов непуст)",
+          "ok": true
+        },
+        {
+          "name": "NaN в лоссе нет",
+          "ok": true
+        },
+        {
+          "name": "прогон дошёл до конца (SFT complete / Pipeline finished)",
+          "ok": true
+        },
+        {
+          "name": "в логе нет Traceback/исключения",
+          "ok": true
+        }
+      ],
+      "loss_lines": [
+        "05:53:23 [INFO] SFT warmup 0/1 | loss=1.1346",
+        "05:53:40 [INFO] SFT step 0/12 | loss=1.2861 | ema=1.2861 | gnorm=13.56 | lr=9.83e-06"
+      ],
+      "nan_lines": [],
+      "first_short_test_failure": {
+        "pipeline_sha256": "ab06764715ae6810f9d6c99620e4302ac0b8574b830e1465b3dfffd8597a7dbe",
+        "why": "первый короткий тест упал на шаге 0 в val_loss: маска получала 2-D батч (`int(ids[i])` на строке тензора). Поймано коротким тестом, а не длинным прогоном; исправлено обходом по строкам"
+      }
+    }
+  },
+  "reasoning_volume": {
+    "source": "ADR-037 (замер по sft_train_v12.jsonl: 44 949 примеров, 464 МБ)",
+    "assistant_answer_chars": 303000000.0,
+    "chars_inside_think": 139800000.0,
+    "share_of_answer_chars": 0.461,
+    "examples": 44949,
+    "examples_with_think": 38716,
+    "share_of_examples": 0.861,
+    "median_reasoning_share_in_example": 0.474,
+    "cyrillic_inside_think": 0.067,
+    "token_level": {
+      "source": "tools/verify_think_mask.py (тот же образ, что стадия; SFTDataset берётся из пропатченной копии)",
+      "samples": 1500,
+      "targets_before": 1700324,
+      "targets_after": 1027547,
+      "share_masked": 0.39567576532472637,
+      "tool_call_kept": [
+        95855,
+        95855
+      ],
+      "answer_kept": [
+        931647,
+        931647
+      ],
+      "language": {
+        "cyrillic_share_of_masked_targets": 0.2599,
+        "cyrillic_share_of_kept_targets": 0.6563,
+        "masked_tokens": 672777,
+        "kept_tokens": 1027547,
+        "masked_chars": 2717296,
+        "kept_chars": 3470180,
+        "note": "чем ниже доля кириллицы в снятом, тем точнее маска бьёт по англоязычному рассуждению (ADR-036)"
+      }
+    },
+    "note": "два прибора согласны: маска снимала бы ~40-46 % обучающего сигнала — это не точечная правка, а вырезание навыка рассуждения (ADR-037)"
+  },
+  "launched": {
+    "run_dir": null,
+    "launched": false,
+    "tmux": null,
+    "evidence_of_start": null,
+    "why": "ADR-037: длинный прогон не запускался; возобновление SFT — отдельной дельтой (S3af) после приёмки нового набора",
+    "prepared_then_removed": "/home/user/gb10-shared/sft-20260917-0905"
+  },
+  "probe_plan": {
+    "addressed_to": "стадия SFT после приёмки набора с русскоязычными трассами (ADR-037 п.2-5); каталог под маскированный перезапуск снят",
+    "why": "ADR-035: PPL слеп к языку ответа (0.12 против 0.89 базы), поэтому стадия судится не только по PPL. Замеры проб — на точках и на финале.",
+    "generative_probes": {
+      "tool": "tools/probe_control.py (протокол S3ab: 5 промптов, chat template, greedy, max_new_tokens=384; метрики degenerate_metrics)",
+      "states": {
+        "baseline_cpt": "/workspace/shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "stopped_run": "/workspace/shared/sft-20260916-2246/checkpoints/sft_checkpoint_3200.pt",
+        "new_run_points": "/workspace/shared/sft-<ts>/checkpoints/sft_probe_*.pt (каждые 500 шагов, ретенция 24)",
+        "new_run_final": "/workspace/shared/sft-<ts>/checkpoints/sft_checkpoint_final.pt"
+      },
+      "command": "python3 tools/probe_control.py --skip-base --ckpt sft500=/home/user/gb10-shared/sft-<ts>/checkpoints/sft_probe_500.pt --out runs/probes-sft-<ts>.json",
+      "watch": "кириллица в свободной генерации (цель — рост против 0.12 финала CPT) и режим (<think>/<tool_call>)",
+      "where": "4080, inference-only; стенд GB10 не задействован (AD-5: одна нагрузка)"
+    },
+    "agentic_share": {
+      "guard": "tools/check_sft_agentic_share.py (C-022; база 45.1 % из evidence/s3aa-agentic-cpt.json)",
+      "instrument": "tools/passrate_probe.py --no-toolcall-force --no-hint",
+      "command": "python3 tools/passrate_probe.py --checkpoint /home/user/gb10-shared/sft-<ts>/checkpoints/sft_checkpoint_final.pt --pool ... --no-toolcall-force --no-hint --out runs/passrate-agentic-sft/ && python3 tools/check_sft_agentic_share.py --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt.json",
+      "why_masked_actions": "маска <think> не трогает спаны <tool_call> именно потому, что иначе регрессировала бы компонента (в1) критерия ADR-033 — замер инструментом это и проверяет"
+    },
+    "ppl_monitor": {
+      "sets": "K1 general_eval_v3, K2 general_eval_k2, DOMAIN domain_eval_v2",
+      "every_steps": 50,
+      "history": "/home/user/gb10-shared/sft-<ts>/general_eval_history.jsonl",
+      "note": "ADR-033 п.3: частота 50 оставлена на стадии; смена частоты — решение после отчёта (цена измерена: +10.5 ч на 100)"
+    },
+    "checkpoints_planned": [
+      "sft_probe_{500,1000,…}.pt — точки PPL и проб (keep_last=24)",
+      "sft_checkpoint_{200,400,…}.pt — штатная ретенция (keep_last=2)",
+      "sft_checkpoint_final.pt — артефакт стадии (stages.tsv)"
+    ],
+    "existing_points": [
+      "checkpoint_final.pt",
+      "sft_checkpoint_3000.pt",
+      "sft_checkpoint_3200.pt",
+      "sft_probe_1000.pt",
+      "sft_probe_1500.pt",
+      "sft_probe_2000.pt",
+      "sft_probe_2500.pt",
+      "sft_probe_3000.pt",
+      "sft_probe_500.pt"
+    ]
+  },
+  "how_to_fetch": [
+    "ssh gb10-fast 'tail -20 /home/user/gb10-shared/sft-20260916-2246/logs/sft.log'  — ход стадии",
+    "ssh gb10-fast 'tail -5 /home/user/gb10-shared/sft-20260916-2246/logs/loss_trace.jsonl'  — траектория по шагам (ADR-022 п.4)",
+    "ssh gb10-fast 'tail -3 /home/user/gb10-shared/sft-20260916-2246/general_eval_history.jsonl'  — точки монитора K1/K2/домен",
+    "ssh gb10-fast 'cat /home/user/gb10-shared/sft-20260916-2246/var/status/sft /home/user/gb10-shared/sft-20260916-2246/var/chain.status'  — статусы стадии и цепочки",
+    "ssh gb10-fast 'ls -la /home/user/gb10-shared/sft-20260916-2246/checkpoints/ | tail'  — чекпойнты и точки",
+    "ssh gb10-fast 'cat /home/user/gb10-shared/sft-20260916-2246/var/STOPPED'  — маркер остановки предыдущего прогона",
+    "tmux attach -t sft-20260916-2246  (на стенде) — живая сессия цепочки",
+    "/home/user/gb10-shared/sft-20260916-2246/ — остановленный прогон (артефакт «SFT без маски think»), STOP-RECORD.json и run_manifest.json с пометкой"
+  ],
+  "open_questions": [
+    "Стенд GB10 простаивает после остановки: длинный прогон не запускается по ADR-037. Наблюдение на момент отчёта: смежная дельта S3af (пилот русскоязычных трасс) идёт в другом рабочем дереве и работает на платформенных моделях (llm-platform/ollama), то есть стенда не занимает. Вопрос к архитектору: простой ожидаем до приёмки набора (тогда это норма) или стенд следует занять другим узлом ревизии (ADR-012: окно до 24.09)?",
+    "Порог доли русскоязычных начал рассуждения (ADR-037 п.4) проверяется пилотным обучением — какой прогон считать пилотным и на какой длине?",
+    "Инструменты маски сохранены; есть ли конфигурация, где маска оправдана (например, при большом объёме русскоязычных трасс — как вспомогательная мера по ADR-037, вариант C)?"
+  ],
+  "conflicts_with_prior_decisions": [
+    "Задание S3ae требовало «патч маски + перезапуск с маской» (ADR-036 п.1). ADR-037 (коммит f241658, 17.09.2026) отменяет маскирование: пункты патча и запуска НЕ выполнены — не по сбою, а по решению. Остановка стадии выполнена и ADR-037 опирается на её артефакты."
+  ],
+  "prepared_not_started": {
+    "dir": "/home/user/gb10-shared/sft-20260917-0905",
+    "files": {
+      "__pycache__/laguna_pipeline_sft.cpython-312.pyc": {
+        "bytes": 139761,
+        "sha256": "adec08c6499520d700601f4aa48af892f17a8c1bea30520615dd9ffa0c2740d9"
+      },
+      "chain_command.txt": {
+        "bytes": 1881,
+        "sha256": "9d8100bcb06d83ce35a4fe9b36f95f2a0f6420d4a2eb74aa8342aa2abf931489"
+      },
+      "check_resource_owner.sh": {
+        "bytes": 39022,
+        "sha256": "4fe467bf98ee4f0f8ef92c42f28f7cab7af4d11db1e014f120b258421d996114"
+      },
+      "full_sft_params.json": {
+        "bytes": 2596,
+        "sha256": "a0335d60df9dfaede277ea8681ef8f2dc8727526658fcc649ffb96fdefc4c874"
+      },
+      "laguna_pipeline_sft.py": {
+        "bytes": 131218,
+        "sha256": "9c7fad6b252d39bb4efccf61181de0469834fd83e0f4e6d0a473020ef1999591"
+      },
+      "launch_command.txt": {
+        "bytes": 2077,
+        "sha256": "41fb5f7f237bca53b00d7b1ebf4f07f538409aeb09ced9cb2eb6ac378d7a5501"
+      },
+      "pilot_chain.sh": {
+        "bytes": 42320,
+        "sha256": "ce7bbecf00a7635b8f1b0338f2ba505e3a141402d43b25d6ef638cad61373643"
+      },
+      "pipeline_patch.json": {
+        "bytes": 3852,
+        "sha256": "8f0f58f58caf6a729189930f9b4e3bd8ac53a4a7c5f4b71c22a960f2ed5f8059"
+      },
+      "ship.json": {
+        "bytes": 1475,
+        "sha256": "df12a67041a4270bd55f1971aa6220975b7f079ca6fe5616d7465ab92fb55126"
+      },
+      "smoke_mem_sampler.sh": {
+        "bytes": 2245,
+        "sha256": "e9adc2f276f87523cf319bb0ce66884a6de812c013a99679e7ded0e3f6eb0938"
+      },
+      "stages.tsv": {
+        "bytes": 76,
+        "sha256": "ebf4ac3719f811e78d3f7c044a738f62717cfbc2e9f6df9f736c8423f92ba5bb"
+      },
+      "verify_think_mask.py": {
+        "bytes": 17143,
+        "sha256": "1abd3068e462508f690a07f40cbbf640112be54af678beb0cd25abb6e0d0c2f1"
+      },
+      "write_run_manifest.py": {
+        "bytes": 15043,
+        "sha256": "3e41888db53fb2b37799726f888a59f5cf6529bdbd521feae0a4f4464039d688"
+      }
+    },
+    "big_files": [
+      {
+        "name": "checkpoint_final.pt",
+        "bytes": 2963141069
+      }
+    ],
+    "rebuild_command": "python3 tools/launch_sft_stage.py --ts <ts> --do build --loss-mask think_masked",
+    "why_removed": "каталог собран под маскированный перезапуск; ADR-037 отменил маскирование — оставлять готовый к запуску каталог отменённого решения значит оставить ловушку (запуск нарушил бы ADR-037) и 2.9 ГБ копии CPT-веса (AD-4)"
+  }
+}

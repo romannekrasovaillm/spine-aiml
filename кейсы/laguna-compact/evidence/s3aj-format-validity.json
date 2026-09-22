@@ -1,0 +1,634 @@
+{
+  "schema": "s3aj-format-validity/1",
+  "stage": "S3aj — снятие артефакта усечения, валидные метрики формата и агентности",
+  "created_at": "2026-09-17T12:37:40.937183+00:00",
+  "status": "measured",
+  "question": "рост незакрытых <think> (0.4583 → 0.7917) при выравнивании языка — артефакт усечения или деградация формата; и каков вердикт ADR-039 по достоверному (полному) замеру",
+  "artifacts": [
+    {
+      "state": "cfinal",
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "report": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+      "n": 24
+    },
+    {
+      "state": "sft3000",
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+      "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+      "report": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+      "n": 24
+    },
+    {
+      "state": "sft_resume_4500",
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4500.pt",
+      "checkpoint_sha256": "c53d885294aa84088db08859742df6b49d7cc0bd6b8deda6207990ddf19cd9a2",
+      "report": "runs/s3aj-format-validity-20260917/probe_full_4096.json",
+      "n": 24
+    },
+    {
+      "report": "runs/s3ai-probes-20260917/probe_lang_baselines.json",
+      "sha256": "97587bd2e6916062705fb59b9abdb9ca618babc4bb39c7ff3c7597630db18fd4",
+      "max_new_tokens": 1024,
+      "stop_at_turn_end": null,
+      "states": [
+        "cfinal",
+        "sft3000"
+      ]
+    },
+    {
+      "report": "runs/s3ai-probes-20260917/probe_lang_point_4000.json",
+      "sha256": "b9d7f3803263bed0b7a544d1df8a7aa985179d824ecbffe22e573991921d34d2",
+      "max_new_tokens": 1024,
+      "stop_at_turn_end": null,
+      "states": [
+        "sftresume_4000"
+      ]
+    },
+    {
+      "report": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json",
+      "sha256": "0352e0d7945b2bf07dc64d841492c7ae172f1d0c3b528c5e8c4c745402f9f67a",
+      "max_new_tokens": 1024,
+      "stop_at_turn_end": true,
+      "states": [
+        "cfinal",
+        "sft3000"
+      ]
+    },
+    {
+      "report": "runs/s3aj-format-validity-20260917/derived/probe_sftresume_1024_recut.json",
+      "sha256": "ec05eacd9e25e2a03539dd3daba355e7f0d715cf48d329871da6815f65c80682",
+      "max_new_tokens": 1024,
+      "stop_at_turn_end": true,
+      "states": [
+        "sftresume_4000"
+      ]
+    },
+    {
+      "tool": "tools/probe_language_split.py",
+      "tool_sha256": "11b4594bcb54df235b7545fdc6156ff1982cc4ac700f213a215e438cffa695b7"
+    }
+  ],
+  "protocol": {
+    "full": {
+      "max_new_tokens": 4096,
+      "stop_at_turn_end": true,
+      "why_budget": "4096 покрывает p90 длины трассы SFT (2914) и почти весь максимум (4583) — runs/s3ai-probes-20260917/sft-trace-lengths.json",
+      "why_stop": "веса базы несут eos 151643, а ход кончается 151645 (<|im_end|>): без остановки генерация переписывает свой конец хода и меряется её продолжение"
+    },
+    "truncated": {
+      "max_new_tokens": 1024,
+      "stop_at_turn_end": false
+    },
+    "recut": {
+      "rule": "ход кончается на первом <|im_end|>",
+      "why": "greedy префиксно детерминирован → перечитанный текст равен тексту прогона с исправленной остановкой на том же бюджете; разводит причину «прибор» и причину «бюджет»"
+    },
+    "loop_max4gram_rep": 8,
+    "percentile_method": "nearest-rank"
+  },
+  "lengths": [
+    {
+      "state": "cfinal",
+      "median_tokens": 1555,
+      "p90_tokens": 4096,
+      "max_tokens": 4096,
+      "budget": 4096,
+      "censored_share": 0.375,
+      "p90_censored": true,
+      "natural_stop_share": 0.625,
+      "where_truncated": {
+        "limit_in_think": 5,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 3
+      },
+      "median_tokens_natural": 1441,
+      "p90_tokens_natural": 1744,
+      "max_tokens_natural": 1809,
+      "looped_share": 0.2917
+    },
+    {
+      "state": "sft3000",
+      "median_tokens": 4096,
+      "p90_tokens": 4096,
+      "max_tokens": 4096,
+      "budget": 4096,
+      "censored_share": 0.5833,
+      "p90_censored": true,
+      "natural_stop_share": 0.4167,
+      "where_truncated": {
+        "limit_in_think": 11,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 2
+      },
+      "median_tokens_natural": 44,
+      "p90_tokens_natural": 101,
+      "max_tokens_natural": 135,
+      "looped_share": 0.5417
+    },
+    {
+      "state": "sft_resume_4500",
+      "median_tokens": 4096,
+      "p90_tokens": 4096,
+      "max_tokens": 4096,
+      "budget": 4096,
+      "censored_share": 0.5833,
+      "p90_censored": true,
+      "natural_stop_share": 0.4167,
+      "where_truncated": {
+        "limit_in_answer": 4,
+        "limit_in_think": 4,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 5
+      },
+      "median_tokens_natural": 78,
+      "p90_tokens_natural": 220,
+      "max_tokens_natural": 895,
+      "looped_share": 0.5417
+    }
+  ],
+  "truncated_measure": {
+    "cfinal": {
+      "state": "cfinal",
+      "n": 24,
+      "cyr_think": 0.0474,
+      "cyr_answer": 0.3053,
+      "cyr_answer_defined_only": 0.407,
+      "answer_coverage": 0.75,
+      "cyr_answer_prose": 0.2232,
+      "mode_share_think": 0.9167,
+      "mode_share_tool_call": 0.4583,
+      "unclosed_think_share": 0.4583,
+      "unclosed_think_share_natural": null,
+      "unclosed_think_share_truncated": null,
+      "truncated_share": 1.0,
+      "natural_stop_share": null,
+      "where_truncated": {},
+      "looped_share": null,
+      "looped_share_truncated": null,
+      "looped_share_natural": null,
+      "lengths": {},
+      "lengths_natural": {
+        "n": 0
+      },
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "source": "runs/s3ai-probes-20260917/probe_lang_baselines.json"
+    },
+    "sft3000": {
+      "state": "sft3000",
+      "n": 24,
+      "cyr_think": 0.8343,
+      "cyr_answer": 0.2041,
+      "cyr_answer_defined_only": 0.6998,
+      "answer_coverage": 0.2917,
+      "cyr_answer_prose": 0.1401,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.25,
+      "unclosed_think_share": 0.7917,
+      "unclosed_think_share_natural": null,
+      "unclosed_think_share_truncated": null,
+      "truncated_share": 1.0,
+      "natural_stop_share": null,
+      "where_truncated": {},
+      "looped_share": null,
+      "looped_share_truncated": null,
+      "looped_share_natural": null,
+      "lengths": {},
+      "lengths_natural": {
+        "n": 0
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+      "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+      "source": "runs/s3ai-probes-20260917/probe_lang_baselines.json"
+    },
+    "sft_resume_4500": {
+      "state": "sft_resume_4500",
+      "n": 24,
+      "cyr_think": 0.6925,
+      "cyr_answer": 0.19,
+      "cyr_answer_defined_only": 0.6515,
+      "answer_coverage": 0.2917,
+      "cyr_answer_prose": 0.191,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.4167,
+      "unclosed_think_share": 0.75,
+      "unclosed_think_share_natural": null,
+      "unclosed_think_share_truncated": null,
+      "truncated_share": 1.0,
+      "natural_stop_share": null,
+      "where_truncated": {},
+      "looped_share": null,
+      "looped_share_truncated": null,
+      "looped_share_natural": null,
+      "lengths": {},
+      "lengths_natural": {
+        "n": 0
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4000.pt",
+      "checkpoint_sha256": null,
+      "source": "runs/s3ai-probes-20260917/probe_lang_point_4000.json"
+    }
+  },
+  "recut_measure": {
+    "cfinal": {
+      "state": "cfinal",
+      "n": 24,
+      "cyr_think": 0.0681,
+      "cyr_answer": 0.3074,
+      "cyr_answer_defined_only": 0.4099,
+      "answer_coverage": 0.75,
+      "cyr_answer_prose": 0.2253,
+      "mode_share_think": 0.875,
+      "mode_share_tool_call": 0.4583,
+      "unclosed_think_share": 0.375,
+      "unclosed_think_share_natural": 0.25,
+      "unclosed_think_share_truncated": 0.4,
+      "truncated_share": 0.8333,
+      "natural_stop_share": 0.1667,
+      "where_truncated": {
+        "limit_in_answer": 8,
+        "limit_in_think": 7,
+        "limit_in_tool_call": 2,
+        "limit_in_tool_response": 3
+      },
+      "looped_share": 0.2917,
+      "looped_share_truncated": 0.35,
+      "looped_share_natural": 0.0,
+      "lengths": {
+        "n": 24,
+        "median": 1024,
+        "p90": 1024,
+        "min": 1024,
+        "max": 1024,
+        "mean": 1024.0,
+        "percentile_method": "nearest-rank",
+        "budget": 1024,
+        "median_over_budget": 1.0
+      },
+      "lengths_natural": {
+        "n": 4,
+        "median": 1024,
+        "p90": 1024,
+        "max": 1024,
+        "min": 1024
+      },
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "source": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json"
+    },
+    "sft3000": {
+      "state": "sft3000",
+      "n": 24,
+      "cyr_think": 0.837,
+      "cyr_answer": 0.0942,
+      "cyr_answer_defined_only": 0.5654,
+      "answer_coverage": 0.1667,
+      "cyr_answer_prose": 0.0302,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.25,
+      "unclosed_think_share": 0.8333,
+      "unclosed_think_share_natural": 0.9,
+      "unclosed_think_share_truncated": 0.7857,
+      "truncated_share": 0.5833,
+      "natural_stop_share": 0.4167,
+      "where_truncated": {
+        "limit_in_think": 11,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 2
+      },
+      "looped_share": 0.5,
+      "looped_share_truncated": 0.8571,
+      "looped_share_natural": 0.0,
+      "lengths": {
+        "n": 24,
+        "median": 1024,
+        "p90": 1024,
+        "min": 1024,
+        "max": 1024,
+        "mean": 1024.0,
+        "percentile_method": "nearest-rank",
+        "budget": 1024,
+        "median_over_budget": 1.0
+      },
+      "lengths_natural": {
+        "n": 10,
+        "median": 1024,
+        "p90": 1024,
+        "max": 1024,
+        "min": 1024
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+      "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+      "source": "runs/s3aj-format-validity-20260917/derived/probe_baselines_1024_recut.json"
+    },
+    "sft_resume_4500": {
+      "state": "sft_resume_4500",
+      "n": 24,
+      "cyr_think": 0.7476,
+      "cyr_answer": 0.2227,
+      "cyr_answer_defined_only": 0.7636,
+      "answer_coverage": 0.2917,
+      "cyr_answer_prose": 0.2237,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.4167,
+      "unclosed_think_share": 0.7083,
+      "unclosed_think_share_natural": 0.5,
+      "unclosed_think_share_truncated": 0.8125,
+      "truncated_share": 0.6667,
+      "natural_stop_share": 0.3333,
+      "where_truncated": {
+        "limit_in_answer": 3,
+        "limit_in_think": 7,
+        "limit_in_tool_response": 6
+      },
+      "looped_share": 0.4583,
+      "looped_share_truncated": 0.6875,
+      "looped_share_natural": 0.0,
+      "lengths": {
+        "n": 24,
+        "median": 1024,
+        "p90": 1024,
+        "min": 1024,
+        "max": 1024,
+        "mean": 1024.0,
+        "percentile_method": "nearest-rank",
+        "budget": 1024,
+        "median_over_budget": 1.0
+      },
+      "lengths_natural": {
+        "n": 8,
+        "median": 1024,
+        "p90": 1024,
+        "max": 1024,
+        "min": 1024
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4000.pt",
+      "checkpoint_sha256": null,
+      "source": "runs/s3aj-format-validity-20260917/derived/probe_sftresume_1024_recut.json"
+    }
+  },
+  "full_measure": {
+    "cfinal": {
+      "state": "cfinal",
+      "n": 24,
+      "cyr_think": 0.0672,
+      "cyr_answer": 0.3661,
+      "cyr_answer_defined_only": 0.4881,
+      "answer_coverage": 0.75,
+      "cyr_answer_prose": 0.3608,
+      "mode_share_think": 0.875,
+      "mode_share_tool_call": 0.4583,
+      "unclosed_think_share": 0.2917,
+      "unclosed_think_share_natural": 0.1333,
+      "unclosed_think_share_truncated": 0.5556,
+      "truncated_share": 0.375,
+      "natural_stop_share": 0.625,
+      "where_truncated": {
+        "limit_in_think": 5,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 3
+      },
+      "looped_share": 0.2917,
+      "looped_share_truncated": 0.6667,
+      "looped_share_natural": 0.0667,
+      "lengths": {
+        "n": 24,
+        "median": 1555,
+        "p90": 4096,
+        "min": 7,
+        "max": 4096,
+        "mean": 2277.375,
+        "percentile_method": "nearest-rank",
+        "budget": 4096,
+        "median_over_budget": 0.3796
+      },
+      "lengths_natural": {
+        "n": 15,
+        "median": 1441,
+        "p90": 1744,
+        "max": 1809,
+        "min": 7
+      },
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json"
+    },
+    "sft3000": {
+      "state": "sft3000",
+      "n": 24,
+      "cyr_think": 0.8057,
+      "cyr_answer": 0.1001,
+      "cyr_answer_defined_only": 0.6007,
+      "answer_coverage": 0.1667,
+      "cyr_answer_prose": 0.0296,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.25,
+      "unclosed_think_share": 0.8333,
+      "unclosed_think_share_natural": 0.9,
+      "unclosed_think_share_truncated": 0.7857,
+      "truncated_share": 0.5833,
+      "natural_stop_share": 0.4167,
+      "where_truncated": {
+        "limit_in_think": 11,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 2
+      },
+      "looped_share": 0.5417,
+      "looped_share_truncated": 0.9286,
+      "looped_share_natural": 0.0,
+      "lengths": {
+        "n": 24,
+        "median": 4096,
+        "p90": 4096,
+        "min": 8,
+        "max": 4096,
+        "mean": 2415.4167,
+        "percentile_method": "nearest-rank",
+        "budget": 4096,
+        "median_over_budget": 1.0
+      },
+      "lengths_natural": {
+        "n": 10,
+        "median": 44,
+        "p90": 101,
+        "max": 135,
+        "min": 8
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-20260916-2246/checkpoints/sft_probe_3000.pt",
+      "checkpoint_sha256": "de5c290784e6d4db2e64d7fc3e86276234cbfb3aa5dbc1f606200b3613b50104",
+      "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json"
+    },
+    "sft_resume_4500": {
+      "state": "sft_resume_4500",
+      "n": 24,
+      "cyr_think": 0.7896,
+      "cyr_answer": 0.3919,
+      "cyr_answer_defined_only": 0.6719,
+      "answer_coverage": 0.5833,
+      "cyr_answer_prose": 0.2811,
+      "mode_share_think": 1.0,
+      "mode_share_tool_call": 0.2917,
+      "unclosed_think_share": 0.4583,
+      "unclosed_think_share_natural": 0.6,
+      "unclosed_think_share_truncated": 0.3571,
+      "truncated_share": 0.5833,
+      "natural_stop_share": 0.4167,
+      "where_truncated": {
+        "limit_in_answer": 4,
+        "limit_in_think": 4,
+        "limit_in_tool_call": 1,
+        "limit_in_tool_response": 5
+      },
+      "looped_share": 0.5417,
+      "looped_share_truncated": 0.9286,
+      "looped_share_natural": 0.0,
+      "lengths": {
+        "n": 24,
+        "median": 4096,
+        "p90": 4096,
+        "min": 15,
+        "max": 4096,
+        "mean": 2458.5,
+        "percentile_method": "nearest-rank",
+        "budget": 4096,
+        "median_over_budget": 1.0
+      },
+      "lengths_natural": {
+        "n": 10,
+        "median": 78,
+        "p90": 220,
+        "max": 895,
+        "min": 15
+      },
+      "checkpoint": "/home/user/gb10-shared/sft-resume-20260917-1215/checkpoints/sft_probe_4500.pt",
+      "checkpoint_sha256": "c53d885294aa84088db08859742df6b49d7cc0bd6b8deda6207990ddf19cd9a2",
+      "source": "runs/s3aj-format-validity-20260917/probe_full_4096.json"
+    }
+  },
+  "verdict_format": {
+    "artifact_or_degradation": "degradation",
+    "rule": "полный замер: незакрытых <think> ≤ 0.2 — артефакт; ≥ 0.5 — деградация; между — смешанно; итог по худшему состоянию SFT-линии; опоры — дописанные ходы и зацикленность названы рядом",
+    "evidence": [
+      {
+        "state": "cfinal",
+        "unclosed_think_share_full": 0.2917,
+        "unclosed_think_share_natural": 0.1333,
+        "unclosed_think_share_truncated": 0.5556,
+        "natural_stop_share": 0.625,
+        "looped_share": 0.2917,
+        "looped_share_truncated": 0.6667,
+        "zone": "mixed"
+      },
+      {
+        "state": "sft3000",
+        "unclosed_think_share_full": 0.8333,
+        "unclosed_think_share_natural": 0.9,
+        "unclosed_think_share_truncated": 0.7857,
+        "natural_stop_share": 0.4167,
+        "looped_share": 0.5417,
+        "looped_share_truncated": 0.9286,
+        "zone": "degradation"
+      },
+      {
+        "state": "sft_resume_4500",
+        "unclosed_think_share_full": 0.4583,
+        "unclosed_think_share_natural": 0.6,
+        "unclosed_think_share_truncated": 0.3571,
+        "natural_stop_share": 0.4167,
+        "looped_share": 0.5417,
+        "looped_share_truncated": 0.9286,
+        "zone": "mixed"
+      }
+    ],
+    "zones": {
+      "cfinal": "mixed",
+      "sft3000": "degradation",
+      "sft_resume_4500": "mixed"
+    },
+    "third_cause": null,
+    "compared": "полный замер (4096 + остановка на конце хода) против усечённого (1024 без остановки); перечитанный замер (1024 + правило конца хода) разводит причину «прибор» и причину «бюджет»"
+  },
+  "verdict_language_by_adr039": {
+    "state": "sft_resume_4500",
+    "cyr_answer": 0.3919,
+    "cyr_think": 0.7896,
+    "answer_coverage": 0.5833,
+    "thresholds_only_zone": "refuted",
+    "thresholds_only_why": "ответная часть кириллица 0.3919 < 0.4: язык входа протекает, ответ ушёл в английский",
+    "criteria": {
+      "answer_ru_min": 0.5,
+      "think_en_max": 0.3,
+      "answer_refute_max": 0.4,
+      "answer_coverage_floor": 0.5
+    },
+    "zone": "refuted",
+    "why": "ответная часть кириллица 0.3919 < 0.4: язык входа протекает, ответ ушёл в английский"
+  },
+  "identity": {
+    "available": true,
+    "run": "runs/s3aj-format-validity-20260917/identity_core_cfinal_after_s3aj.json",
+    "run_sha256": "648a3d5ed9b8785253ad8c98a4b2a655e676791cfc070fc330ca0fc0d128ef49",
+    "tool_sha256": "11b4594bcb54df235b7545fdc6156ff1982cc4ac700f213a215e438cffa695b7",
+    "protocol": {
+      "prompts_set": "core",
+      "prompts_digest": "3962d0bcce8fd6c432679b28ecf4a8b5241fa43ebc83ffa1573c673b946a282a",
+      "max_new_tokens": 384,
+      "stop_at_turn_end": false,
+      "decoding": "greedy"
+    },
+    "compared": "байты ответов и метрики сегментов",
+    "reference": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+    "reference_sha256": "8e3098eab92d9b84be6898b79b796cac7439738a6e311f8656068c05823a7186",
+    "n_compared": 5,
+    "bytes_identical_responses": 5,
+    "metric_mismatches": [],
+    "identical": true
+  },
+  "tests": {
+    "available": true,
+    "tally": "итого: PASS=475 FAIL=1",
+    "passed": true,
+    "s3aj_checks": 16,
+    "s3aj_failed": [],
+    "failures": [
+      "пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался): ожидался exit 0, получен 1"
+    ],
+    "failures_outside_known_red": [],
+    "log": "runs/s3aj-format-validity-20260917/tool_tests.log",
+    "log_sha256": "0f62a9c06ae449554e287cd897194781de18094ebc2f7b49318bd423d4b8c9dd",
+    "checks": [
+      "ok   probe_language_split: фикстуры разбора проходят (нет ответа, незакрытый think) (exit 0)",
+      "ok   probe_language_split: сегменты и правило «разметка — не буквы» (exit 0)",
+      "ok   probe_language_split: свод — with_zeros/defined_only/coverage, режим, обрезка (exit 0)",
+      "ok   probe_language_split: критерий — зоны ADR-039 и страж покрытия (симметрично) (exit 0)",
+      "ok   probe_language_split: неизвестный набор промптов — отказ (exit 2) (exit 2)",
+      "ok   probe_language_split: ни одного --ckpt — NOT-VERIFIED до загрузки модели (exit 2)",
+      "ok   probe_language_split: отказ назван причиной, а не молчанием (содержит «модель не загружалась»)",
+      "ok   probe_language_split: ядро промптов и системный промпт — из probe_control (exit 0)",
+      "ok   probe_language_split: состояние базы описано явно (нет чекпойнта — не ошибка) (exit 0)",
+      "ok   probe_language_split: манифест прогона проб проходит C-012 (AD-2) (exit 0)",
+      "ok   probe_language_split: регион обрыва (вложенность) и причина конца (exit 0)",
+      "ok   probe_language_split: вырождение (порог и метрики S3ab рядом) (exit 0)",
+      "ok   probe_language_split: длины, причины конца и формат по дописанным ходам (exit 0)",
+      "ok   probe_language_split: --recut-report — разбор причин на том же бюджете (exit 0)",
+      "ok   probe_language_split: --stop-at-turn-end объявлен и по умолчанию выключен (exit 0)",
+      "ok   assemble_s3aj_evidence: вердикт по формату, отказы и NOT-VERIFIED (exit 0)"
+    ]
+  },
+  "refusals": [],
+  "assumptions": [
+    "greedy-генерация префиксно детерминирована: смена условия остановки не меняет ни одного токена до точки остановки (на этом стоит recut)",
+    "перечитанный замер изолирует причину «прибор» при бюджете 1024, но не может починить генерации, у которых конца хода внутри окна не было: покрытие перечитывания названо числом",
+    "дописанным ходом считается генерация, остановившаяся сама (stop_reason = turn_end); «упёрлась в лимит ровно на последнем токене» читается как лимит — осторожное чтение",
+    "полный замер снят на локальной 4080; стенд GB10 не задействован (AD-5), прогон SFT на нём не останавливался",
+    "третье состояние (SFT-resume) в полном замере — проба 4500, в прежнем (1024) — проба 4000: между ними 500 шагов обучения, и разница бюджета для этого состояния смешана с разницей шага; для CPT-финала и SFT-3000 пара замеров снята на одних и тех же весах",
+    "правило «маркеры не считаются речью» перечисляет 6 токенов формата (<think>, </think>, <tool_call>, </tool_call>, <tool_response>, </tool_response>); маркеры хода <|im_end|>/<|im_start|> в список не входят, и их латинские буквы считаются речью — в ответной части это до 6 букв против сотен, но у генерации, чей ответ состоит только из маркера, различие принципиально (None «нет букв» против 0.0 «латиница»)"
+  ],
+  "open_questions": [
+    "Больше половины генераций финального состояния зациклены при greedy-декодинге. Метрики языка и формата на зацикленном тексте измеряют петлю, а не поведение модели: нужен отдельный разбор (декодирование/данные/шаг обучения).",
+    "Основная метрика ответной части (0.3919, генерация без букв считается нулём) и метрика только по дошедшим до ответа (0.6719) расходятся больше чем на 0.2: вердикт вынесен по основной (объявлена заранее), но расхождение означает, что у части генераций ответа нет вовсе — язык тут ни при чём, и решать по одному числу нельзя.",
+    "Число ответной части 0.3919 стоит вплотную к границе 0.4: вердикт «опровергнуто» держится на 0.05 и меньше — это не запас, а шум выборки из 24 генераций.",
+    "Маркеры хода <|im_end|>/<|im_start|> не входят в список разметки прибора: их латинские буквы попадают в долю языка ответной части (до 6 букв на ход, а у хода из одного маркера — различие None/0.0). Правка сменит правила разбора и потребует перечитать прежние замеры под новой арифметикой — это отдельное решение, а не молчаливая правка посреди замера."
+  ]
+}

@@ -1,0 +1,342 @@
+{
+ "tool": "tools/ladder_axis_arithmetic.py",
+ "stage": "S3bg",
+ "generated_at": "2026-09-22T16:19:49+00:00",
+ "purpose": "числа для объявления оси лесенки (ADR-052 п.2 / LADDER-FULL-PLAN §6)",
+ "model": {
+  "metric_space": "[0,1] на задачу (verifier multi_slug_match 0/1; судья — балл)",
+  "p": 0.5,
+  "why_p_half": "верхняя граница дисперсии для любой [0,1]-величины: Var ≤ 0.25",
+  "se_arm_formula": "sqrt(p(1-p)/(m·n))",
+  "se_diff_formula": "sqrt(2·p(1-p)/(m·n)) = sqrt(2) × SE руки",
+  "pairing": "внутризадачная парная разность даёт SE не больше; независимый вариант консервативен",
+  "thresholds": {
+   "1se": {
+    "z": 1.0,
+    "false_positive_rate_two_sided_pct": 31.7,
+    "power_at_1se_effect_pct": 52.3,
+    "effect_for_80pct_power_in_se": 1.842,
+    "note": "порог кейса (AD-1 «≥1 std», S4 §3); слабый: 31.7 % при нуле"
+   },
+   "95": {
+    "z": 1.959964,
+    "note": "обычная сравнительная заявка"
+   },
+   "95_bonferroni3": {
+    "z": 2.394003,
+    "comparisons": 3,
+    "note": "три семейства волны В-1 → alpha 0.05/3"
+   },
+   "80power_at_95": {
+    "effect_in_se": 2.802,
+    "note": "во сколько SE должен укладываться эффект, чтобы заявлять его с мощностью 80 %"
+   }
+  }
+ },
+ "se_table": [
+  {
+   "m": 192,
+   "n": 1,
+   "attempts": 192,
+   "se_arm_pct": 3.608,
+   "se_diff_pct": 5.103,
+   "mdd_1se_pct": 5.103,
+   "mdd_95_pct": 10.002,
+   "mdd_95_bonf3_pct": 12.217,
+   "mdd_80power_95_pct": 14.297
+  },
+  {
+   "m": 192,
+   "n": 3,
+   "attempts": 576,
+   "se_arm_pct": 2.083,
+   "se_diff_pct": 2.946,
+   "mdd_1se_pct": 2.946,
+   "mdd_95_pct": 5.775,
+   "mdd_95_bonf3_pct": 7.053,
+   "mdd_80power_95_pct": 8.254
+  },
+  {
+   "m": 192,
+   "n": 5,
+   "attempts": 960,
+   "se_arm_pct": 1.614,
+   "se_diff_pct": 2.282,
+   "mdd_1se_pct": 2.282,
+   "mdd_95_pct": 4.473,
+   "mdd_95_bonf3_pct": 5.464,
+   "mdd_80power_95_pct": 6.394
+  },
+  {
+   "m": 400,
+   "n": 1,
+   "attempts": 400,
+   "se_arm_pct": 2.5,
+   "se_diff_pct": 3.536,
+   "mdd_1se_pct": 3.536,
+   "mdd_95_pct": 6.93,
+   "mdd_95_bonf3_pct": 8.464,
+   "mdd_80power_95_pct": 9.905
+  },
+  {
+   "m": 400,
+   "n": 3,
+   "attempts": 1200,
+   "se_arm_pct": 1.443,
+   "se_diff_pct": 2.041,
+   "mdd_1se_pct": 2.041,
+   "mdd_95_pct": 4.001,
+   "mdd_95_bonf3_pct": 4.887,
+   "mdd_80power_95_pct": 5.719
+  },
+  {
+   "m": 400,
+   "n": 5,
+   "attempts": 2000,
+   "se_arm_pct": 1.118,
+   "se_diff_pct": 1.581,
+   "mdd_1se_pct": 1.581,
+   "mdd_95_pct": 3.099,
+   "mdd_95_bonf3_pct": 3.785,
+   "mdd_80power_95_pct": 4.43
+  },
+  {
+   "m": 800,
+   "n": 1,
+   "attempts": 800,
+   "se_arm_pct": 1.768,
+   "se_diff_pct": 2.5,
+   "mdd_1se_pct": 2.5,
+   "mdd_95_pct": 4.9,
+   "mdd_95_bonf3_pct": 5.985,
+   "mdd_80power_95_pct": 7.004
+  },
+  {
+   "m": 800,
+   "n": 3,
+   "attempts": 2400,
+   "se_arm_pct": 1.021,
+   "se_diff_pct": 1.443,
+   "mdd_1se_pct": 1.443,
+   "mdd_95_pct": 2.829,
+   "mdd_95_bonf3_pct": 3.455,
+   "mdd_80power_95_pct": 4.044
+  },
+  {
+   "m": 800,
+   "n": 5,
+   "attempts": 4000,
+   "se_arm_pct": 0.791,
+   "se_diff_pct": 1.118,
+   "mdd_1se_pct": 1.118,
+   "mdd_95_pct": 2.191,
+   "mdd_95_bonf3_pct": 2.677,
+   "mdd_80power_95_pct": 3.132
+  },
+  {
+   "m": 1600,
+   "n": 1,
+   "attempts": 1600,
+   "se_arm_pct": 1.25,
+   "se_diff_pct": 1.768,
+   "mdd_1se_pct": 1.768,
+   "mdd_95_pct": 3.465,
+   "mdd_95_bonf3_pct": 4.232,
+   "mdd_80power_95_pct": 4.953
+  },
+  {
+   "m": 1600,
+   "n": 3,
+   "attempts": 4800,
+   "se_arm_pct": 0.722,
+   "se_diff_pct": 1.021,
+   "mdd_1se_pct": 1.021,
+   "mdd_95_pct": 2.0,
+   "mdd_95_bonf3_pct": 2.443,
+   "mdd_80power_95_pct": 2.859
+  },
+  {
+   "m": 1600,
+   "n": 5,
+   "attempts": 8000,
+   "se_arm_pct": 0.559,
+   "se_diff_pct": 0.791,
+   "mdd_1se_pct": 0.791,
+   "mdd_95_pct": 1.549,
+   "mdd_95_bonf3_pct": 1.893,
+   "mdd_80power_95_pct": 2.215
+  }
+ ],
+ "required_m": [
+  {
+   "effect_pct": 5.0,
+   "rows": [
+    {
+     "n": 1,
+     "m_1se": 200,
+     "m_95": 769,
+     "m_95_bonf3": 1147,
+     "m_80power_95": 1570
+    },
+    {
+     "n": 3,
+     "m_1se": 67,
+     "m_95": 257,
+     "m_95_bonf3": 383,
+     "m_80power_95": 524
+    },
+    {
+     "n": 5,
+     "m_1se": 40,
+     "m_95": 154,
+     "m_95_bonf3": 230,
+     "m_80power_95": 314
+    }
+   ],
+   "note": "эффект меньше заявленного порога не заявляется — в этом смысл порога, а не в том, чтобы его обойти"
+  },
+  {
+   "effect_pct": 10.0,
+   "rows": [
+    {
+     "n": 1,
+     "m_1se": 50,
+     "m_95": 193,
+     "m_95_bonf3": 287,
+     "m_80power_95": 393
+    },
+    {
+     "n": 3,
+     "m_1se": 17,
+     "m_95": 65,
+     "m_95_bonf3": 96,
+     "m_80power_95": 131
+    },
+    {
+     "n": 5,
+     "m_1se": 10,
+     "m_95": 39,
+     "m_95_bonf3": 58,
+     "m_80power_95": 79
+    }
+   ],
+   "note": "эффект меньше заявленного порога не заявляется — в этом смысл порога, а не в том, чтобы его обойти"
+  }
+ ],
+ "available": {
+  "task_set": {
+   "path": "datasets/eval_ood_clean.jsonl",
+   "sha256": "f94fb8556cabf3d5386fec1569dfd5e4e796b15c97dfc935bf7bd8f9879bb1d6",
+   "tasks": 192,
+   "task_type": "ood_pair ×192",
+   "verifier": "multi_slug_match",
+   "role": "единственный набор задач, на котором кейс считает judge_mean/slug_accuracy"
+  },
+  "ppl_sets": {
+   "general_eval_v3": 200,
+   "general_eval_k2": 200,
+   "domain_eval_v3": 200,
+   "note": "документы для PPL, не задачи: в арифметике оси не участвуют"
+  },
+  "other_task_files": {
+   "eval_ood.jsonl": 192,
+   "eval_ood_oxalpha.jsonl": "102/3000 — выведен (AD-7)",
+   "rl_tasks_revpool_v2.jsonl": 9162
+  },
+  "rl_pool_note": "9162 задачи пула v2 — обучающий пул RL-стадии; как eval-набор не берутся без отдельного решения (пересечение с обучением)"
+ },
+ "reproduction_criterion": {
+  "plan_variant": "\"направление повторилось в 2 из 3 семейств\" (EXPERIMENT_PLAN §6.1)",
+  "under_null_pct": 50.0,
+  "three_of_three_under_null_pct": 12.5,
+  "note": "2 из 3 по ЗНАКУ при нуле — 50 %: критерий не различает. Варианты ниже требуют покомпонентной значимости (95 %) в семье, а не только знака",
+  "alternative_per_family_95": {
+   "k2_of_3_pct": 0.725,
+   "k3_of_3_pct": 0.013
+  }
+ },
+ "limits": [
+  "Это арифметика, а не ось: метрику, n и порог объявляет архитектор (ADR-052 п.2).",
+  "p=0.5 — верхняя граница разброса; на фактических данных SE будет не больше (и не может быть больше).",
+  "SE не описывает систематику: смена площадки (4080 ↔ GB10), смена режима декодирования и утечка набора в обучение дают смещение, которое SE не видит.",
+  "Числа требуемого m не учитывают отказы/таймауты задач: неответившая задача — это исход, а не пропуск."
+ ],
+ "shortfall": {
+  "available_tasks": 192,
+  "for_effect_5pct_95bonf3": [
+   {
+    "n": 1,
+    "m_needed": 1147,
+    "shortfall_tasks": 955
+   },
+   {
+    "n": 3,
+    "m_needed": 383,
+    "shortfall_tasks": 191
+   },
+   {
+    "n": 5,
+    "m_needed": 230,
+    "shortfall_tasks": 38
+   }
+  ]
+ },
+ "recommendation_numbers": {
+  "config_a_existing_set": {
+   "m": 192,
+   "n": 6,
+   "mdd_95_bonf3_pct": 4.99,
+   "price": "eval ×6 на руку; набор не трогается (AD-7) — только новые прогоны"
+  },
+  "config_b_new_set": {
+   "m": 400,
+   "n": 3,
+   "mdd_95_bonf3_pct": 4.89,
+   "price": "+208 задач нового набора с аудитом чистоты (ADR-025) и решением AD-7; eval ×3"
+  },
+  "config_c_cheap_10pct": {
+   "m": 192,
+   "n": 2,
+   "mdd_95_bonf3_pct": 8.64,
+   "price": "eval ×2 на руку; заявляются только различия ≳9 %"
+  },
+  "note": "варианты — не решение: архитектор выбирает между «дороже мерить» и «слабее заявлять»"
+ },
+ "eval_cost": {
+  "calibration": "ADR-013 п.1: ≈2 ч на 192 задачи (n=1) вместе с eval_sft — верхняя граница",
+  "seconds_per_task_attempt_upper": 37.5,
+  "per_arm_hours": [
+   {
+    "m": 192,
+    "n": 1,
+    "hours_upper": 2.0
+   },
+   {
+    "m": 192,
+    "n": 2,
+    "hours_upper": 4.0
+   },
+   {
+    "m": 192,
+    "n": 3,
+    "hours_upper": 6.0
+   },
+   {
+    "m": 192,
+    "n": 6,
+    "hours_upper": 12.0
+   },
+   {
+    "m": 400,
+    "n": 3,
+    "hours_upper": 12.5
+   },
+   {
+    "m": 800,
+    "n": 3,
+    "hours_upper": 25.0
+   }
+  ],
+  "note": "цена линейна по m·n; число рук волны В-1 — три (по семейству)"
+ }
+}

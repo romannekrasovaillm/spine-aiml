@@ -556,16 +556,14 @@ fn recognize_marker(
             return Err(ManagedError::BadMarker {
                 line: line_no,
                 reason: format!("атрибут '{tok}' без '='"),
-            }
-            .into());
+            });
         };
         match key {
             "id" => {
                 if !valid_id(value) {
                     return Err(ManagedError::BadId {
                         id: value.to_string(),
-                    }
-                    .into());
+                    });
                 }
                 id = Some(value.to_string());
             }
@@ -577,8 +575,7 @@ fn recognize_marker(
                         return Err(ManagedError::BadMarker {
                             line: line_no,
                             reason: format!("ver='{value}' — ожидается uint >= 1"),
-                        }
-                        .into());
+                        });
                     }
                 }
             }
@@ -591,8 +588,7 @@ fn recognize_marker(
                 return Err(ManagedError::UnknownAttr {
                     attr: other.to_string(),
                     line: line_no,
-                }
-                .into());
+                });
             }
         }
     }
@@ -602,8 +598,7 @@ fn recognize_marker(
             return Err(ManagedError::BadMarker {
                 line: line_no,
                 reason: "у end-маркера нет атрибута id".to_string(),
-            }
-            .into());
+            });
         };
         return Ok(Some(MarkerKind::End(EndAttrs { id })));
     }
@@ -612,22 +607,19 @@ fn recognize_marker(
         return Err(ManagedError::BadMarker {
             line: line_no,
             reason: "у begin-маркера нет атрибута id".to_string(),
-        }
-        .into());
+        });
     };
     let Some(ver) = ver else {
         return Err(ManagedError::BadMarker {
             line: line_no,
             reason: "у begin-маркера нет обязательного атрибута ver=".to_string(),
-        }
-        .into());
+        });
     };
     let Some(hash) = hash else {
         return Err(ManagedError::BadMarker {
             line: line_no,
             reason: "у begin-маркера нет обязательного hash=".to_string(),
-        }
-        .into());
+        });
     };
     Ok(Some(MarkerKind::Begin(BeginAttrs {
         id,
@@ -678,8 +670,7 @@ fn parse_blocks_impl(text: &str) -> std::result::Result<Vec<Block>, ManagedError
                         id: attrs.id,
                         outer: open.id.clone(),
                         line: line_no,
-                    }
-                    .into());
+                    });
                 }
                 pending = Some(PendingBegin {
                     id: attrs.id,
@@ -696,23 +687,20 @@ fn parse_blocks_impl(text: &str) -> std::result::Result<Vec<Block>, ManagedError
                     return Err(ManagedError::OrphanEnd {
                         id: attrs.id,
                         line: line_no,
-                    }
-                    .into());
+                    });
                 };
                 if open.id != attrs.id {
                     return Err(ManagedError::MarkerIdMismatch {
                         want: open.id,
                         got: attrs.id,
                         line: line_no,
-                    }
-                    .into());
+                    });
                 }
                 if blocks.iter().any(|b| b.id == open.id) {
                     return Err(ManagedError::DuplicateId {
                         id: open.id,
                         ver: open.ver,
-                    }
-                    .into());
+                    });
                 }
                 let body = canonical_body(&text[open.body_start..line.start]);
                 blocks.push(Block {
@@ -733,8 +721,7 @@ fn parse_blocks_impl(text: &str) -> std::result::Result<Vec<Block>, ManagedError
         return Err(ManagedError::UnclosedBlock {
             id: open.id,
             line: open.begin_line,
-        }
-        .into());
+        });
     }
     Ok(blocks)
 }
@@ -846,8 +833,7 @@ fn resolve_section(
         return Err(ManagedError::HeadingNotFound {
             anchor: display,
             path: path.to_path_buf(),
-        }
-        .into());
+        });
     }
     let mut start = 0usize;
     let mut end = text.len();
@@ -870,15 +856,13 @@ fn resolve_section(
             return Err(ManagedError::HeadingNotFound {
                 anchor: display,
                 path: path.to_path_buf(),
-            }
-            .into());
+            });
         }
         if matches.len() > 1 {
             return Err(ManagedError::AmbiguousHeading {
                 anchor: display,
                 count: matches.len(),
-            }
-            .into());
+            });
         }
         let i = matches[0];
         start = headings[i].heading_end;
@@ -887,12 +871,9 @@ fn resolve_section(
         current = Some(i);
     }
 
-    current.ok_or_else(|| {
-        ManagedError::HeadingNotFound {
-            anchor: display,
-            path: path.to_path_buf(),
-        }
-        .into()
+    current.ok_or_else(|| ManagedError::HeadingNotFound {
+        anchor: display,
+        path: path.to_path_buf(),
     })
 }
 
@@ -946,12 +927,9 @@ fn find_block_span(
         .iter()
         .find(|b| b.id == id)
         .map(|b| b.span.clone())
-        .ok_or_else(|| {
-            ManagedError::BlockNotFound {
-                id: id.to_string(),
-                path: path.to_path_buf(),
-            }
-            .into()
+        .ok_or_else(|| ManagedError::BlockNotFound {
+            id: id.to_string(),
+            path: path.to_path_buf(),
         })
 }
 
@@ -972,8 +950,7 @@ fn check_guard(
                     ver,
                     expected: expected.clone(),
                     actual,
-                }
-                .into());
+                });
             }
         }
         HashGuard::Force => forced.push(id.to_string()),
@@ -1037,8 +1014,7 @@ fn apply_block_op(
                     return Err(ManagedError::BlockNotFound {
                         id: id.clone(),
                         path: path.to_path_buf(),
-                    }
-                    .into());
+                    });
                 }
                 let new_body = canonical_body(content);
                 let hash = Sha256::of_text(&new_body);
@@ -1063,8 +1039,7 @@ fn apply_block_op(
                 return Err(ManagedError::DuplicateId {
                     id: id.clone(),
                     ver: block.ver,
-                }
-                .into());
+                });
             }
             let new_body = canonical_body(content);
             let hash = Sha256::of_text(&new_body);
@@ -1082,8 +1057,7 @@ fn apply_block_op(
                 return Err(ManagedError::BlockNotFound {
                     id: id.clone(),
                     path: path.to_path_buf(),
-                }
-                .into());
+                });
             };
             check_guard(id, ver, &body, guard, forced)?;
             let at = span.start;
@@ -1131,7 +1105,7 @@ fn apply_section_op(
             content,
         } => {
             if !(1..=6).contains(level) {
-                return Err(ManagedError::BadLevel { level: *level }.into());
+                return Err(ManagedError::BadLevel { level: *level });
             }
             let headings = parse_headings(cur);
             let idx = resolve_section(cur, &headings, anchor, path)?;
@@ -1212,8 +1186,7 @@ fn apply_impl(
             return Err(ManagedError::BaseHashMismatch {
                 expected: expected.clone(),
                 actual: old_hash,
-            }
-            .into());
+            });
         }
     }
     parse_blocks_impl(text)?;
@@ -1238,8 +1211,7 @@ fn apply_impl(
                 return Err(ManagedError::BadMarker {
                     line: b.begin_line,
                     reason: format!("после применения хеш блока '{id}' не совпал с телом"),
-                }
-                .into());
+                });
             }
         }
     }

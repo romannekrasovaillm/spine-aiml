@@ -1,0 +1,490 @@
+{
+  "node": "pool-dead-types",
+  "stage": "S3j-2 diagnostic",
+  "date": "2026-09-16",
+  "status": "complete",
+  "checkpoint": "sft_checkpoint_final.pt sha 5bc15f708111 (тот же, что в passrate-v1-v2-sft.json)",
+  "run_data": "runs/passrate-sft-20260916-1200/{v1,v2}/ (worktree laguna-passrate-probe, read-only)",
+  "pools_read": "~/gb10-shared/datasets/rl_tasks_revpool_{v1,v2}.jsonl (read-only, копий не держим)",
+  "method": "детерминированная выборка 20 задач на тип (seed 42) из исполненных 100/тип; классификация отказа пересчитана заново (diag_class в прогоне зашумлён багом порядка вычисления dict.update — всегда a_no_tool_call для фейлов)",
+  "note_bug": "в passrate_probe.py classify_failure читает rec['tool_calls'] ДО применения r.update(...), поэтому diag_class у всех фейлов = a_no_tool_call; здесь классификация честная по фактическим tool_calls/coverage/hit_timeout",
+  "types": [
+    {
+      "type": "explain_relation",
+      "pool": "v2",
+      "n": 20,
+      "pass": 8,
+      "pass_rate": 0.4,
+      "median_turns": 1.0,
+      "tool_call_share": 1.0,
+      "failure_classes": {
+        "c: проверяемые значения есть, но не те (coverage>0)": 11,
+        "b: вызов есть, проверяемых значений нет (coverage=0)": 1
+      },
+      "verdict": "живой, но сигнал артефактен: держится на forced-бутстрапе (toolcall_force) + threshold-верификаторе по терминам определений (не точные slug-и). Модель НЕ вызывает инструмент сама: tool_calls=1 (ровно один forced-вызов) и turns=1 у всех 100; на 700 задач пула — 0 самовызовов.",
+      "examples": {
+        "c: проверяемые значения есть, но не те (coverage>0)": [
+          {
+            "task_index": 8307,
+            "prompt": "Как связаны Behavior-Driving Remediation и Online Pre-Execution Verification? Опиши отношение и через какие концепции идёт связь.",
+            "required": {
+              "kind": "keyword_match по терминам ОПРЕДЕЛЕНИЙ обоих концептов, порог 3 на каждый (2 если короче)",
+              "concepts": [
+                "behavior_driving_remediation",
+                "online_verification_loop"
+              ],
+              "threshold": 3
+            },
+            "answer_excerpt": "<think>\n\nARN — это генератор верификации (например, \"например, \"перемен\" от использования инструментов с инструментами).\n\n## Мотивация\nБолее генеративные системы (например, \"не-либо зазумль\" или \"запержать\" с учётом вызовов инструментов. Runtime-цикл позволяет агенту обобщать в память диалога, а не просто кандидатам. Runtime-цикл использует реальную обратную связь для построения структурированных формул, что позволяет агенту дать ненадежные, стабильные знания. Runtime-цикл улучшает обучение на уровне концепта, позволяя модели учиться с разнообразными способностями к пересекению и использования инструментов.\n\n## Тип концепции\nprocedural_step — это шаг в пайплайне обработки данных.\n\n## Уровень",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.25,
+            "class": "c_wrong_values"
+          },
+          {
+            "task_index": 8314,
+            "prompt": "Как связаны Borrowing Recipe и specdb-refining? Опиши отношение и через какие концепции идёт связь.",
+            "required": {
+              "kind": "keyword_match по терминам ОПРЕДЕЛЕНИЙ обоих концептов, порог 3 на каждый (2 если короче)",
+              "concepts": [
+                "borrowing_recipe",
+                "specdb_refining"
+              ],
+              "threshold": 3
+            },
+            "answer_excerpt": "<think>\n\nugalbil-системный анализ: пользовательские запросы используют контекст как статистику обновления, а включает ее роли с оно. Хранение и поиска позволяет получить калибровку, но его поведение и поиска связано с реальным кодом.\n\n**Ключевая идея:** Предобработка из нуля независимо изолирует реальное намерение. Ключевой инсайт: вместо использования общих атрибутов, он часто требует отдельного использования.\n\n**Результаты:**\n- Использует нуля на основе oOD\n- Включает нуля на основе оценок (например, геометрический код)\n- Система: 3000/4000\n- Обнаружение с: 9 обследованными базами данных с использованием полного использования\n\n**Сигнал введения:** \"At one input that interacts with a user's",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.2,
+            "class": "c_wrong_values"
+          }
+        ],
+        "b: вызов есть, проверяемых значений нет (coverage=0)": [
+          {
+            "task_index": 9103,
+            "prompt": "Объясни связь между концептами из разных областей ML: 'constraint_aware_planning' (family: Tool-Augmented Reasoning) и 'fixed_horizon_training' (family: Training procedure). Найди оба определения и опиши, какие общие идеи или механизмы их объединяют, несмотря на разные домены.",
+            "required": {
+              "kind": "keyword_match по терминам ОПРЕДЕЛЕНИЙ обоих концептов, порог 3 на каждый (2 если короче)",
+              "concepts": [
+                "constraint_aware_planning",
+                "fixed_horizon_training"
+              ],
+              "threshold": 3
+            },
+            "answer_excerpt": "<think>\n\n",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.0,
+            "class": "b_no_checkable_values"
+          }
+        ]
+      },
+      "fix": "не чинить; оставить как единственный обучаемый сигнал, но честно назвать навык «retrieval-augmented paraphrase», а не «agentic search».",
+      "scale_to_phase2": "масштабируется по объёму (v1 19992 / v2 394), но узкий: учит пересказ вложенного определения."
+    },
+    {
+      "type": "chain_reasoning",
+      "pool": "v2",
+      "n": 20,
+      "pass": 0,
+      "pass_rate": 0.0,
+      "median_turns": 1.0,
+      "tool_call_share": 0.0,
+      "failure_classes": {
+        "a: нет вызова инструмента": 20
+      },
+      "verdict": "чинится сменой проекции. 0.0 = нет forced-вызова (n_min_steps=3, 0 самовызовов) + multi_slug_match требует ВСЕ 5–6 РУССКИХ терминов определений (анти-лейк-проекция ADR-021: проверяются промежуточные определения, а не концы). Термины — словоформы с падежом ('совместного','сохранения') из текста определения; модель частично их генерирует из приора (coverage до 0.5), но без инструмента полный набор не добирает, а threshold-механики нет (нужны ВСЕ).",
+      "examples": {
+        "a: нет вызова инструмента": [
+          {
+            "task_index": 8505,
+            "prompt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'within_session_pairwise_agreement'\nКонец: 'palate_benchmark'\nШаг 1: Найди определение 'within_session_pairwise_agreement'.\nШаг 2: Через поиск найди промежуточный концепт, связывающий начало и конец (например, 'three_track_scoring' или другой).\nШаг 3: Объясни связь a→промежуточный→palate_benchmark, упомяни все slug-и.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "метрика",
+                "оценки",
+                "согласия",
+                "масштабируемый",
+                "бенчмарк"
+              ],
+              "n": 5
+            },
+            "answer_excerpt": "<think>\n\nVaz = (1-1): 0.0042 (выполняет только ответ на вход:).\n    - 0.002 (выполняется при использовании случайных бенчмарков).\n    - 0.000 (выполняется при счёт отклонения от среднего при накоплении).\n\n**Связи:** [agentic_framework, agentic_loop, reward model, reward model# Концепт: agentic_loop\n## Тип: boundary_conditionslug: agentic_loop\ntype: boundary_condition\nlevel: β\nformality: C\ntitle: Agentic Loop\naliases: [[agentic_loop, agentic reasoning]]\nfamily: Agentic Reasoning\nsources: [arxiv.2606.26100]## Определение\nA central_loop where agentic reasoning models cannot generate an automated reasoning that is explicitly combined with agent-based reasoning models. The reasoning is used by th",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.4,
+            "class": "a_no_tool_call"
+          },
+          {
+            "task_index": 8506,
+            "prompt": "Построй цепочку рассуждений из трёх ML-концептов.\nНачало: 'refusal_floor'\nКонец: 'linear_ideology_representation'\nШаг 1: Найди определение 'refusal_floor'.\nШаг 2: Через поиск найди промежуточный концепт, связывающий начало и конец (например, 'saturation_pattern' или другой).\nШаг 3: Объясни связь a→промежуточный→linear_ideology_representation, упомяни все slug-и.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "отказной",
+                "минимальный",
+                "уровень",
+                "линейное",
+                "представление",
+                "идеологии"
+              ],
+              "n": 6
+            },
+            "answer_excerpt": "<think>\n\nVamanitz et al. (2024) — это ключевой механизм для генерации политик, которая объясняет его способность и стабилизированный RL. Она не подтверждает, что агент может использовать статистическая политика как непротиворечи и оценивает политику без изменения. PSD решает эту проблему, предлагая дифференциальную награду, которая решает проблему использования стимулированных наград. BarrierManager решает эти проблемы, предоставляя существующие компоненты: (1) наградная награда извлекает агенты на основе политики для уменьшения дисперсии; (2) наградная награда поощряют reward-model policy. Этот механизм может быть включён в стимулированных наградах, где политика может использовать в нуле.\n\n",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.1667,
+            "class": "a_no_tool_call"
+          }
+        ]
+      },
+      "fix": "проекция: (1) бутстрап вызова (query из start/end slug); (2) перевести проверку на threshold по терминам определений (как explain_relation) или на канонические словоформы. Поле 'expected_slugs' для этого типа несёт не slug-и, а русские термины — путаница именования, но задуманная ADR-021.",
+      "scale_to_phase2": "278 задач — после фикса потенциально живой, но объём мал."
+    },
+    {
+      "type": "formula_chain",
+      "pool": "v2",
+      "n": 20,
+      "pass": 0,
+      "pass_rate": 0.0,
+      "median_turns": 1.0,
+      "tool_call_share": 0.0,
+      "failure_classes": {
+        "a: нет вызова инструмента": 20
+      },
+      "verdict": "как chain_reasoning: чинится сменой проекции. 0.0 = нет forced-вызова (n_min_steps=2) + multi_slug_match по всем русским терминам определений (анти-лейк ADR-021). coverage до 0.83 — модель реально выдаёт часть терминов из приора, полный матч не добирает без инструмента; threshold-механики нет.",
+      "examples": {
+        "a: нет вызова инструмента": [
+          {
+            "task_index": 8774,
+            "prompt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'coarse_to_fine_generation'\nКонцепт B: 'pruning_signal_generator'\nНайди оба определения, выпиши ключевые формулы/числовые закономерности из них и объясни, как формальная запись A соотносится с формальной записью B. Упомяни slug-и обоих концептов.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "парадигма",
+                "видео",
+                "этапа",
+                "компонент",
+                "отображает",
+                "каждый"
+              ],
+              "n": 6
+            },
+            "answer_excerpt": "<think>\n\nugala, an implicit state of the policy in the action of the policy of reward models: reward is no longer a stable outcome.\n\n**Определение:**\nОбучение на уровне концептов. Используется как инструмент для генерации задач, оптимизации RL: reward reward = reward (r ≥ 0.437, β ≈ 0.949) + β ≈ 0.1433), где β ≈ 0.09. Затем на этапе t определяется как R = δ - β / Δ * Σ_θ (0.432, β ≈ 1.045) / δ - Σ_θ(0.231), где δ=1 — верхняя награда. Результат показывает, что reward reward уменьшает π=0.51-β на всех концептах.\n    γ=0.90, β < 0.01. Повиданный β < 0.145, β < 1.066, β < 0.06, C. < 1.00, 1.165, β < 1.045; β < 0.023, 2.088, C. < 1.00, β < 1.05, β < 2.049; β < 3.121, β — галлюцинационно-зависимый",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.3333,
+            "class": "a_no_tool_call"
+          },
+          {
+            "task_index": 8775,
+            "prompt": "Свяжи два ML-концепта с формулами.\nКонцепт A: 'offline_memory_reconciliation'\nКонцепт B: 'surrogacy_assumption'\nНайди оба определения, выпиши ключевые формулы/числовые закономерности из них и объясни, как формальная запись A соотносится с формальной записью B. Упомяни slug-и обоих концептов.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "периодический",
+                "внутренний",
+                "памяти",
+                "формальное",
+                "определение",
+                "условно"
+              ],
+              "n": 6
+            },
+            "answer_excerpt": "<think>\n\niterated\nSkills: [warmful_memory, warmful_memory, memory, memory]\nliqurics: [warmful_memory, memory, memory]\nliqurics: [memory, memory, memory, memory]\nliqurics: [warmful_memory, memory, memory]\nandaocks_benchmark: 'runtime' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' memory' recall' memory' memory' performance, memory' storage' memory. No longer training evaluation study shows that this effect is not a robust foundation for memory' optimization, so that it can be used with ",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.3333,
+            "class": "a_no_tool_call"
+          }
+        ]
+      },
+      "fix": "тот же: бутстрап + threshold-проверка/канонические словоформы. 192 задачи — почти символический тип.",
+      "scale_to_phase2": "192 задачи — балласт; починить и догененить либо убрать из промпта фазы 2."
+    },
+    {
+      "type": "find_concept",
+      "pool": "v2",
+      "n": 20,
+      "pass": 0,
+      "pass_rate": 0.0,
+      "median_turns": 1.0,
+      "tool_call_share": 0.0,
+      "failure_classes": {
+        "a: нет вызова инструмента": 20
+      },
+      "verdict": "чинится сменой проекции, НЕ мёртв по существу 0.5B. 0.0 = нет forced-вызова (query не выводится из «Запиши формулу …») + 0 самовызовов + multi_slug_match требует точный английский slug (напр. 'implicit_q_learning'), которого нет в промпте и который без инструмента не достать. coverage=0/20 подтверждает: slug в ответе не появляется ни разу.",
+      "examples": {
+        "a: нет вызова инструмента": [
+          {
+            "task_index": 344,
+            "prompt": "Запиши формулу Implicit Q-Learning (IQL) в LaTeX и расшифруй каждое обозначение.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "implicit_q_learning"
+              ],
+              "n": 1
+            },
+            "answer_excerpt": "<think>\n\nquiladoor: \"f(q_1, ..., q_10).karz, Q-10.15181 (AIME) дают правильный ответ зашумлённый ответ без изменения функции.Vaz: \"F(q_1, ..., q_10\") показали незначительный уменьшения D = -P(q_1, ..., q_20) на 9.3 до 767 до 867 до 174 до 767 до 877 до 188 до 143 до 10.6 до всех входов.\n    10.1 до 763 до 788 до 280 до 73.8 до 878 до 1200 до 0.3 до 153 до 700 до 143 до 977 до 15.3 до 10.1 до 878 до 185 до 35.4 до 34.2 до 10.0 до 50.0 до 0.1 до 15.2 до 12.0 до 0.7 до 13.1 до 50.7 до 0.0 до 99.3 до 566 до 74.8 до 13.2 до 93.5 до 0.3 до 12.4 до 57 до 19.0 до 70.8 до 15.0 до 169 до 10.7 до 13.1 до 575 до 16.3 до 8.4 до 17.7 до 17.3 до 50.9 до 30.5 до 40.0 до 57.5 до 60.0 до 87.3 до 14.7 до 16.8 ",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.0,
+            "class": "a_no_tool_call"
+          },
+          {
+            "task_index": 514,
+            "prompt": "Запиши формулу Operator Class Geometry в LaTeX и расшифруй каждое обозначение.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "operator_class_geometry"
+              ],
+              "n": 1
+            },
+            "answer_excerpt": "<think>\n\nVaerman et al., 2025) are evaluated from the original reward at each input and its outcome.\"\n\n**Связи:**\n- **Тип:** <think>`, который является ключевым механизмом для оценки преимущества модели\n- **Связано с другими концептами:** Систематически похожих архитектурным принципами, когда модель успешно оптимизирует на одном примере.# Концепт: multi_stage_recomputation_and_reward\n## Тип: behavioral_patternslug: multi_stage_recomputation_and_reward\ntype: behavioral_pattern\nlevel: β\nformality: C\ntitle: Multi-Stage Reinputation and Reward\naliases: [RL RL]\nrelated: [cross_stage_recomputation, agentic_rl]\nfamily: Reinforcement Learning\nsources: [arxiv.2606.00923]## Определение\nФормальное опре",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.0,
+            "class": "a_no_tool_call"
+          }
+        ]
+      },
+      "fix": "проекция: (1) выводить query из title/имени формулы и форсить вызов; (2) проверять термины определения или title, а не точный slug. Задачи (8298) не переписывать.",
+      "scale_to_phase2": "после смены проекции — массовый парафраз-тип (8298 задач)."
+    },
+    {
+      "type": "multi_hop_search",
+      "pool": "v1",
+      "n": 20,
+      "pass": 0,
+      "pass_rate": 0.0,
+      "median_turns": 1.0,
+      "tool_call_share": 0.0,
+      "failure_classes": {
+        "a: нет вызова инструмента": 20
+      },
+      "verdict": "смешанный: 0.0 держится на проекции (нет бутстрапа; промежуточный концепт C не в промпте; 3 точных slug-а), но сам 3-hop поиск выше потолка 0.5B. Проекция доминирует в замере; суть модели отдельно не измерима из этого прогона.",
+      "examples": {
+        "a: нет вызова инструмента": [
+          {
+            "task_index": 25197,
+            "prompt": "Свяжи два ML-концепта и найди их общий контекст.\nКонцепт A: 'Feedback Asymmetry Hypothesis'\nКонцепт B: 'LLM-based RecSys Framework with Explicit User Feedback'\nШаг 1: Назови slug концептов A и B.\nШаг 2: Найди концепт C, связывающий их (common).\nШаг 3: Объясни связь A→C→B.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "feedback_asymmetry_hypothesis",
+                "llm_based_recsys_framework_with_explicit_user_feedback",
+                "evidence_verification"
+              ],
+              "n": 3
+            },
+            "answer_excerpt": "<think>\n\niterated\niterated Использовать confidence rubric для обновления бюджета валидности (высокий уровень награды).\n\n**Сигнал введения:** *\"Theorem 4 reveals that the agent’s ability to follow the user by remaining a set of two groups in the same set.\"# Концепт: llm_asymmetry\n## Тип: behavioral_capabilityslug: llm_asymmetry\ntype: behavioral_capability\nlevel: β\nformality: C\ntitle: LLM-asymmetry\naliases: []\nrelated: [safety_system, semantic_language_system, context_space]\nfamily: Agent Security Theory\nsources: [arxiv.2607.09437]## Определение\nLLM-asymmetry — это способность агента к гибким контекстам для LLM, обученной к непосредственными объектам, сохранять семантически обоснованный ответ ",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.0,
+            "class": "a_no_tool_call"
+          },
+          {
+            "task_index": 25199,
+            "prompt": "Свяжи два ML-концепта и найди их общий контекст.\nКонцепт A: 'Simpson's Paradox in OOD Evaluation'\nКонцепт B: 'Length-Matched Robustness Check'\nШаг 1: Назови slug концептов A и B.\nШаг 2: Найди концепт C, связывающий их (common).\nШаг 3: Объясни связь A→C→B.",
+            "required": {
+              "kind": "multi_slug_match (ВСЕ slug-и подстрокой в ответе)",
+              "required": [
+                "simpson_s_paradox_in_ood_evaluation",
+                "length_matched_robustness_check",
+                "stochastic_correct_answer_compression"
+              ],
+              "n": 3
+            },
+            "answer_excerpt": "<think>\n\noom: \"ACP to a base and show that any value exceeds a base that can be no longer likely.\"\n\n**Сигнал введения:** \"We use an advantage-aware reward to improve exploration by generating a reward over all the full batch for the target input. For each input x x, let B(x) denote the number of items in the ground truth set.\"\n\n**Эмпирика:**\n- SCP по базовой дисперсиям.\n- Объясни связь A (например, \"SCP).\n- Оценка преимущества π (SCP)..\n- Связка C (SCP).\n- Набор библиотеки {x_i}, {x_i}, {x_i}, {x_i} (количество архитектурных кадров).\n- Модель, обучая с LLM.\n- Связанная с архитектурным принципом:.\n- Связанная с: {x_i}, ..., x_i}, где каждый ответ — базовый траекторий, а каждый из входа — базо",
+            "turns": 1,
+            "tool_calls": 0,
+            "coverage": 0.0,
+            "class": "a_no_tool_call"
+          }
+        ]
+      },
+      "fix": "проекция не спасёт целиком: даже с бутстрапом A/B найти C и связать A→C→B — многошаговый поиск. Для фазы 2 деприоритизировать.",
+      "scale_to_phase2": "не рекомендуется как есть."
+    },
+    {
+      "type": "compare_concepts",
+      "pool": "v1",
+      "n": 20,
+      "pass": 0,
+      "pass_rate": 0.0,
+      "median_turns": 1.0,
+      "tool_call_share": 1.0,
+      "failure_classes": {
+        "c: проверяемые значения есть, но не те (coverage>0)": 18,
+        "b: вызов есть, проверяемых значений нет (coverage=0)": 2
+      },
+      "verdict": "чинится сменой проекции (порог + источник keywords). 0.01 = forced-вызов есть (share 1.0), модель выдаёт часть keywords (coverage до 0.6), но верификатор требует 67% из ~15 gold-summary keywords, не выводимых из вложенного определения (это отпечаток gold-саммари, а не определения). Модель «старается», порог недостижим по конструкции.",
+      "examples": {
+        "c: проверяемые значения есть, но не те (coverage>0)": [
+          {
+            "task_index": 20236,
+            "prompt": "Чем Activation-Aware Weight Quantization (AWQ) отличается от альтернативных подходов?",
+            "required": {
+              "kind": "keyword_overlap: >= max(2, 67% значимых keywords) в ответе",
+              "keywords": [
+                "Activation-Aware Weight Quantization (AWQ)",
+                "метод",
+                "пост-тренировочного",
+                "квантования",
+                "весов",
+                "адаптивно",
+                "усиливает",
+                "числовой",
+                "диапазон",
+                "важных",
+                "каналов",
+                "анализа",
+                "распределений",
+                "активаций",
+                "самым"
+              ],
+              "threshold": "67%"
+            },
+            "answer_excerpt": "<think>\n\n<th: QCF для генерации весов.\nquila: QCF для QCF. Хота использует низкоточных аппроксимируемых весов.\n\n## Мотивация\nДля эффективного обучения необходимо отбрасывать знания из нескольких слоёв на одну модели с точностью. Важно, чтобы сделать его эффективным для обучения без изменения параметра, чтобы она не воспроизводима к потенциальным изменениям модели в структурированному представлению. Quantization решает эти проблемы, сохраняя эффективную генерацию и обновление весов в размывное пространство. Это позволяет модели адаптироваться к размыванию, что позволяет модели работать в геометрии.\n\n## Тип концепции\nalgorithmic_primitive — концептуальная рамка для интерпретации и обновления в",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.1333,
+            "class": "c_wrong_values"
+          },
+          {
+            "task_index": 20252,
+            "prompt": "Чем Activation Patching for Task Representations отличается от альтернативных подходов?",
+            "required": {
+              "kind": "keyword_overlap: >= max(2, 67% значимых keywords) в ответе",
+              "keywords": [
+                "Activation Patching for Task Representations",
+                "activation",
+                "patching",
+                "representations",
+                "метод",
+                "каузального",
+                "вмешательства",
+                "котором",
+                "активации",
+                "lexical",
+                "heads",
+                "одного",
+                "промпта",
+                "донора",
+                "переносятся"
+              ],
+              "threshold": "67%"
+            },
+            "answer_excerpt": "<think>\n\nGM предоставляет активацию через три уровня: активацию тега, визуальную симметричь и лингвистическую топологию.\n\n## Мотивация\nПоказывают, что активация дисперсии между тегами являются ключными компонентами, а не как основными для поиска. В отличие от агентов и моделей, которые обрабатывают одинаковое состояние, RL-вмешательство может быть сократно корректно и приводят к нестабильности на основе консолидации.\n\n## Тип концепции\nalgorithmic_primitive — это атомарный алгоритмический приём, определяющий границу, определяющее границу активации.\n\n## Уровень\nα — концепция полностью определена: даны формулы, математические границы и функциональные оптимальности.\n\n## Формальность\nA — дано стр",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.4,
+            "class": "c_wrong_values"
+          }
+        ],
+        "b: вызов есть, проверяемых значений нет (coverage=0)": [
+          {
+            "task_index": 23454,
+            "prompt": "Чем ClawAudit CodeQL Queries отличается от альтернативных подходов?",
+            "required": {
+              "kind": "keyword_overlap: >= max(2, 67% значимых keywords) в ответе",
+              "keywords": [
+                "ClawAudit CodeQL Queries",
+                "custom",
+                "codeql",
+                "queries",
+                "encode",
+                "agent-specific",
+                "vulnerability",
+                "patterns",
+                "derived",
+                "stride-guided",
+                "taxonomy",
+                "query",
+                "expresses",
+                "pattern",
+                "declarative"
+              ],
+              "threshold": "67%"
+            },
+            "answer_excerpt": "<think>\n\n",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.0,
+            "class": "b_no_checkable_values"
+          },
+          {
+            "task_index": 24721,
+            "prompt": "Чем Contrastive Activation Addition (CAA) for Reasoning Compliance отличается от альтернативных подходов?",
+            "required": {
+              "kind": "keyword_overlap: >= max(2, 67% значимых keywords) в ответе",
+              "keywords": [
+                "Contrastive Activation Addition (CAA) for Reasoning Compliance",
+                "contrastive",
+                "activation",
+                "addition",
+                "метод",
+                "активационного",
+                "steering",
+                "применяемый",
+                "улучшения",
+                "instruction",
+                "compliance",
+                "рассуждениях",
+                "модифицирует",
+                "внутренние",
+                "активации"
+              ],
+              "threshold": "67%"
+            },
+            "answer_excerpt": "<think>\n\n",
+            "turns": 1,
+            "tool_calls": 1,
+            "coverage": 0.0,
+            "class": "b_no_checkable_values"
+          }
+        ]
+      },
+      "fix": "проекция: проверять термины определения (как explain_relation) или снизить порог; заменить gold-keywords на определение-термины.",
+      "scale_to_phase2": "5000 задач в v1 — после смены проекции потенциально массовый парафраз-тип."
+    }
+  ],
+  "recommendation_for_phase2": {
+    "summary": "Сигнал фазы 2 держится на explain_relation, и это НЕ agentic-навык, а 'retrieval-augmented paraphrase': модель отвечает после forced-вложения определения и никогда сама не испускает <tool_call>. Мёртвые типы мертвы в первую очередь ПРОЕКЦИЕЙ (харнесс не бутстрапит вызов для них + модель без навыка самовызова + верификаторы требуют точных slug-ов), а не сутью модели 0.5B.",
+    "root_cause_ranked": [
+      "1. Асимметрия бутстрапа: toolcall_force форсит первый вызов только для compare_concepts/explain_relation (query выводится из промпта). Остальные типы не бутстрапятся (query пустой), и модель самовызовом не компенсирует (0 самовызовов на 700 задач).",
+      "2. Нулевой навык самовызова инструмента у SFT-чекпойнта: tool_calls строго 1 (forced) у compare/explain и строго 0 у остальных; turns=1 везде. Это отдельный факт, который фаза 2 должна учить (или бутстрапить), а не предполагать.",
+      "3. Проекция верификаторов: multi_slug_match требует точных slug-ов (недостижимых без инструмента); compare_concepts требует 67% gold-summary keywords (недостижимых из вложенного определения). explain_relation выживает только потому, что проверяет термины определений (парафраз-дружелюбно).",
+      "4. Дефекты формулировок chain_reasoning/formula_chain: поле expected_slugs несёт русские термины определений, а не slug-и — инструкция противоречит верификатору."
+    ],
+    "what_phase2_would_learn": "если оставить пул как есть — фаза 2 выучит ровно один навык (пересказ вложенного определения с попаданием в 3 термина), остальные типы — мёртвый балласт в промпте, их награда = -0.1 (штраф min_steps) и не даёт обучающего градиента.",
+    "recommendation": [
+      "НЕ делать вывод 'модель 0.5B не решает эти типы' — 0.0 измеряет отсутствие бутстрапа и самовызова, а не глубину рассуждения.",
+      "Выбор A (минимальный): фазу 2 запускать на explain_relation как единственном сигнале, остальные типы убрать из обучающего пула (иначе -0.1 балласт). Честно зафиксировать: учится парафраз-навык.",
+      "Выбор B (выравнивание проекции, предпочтительно): (i) бутстрапить forced-вызов для всех типов (query выводить из title/start-end slug); (ii) перевести верификаторы find_concept/multi_hop/chain/formula на термины определений (как explain_relation), а не точные slug-и; (iii) compare_concepts — проверять термины определений или снизить порог. Тогда пул даёт несколько живых парафраз-типов и объём растёт.",
+      "Выбор C (учить самовызов): отдельная SFT/бутстрап-строка на испускание <tool_call> до того, как полагаться на agentic-типы в RL. Это дороже и вне этого узла.",
+      "Не смешивать: multi_hop_search (3-hop) вероятно выше потолка 0.5B даже после смены проекции — его в фазу 2 не брать без отдельного пилота."
+    ]
+  },
+  "open_questions": [
+    "Точен ли вывод '0 самовызовов' — нужен замер с --hint (prefill '<think>\\n<tool_call>'), чтобы отделить 'не умеет формат' от 'не знает когда звать' (сейчас toolcall_force скрывает эту разницу).",
+    "Сколько даёт сам бутстрап без forced: повторить пробу с --no-toolcall-force на explain_relation/compare_concepts, чтобы измерить вклад forced-вызова в pass-rate.",
+    "chain_reasoning/formula_chain: expected_slugs — русские термины определений; это задуманный сдвиг проекции (проверять перевод определений) или недосмотр генератора пула?",
+    "compare_concepts: почему 67% порог и gold-summary keywords вместо определения-терминов — зафиксировано ли это в ADR пула?",
+    "Достаточно ли для фазы 2 перевести все типы на парафраз-проекцию, или цель фазы 2 — именно agentic-поиск (тогда нужен Выбор C)?"
+  ],
+  "artifacts": {
+    "evidence/pool-dead-types.json": "настоящий файл",
+    "docs/specs/POOL-DEAD-TYPES.md": "краткая диагностика с примерами",
+    "read_only_sources": [
+      "runs/passrate-sft-20260916-1200/{v1,v2}/tasks.progress.jsonl + answers.jsonl (worktree laguna-passrate-probe)",
+      "~/gb10-shared/datasets/rl_tasks_revpool_{v1,v2}.jsonl",
+      "laguna_pipeline_v8.py (verify_task/compute_reward/search_concepts)",
+      "tools/passrate_probe.py (toolcall_force-блок, classify_failure)",
+      "docs/adr/ADR-021 (анти-лейк-проекция цепочек)"
+    ]
+  }
+}

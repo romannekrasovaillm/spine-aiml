@@ -1,0 +1,1178 @@
+{
+  "schema": "s3v-control-arms-ppl/1",
+  "stage": "S3v",
+  "status": "complete",
+  "date": "2026-09-16T17:22:21.947582+00:00",
+  "purpose": "PPL контрольных рук S3o (C1 — протокол без домена, C2 — низкий пик LR) по обеим компонентам меры общего языка: объяснение обвала на v1_general и проверка вывода S3n",
+  "question": "чем объяснялся обвал языка на `v1_general` (×4.6…9.5): протоколом CPT или доменной частью микса; и меняет ли что-то низкий пик LR",
+  "adr": [
+    "ADR-022 п.1/п.2 (гипотеза протокола и LR)",
+    "ADR-025 п.1 (чистота наборов)",
+    "ADR-027 п.1/п.2 (двухкомпонентная мера, потолок от своей базы)",
+    "ADR-029 (отзыв стоп-сигнала — решение этим замером не меняется)",
+    "AD-11 (критерий бинарный)",
+    "AD-12 (доказательства + коммит)"
+  ],
+  "stand": {
+    "where_measured": "локальная машина (RTX 4080 SUPER), НЕ стенд GB10",
+    "why": "стенд не задействован: на нём стартует полный CPT (ADR-029 п.2); числа PPL переносятся как свойства наборов, а не как замеры производительности стенда",
+    "checkpoints_read_in_place": "/home/user/gb10-shared/calib/calib/<рука>/checkpoints/ — по месту, копий не делалось (AD-4)"
+  },
+  "instrument": {
+    "probe": "tools/calib_ppl_probe.py (прибор S3m, не переписан)",
+    "measure": "tools/ppl_probe.py:measure (методика _ppl_eval S3h)",
+    "load_checkpoint": "laguna_pipeline_v8.py:_load_ckpt_with_resize из копии пайплайна того прогона, чей чекпойнт меряется",
+    "sets_measured": [
+      "v1_general",
+      "v3_general",
+      "k2_general"
+    ],
+    "max_len": 1024,
+    "batch": 4,
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "tokenizer_setup": "pipeline (8 спецтокенов + resize), как в S3h/S3q/S3t",
+    "base_weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "env_shims": [
+      "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется"
+    ]
+  },
+  "pipeline_identity": {
+    "what": "копии пайплайна, грузившие чекпойнты, тождественны по хешу",
+    "hashes": {
+      "ctrl-C1-100-0.35": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "ctrl-C2-25-0.035": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "runs/calib-25-0.35-20260916-0820 (копия рук S3t)": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa"
+    },
+    "one_copy": true
+  },
+  "instrument_identity": {
+    "what": "три числа с историческими значениями сняты в этих же прогонах: одно совпадение объяснялось бы совпадением набора, три — только тем, что измеряет та же функция",
+    "tolerance_abs": 0.0001,
+    "checks": {
+      "ctrl-C1-100-0.35:v3_general": {
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q"
+      },
+      "ctrl-C1-100-0.35:k2_general": {
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t"
+      },
+      "ctrl-C1-100-0.35:v1_general": {
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h"
+      },
+      "ctrl-C2-25-0.035:v3_general": {
+        "ppl_measured": 7.50468637420902,
+        "ppl_historical": 7.50468637420902,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/s3q-baseline-v3.json",
+        "historical_stage": "S3q"
+      },
+      "ctrl-C2-25-0.035:k2_general": {
+        "ppl_measured": 6.1599356842437585,
+        "ppl_historical": 6.1599356842437585,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/s3t-baseline-k2.json",
+        "historical_stage": "S3t"
+      },
+      "ctrl-C2-25-0.035:v1_general": {
+        "ppl_measured": 11.931923888434497,
+        "ppl_historical": 11.931923888434497,
+        "abs_delta": 0.0,
+        "rel_delta": 0.0,
+        "within_tolerance": true,
+        "historical_evidence": "evidence/ppl-baseline-v1v2.json",
+        "historical_stage": "S3h"
+      }
+    },
+    "worst_abs_delta": 0.0,
+    "reproduced": true
+  },
+  "baselines": {
+    "k1": {
+      "role": "K1",
+      "set": "v3_general",
+      "base_ppl": 7.50468637420902,
+      "ceiling_ppl": 15.00937274841804,
+      "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+      "ceiling_recorded_in_evidence": 15.00937274841804,
+      "evidence": "evidence/s3q-baseline-v3.json",
+      "evidence_stage": "S3q",
+      "evidence_sha256": "c7956f168f42fa25f78989de6748144f83b20110801537cb4883358ba1bd0ddc",
+      "set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "used_for_decision": true,
+      "ceiling_agrees_with_recorded": true
+    },
+    "k2": {
+      "role": "K2",
+      "set": "k2_general",
+      "base_ppl": 6.1599356842437585,
+      "ceiling_ppl": 12.319871368487517,
+      "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+      "ceiling_recorded_in_evidence": 12.319871368487517,
+      "evidence": "evidence/s3t-baseline-k2.json",
+      "evidence_stage": "S3t",
+      "evidence_sha256": "88148da34f29cf5ab7992659e686bbe0bcc9e6eedac628f4a5623e34d424beac",
+      "set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "used_for_decision": true,
+      "ceiling_agrees_with_recorded": true
+    },
+    "v1": {
+      "role": "исторический (решающим не является)",
+      "set": "v1_general",
+      "base_ppl": 11.931923888434497,
+      "ceiling_ppl": 23.863847776868994,
+      "ceiling_rule": "2.0× базы (ADR-022 п.3)",
+      "ceiling_recorded_in_evidence": null,
+      "evidence": "evidence/ppl-baseline-v1v2.json",
+      "evidence_stage": "S3h",
+      "evidence_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+      "set_sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "used_for_decision": false
+    }
+  },
+  "sets": {
+    "v3_general": {
+      "sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "role": "K1 — в жанре реплея (200 документов)"
+    },
+    "k2_general": {
+      "sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "role": "K2 — вне обучающего распределения (200 документов)"
+    },
+    "v1_general": {
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "role": "датасет, на котором обвал был снят (24 документа, S3h)"
+    }
+  },
+  "arms": [
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "state": "base",
+      "step": 0,
+      "checkpoint": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.0,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.931923888434497,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 1.0,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "state": "c500",
+      "step": 500,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+      "k1_ppl": 13.870402697663478,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.8482321586856976,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 12.525053032667635,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 2.033309059493096,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": false,
+      "v1_ppl": 66.76293675290913,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 5.595320367205981,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": false,
+      "conjunction": false,
+      "diagnosis": "реплей держит свой жанр, обобщение потеряно"
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "state": "c1000",
+      "step": 1000,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+      "k1_ppl": 12.610566020579006,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.6803588307057185,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 11.25709611699609,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.8274697487167186,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 110.13416564428691,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 9.230210205333185,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": false,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "state": "c1500",
+      "step": 1500,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+      "k1_ppl": 10.600178888159377,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.4124746004827706,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 9.698949320336904,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.5745211991653485,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 86.67702202928189,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 7.264295585500434,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": false,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C1-100-0.35",
+      "state": "cfinal",
+      "step": 2000,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/checkpoint_final.pt",
+      "k1_ppl": 9.343686357571281,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.2450468802643453,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 8.620356108548506,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.399423070373633,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 71.4243156244777,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 5.985984849744862,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": false,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "state": "base",
+      "step": 0,
+      "checkpoint": null,
+      "k1_ppl": 7.50468637420902,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.1599356842437585,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.0,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.931923888434497,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 1.0,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "state": "c500",
+      "step": 500,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+      "k1_ppl": 7.608795727383028,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0138725788104612,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.432138319178137,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.0441892008110791,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.795805834756646,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 0.9885921118043848,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "state": "c1000",
+      "step": 1000,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+      "k1_ppl": 7.607302191867457,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0136735650954172,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.493033349086704,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.0540748608293042,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.886853221160518,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 0.9962226823020832,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "state": "c1500",
+      "step": 1500,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+      "k1_ppl": 7.547925168413488,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0057615724426625,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.485425659752965,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.052839833432314,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.84958483830085,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 0.9930992645525121,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    },
+    {
+      "arm": "ctrl-C2-25-0.035",
+      "state": "cfinal",
+      "step": 2000,
+      "checkpoint": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/checkpoint_final.pt",
+      "k1_ppl": 7.542720163746337,
+      "k1_base": 7.50468637420902,
+      "k1_ratio": 1.0050680051957968,
+      "k1_ceiling": 15.00937274841804,
+      "k1_pass": true,
+      "k2_ppl": 6.483910128241409,
+      "k2_base": 6.1599356842437585,
+      "k2_ratio": 1.0525938030207573,
+      "k2_ceiling": 12.319871368487517,
+      "k2_pass": true,
+      "v1_ppl": 11.814224220848939,
+      "v1_base": 11.931923888434497,
+      "v1_ratio": 0.9901357342968267,
+      "v1_ceiling": 23.863847776868994,
+      "v1_pass": true,
+      "conjunction": true,
+      "diagnosis": "обе компоненты пройдены"
+    }
+  ],
+  "arms_params": {
+    "ctrl-C1-100-0.35": {
+      "report": "runs/s3v-arms-20260916/ctrl-C1-100-0.35.json",
+      "report_sha256": "7f8d687c44a752f41b38199baf3608fc11229ac8e50eecf0fb0ae5b39574cd33",
+      "vary": "протокол без домена: 100 % общий язык, пик LR×0.35",
+      "corpus": "ctrl100 (general_replay_ru.txt, домена нет)",
+      "replay_share_pct": 100,
+      "peak_lr_scale": 0.35,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "9fd6f61d56256089fa7ccc2b2f37e552edc24df0dc3762383dddba2fb944ea41",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "1ab9427c19af838c4009e93332e0ebf1743261afece021a566031697a295e65a",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "9de5164a1904157da3a7495214b3b53e12120fdbe01542a23bbc983782a43438",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/checkpoints/checkpoint_final.pt",
+          "sha256": "061f0acae7765219ed989231b6184539a706e00f2cce756b9ff2cde6dfe49fe7",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    },
+    "ctrl-C2-25-0.035": {
+      "report": "runs/s3v-arms-20260916/ctrl-C2-25-0.035.json",
+      "report_sha256": "f21e78694b81c7b55aee8aafa247f66504a21381c0aeca61aade183e4be3771f",
+      "vary": "низкий пик LR при том же корпусе, что у 25-0.35",
+      "corpus": "v12r (75/25, тот же кэш, что у рук S3m)",
+      "replay_share_pct": 25,
+      "peak_lr_scale": 0.035,
+      "cpt_steps": 2000,
+      "seed": 42,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "run_dir": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632",
+      "pipeline_sha256": "1571cbd1043d82a2a46a6fa603df12bad339447be626e5b1195c1674dc133baa",
+      "checkpoints": [
+        {
+          "state": "c500",
+          "step": 500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_500.pt",
+          "sha256": "e830be45453685a160c825974f1acfc87629cf3a185d3216f5eb646462e7b112",
+          "bytes": 2963145733,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1000",
+          "step": 1000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1000.pt",
+          "sha256": "9919cf450bbc5be24372c2720e50333dcab3c5f668e687edebadf4a9ea316f43",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "c1500",
+          "step": 1500,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/calib_checkpoint_1500.pt",
+          "sha256": "275f7ef1e13c905ab66066fd53daa86d7ba8c690685568359167d4cc74857870",
+          "bytes": 2963146899,
+          "resized_embeddings": false
+        },
+        {
+          "state": "cfinal",
+          "step": 2000,
+          "path": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/checkpoints/checkpoint_final.pt",
+          "sha256": "a1662b3cb94544057473ed5d9f26ccbee617fdbec6129c2e572f1dbedca80d68",
+          "bytes": 2963141069,
+          "resized_embeddings": false
+        }
+      ],
+      "probe_checks": [
+        {
+          "name": "base_vs_s3h",
+          "what": "состояние base воспроизводит числа S3h (тот же прибор)",
+          "reference": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-eval-set/кейсы/laguna-compact/evidence/ppl-baseline-v1v2.json",
+          "reference_sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00)",
+          "verdict": "ok"
+        },
+        {
+          "name": "base_restored",
+          "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+          "tolerance": 1e-06,
+          "worst_rel_delta": 0.0,
+          "detail": "v1_general: 11.931924 против 11.931924 (0.00e+00); v3_general: 7.504686 против 7.504686 (0.00e+00); k2_general: 6.159936 против 6.159936 (0.00e+00)",
+          "verdict": "ok"
+        }
+      ]
+    }
+  },
+  "curves": {
+    "ctrl-C1-100-0.35": {
+      "k1": {
+        "set": "v3_general",
+        "base_ppl": 7.50468637420902,
+        "ceiling_ppl": 15.00937274841804,
+        "profile": [
+          {
+            "step": 0,
+            "k1_ppl": 7.50468637420902,
+            "k1_ratio": 1.0,
+            "k1_pass": true
+          },
+          {
+            "step": 500,
+            "k1_ppl": 13.870402697663478,
+            "k1_ratio": 1.8482321586856976,
+            "k1_pass": true
+          },
+          {
+            "step": 1000,
+            "k1_ppl": 12.610566020579006,
+            "k1_ratio": 1.6803588307057185,
+            "k1_pass": true
+          },
+          {
+            "step": 1500,
+            "k1_ppl": 10.600178888159377,
+            "k1_ratio": 1.4124746004827706,
+            "k1_pass": true
+          },
+          {
+            "step": 2000,
+            "k1_ppl": 9.343686357571281,
+            "k1_ratio": 1.2450468802643453,
+            "k1_pass": true
+          }
+        ],
+        "max_ppl": 13.870402697663478,
+        "max_ratio": 1.8482321586856976,
+        "max_ratio_step": 500,
+        "peak_is_first_point": true,
+        "first_point_ratio": 1.8482321586856976,
+        "final_ppl": 9.343686357571281,
+        "final_ratio": 1.2450468802643453,
+        "first_crossing_step": null,
+        "first_crossing_ratio": null,
+        "steps_above_ceiling": [],
+        "shape": "потолок не пересечён ни на одной сохранённой точке"
+      },
+      "k2": {
+        "set": "k2_general",
+        "base_ppl": 6.1599356842437585,
+        "ceiling_ppl": 12.319871368487517,
+        "profile": [
+          {
+            "step": 0,
+            "k2_ppl": 6.1599356842437585,
+            "k2_ratio": 1.0,
+            "k2_pass": true
+          },
+          {
+            "step": 500,
+            "k2_ppl": 12.525053032667635,
+            "k2_ratio": 2.033309059493096,
+            "k2_pass": false
+          },
+          {
+            "step": 1000,
+            "k2_ppl": 11.25709611699609,
+            "k2_ratio": 1.8274697487167186,
+            "k2_pass": true
+          },
+          {
+            "step": 1500,
+            "k2_ppl": 9.698949320336904,
+            "k2_ratio": 1.5745211991653485,
+            "k2_pass": true
+          },
+          {
+            "step": 2000,
+            "k2_ppl": 8.620356108548506,
+            "k2_ratio": 1.399423070373633,
+            "k2_pass": true
+          }
+        ],
+        "max_ppl": 12.525053032667635,
+        "max_ratio": 2.033309059493096,
+        "max_ratio_step": 500,
+        "peak_is_first_point": true,
+        "first_point_ratio": 2.033309059493096,
+        "final_ppl": 8.620356108548506,
+        "final_ratio": 1.399423070373633,
+        "first_crossing_step": 500,
+        "first_crossing_ratio": 2.033309059493096,
+        "steps_above_ceiling": [
+          500
+        ],
+        "shape": "пик на первой сохранённой точке (500); откат выводит под потолок к финалу"
+      },
+      "v1": {
+        "set": "v1_general",
+        "base_ppl": 11.931923888434497,
+        "ceiling_ppl": 23.863847776868994,
+        "profile": [
+          {
+            "step": 0,
+            "v1_ppl": 11.931923888434497,
+            "v1_ratio": 1.0,
+            "v1_pass": true
+          },
+          {
+            "step": 500,
+            "v1_ppl": 66.76293675290913,
+            "v1_ratio": 5.595320367205981,
+            "v1_pass": false
+          },
+          {
+            "step": 1000,
+            "v1_ppl": 110.13416564428691,
+            "v1_ratio": 9.230210205333185,
+            "v1_pass": false
+          },
+          {
+            "step": 1500,
+            "v1_ppl": 86.67702202928189,
+            "v1_ratio": 7.264295585500434,
+            "v1_pass": false
+          },
+          {
+            "step": 2000,
+            "v1_ppl": 71.4243156244777,
+            "v1_ratio": 5.985984849744862,
+            "v1_pass": false
+          }
+        ],
+        "max_ppl": 110.13416564428691,
+        "max_ratio": 9.230210205333185,
+        "max_ratio_step": 1000,
+        "peak_is_first_point": false,
+        "first_point_ratio": 5.595320367205981,
+        "final_ppl": 71.4243156244777,
+        "final_ratio": 5.985984849744862,
+        "first_crossing_step": 500,
+        "first_crossing_ratio": 5.595320367205981,
+        "steps_above_ceiling": [
+          500,
+          1000,
+          1500,
+          2000
+        ],
+        "shape": "пик на шаге 1000, не на первой точке; откат под потолок не выводит"
+      }
+    },
+    "ctrl-C2-25-0.035": {
+      "k1": {
+        "set": "v3_general",
+        "base_ppl": 7.50468637420902,
+        "ceiling_ppl": 15.00937274841804,
+        "profile": [
+          {
+            "step": 0,
+            "k1_ppl": 7.50468637420902,
+            "k1_ratio": 1.0,
+            "k1_pass": true
+          },
+          {
+            "step": 500,
+            "k1_ppl": 7.608795727383028,
+            "k1_ratio": 1.0138725788104612,
+            "k1_pass": true
+          },
+          {
+            "step": 1000,
+            "k1_ppl": 7.607302191867457,
+            "k1_ratio": 1.0136735650954172,
+            "k1_pass": true
+          },
+          {
+            "step": 1500,
+            "k1_ppl": 7.547925168413488,
+            "k1_ratio": 1.0057615724426625,
+            "k1_pass": true
+          },
+          {
+            "step": 2000,
+            "k1_ppl": 7.542720163746337,
+            "k1_ratio": 1.0050680051957968,
+            "k1_pass": true
+          }
+        ],
+        "max_ppl": 7.608795727383028,
+        "max_ratio": 1.0138725788104612,
+        "max_ratio_step": 500,
+        "peak_is_first_point": true,
+        "first_point_ratio": 1.0138725788104612,
+        "final_ppl": 7.542720163746337,
+        "final_ratio": 1.0050680051957968,
+        "first_crossing_step": null,
+        "first_crossing_ratio": null,
+        "steps_above_ceiling": [],
+        "shape": "потолок не пересечён ни на одной сохранённой точке"
+      },
+      "k2": {
+        "set": "k2_general",
+        "base_ppl": 6.1599356842437585,
+        "ceiling_ppl": 12.319871368487517,
+        "profile": [
+          {
+            "step": 0,
+            "k2_ppl": 6.1599356842437585,
+            "k2_ratio": 1.0,
+            "k2_pass": true
+          },
+          {
+            "step": 500,
+            "k2_ppl": 6.432138319178137,
+            "k2_ratio": 1.0441892008110791,
+            "k2_pass": true
+          },
+          {
+            "step": 1000,
+            "k2_ppl": 6.493033349086704,
+            "k2_ratio": 1.0540748608293042,
+            "k2_pass": true
+          },
+          {
+            "step": 1500,
+            "k2_ppl": 6.485425659752965,
+            "k2_ratio": 1.052839833432314,
+            "k2_pass": true
+          },
+          {
+            "step": 2000,
+            "k2_ppl": 6.483910128241409,
+            "k2_ratio": 1.0525938030207573,
+            "k2_pass": true
+          }
+        ],
+        "max_ppl": 6.493033349086704,
+        "max_ratio": 1.0540748608293042,
+        "max_ratio_step": 1000,
+        "peak_is_first_point": false,
+        "first_point_ratio": 1.0441892008110791,
+        "final_ppl": 6.483910128241409,
+        "final_ratio": 1.0525938030207573,
+        "first_crossing_step": null,
+        "first_crossing_ratio": null,
+        "steps_above_ceiling": [],
+        "shape": "потолок не пересечён ни на одной сохранённой точке"
+      },
+      "v1": {
+        "set": "v1_general",
+        "base_ppl": 11.931923888434497,
+        "ceiling_ppl": 23.863847776868994,
+        "profile": [
+          {
+            "step": 0,
+            "v1_ppl": 11.931923888434497,
+            "v1_ratio": 1.0,
+            "v1_pass": true
+          },
+          {
+            "step": 500,
+            "v1_ppl": 11.795805834756646,
+            "v1_ratio": 0.9885921118043848,
+            "v1_pass": true
+          },
+          {
+            "step": 1000,
+            "v1_ppl": 11.886853221160518,
+            "v1_ratio": 0.9962226823020832,
+            "v1_pass": true
+          },
+          {
+            "step": 1500,
+            "v1_ppl": 11.84958483830085,
+            "v1_ratio": 0.9930992645525121,
+            "v1_pass": true
+          },
+          {
+            "step": 2000,
+            "v1_ppl": 11.814224220848939,
+            "v1_ratio": 0.9901357342968267,
+            "v1_pass": true
+          }
+        ],
+        "max_ppl": 11.931923888434497,
+        "max_ratio": 1.0,
+        "max_ratio_step": 0,
+        "peak_is_first_point": false,
+        "first_point_ratio": 0.9885921118043848,
+        "final_ppl": 11.814224220848939,
+        "final_ratio": 0.9901357342968267,
+        "first_crossing_step": null,
+        "first_crossing_ratio": null,
+        "steps_above_ceiling": [],
+        "shape": "потолок не пересечён ни на одной сохранённой точке"
+      }
+    }
+  },
+  "loss_trajectory": {
+    "note": "лосс между руками с разным корпусом не сравнивается (S3m-2); сопоставимы только C2 и 25-0.35 — один корпус, один сид",
+    "arms": {
+      "ctrl-C1-100-0.35": {
+        "available": true,
+        "corpus": "ctrl100 (general_replay_ru.txt, домена нет)",
+        "steps": 2000,
+        "first_third_mean": 2.5863534781309934,
+        "last_third_mean": 2.1465951164921484,
+        "delta": -0.43975836163884496,
+        "min": 1.3007128238677979,
+        "max": 3.680868625640869,
+        "decreasing": true,
+        "peak_lr": 0.000175,
+        "source": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/logs/loss_trace.jsonl"
+      },
+      "ctrl-C2-25-0.035": {
+        "available": true,
+        "corpus": "v12r (75/25, тот же кэш, что у рук S3m)",
+        "steps": 2000,
+        "first_third_mean": 1.8658593966438248,
+        "last_third_mean": 1.608188591382883,
+        "delta": -0.25767080526094177,
+        "min": 0.9968018531799316,
+        "max": 3.0983777046203613,
+        "decreasing": true,
+        "peak_lr": 1.7500000000000002e-05,
+        "source": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/logs/loss_trace.jsonl"
+      }
+    },
+    "peer_25-0.35": {
+      "available": true,
+      "steps": 2000,
+      "first_third_mean": 2.1055249194125154,
+      "last_third_mean": 1.7226888719979707,
+      "delta": -0.3828360474145447,
+      "min": 1.0210354328155518,
+      "max": 3.79504132270813,
+      "decreasing": true,
+      "source": "evidence/s3m-ppl-arms.json",
+      "corpus": "v12r (75/25, тот же кэш, что у рук S3m)"
+    }
+  },
+  "lr_comparison": {
+    "what": "низкий пик LR (C2, ×0.035) против пика ×0.35 на **том же** корпусе `v12r` (рука 25-0.35): варьируется одна величина",
+    "peer": {
+      "evidence": [
+        "evidence/s3t-k2-set.json",
+        "evidence/s3m-ppl-arms.json"
+      ],
+      "k1_final": {
+        "ppl": 11.409872955368016,
+        "ratio": 1.520366393268579,
+        "pass": true
+      },
+      "k2_final": {
+        "ppl": 10.748038263184394,
+        "ratio": 1.7448296238995402,
+        "pass": true
+      },
+      "v1_final": {
+        "ppl": 56.77497343598341,
+        "ratio": 4.758241333655746
+      }
+    },
+    "c2": {
+      "peak_lr_scale": 0.035,
+      "k1_final": {
+        "ppl": 7.542720163746337,
+        "ratio": 1.0050680051957968
+      },
+      "k2_final": {
+        "ppl": 6.483910128241409,
+        "ratio": 1.0525938030207573
+      },
+      "v1_final": {
+        "ppl": 11.814224220848939,
+        "ratio": 0.9901357342968267
+      }
+    },
+    "ratio_of_ratios": {
+      "k1": 1.5127000216989268,
+      "k2": 1.6576476309210533,
+      "v1": 4.805645497720519
+    }
+  },
+  "conjunction_by_arm": {
+    "ctrl-C1-100-0.35": {
+      "steps_passed": [
+        0,
+        1000,
+        1500,
+        2000
+      ],
+      "steps_failed": [
+        500
+      ],
+      "final_pass": true
+    },
+    "ctrl-C2-25-0.035": {
+      "steps_passed": [
+        0,
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "steps_failed": [],
+      "final_pass": true
+    }
+  },
+  "not_averaged": "k1_ratio и k2_ratio не усредняются и не сворачиваются в одно число: вердикт — конъюнкция (ADR-027 п.1/п.2)",
+  "verdict": {
+    "protocol_destroys_language": {
+      "answer": "частично: протокол воспроизводит обвал без домена, но не разрушает язык к концу руки",
+      "protocol_step_reproduced": true,
+      "final_conjunction_passed": true,
+      "numbers": {
+        "final": {
+          "k1": {
+            "ppl": 9.343686357571281,
+            "ratio": 1.2450468802643453,
+            "pass": true
+          },
+          "k2": {
+            "ppl": 8.620356108548506,
+            "ratio": 1.399423070373633,
+            "pass": true
+          }
+        },
+        "first_point": {
+          "step": 500,
+          "k1": {
+            "ppl": 13.870402697663478,
+            "ratio": 1.8482321586856976,
+            "pass": true
+          },
+          "k2": {
+            "ppl": 12.525053032667635,
+            "ratio": 2.033309059493096,
+            "pass": false
+          }
+        },
+        "v1_general_by_step": {
+          "0": 1.0,
+          "500": 5.595320367205981,
+          "1000": 9.230210205333185,
+          "1500": 7.264295585500434,
+          "2000": 5.985984849744862
+        },
+        "v1_historical_ceiling": 23.863847776868994,
+        "v1_max_ratio": 9.230210205333185,
+        "v1_min_ratio": 1.0
+      },
+      "why": [
+        "C1 обучалась **только на общем языке** (3 493 чанка `general_replay_ru.txt`, `mix_domain_ratio: 0.0`) — домена в её материале нет вовсе, и обвал на историческом наборе всё равно воспроизведён: 5.60× на 500-м шаге, 9.23× в максимуме — то есть диапазон ×4.6…9.5 объясняется протоколом, а не доменной частью микса",
+        "На обеих компонентах профиль — ступенька с откатом: пик на первой сохранённой точке (500) и дальше монотонно вниз; к концу руки конъюнкция пройдена (K1 ×1.245, K2 ×1.399)",
+        "Пересечение потолка на 500-м шаге — только по K2, и оно узкое: 12.5251 против потолка 12.3199 (×2.033 при пороге 2.000); по K1 первая точка потолок не пробивает (×1.848). Твёрдое свидетельство ступеньки — исторический набор, где числа далеки от потолка, а не K2 на 500-м шаге"
+      ]
+    },
+    "low_lr_effect": {
+      "answer": "да, решающе: при ×0.035 язык не сдвигается вовсе",
+      "numbers": {
+        "what": "низкий пик LR (C2, ×0.035) против пика ×0.35 на **том же** корпусе `v12r` (рука 25-0.35): варьируется одна величина",
+        "peer": {
+          "evidence": [
+            "evidence/s3t-k2-set.json",
+            "evidence/s3m-ppl-arms.json"
+          ],
+          "k1_final": {
+            "ppl": 11.409872955368016,
+            "ratio": 1.520366393268579,
+            "pass": true
+          },
+          "k2_final": {
+            "ppl": 10.748038263184394,
+            "ratio": 1.7448296238995402,
+            "pass": true
+          },
+          "v1_final": {
+            "ppl": 56.77497343598341,
+            "ratio": 4.758241333655746
+          }
+        },
+        "c2": {
+          "peak_lr_scale": 0.035,
+          "k1_final": {
+            "ppl": 7.542720163746337,
+            "ratio": 1.0050680051957968
+          },
+          "k2_final": {
+            "ppl": 6.483910128241409,
+            "ratio": 1.0525938030207573
+          },
+          "v1_final": {
+            "ppl": 11.814224220848939,
+            "ratio": 0.9901357342968267
+          }
+        },
+        "ratio_of_ratios": {
+          "k1": 1.5127000216989268,
+          "k2": 1.6576476309210533,
+          "v1": 4.805645497720519
+        }
+      },
+      "why": [
+        "C2 и `25-0.35` — один корпус (`v12r`), один сид, одна упаковка; варьируется ровно пик LR",
+        "Финал C2: K1 ×1.005, K2 ×1.053 против ×1.520 и ×1.745 у `25-0.35`",
+        "На историческом наборе разрыв ещё резче: ×0.990 против ×4.758",
+        "Ни на одном шаге и ни на одной компоненте C2 не приблизилась к потолку: максимум отношения — 1.054 по K2 (порог 2.000)"
+      ]
+    },
+    "consistent_with_s3n": {
+      "answer": "согласуется и уточняет: ступенька в (0, 500] воспроизведена на руке без домена, а её глубина управляется пиком LR",
+      "consistent": true,
+      "why": [
+        "S3n: «обвал завершён до первой сохранённой точки, одинаковой формы у всех четырёх рук». У C1 профиль той же формы: пик на первой точке (500) и откат дальше — по обеим компонентам; различие только в том, что по K1 пик потолок не пробивает (×1.848 при пороге 2.000), а по K2 пробивает (×2.033). Впервые это показано на руке, в корпусе которой домена нет, — значит форма не свойство доменной части микса",
+        "S3n: «глубину обвала задаёт ПИК LR, а не доля replay». Здесь это проверено с другой стороны: при пике в 10 раз ниже (C2) потолок не пересечён ни на одной точке и ни по одной компоненте, а подъём на первой точке есть у обеих (K1 ×1.014, K2 ×1.044 против ×1.848 и ×2.033 у C1) — то есть низкий LR гасит амплитуду ступеньки, а не переносит событие на другой шаг",
+        "ADR-029: «разрушение языка не воспроизводится ни в жанре реплея, ни вне обучающего распределения». C1 это подтверждает на третьем, независимом материале (100 % общий язык): финал — конъюнкция пройдена, K1 ×1.245, K2 ×1.399",
+        "Решение ADR-029 этот замер не меняет: оно принято по конъюнкции двух чистых наборов на четырёх руках сетки, и продолжение стадии обеспечено ими. Уточняется **объяснение**: исторические ×4.6…9.5 — свойство протокола при пике ×0.35 на наборе из 24 документов, а не свидетельство о доменном миксе"
+      ],
+      "limits": [
+        "Обе контрольные руки — 2 000 шагов калибровки, а не полный CPT: поведение языка на длинном прогоне этим замером не покрыто (та же граница, что названа в ADR-029)",
+        "Переход локализован интервалом (0, 500], а не шагом: чекпойнты у обеих рук пишутся каждые 500 шагов"
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": "instrument_identity",
+      "verdict": "ok",
+      "detail": "три контрольных числа (v1_general, v3_general, k2_general) сняты в обоих прогонах; худшее абсолютное расхождение 0.000e+00 при пороге 0.0001",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "base_agreement",
+      "verdict": "ok",
+      "detail": "база в отчёте каждой руки совпала с базой эталона по обеим компонентам — отношения считаны от той же шкалы",
+      "tolerance": 1e-06
+    },
+    {
+      "name": "pipeline_one_copy",
+      "verdict": "ok",
+      "detail": "копии пайплайна контрольных рук и копия рук S3t тождественны по sha256"
+    },
+    {
+      "name": "run_manifest",
+      "verdict": "ok",
+      "detail": "runs/s3v-arms-20260916/run_manifest.json: манифест AD-2 для каталога пробы (C-012): числа взяты из отчётов прибора, а не вписаны"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/s3v-control-arms-ppl.json",
+      "role": "evidence замера (этот файл)",
+      "sha256": null,
+      "note": "хеш не приводится: файл пишется этим же вызовом"
+    },
+    {
+      "path": "tools/assemble_s3v_evidence.py",
+      "role": "свод",
+      "sha256": "2131e1e09bfff1be946a2269a0828f6185def8f32c60d2bd792554d6a8f40fb8"
+    },
+    {
+      "path": "tools/calib_ppl_probe.py",
+      "role": "прибор (не переписан)",
+      "sha256": "d6082bdeb3185e82be7d75d3141c3349db65ddeae2c22464919166f3a6a116df"
+    },
+    {
+      "path": "tools/ppl_probe.py",
+      "role": "методика замера",
+      "sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72"
+    },
+    {
+      "path": "runs/s3v-arms-20260916/ctrl-C1-100-0.35.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "7f8d687c44a752f41b38199baf3608fc11229ac8e50eecf0fb0ae5b39574cd33"
+    },
+    {
+      "path": "runs/s3v-arms-20260916/ctrl-C2-25-0.035.json",
+      "role": "отчёт прибора по руке",
+      "sha256": "f21e78694b81c7b55aee8aafa247f66504a21381c0aeca61aade183e4be3771f"
+    },
+    {
+      "path": "runs/s3v-arms-20260916/run_manifest.json",
+      "role": "манифест прогона (AD-2)",
+      "sha256": "3d3ba56ae6a6764d2532b0febefd5ba858af6c4f2d26e5a901942f36485a8c87"
+    }
+  ],
+  "assumptions": [
+    "Прибор и параметры — те же, что дали базы: tools/calib_ppl_probe.py, bfloat16 / batch 4 / max_len 1024, те же три набора; тождество доказано числом в этих же прогонах, а не заявлено",
+    "Потолок каждой компоненты — 2× её собственной базы (ADR-022 п.3, ADR-027 п.2); значение вычислено от базы эталона и сверено с записанным",
+    "Потолок v1_general (23.863848) действующим не является (ADR-025/ADR-029) и приведён только для чтения чисел C1 на том же наборе, на котором обвал был снят",
+    "Сравнение по LR одномерно: C2 и `25-0.35` — один корпус, один сид, одна упаковка; числа `25-0.35` берутся из его собственного свода, а не меряются здесь заново",
+    "Траектория лосса — побочное наблюдение: она показывает, что C2 училась, но критерием не является и между разными корпусами не сравнивается"
+  ],
+  "open_questions": [
+    "Цена низкого LR по домену в этом замере не измерена: прибор снимает PPL на наборах **общего языка** (K1/K2/v1), а доменные наборы в прогон не входили. Из траектории лосса видно, что рука C2 училась (лосс на своём корпусе падает), но «сколько домена она взяла» — вопрос доменной шкалы, и он решается отдельным замером на `v1_domain`/`v2_domain`, а не этим сводом",
+    "Промежуточных точек внутри (0, 500] нет и здесь: у обеих контрольных рук чекпойнты пишутся каждые 500 шагов, поэтому «ступенька» локализована интервалом, а не шагом. Перегонка с чекпойнтами каждые 50 шагов на одной руке закрыла бы это — вопрос тот же, что оставлен открытым в S3n",
+    "Рука C1 обучалась на 3 493 чанках (28.6M токенов) против 9 776 чанков у `v12r`: за 2 000 шагов батч-1 она видит бо́льшую долю своего корпуса (57 % против 20 %). Для вопроса «разрушает ли язык протокол» это не мешает (обвал воспроизведён), но абсолютные уровни лосса C1 с руками S3m несопоставимы — сопоставимы только PPL",
+    "Строки спецтокенов: у обеих контрольных рук и во всех состояниях пробы `resized_embeddings: false` — resize в пробе не срабатывал (как и в S3n). Гипотеза «обвал из-за инициализации спецтокенов» этим замером не проверяется и не исключается",
+    "Отдельно от этого свода: каталог `runs/s3t-arms-20260916/` не несёт `run_manifest.json`, и правило C-012 (AD-2) на нём красное — дефект внесён дельной S3t (коммит 5b408ab) и этим сводом не правится: чужой каталог прогона не переписывается задним числом"
+  ],
+  "reproduction": [
+    "# замер обеих контрольных рук (локальная машина, стенд не задействован)",
+    "for arm in ctrl-C1-100-0.35 ctrl-C2-25-0.035; do",
+    "  D=/home/user/gb10-shared/calib/$arm-20260916-1632",
+    "  python3 tools/calib_ppl_probe.py --pipeline $D/laguna_pipeline_calib.py \\",
+    "    --state base=base \\",
+    "    --state c500=ckpt:$D/checkpoints/calib_checkpoint_500.pt \\",
+    "    --state c1000=ckpt:$D/checkpoints/calib_checkpoint_1000.pt \\",
+    "    --state c1500=ckpt:$D/checkpoints/calib_checkpoint_1500.pt \\",
+    "    --state cfinal=ckpt:$D/checkpoints/checkpoint_final.pt \\",
+    "    --state base_untouched=base \\",
+    "    --sets v1_general,v3_general,k2_general \\",
+    "    --dtype bfloat16 --device cuda --max-len 1024 --batch 4 \\",
+    "    --out runs/s3v-arms-20260916/$arm.json",
+    "done",
+    "# свод",
+    "python3 tools/assemble_s3v_evidence.py"
+  ],
+  "rollback": "откат — git reset --hard HEAD && git clean -fd; чекпойнты контрольных рук на gb10-shared не удаляются: это исходные данные решения (ADR-029 п.5), а не артефакт этого свода",
+  "leak_check_ref": "evidence/s3q-purity.json",
+  "leak_check_refs": [
+    {
+      "set": "v3_general",
+      "report": "evidence/s3q-purity.json",
+      "verdict": "clean (решающий K1)"
+    },
+    {
+      "set": "k2_general",
+      "report": "evidence/s3t-purity-k2.json",
+      "verdict": "clean (решающий K2)"
+    },
+    {
+      "set": "v1_general",
+      "report": "evidence/fleet-eval-purity-matrix.json",
+      "verdict": "исторический опорный"
+    }
+  ],
+  "leak_check_note": "Поле добавлено 2026-09-20 (правило C-020 / ADR-025 п.2 введено после сборки этого evidence): приведены ссылки на существующие отчёты чистоты наборов. Ни одно измеренное значение, вердикт или дата не изменялись (канонизация ссылки, ADR-046 п.9)."
+}

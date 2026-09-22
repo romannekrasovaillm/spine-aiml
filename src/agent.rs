@@ -138,7 +138,7 @@ impl AgentSession {
     /// Новая сессия: создаёт `sessions_dir`, открывает журнал
     /// `session-<yyyymmdd-hhmmss>.jsonl` и пишет событие `system`.
     /// Файл журнала начинается с «#»-шапки — ASCII-логотип `ArchSpine`
-    /// (banking edition) первой строкой лога (см. [`open_journal`]).
+    /// (ai/ml edition) первой строкой лога (см. [`open_journal`]).
     /// Журнал недоступен — не фатально: сессия работает без записи
     /// (предупреждение в tracing).
     pub fn new(
@@ -1685,7 +1685,7 @@ impl Drop for AgentSession {
 /// от повторного открытия в ту же секунду внутри одного процесса
 /// (`/new` ротирует журнал): журналы сессий никогда не перемешиваются.
 /// Новый файл начинается с «#»-шапки — ASCII-логотип `ArchSpine`
-/// (banking edition) и версия; читатели JSONL «#»-строки пропускают.
+/// (ai/ml edition) и версия; читатели JSONL «#»-строки пропускают.
 fn open_journal(dir: &Path) -> Result<(PathBuf, std::fs::File)> {
     std::fs::create_dir_all(dir).map_err(|e| HarnessError::io(dir, e))?;
     let base = format!(
@@ -1717,7 +1717,7 @@ fn open_journal(dir: &Path) -> Result<(PathBuf, std::fs::File)> {
                 }
                 let _ = writeln!(
                     header,
-                    "# ArchSpine (banking edition) v{} · журнал сессии (append-only JSONL)",
+                    "# ArchSpine (ai/ml edition) v{} · журнал сессии (append-only JSONL)",
                     env!("CARGO_PKG_VERSION")
                 );
                 if let Err(e) = std::io::Write::write_all(&mut file, header.as_bytes())
@@ -2421,7 +2421,7 @@ mod tests {
         assert!(
             header
                 .iter()
-                .any(|l| l.contains("ArchSpine (banking edition)")),
+                .any(|l| l.contains("ArchSpine (ai/ml edition)")),
             "в шапке нет имени продукта"
         );
 
@@ -3173,7 +3173,7 @@ mod tests {
             concat!(
                 // «#»-шапка с логотипом — не записи, читатель пропускает.
                 "#  █████╗ ██████╗  ██████╗██╗  ██╗\n",
-                "# ArchSpine (banking edition) v0.1.0 · журнал сессии\n",
+                "# ArchSpine (ai/ml edition) v0.1.0 · журнал сессии\n",
                 "{\"ts\":\"t\",\"kind\":\"system\",\"content\":\"sys\"}\n",
                 "{\"ts\":\"t\",\"kind\":\"user\",\"content\":\"привет, архитектор\"}\n",
                 "{\"ts\":\"t\",\"kind\":\"assistant\",\"content\":\"здравствуйте\"}\n",
@@ -3478,7 +3478,6 @@ mod tests {
 
     #[tokio::test]
     async fn goal_does_not_close_on_selfreport_without_check() {
-        let tmp = tempfile::tempdir().expect("tempdir");
         // Модель каждый терн отчитывается «complete», но проверка не проходит.
         #[derive(Debug)]
         struct LiarLlm;
@@ -3497,6 +3496,7 @@ mod tests {
                 ))
             }
         }
+        let tmp = tempfile::tempdir().expect("tempdir");
         let mut s = goal_session(tmp.path(), Arc::new(LiarLlm), |cfg| {
             cfg.goal.max_continuations = 2;
         });

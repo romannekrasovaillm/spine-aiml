@@ -1,0 +1,127 @@
+{
+  "schema": "ctrl-c1-corpus-build/1",
+  "stage": "S3o",
+  "date": "2026-09-16T13:23:14.529190+00:00",
+  "tool": {
+    "path": "tools/build_ctrl_c1_corpus.py",
+    "sha256": "a911eac3d55dc145e18736c251f385dbee1fa4b45fac92c941f9508c24758e1a",
+    "argv": [
+      "--datasets-dir",
+      "/workspace/shared/datasets",
+      "--report",
+      "/workspace/shared/datasets/mix-ctrl100-build.json"
+    ],
+    "recipe_library": {
+      "path": "tools/build_mix_v12r50.py",
+      "sha256": "d90ee32523632dc708fc4d699349dad5cead1eeb6f6ad506894fb4f271259354"
+    }
+  },
+  "recipe": {
+    "chunk_len": 8192,
+    "seed": 42,
+    "shuffle": "numpy RandomState(seed).shuffle по оси чанков (та же функция)",
+    "replay_sep": "'\\n\\n'",
+    "min_doc_chars": 50,
+    "chunking": "нехвостовые блоки max_len, хвост отброшен",
+    "domain": "отсутствует (n_dom = 0)"
+  },
+  "env_shims": {
+    "from": "не требуются (окружение без известных дефектов)",
+    "why": "tools/ppl_probe.py недоступен — путь стенда (сборка идёт в контейнере, токенизатор из HF-кэша)"
+  },
+  "sources": {
+    "replay": {
+      "path": "/workspace/shared/datasets/general_replay_ru.txt",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "docs": 157269,
+      "tokens": 28617440,
+      "chunks_available": 3493
+    }
+  },
+  "fidelity_check": {
+    "what": "реплей-блок существующих кэшей восстановлен обратной перестановкой (shuffled[inv[n_dom:n_dom+n_rep]]) и сравнён побайтово с нашими первыми n_rep чанками; тождество shuffle==x[perm] проверено фикстурой на тех же длинах",
+    "shuffle_equals_permutation": {
+      "9776": true,
+      "6986": true
+    },
+    "checks": [
+      {
+        "mix": "v12r",
+        "reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "n_dom": 7332,
+        "n_rep": 2444,
+        "shape": [
+          2444,
+          8192
+        ],
+        "shape_ok": true,
+        "tokens_equal": true,
+        "mismatched_chunks": 0,
+        "pos_reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy",
+        "pos_equal": true
+      },
+      {
+        "mix": "v12r50",
+        "reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+        "n_dom": 3493,
+        "n_rep": 3493,
+        "shape": [
+          3493,
+          8192
+        ],
+        "shape_ok": true,
+        "tokens_equal": true,
+        "mismatched_chunks": 0,
+        "pos_reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25_pos.npy",
+        "pos_equal": true
+      }
+    ],
+    "summary": "v12r: tokens=True pos=True; v12r50: tokens=True pos=True"
+  },
+  "coupled_changes": [
+    "корпус короче эталонов: 3493 чанков против 6986 (v12r50) и 9776 (v12r) — при 2000 шагах × батч 1 доля корпуса, увиденная за стадию, больше",
+    "число чанков несёт только общий язык: сравнение с руками S3m по абсолютному уровню loss некорректно, вердикт — по PPL (ADR-022 п.3)"
+  ],
+  "tokenizer": {
+    "tokenizer_dir": "hf-cache:Qwen/Qwen2.5-0.5B",
+    "vocab_before": 151665,
+    "vocab_after": 151671,
+    "model_id": "Qwen/Qwen2.5-0.5B",
+    "tag": "qwen25"
+  },
+  "mix": {
+    "out_stem": "cpt_corpus_ctrl100",
+    "domain_chunks": 0,
+    "replay_chunks": 3493,
+    "chunks": 3493,
+    "chunk_len": 8192,
+    "tokens": 28614656,
+    "mix_domain_ratio": 0.0,
+    "mix_replay_ratio": 1.0,
+    "seed": 42,
+    "arithmetic": "0 домен + 3493 × 8192 = 28614656 реплей",
+    "shuffled_by": "tools/build_mix_v12r50.py:build_arrays (n_dom=0)"
+  },
+  "written": [
+    {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy",
+      "bytes": 114458752,
+      "sha256": "8dab637313d32ac2c8365c0f5891c47c9f1dddcbb853e296dfbf7d1ffd73e25e"
+    },
+    {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25_pos.npy",
+      "bytes": 114458752,
+      "sha256": "c474f56956d52db5e45350b36f2cfe04969dd80504a03135b248b2fdfceab62a"
+    },
+    {
+      "path": "/workspace/shared/datasets/cpt_corpus_ctrl100.txt",
+      "bytes": 2281,
+      "sha256": "0fc82e6eab48b6ead1461b8084e6c17edff7e04ae798ab4d32d0b25874d103dd"
+    }
+  ],
+  "inputs_sha256": {
+    "replay_txt": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063"
+  },
+  "manifest_sha256": "0fc82e6eab48b6ead1461b8084e6c17edff7e04ae798ab4d32d0b25874d103dd"
+}

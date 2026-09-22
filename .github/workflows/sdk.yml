@@ -1,0 +1,69 @@
+# CI для SDK и плагинов: Python/Rust/Java-клиенты (sdk/) — публичный
+# контракт (sdk/CONTRACT.md) и тесты доменных плагинов (aiml/).
+# Решения и отложенные пункты — docs/adr/ADR-005-ci-and-cli-tests.md.
+name: SDK
+
+on:
+  push:
+    branches: [main]
+    paths: ["sdk/**", "aiml/**", ".github/workflows/sdk.yml"]
+  pull_request:
+    paths: ["sdk/**", "aiml/**", ".github/workflows/sdk.yml"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  sdk-python:
+    # Python SDK — только стандартная библиотека; матрица по поддерживаемым
+    # версиям (requires-python >= 3.10).
+    name: sdk-python (pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pytest sdk/python/tests -q
+
+  plugin-python:
+    # Тесты доменных плагинов aiml/ (hypothesis-router: карточки гипотез,
+    # хуки, роутинг по фактам проекта).
+    name: plugin tests (hypothesis-router)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pytest aiml/plugins/hypothesis-router/tests -q
+
+  sdk-rust:
+    # Rust SDK — standalone-крейт (sdk/rust несёт пустой [workspace]);
+    # live-тесты без бинаря скипаются сами.
+    name: sdk-rust (cargo test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sdk/rust
+      - run: cargo test --manifest-path sdk/rust/Cargo.toml
+
+  sdk-java:
+    # Java SDK — ноль внешних зависимостей, JDK 21; live-интеграции без
+    # бинаря скипаются (см. sdk/java/test.sh).
+    name: sdk-java (JDK 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: sdk/java/test.sh

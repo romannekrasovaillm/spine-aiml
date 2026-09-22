@@ -1,0 +1,2172 @@
+{
+ "host": "spark-44c3",
+ "date": "2026-09-22T17:04:07+00:00",
+ "mode": "read-only (scandir/stat/чтение config.json, заголовков safetensors, tokenizer.json)",
+ "roots": [
+  "/home/user/.cache/huggingface/hub",
+  "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub",
+  "/home/user/gb10-shared/models-store/home-roman/huggingface-cache"
+ ],
+ "positions": [
+  {
+   "short": "qwen25-05b",
+   "hf_id": "Qwen/Qwen2.5-0.5B",
+   "wave": "В-0 (идёт)",
+   "batch_v12_runner": 2,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3850,
+       "blob_name": "2d22b523f8968e42fc6b805e656133fa83f771ab",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 681,
+       "blob_name": "141506237b9022c4ab3e01734cfafb9310b57d2d",
+       "blob_name_is_sha256": false,
+       "sha256": "479dcf0c5286339e41ad3992cd08ae88a467c4187587936248e2b7c96283484b",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors": {
+       "bytes": 988097824,
+       "blob_name": "88c142557820ccad55bb59756bfcfcf891de9cc6202816bd346445188a0ed342",
+       "blob_name_is_sha256": true,
+       "sha256": "88c142557820ccad55bb59756bfcfcf891de9cc6202816bd346445188a0ed342",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 988097824,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 151936,
+      "hidden_size": 896,
+      "num_hidden_layers": 24,
+      "max_position_embeddings": 32768,
+      "modality": []
+     },
+     "shards": {
+      "model.safetensors": {
+       "tensor_count": 290,
+       "tensor_data_bytes": 988065536,
+       "dtypes": {
+        "BF16": 290
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 0.494,
+     "index_total_size": null,
+     "index_matches_shards": false,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": false,
+      "index_matches_shards": false,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    },
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen2.5-0.5B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      "config.json": {
+       "bytes": 681,
+       "blob_name": "141506237b9022c4ab3e01734cfafb9310b57d2d",
+       "blob_name_is_sha256": false,
+       "sha256": "479dcf0c5286339e41ad3992cd08ae88a467c4187587936248e2b7c96283484b",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "state": "только метаданные (файлов весов нет)"
+    },
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/models--Qwen--Qwen2.5-0.5B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/models--Qwen--Qwen2.5-0.5B/snapshots/060db6499f32faf8b98477b0a26969ef7d8b9987",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      "config.json": {
+       "bytes": 681,
+       "blob_name": "141506237b9022c4ab3e01734cfafb9310b57d2d",
+       "blob_name_is_sha256": false,
+       "sha256": "479dcf0c5286339e41ad3992cd08ae88a467c4187587936248e2b7c96283484b",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors": {
+       "bytes": 988097824,
+       "blob_name": "88c142557820ccad55bb59756bfcfcf891de9cc6202816bd346445188a0ed342",
+       "blob_name_is_sha256": true,
+       "sha256": "88c142557820ccad55bb59756bfcfcf891de9cc6202816bd346445188a0ed342",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 988097824,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 151936,
+      "hidden_size": 896,
+      "num_hidden_layers": 24,
+      "max_position_embeddings": 32768,
+      "modality": []
+     },
+     "shards": {
+      "model.safetensors": {
+       "tensor_count": 290,
+       "tensor_data_bytes": 988065536,
+       "dtypes": {
+        "BF16": 290
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 0.494,
+     "index_total_size": null,
+     "index_matches_shards": false,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": false,
+      "index_matches_shards": false,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B",
+   "line": "qwen25-05b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B (942.3 МБ, 1 шард(ов), ≈0.494 B параметров)"
+  },
+  {
+   "short": "qwen25-15b",
+   "hf_id": "Qwen/Qwen2.5-1.5B",
+   "wave": "В-2",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B/snapshots/8faed761d45a263340a0528343f099c05c9a4323",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3850,
+       "blob_name": "b2861f7da85a5af5e321b57c7bbf98ae17255992",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 684,
+       "blob_name": "169d606d5cf502a5628a52381586679a6d0caaab",
+       "blob_name_is_sha256": false,
+       "sha256": "0e8c8aa86468aba09c9d32157ff4bc2301c7e6c50e4398960425b2ea71e66f77",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors": {
+       "bytes": 3087467144,
+       "blob_name": "a961db72e75d52b18e6b0c9d379e51a26973b233385e0e127fdda7d648aec796",
+       "blob_name_is_sha256": true,
+       "sha256": "a961db72e75d52b18e6b0c9d379e51a26973b233385e0e127fdda7d648aec796",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 3087467144,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 151936,
+      "hidden_size": 1536,
+      "num_hidden_layers": 28,
+      "max_position_embeddings": 131072,
+      "modality": []
+     },
+     "shards": {
+      "model.safetensors": {
+       "tensor_count": 338,
+       "tensor_data_bytes": 3087428608,
+       "dtypes": {
+        "BF16": 338
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 1.544,
+     "index_total_size": null,
+     "index_matches_shards": false,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": false,
+      "index_matches_shards": false,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    },
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen2.5-1.5B",
+     "layout": "плоский (файлы в корне каталога)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen2.5-1.5B",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": ".gitattributes",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "LICENSE",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3850,
+       "blob_name": "README.md",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 684,
+       "blob_name": "config.json",
+       "blob_name_is_sha256": false,
+       "sha256": "0e8c8aa86468aba09c9d32157ff4bc2301c7e6c50e4398960425b2ea71e66f77",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "generation_config.json",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "merges.txt",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors": {
+       "bytes": 3087467144,
+       "blob_name": "model.safetensors",
+       "blob_name_is_sha256": false,
+       "sha256": "a961db72e75d52b18e6b0c9d379e51a26973b233385e0e127fdda7d648aec796",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "tokenizer.json",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "tokenizer_config.json",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "vocab.json",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 3087467144,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 151936,
+      "hidden_size": 1536,
+      "num_hidden_layers": 28,
+      "max_position_embeddings": 131072,
+      "modality": []
+     },
+     "shards": {
+      "model.safetensors": {
+       "tensor_count": 338,
+       "tensor_data_bytes": 3087428608,
+       "dtypes": {
+        "BF16": 338
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 1.544,
+     "index_total_size": null,
+     "index_matches_shards": false,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": false,
+      "index_matches_shards": false,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "**не совпало** — имя блоба не sha256",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    },
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/models--Qwen--Qwen2.5-1.5B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/models--Qwen--Qwen2.5-1.5B/snapshots/8faed761d45a263340a0528343f099c05c9a4323",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3850,
+       "blob_name": "b2861f7da85a5af5e321b57c7bbf98ae17255992",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 684,
+       "blob_name": "169d606d5cf502a5628a52381586679a6d0caaab",
+       "blob_name_is_sha256": false,
+       "sha256": "0e8c8aa86468aba09c9d32157ff4bc2301c7e6c50e4398960425b2ea71e66f77",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "state": "только метаданные (файлов весов нет)"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B",
+   "line": "qwen25-15b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B (2.9 ГБ, 1 шард(ов), ≈1.544 B параметров)"
+  },
+  {
+   "short": "qwen25-3b",
+   "hf_id": "Qwen/Qwen2.5-3B",
+   "wave": "В-2",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B/snapshots/3aab1f1954e9cc14eb9509a215f9e5ca08227a9b",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 7388,
+       "blob_name": "ed317377ac0abff39f17eec693ce664f4b8152af",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3840,
+       "blob_name": "5a98c2f5cee568453413e49a600be32d3f010eaf",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 683,
+       "blob_name": "acd0065677f7999d568f327c94188adbbcb6e158",
+       "blob_name_is_sha256": false,
+       "sha256": "27467e2fc311a7656c09a43ae9c3d408211e1f212bbddbc93c8596a06423826f",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "model-00001-of-00002.safetensors": {
+       "bytes": 3968658944,
+       "blob_name": "f9558df91d3b89b4826e4db37439edb52f1d62a4fd602685013e7ca6b9f60f8f",
+       "blob_name_is_sha256": true,
+       "sha256": "f9558df91d3b89b4826e4db37439edb52f1d62a4fd602685013e7ca6b9f60f8f",
+       "blob_name_equals_sha256": true
+      },
+      "model-00002-of-00002.safetensors": {
+       "bytes": 2203268048,
+       "blob_name": "51410930d5cf19a998fdb17ef0c46e4d9ace72c97a975a3331395a8a500f5edb",
+       "blob_name_is_sha256": true,
+       "sha256": "51410930d5cf19a998fdb17ef0c46e4d9ace72c97a975a3331395a8a500f5edb",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 35581,
+       "blob_name": "38047c6284a25427043f0ab040f623a2a20dd093",
+       "blob_name_is_sha256": false,
+       "sha256": "bc8aaa0c87d4335177e01c765f1de0db81661c67c1a72fbfb0d521b09f5ddc56",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 6171926992,
+     "weights_count": 2,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 151936,
+      "hidden_size": 2048,
+      "num_hidden_layers": 36,
+      "max_position_embeddings": 32768,
+      "modality": []
+     },
+     "shards": {
+      "model-00001-of-00002.safetensors": {
+       "tensor_count": 264,
+       "tensor_data_bytes": 3968628736,
+       "dtypes": {
+        "BF16": 264
+       }
+      },
+      "model-00002-of-00002.safetensors": {
+       "tensor_count": 170,
+       "tensor_data_bytes": 2203248640,
+       "dtypes": {
+        "BF16": 170
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 3.086,
+     "index_total_size": 6171877376,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B",
+   "line": "qwen25-3b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-3B (5.7 ГБ, 2 шард(ов), ≈3.086 B параметров)"
+  },
+  {
+   "short": "qwen25-7b",
+   "hf_id": "Qwen/Qwen2.5-7B",
+   "wave": "В-3",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B/snapshots/d149729398750b98c0af14eb82c78cfe92750796",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1519,
+       "blob_name": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3819,
+       "blob_name": "a8ca5333e8026eff66e59267cfb5a51c79c5ae6b",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 686,
+       "blob_name": "1a90713f0e2cf13b8320cd576175ff9f0b587ea4",
+       "blob_name_is_sha256": false,
+       "sha256": "267ce68584c5f24c3b267d934db2de68dd21d1ca677fb78ed809eb60067f7642",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 138,
+       "blob_name": "cbbb3133034e192527e5321b4c679154e4819ab8",
+       "blob_name_is_sha256": false,
+       "sha256": "8c970692323e3ea0e9b8b0a4dca79388d31226e41f83c9fd6014804280ebf6e8",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671839,
+       "blob_name": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+       "blob_name_is_sha256": false
+      },
+      "model-00001-of-00004.safetensors": {
+       "bytes": 3945441440,
+       "blob_name": "b6d4b6e881d17e9235934419b1c17a8bb0f1108579404e0a468a6afdeae6e868",
+       "blob_name_is_sha256": true,
+       "sha256": "b6d4b6e881d17e9235934419b1c17a8bb0f1108579404e0a468a6afdeae6e868",
+       "blob_name_equals_sha256": true
+      },
+      "model-00002-of-00004.safetensors": {
+       "bytes": 3864726352,
+       "blob_name": "687e8d08dc82b5f7d69322f1d8691d49b59db9039b07e7ea71010fb6434d5274",
+       "blob_name_is_sha256": true,
+       "sha256": "687e8d08dc82b5f7d69322f1d8691d49b59db9039b07e7ea71010fb6434d5274",
+       "blob_name_equals_sha256": true
+      },
+      "model-00003-of-00004.safetensors": {
+       "bytes": 3864726424,
+       "blob_name": "32652eb23537597cca8c7a56ec85b5d5f1c7245b16269a904d57e85aa1aff30e",
+       "blob_name_is_sha256": true,
+       "sha256": "32652eb23537597cca8c7a56ec85b5d5f1c7245b16269a904d57e85aa1aff30e",
+       "blob_name_equals_sha256": true
+      },
+      "model-00004-of-00004.safetensors": {
+       "bytes": 3556377672,
+       "blob_name": "b5a2298dddcf228129975a9a271912a9f8dc817957deecde523e3154481ec3fb",
+       "blob_name_is_sha256": true,
+       "sha256": "b5a2298dddcf228129975a9a271912a9f8dc817957deecde523e3154481ec3fb",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 27752,
+       "blob_name": "14d037fdda5a1311dcc0275003a7a370d84114e6",
+       "blob_name_is_sha256": false,
+       "sha256": "624bf7c47cd12468fdc16e38a47cf4f19e0415b859a223ba3c027eed2f0e1028",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 7031645,
+       "blob_name": "443909a61d429dff23010e5bddd28ff530edda00",
+       "blob_name_is_sha256": false,
+       "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer_config.json": {
+       "bytes": 7228,
+       "blob_name": "ba7e4c5637b9732dadcd66286ce48334e8b31e9e",
+       "blob_name_is_sha256": false,
+       "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 15231271888,
+     "weights_count": 4,
+     "config": {
+      "model_type": "qwen2",
+      "architectures": [
+       "Qwen2ForCausalLM"
+      ],
+      "transformers_version": "4.40.1",
+      "vocab_size": 152064,
+      "hidden_size": 3584,
+      "num_hidden_layers": 28,
+      "max_position_embeddings": 131072,
+      "modality": []
+     },
+     "shards": {
+      "model-00001-of-00004.safetensors": {
+       "tensor_count": 82,
+       "tensor_data_bytes": 3945432064,
+       "dtypes": {
+        "BF16": 82
+       }
+      },
+      "model-00002-of-00004.safetensors": {
+       "tensor_count": 97,
+       "tensor_data_bytes": 3864715264,
+       "dtypes": {
+        "BF16": 97
+       }
+      },
+      "model-00003-of-00004.safetensors": {
+       "tensor_count": 97,
+       "tensor_data_bytes": 3864715264,
+       "dtypes": {
+        "BF16": 97
+       }
+      },
+      "model-00004-of-00004.safetensors": {
+       "tensor_count": 63,
+       "tensor_data_bytes": 3556370432,
+       "dtypes": {
+        "BF16": 63
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 7.616,
+     "index_total_size": 15231233024,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B",
+   "line": "qwen25-7b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B (14.2 ГБ, 4 шард(ов), ≈7.616 B параметров)"
+  },
+  {
+   "short": "qwen3-06b",
+   "hf_id": "Qwen/Qwen3-0.6B",
+   "wave": "В-1",
+   "batch_v12_runner": 2,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 13965,
+       "blob_name": "a50b19e76f5274f9ec99f5a5d99873dca5bff25e",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 726,
+       "blob_name": "f5c3703b78ae2a478ae15b247e9f855e0ce2107b",
+       "blob_name_is_sha256": false,
+       "sha256": "660db3b73d788119c04535e48cf9be5f55bc3100841a718637ae695b442f27dd",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 239,
+       "blob_name": "20a8a9156fc8c3f25295ca067f61fdf120d517c5",
+       "blob_name_is_sha256": false,
+       "sha256": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671853,
+       "blob_name": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors": {
+       "bytes": 1503300328,
+       "blob_name": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+       "blob_name_is_sha256": true,
+       "sha256": "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer.json": {
+       "bytes": 11422654,
+       "blob_name": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_is_sha256": true,
+       "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 9732,
+       "blob_name": "417d038a63fa3de29cfde265caedae14d1a58d92",
+       "blob_name_is_sha256": false,
+       "sha256": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 1503300328,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen3",
+      "architectures": [
+       "Qwen3ForCausalLM"
+      ],
+      "transformers_version": "4.51.0",
+      "vocab_size": 151936,
+      "hidden_size": 1024,
+      "num_hidden_layers": 28,
+      "max_position_embeddings": 40960,
+      "modality": []
+     },
+     "shards": {
+      "model.safetensors": {
+       "tensor_count": 311,
+       "tensor_data_bytes": 1503264768,
+       "dtypes": {
+        "BF16": 311
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 0.752,
+     "index_total_size": null,
+     "index_matches_shards": false,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": false,
+      "index_matches_shards": false,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 26,
+      "special_v12_native_single_id": [
+       "</think>",
+       "</tool_call>",
+       "</tool_response>",
+       "<think>",
+       "<tool_call>",
+       "<tool_response>"
+      ],
+      "special_v12_added_by_pipeline": [],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B",
+   "line": "qwen3-06b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B (1.4 ГБ, 1 шард(ов), ≈0.752 B параметров)"
+  },
+  {
+   "short": "qwen3-17b",
+   "hf_id": "Qwen/Qwen3-1.7B",
+   "wave": "В-5",
+   "batch_v12_runner": 2,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B/snapshots/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 13963,
+       "blob_name": "88aaef81cfe31bcdfe47203649a69ff12042826a",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 726,
+       "blob_name": "044a86ecf7cb32238f3fae4184e55d354787edec",
+       "blob_name_is_sha256": false,
+       "sha256": "1ddb5b89ebc90dcb417a45c213d818577e65976454d29385c8f6140771d95197",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 239,
+       "blob_name": "20a8a9156fc8c3f25295ca067f61fdf120d517c5",
+       "blob_name_is_sha256": false,
+       "sha256": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671853,
+       "blob_name": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7",
+       "blob_name_is_sha256": false
+      },
+      "model-00001-of-00002.safetensors": {
+       "bytes": 3441185608,
+       "blob_name": "169ad53ec313c3a34b06c0809216e4fc072cce444a5d4ff2b59690d064130ed5",
+       "blob_name_is_sha256": true,
+       "sha256": "169ad53ec313c3a34b06c0809216e4fc072cce444a5d4ff2b59690d064130ed5",
+       "blob_name_equals_sha256": true
+      },
+      "model-00002-of-00002.safetensors": {
+       "bytes": 622329984,
+       "blob_name": "912becff8d60672aa8628ef08c05898d9adf17c2ad4ae3caf99b065622fdeff9",
+       "blob_name_is_sha256": true,
+       "sha256": "912becff8d60672aa8628ef08c05898d9adf17c2ad4ae3caf99b065622fdeff9",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 25605,
+       "blob_name": "986d7db875b47d21f68530f6baac038f1b297b39",
+       "blob_name_is_sha256": false,
+       "sha256": "0d660e94b165eb912669a5249dff44b83188c4777a07ddb9611fb78d91b0578d",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 11422654,
+       "blob_name": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_is_sha256": true,
+       "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 9732,
+       "blob_name": "417d038a63fa3de29cfde265caedae14d1a58d92",
+       "blob_name_is_sha256": false,
+       "sha256": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 4063515592,
+     "weights_count": 2,
+     "config": {
+      "model_type": "qwen3",
+      "architectures": [
+       "Qwen3ForCausalLM"
+      ],
+      "transformers_version": "4.51.0",
+      "vocab_size": 151936,
+      "hidden_size": 2048,
+      "num_hidden_layers": 28,
+      "max_position_embeddings": 40960,
+      "modality": []
+     },
+     "shards": {
+      "model-00001-of-00002.safetensors": {
+       "tensor_count": 310,
+       "tensor_data_bytes": 3441149952,
+       "dtypes": {
+        "BF16": 310
+       }
+      },
+      "model-00002-of-00002.safetensors": {
+       "tensor_count": 1,
+       "tensor_data_bytes": 622329856,
+       "dtypes": {
+        "BF16": 1
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 2.032,
+     "index_total_size": 4063479808,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 26,
+      "special_v12_native_single_id": [
+       "</think>",
+       "</tool_call>",
+       "</tool_response>",
+       "<think>",
+       "<tool_call>",
+       "<tool_response>"
+      ],
+      "special_v12_added_by_pipeline": [],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B",
+   "line": "qwen3-17b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3-1.7B (3.8 ГБ, 2 шард(ов), ≈2.032 B параметров)"
+  },
+  {
+   "short": "qwen3-4b",
+   "hf_id": "Qwen/Qwen3-4B",
+   "wave": "В-5",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-4B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-4B/snapshots/1cfa9a7208912126459214e8b04321603b3df60c",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 16857,
+       "blob_name": "2de5ee7eee214bb55ea33ec7505c5838a7adf7f6",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 726,
+       "blob_name": "e49eccdc32f36da9c09cfa0e737084f9e0105e5e",
+       "blob_name_is_sha256": false,
+       "sha256": "8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 239,
+       "blob_name": "20a8a9156fc8c3f25295ca067f61fdf120d517c5",
+       "blob_name_is_sha256": false,
+       "sha256": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671853,
+       "blob_name": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7",
+       "blob_name_is_sha256": false
+      },
+      "model-00001-of-00003.safetensors": {
+       "bytes": 3957900840,
+       "blob_name": "328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223",
+       "blob_name_is_sha256": true,
+       "sha256": "328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223",
+       "blob_name_equals_sha256": true
+      },
+      "model-00002-of-00003.safetensors": {
+       "bytes": 3987450520,
+       "blob_name": "6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5",
+       "blob_name_is_sha256": true,
+       "sha256": "6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5",
+       "blob_name_equals_sha256": true
+      },
+      "model-00003-of-00003.safetensors": {
+       "bytes": 99630640,
+       "blob_name": "e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1",
+       "blob_name_is_sha256": true,
+       "sha256": "e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 32819,
+       "blob_name": "95c0a0059df040d75dc6c396b174382cf61d2f91",
+       "blob_name_is_sha256": false,
+       "sha256": "6dc0981b8829fead746441f68f38f24c5ca4a3a66351f652c26c6df0efc43ab2",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 11422654,
+       "blob_name": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_is_sha256": true,
+       "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 9732,
+       "blob_name": "417d038a63fa3de29cfde265caedae14d1a58d92",
+       "blob_name_is_sha256": false,
+       "sha256": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+       "blob_name_equals_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 2776833,
+       "blob_name": "4783fe10ac3adce15ac8f358ef5462739852c569",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 8044982000,
+     "weights_count": 3,
+     "config": {
+      "model_type": "qwen3",
+      "architectures": [
+       "Qwen3ForCausalLM"
+      ],
+      "transformers_version": "4.51.0",
+      "vocab_size": 151936,
+      "hidden_size": 2560,
+      "num_hidden_layers": 36,
+      "max_position_embeddings": 40960,
+      "modality": []
+     },
+     "shards": {
+      "model-00001-of-00003.safetensors": {
+       "tensor_count": 174,
+       "tensor_data_bytes": 3957880832,
+       "dtypes": {
+        "BF16": 174
+       }
+      },
+      "model-00002-of-00003.safetensors": {
+       "tensor_count": 219,
+       "tensor_data_bytes": 3987425280,
+       "dtypes": {
+        "BF16": 219
+       }
+      },
+      "model-00003-of-00003.safetensors": {
+       "tensor_count": 5,
+       "tensor_data_bytes": 99630080,
+       "dtypes": {
+        "BF16": 5
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 4.022,
+     "index_total_size": 8044936192,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 151643,
+      "added_tokens": 26,
+      "special_v12_native_single_id": [
+       "</think>",
+       "</tool_call>",
+       "</tool_response>",
+       "<think>",
+       "<tool_call>",
+       "<tool_response>"
+      ],
+      "special_v12_added_by_pipeline": [],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    },
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen3-4B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen3-4B/snapshots/1cfa9a7208912126459214e8b04321603b3df60c",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 16857,
+       "blob_name": "2de5ee7eee214bb55ea33ec7505c5838a7adf7f6",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 726,
+       "blob_name": "e49eccdc32f36da9c09cfa0e737084f9e0105e5e",
+       "blob_name_is_sha256": false,
+       "sha256": "8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a",
+       "blob_name_equals_sha256": false
+      },
+      "generation_config.json": {
+       "bytes": 239,
+       "blob_name": "20a8a9156fc8c3f25295ca067f61fdf120d517c5",
+       "blob_name_is_sha256": false,
+       "sha256": "2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 1671853,
+       "blob_name": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors.index.json": {
+       "bytes": 32819,
+       "blob_name": "95c0a0059df040d75dc6c396b174382cf61d2f91",
+       "blob_name_is_sha256": false,
+       "sha256": "6dc0981b8829fead746441f68f38f24c5ca4a3a66351f652c26c6df0efc43ab2",
+       "blob_name_equals_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 11422654,
+       "blob_name": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_is_sha256": true,
+       "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+       "blob_name_equals_sha256": true
+      }
+     },
+     "state": "только метаданные (файлов весов нет)"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-4B",
+   "line": "qwen3-4b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3-4B (7.5 ГБ, 3 шард(ов), ≈4.022 B параметров)"
+  },
+  {
+   "short": "qwen3-8b",
+   "hf_id": "Qwen/Qwen3-8B",
+   "wave": "В-5",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub",
+     "path": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen3-8B",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/gb10-shared/models-store/home-roman/huggingface-cache/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {},
+     "state": "пустой снапшот (файлов нет вовсе)"
+    }
+   ],
+   "verdict": "нет (пустой снапшот)",
+   "path_with_weights": null,
+   "line": "qwen3-8b: нет (пустой снапшот) — ни в локальном HF-кэше стенда, ни в общем сторе"
+  },
+  {
+   "short": "qwen35-08b",
+   "hf_id": "Qwen/Qwen3.5-0.8B-Base",
+   "wave": "В-1",
+   "batch_v12_runner": 2,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B-Base",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B-Base/snapshots/dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "1d5180a42f1c3383ba7c7bd0a50f0837ef0168df",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3727,
+       "blob_name": "ab7a3ee4374f56bf96f351fa086bcc3c5b67dfde",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 2907,
+       "blob_name": "715f0448b9d38103211f0ad88bbb4d6e4f4be8c9",
+       "blob_name_is_sha256": false,
+       "sha256": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 3353259,
+       "blob_name": "a494e019ca1502219fd0128658b979e5f05ae8e8",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors-00001-of-00001.safetensors": {
+       "bytes": 1746942600,
+       "blob_name": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c",
+       "blob_name_is_sha256": true,
+       "sha256": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 50900,
+       "blob_name": "1ca6a83e1a122cd074f12a1258d480de42e2e19b",
+       "blob_name_is_sha256": false,
+       "sha256": "ce9a885efdf27d3664fdef5d512ad365216f1074051ef840c7cd8e5431495d0a",
+       "blob_name_equals_sha256": false
+      },
+      "preprocessor_config.json": {
+       "bytes": 390,
+       "blob_name": "2ea84a437d448ff71b08df68fdd949d5cc4ebb64",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 12807196,
+       "blob_name": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_is_sha256": true,
+       "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 16712,
+       "blob_name": "34e1f7a59c40a7a4197ce3dbb242b94dc5bef1dd",
+       "blob_name_is_sha256": false,
+       "sha256": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+       "blob_name_equals_sha256": false
+      },
+      "video_preprocessor_config.json": {
+       "bytes": 386,
+       "blob_name": "37900b3ff9295e1aa7e211378466356b52e64e55",
+       "blob_name_is_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 6722759,
+       "blob_name": "0aa0ce0658d60ac4a5d609f4eadb0e8e43514176",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 1746942600,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen3_5",
+      "architectures": [
+       "Qwen3_5ForConditionalGeneration"
+      ],
+      "transformers_version": "4.57.0.dev0",
+      "vocab_size": 248320,
+      "hidden_size": 1024,
+      "num_hidden_layers": 24,
+      "max_position_embeddings": 262144,
+      "modality": [
+       "text_config",
+       "vision_config"
+      ]
+     },
+     "shards": {
+      "model.safetensors-00001-of-00001.safetensors": {
+       "tensor_count": 488,
+       "tensor_data_bytes": 1746882752,
+       "dtypes": {
+        "F32": 36,
+        "BF16": 452
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 0.873,
+     "index_total_size": 1746882752,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 248044,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B-Base",
+   "line": "qwen35-08b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-0.8B-Base (1.6 ГБ, 1 шард(ов), ≈0.873 B параметров)"
+  },
+  {
+   "short": "qwen35-2b",
+   "hf_id": "Qwen/Qwen3.5-2B-Base",
+   "wave": "В-5",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base/snapshots/b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "1d5180a42f1c3383ba7c7bd0a50f0837ef0168df",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3721,
+       "blob_name": "f89cd1b857c5300003c202ec1c9fe47ffb34dcbd",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 2908,
+       "blob_name": "d30a15be1bbfd610f58ad80f1fbeb6778f58a80f",
+       "blob_name_is_sha256": false,
+       "sha256": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 3353259,
+       "blob_name": "a494e019ca1502219fd0128658b979e5f05ae8e8",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors-00001-of-00001.safetensors": {
+       "bytes": 4548221488,
+       "blob_name": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d",
+       "blob_name_is_sha256": true,
+       "sha256": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 64460,
+       "blob_name": "10fd4fbf87dc5e198b28d9e0598c70a9780b72c1",
+       "blob_name_is_sha256": false,
+       "sha256": "74d2ddfe79f10f35b27b498632f02b97b60dd9ec39b35d7c5a890c399284e319",
+       "blob_name_equals_sha256": false
+      },
+      "preprocessor_config.json": {
+       "bytes": 390,
+       "blob_name": "2ea84a437d448ff71b08df68fdd949d5cc4ebb64",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 12807196,
+       "blob_name": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_is_sha256": true,
+       "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 16712,
+       "blob_name": "34e1f7a59c40a7a4197ce3dbb242b94dc5bef1dd",
+       "blob_name_is_sha256": false,
+       "sha256": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+       "blob_name_equals_sha256": false
+      },
+      "video_preprocessor_config.json": {
+       "bytes": 386,
+       "blob_name": "37900b3ff9295e1aa7e211378466356b52e64e55",
+       "blob_name_is_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 6722759,
+       "blob_name": "0aa0ce0658d60ac4a5d609f4eadb0e8e43514176",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 4548221488,
+     "weights_count": 1,
+     "config": {
+      "model_type": "qwen3_5",
+      "architectures": [
+       "Qwen3_5ForConditionalGeneration"
+      ],
+      "transformers_version": "4.57.0.dev0",
+      "vocab_size": 248320,
+      "hidden_size": 2048,
+      "num_hidden_layers": 24,
+      "max_position_embeddings": 262144,
+      "modality": [
+       "text_config",
+       "vision_config"
+      ]
+     },
+     "shards": {
+      "model.safetensors-00001-of-00001.safetensors": {
+       "tensor_count": 632,
+       "tensor_data_bytes": 4548144832,
+       "dtypes": {
+        "F32": 36,
+        "BF16": 596
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 2.274,
+     "index_total_size": 4548144832,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 248044,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base",
+   "line": "qwen35-2b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base (4.2 ГБ, 1 шард(ов), ≈2.274 B параметров)"
+  },
+  {
+   "short": "qwen35-4b",
+   "hf_id": "Qwen/Qwen3.5-4B-Base",
+   "wave": "В-5",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-4B-Base",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-4B-Base/snapshots/1001bb4d826a52d1f399e183466143f4da7b741b",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "1d5180a42f1c3383ba7c7bd0a50f0837ef0168df",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3722,
+       "blob_name": "f66751fce75ca423e0993107b38d4c5408f677fb",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 3161,
+       "blob_name": "557d961b205319c6a7da5f757f565b69b3967b7d",
+       "blob_name_is_sha256": false,
+       "sha256": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 3353259,
+       "blob_name": "a494e019ca1502219fd0128658b979e5f05ae8e8",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors-00001-of-00002.safetensors": {
+       "bytes": 5329398712,
+       "blob_name": "df547074dce70532a0493e5433152bd17a65efb89088cfabc2e7e2371a93d712",
+       "blob_name_is_sha256": true,
+       "sha256": "df547074dce70532a0493e5433152bd17a65efb89088cfabc2e7e2371a93d712",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors-00002-of-00002.safetensors": {
+       "bytes": 3990429344,
+       "blob_name": "590fbaac095dd31db886c322d9d2f7df47777966391acf306ddddc3e4e3a15ef",
+       "blob_name_is_sha256": true,
+       "sha256": "590fbaac095dd31db886c322d9d2f7df47777966391acf306ddddc3e4e3a15ef",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 76196,
+       "blob_name": "7586335c0c85f13864338166a651bc2afbf49849",
+       "blob_name_is_sha256": false,
+       "sha256": "eae340074abb0a5f31a6621f7ae8e8248a7c1790df04a722c4e4b70c2a6d1dbb",
+       "blob_name_equals_sha256": false
+      },
+      "preprocessor_config.json": {
+       "bytes": 390,
+       "blob_name": "2ea84a437d448ff71b08df68fdd949d5cc4ebb64",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 12807196,
+       "blob_name": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_is_sha256": true,
+       "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 16713,
+       "blob_name": "ae8d254e44c51d0cb0907bcb221f18efca829d3e",
+       "blob_name_is_sha256": false,
+       "sha256": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+       "blob_name_equals_sha256": false
+      },
+      "video_preprocessor_config.json": {
+       "bytes": 386,
+       "blob_name": "37900b3ff9295e1aa7e211378466356b52e64e55",
+       "blob_name_is_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 6722759,
+       "blob_name": "0aa0ce0658d60ac4a5d609f4eadb0e8e43514176",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 9319828056,
+     "weights_count": 2,
+     "config": {
+      "model_type": "qwen3_5",
+      "architectures": [
+       "Qwen3_5ForConditionalGeneration"
+      ],
+      "transformers_version": "4.57.0.dev0",
+      "vocab_size": 248320,
+      "hidden_size": 2560,
+      "num_hidden_layers": 32,
+      "max_position_embeddings": 262144,
+      "modality": [
+       "text_config",
+       "vision_config"
+      ]
+     },
+     "shards": {
+      "model.safetensors-00001-of-00002.safetensors": {
+       "tensor_count": 87,
+       "tensor_data_bytes": 5329387520,
+       "dtypes": {
+        "BF16": 87
+       }
+      },
+      "model.safetensors-00002-of-00002.safetensors": {
+       "tensor_count": 651,
+       "tensor_data_bytes": 3990350336,
+       "dtypes": {
+        "F32": 48,
+        "BF16": 603
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 4.66,
+     "index_total_size": 9319737856,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 248044,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-4B-Base",
+   "line": "qwen35-4b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-4B-Base (8.7 ГБ, 2 шард(ов), ≈4.66 B параметров)"
+  },
+  {
+   "short": "qwen35-9b",
+   "hf_id": "Qwen/Qwen3.5-9B-Base",
+   "wave": "В-5",
+   "batch_v12_runner": 1,
+   "matches": [
+    {
+     "root": "/home/user/.cache/huggingface/hub",
+     "path": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-9B-Base",
+     "layout": "hf-hub (snapshots/)",
+     "snapshot": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-9B-Base/snapshots/68c46c4b3498877f3ef123c856ecfde50c39f404",
+     "incomplete_files": [],
+     "zero_byte_files": [],
+     "files": {
+      ".gitattributes": {
+       "bytes": 1570,
+       "blob_name": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+       "blob_name_is_sha256": false
+      },
+      "LICENSE": {
+       "bytes": 11343,
+       "blob_name": "1d5180a42f1c3383ba7c7bd0a50f0837ef0168df",
+       "blob_name_is_sha256": false
+      },
+      "README.md": {
+       "bytes": 3705,
+       "blob_name": "2743bd344b5e00babdac0ef18b5d05a8f75d2130",
+       "blob_name_is_sha256": false
+      },
+      "config.json": {
+       "bytes": 3126,
+       "blob_name": "273ce437e01baf96a07cd9eb3d5f48bac8d7c657",
+       "blob_name_is_sha256": false,
+       "sha256": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+       "blob_name_equals_sha256": false
+      },
+      "merges.txt": {
+       "bytes": 3353259,
+       "blob_name": "a494e019ca1502219fd0128658b979e5f05ae8e8",
+       "blob_name_is_sha256": false
+      },
+      "model.safetensors-00001-of-00004.safetensors": {
+       "bytes": 5276436216,
+       "blob_name": "862bf7bba8a50145d19d0ae463931fae515284024736592a73a336bc4dfa54ee",
+       "blob_name_is_sha256": true,
+       "sha256": "862bf7bba8a50145d19d0ae463931fae515284024736592a73a336bc4dfa54ee",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors-00002-of-00004.safetensors": {
+       "bytes": 5335161576,
+       "blob_name": "bace8e115e11ca93c22f0352a60d2fb0c76ac6d7d1c2993c143b7ad2b6c8868c",
+       "blob_name_is_sha256": true,
+       "sha256": "bace8e115e11ca93c22f0352a60d2fb0c76ac6d7d1c2993c143b7ad2b6c8868c",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors-00003-of-00004.safetensors": {
+       "bytes": 5368717376,
+       "blob_name": "63a021ac0011cbfc66166e77103327a8b45dee95832e36551f6b4c3337448959",
+       "blob_name_is_sha256": true,
+       "sha256": "63a021ac0011cbfc66166e77103327a8b45dee95832e36551f6b4c3337448959",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors-00004-of-00004.safetensors": {
+       "bytes": 3325995704,
+       "blob_name": "1a643bbed669266917b5058b5d3f660c03233599249ff7d8fd083decfe662ae0",
+       "blob_name_is_sha256": true,
+       "sha256": "1a643bbed669266917b5058b5d3f660c03233599249ff7d8fd083decfe662ae0",
+       "blob_name_equals_sha256": true
+      },
+      "model.safetensors.index.json": {
+       "bytes": 79657,
+       "blob_name": "b46f5c8684a87aaf30cc7e226584e3de9a7f1d0a",
+       "blob_name_is_sha256": false,
+       "sha256": "026b9d9fe03f19fd065f2a2f56a332c67640878106c0ca6be2f60c655ed5a8c1",
+       "blob_name_equals_sha256": false
+      },
+      "preprocessor_config.json": {
+       "bytes": 390,
+       "blob_name": "2ea84a437d448ff71b08df68fdd949d5cc4ebb64",
+       "blob_name_is_sha256": false
+      },
+      "tokenizer.json": {
+       "bytes": 12807196,
+       "blob_name": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_is_sha256": true,
+       "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+       "blob_name_equals_sha256": true
+      },
+      "tokenizer_config.json": {
+       "bytes": 16713,
+       "blob_name": "ae8d254e44c51d0cb0907bcb221f18efca829d3e",
+       "blob_name_is_sha256": false,
+       "sha256": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+       "blob_name_equals_sha256": false
+      },
+      "video_preprocessor_config.json": {
+       "bytes": 386,
+       "blob_name": "37900b3ff9295e1aa7e211378466356b52e64e55",
+       "blob_name_is_sha256": false
+      },
+      "vocab.json": {
+       "bytes": 6722759,
+       "blob_name": "0aa0ce0658d60ac4a5d609f4eadb0e8e43514176",
+       "blob_name_is_sha256": false
+      }
+     },
+     "weights_bytes": 19306310872,
+     "weights_count": 4,
+     "config": {
+      "model_type": "qwen3_5",
+      "architectures": [
+       "Qwen3_5ForConditionalGeneration"
+      ],
+      "transformers_version": "4.57.0.dev0",
+      "vocab_size": 248320,
+      "hidden_size": 4096,
+      "num_hidden_layers": 32,
+      "max_position_embeddings": 262144,
+      "modality": [
+       "text_config",
+       "vision_config"
+      ]
+     },
+     "shards": {
+      "model.safetensors-00001-of-00004.safetensors": {
+       "tensor_count": 14,
+       "tensor_data_bytes": 5276434432,
+       "dtypes": {
+        "BF16": 14
+       }
+      },
+      "model.safetensors-00002-of-00004.safetensors": {
+       "tensor_count": 53,
+       "tensor_data_bytes": 5335154688,
+       "dtypes": {
+        "BF16": 53
+       }
+      },
+      "model.safetensors-00003-of-00004.safetensors": {
+       "tensor_count": 63,
+       "tensor_data_bytes": 5368709120,
+       "dtypes": {
+        "BF16": 63
+       }
+      },
+      "model.safetensors-00004-of-00004.safetensors": {
+       "tensor_count": 645,
+       "tensor_data_bytes": 3325918176,
+       "dtypes": {
+        "F32": 48,
+        "BF16": 597
+       }
+      }
+     },
+     "shards_are_safetensors": true,
+     "shards_bad": [],
+     "params_estimate_b": 9.653,
+     "index_total_size": 19306216416,
+     "index_matches_shards": true,
+     "integrity": {
+      "safetensors_headers_valid": true,
+      "index_present": true,
+      "index_matches_shards": true,
+      "sha256_taken_here": true,
+      "blob_names_carry_sha256": "проверено равенством",
+      "no_incomplete_files": true
+     },
+     "tokenizer_facts": {
+      "vocab_size_dict": 248044,
+      "added_tokens": 22,
+      "special_v12_native_single_id": [
+       "</tool_call>",
+       "<tool_call>"
+      ],
+      "special_v12_added_by_pipeline": [
+       "</think>",
+       "</tool_response>",
+       "<think>",
+       "<tool_response>"
+      ],
+      "special_declared_single_id": [],
+      "note": "токены, отсутствующие в tokenizer.json, добавляет пайплайн (pretokenize_v9.py: add_special_tokens(SPECIAL_TOKENS)) — единый id в кэше обеспечен им"
+     },
+     "state": "представлены веса"
+    }
+   ],
+   "verdict": "есть",
+   "path_with_weights": "/home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-9B-Base",
+   "line": "qwen35-9b: есть — /home/user/.cache/huggingface/hub/models--Qwen--Qwen3.5-9B-Base (18.0 ГБ, 4 шард(ов), ≈9.653 B параметров)"
+  }
+ ],
+ "summary": {
+  "of_12": 11,
+  "list_present": [
+   "qwen25-05b",
+   "qwen25-15b",
+   "qwen25-3b",
+   "qwen25-7b",
+   "qwen3-06b",
+   "qwen3-17b",
+   "qwen3-4b",
+   "qwen35-08b",
+   "qwen35-2b",
+   "qwen35-4b",
+   "qwen35-9b"
+  ],
+  "list_metadata_only": [],
+  "list_absent": [
+   "qwen3-8b"
+  ],
+  "list_weights_but_not_safetensors": [],
+  "weights_bytes_total": 74011864784,
+  "arch_qwen3_5_positions": [
+   "qwen35-08b",
+   "qwen35-2b",
+   "qwen35-4b",
+   "qwen35-9b"
+  ]
+ },
+ "transport": {
+  "mode": "ssh",
+  "target": "gb10-fast",
+  "tool": "tools/inventory_stand_weights.py"
+ },
+ "local_report_host": "roman-B550-GAMING-X-V2"
+}

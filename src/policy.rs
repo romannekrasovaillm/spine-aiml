@@ -116,7 +116,7 @@ pub fn classify_tool(tool: &str, args: &serde_json::Value) -> RiskClass {
         "write_file" | "edit_file" | "adr_new" | "handoff_create" | "harness_run"
         | "agentsmd_generate" | "browser_open" | "browser_navigate" => RiskClass::Mutating,
         // Ввод (мышь, клавиатура, фокус окна) и исполнение кода на странице —
-        // необратимые внешние действия: клик может отправить платёж или
+        // необратимые внешние действия: клик может отправить заказ или
         // публикацию, browser_eval исполняет произвольный JS. Деструктивный
         // класс: R5 — авто, R4 — подтверждение человека, ниже — запрет.
         "computer_move" | "computer_click" | "computer_scroll" | "computer_drag"

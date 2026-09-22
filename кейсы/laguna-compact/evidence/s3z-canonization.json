@@ -1,0 +1,392 @@
+{
+  "schema": "s3z-canonization/1",
+  "node": "S3z",
+  "date": "2026-09-17",
+  "title": "Сведение веток кейса laguna-compact в канон arch/laguna-canon",
+  "status": "complete",
+  "ground": "Аудит 4e89320 (evidence/fleet-branch-divergence.json, план docs/specs/BRANCH-CANONIZATION.md): класса «разные решения» нет ни на одном из 385 файлов объединения — расхождения это отставания, дополнения, разные значения поля и конфликты имени. Сведение — объединение с точечными починками.",
+  "canon_branch": "arch/laguna-canon",
+  "base": {
+    "branch": "arch/laguna-control-arms",
+    "tip_at_start": "53f934a"
+  },
+  "rules": [
+    "ADR-028 п.1 — факт первичен: значение поля обязано соответствовать фактическому артефакту",
+    "ADR-028 п.2 — два поля run_started_at_commit / manifest_written_at_commit вместо arch_base_version",
+    "ADR-028 п.3 — нумерация ADR глобальна в пределах каталога решений кейса",
+    "ADR-028 п.4 — история git не переписывается",
+    "ADR-028 п.8 — расхождения, живущие в одной ветке, чинятся при сведении, а не в чужих ветках",
+    "ADR-025 п.6–8 — область гейта чистоты; ADR-027/031 — роли наборов; ADR-023 пп.7–11 — один контракт, один носитель, self-check",
+    "Канон по §2 плана, где назван; где не назван — новейшая редакция среди ветвей кейса (проверка по git log и по объёму), при равенстве — сторона канона (arch/laguna-control-arms)"
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "branch": "arch/laguna-protocol-diag",
+      "tip": "1d8fbe6",
+      "merge_commit": "35b5a06",
+      "conflicts": [
+        "README.md",
+        "runs/calib-25-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-25-0.7-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.7-20260916-0820/run_manifest.json",
+        "runs/replay50-collapse-20260916/run_manifest.json",
+        "tools/tests/run_tool_tests.sh"
+      ],
+      "resolutions": [
+        "README и run_tool_tests.sh — сторона канона (сведение содержания — шагом канон-прохода, ADR-023 п.10: один носитель, одна точка сборки)",
+        "5 run_manifest.json — сторона канона; пересборка по ADR-028 п.2 — шагом канон-прохода",
+        "ARCHITECTURE-SPINE.md: автослияние взяло снимок protocol-diag (25676 Б, +2043 к канону) — возвращён к канону 09ea27e1ef по §2 плана (класс stale_snapshot)"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "ADR-028 (канон манифеста) — закрывает зависимость ADR-028 ← ADR-025",
+        "docs/specs/DISK-PLAN.md, docs/specs/S3N-PPL-CURVE.md",
+        "evidence/s3n-ppl-curve.json, evidence/s3r-hygiene.json, evidence/s3y-disk-cleanup.json, evidence/fleet-disk-audit.json",
+        "runs/s3n-ppl-20260916/*, tools/s3n_ppl_curve.py"
+      ]
+    },
+    {
+      "step": 2,
+      "branch": "arch/laguna-fleet-analysis",
+      "tip": "f6428bd",
+      "merge_commit": "71fe7fe",
+      "conflicts": [
+        "evidence/s3s-hygiene.json",
+        "runs/calib-25-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-25-0.7-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.7-20260916-0820/run_manifest.json",
+        "runs/calib-ppl-20260916-0820/NOT_A_RUN",
+        "runs/replay50-collapse-20260916/run_manifest.json"
+      ],
+      "resolutions": [
+        "evidence/s3s-hygiene.json — конфликт ИМЕНИ (artifact_name_conflict), не редакция: сведён в один документ схемы s3s-hygiene/2 с массивом узлов nodes=[S3s-1 (fleet-analysis), S3s-2 (control-arms)]; оба узла внесены без правок, у каждого своё поле node/date/branch; обоснование — в поле why_two_nodes документа",
+        "4 run_manifest.json — сторона канона (пересборка шагом канон-прохода)",
+        "runs/calib-ppl-20260916-0820/NOT_A_RUN — сторона канона (99c7d828, ссылка на существующий каталог)"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "docs/specs/REPLAY50-ANALYSIS.md, evidence/replay50-collapse.json"
+      ]
+    },
+    {
+      "step": 3,
+      "branch": "arch/laguna-replay50",
+      "tip": "9271038",
+      "merge_commit": "0f330ed",
+      "conflicts": [],
+      "resolutions": [
+        "Конфликтов нет: runs/replay50-collapse-20260916/compare_text.json разрешился в пользу канона (в ветви replay50 под этим именем лежал stdout-лог детокенизации 145 Б, не JSON). Лог сохранён отдельным артефактом runs/replay50-collapse-20260916/compare_text.log — ADR-028 п.1: имя обязано соответствовать фактическому артефакту"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "docs/specs/REPLAY50-ANALYSIS.md, evidence/replay50-collapse.json, runs/replay50-collapse-20260916/*"
+      ]
+    },
+    {
+      "step": 4,
+      "branch": "arch/laguna-passrate-probe",
+      "tip": "eed7362",
+      "merge_commit": "96fd58f",
+      "conflicts": [
+        "tools/tests/run_tool_tests.sh"
+      ],
+      "resolutions": [
+        "run_tool_tests.sh — сторона канона (объединение секций шагом канон-прохода)",
+        "tools/README.md слит автоматически, приведение к канону — шагом канон-прохода"
+      ],
+      "gates_initial": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 1
+      },
+      "gate_failure": {
+        "gate": "C-012 / AD-2",
+        "what": "runs/passrate-probe-20260916-0740/ — каталог без run_manifest.json",
+        "diagnosis": "дефект есть и в самой ветви passrate-probe: каталог несёт probe_meta.json и tasks.jsonl (вход и мета прибора tools/passrate_probe.py), стадий, весов и сида обучения в нём нет — это не прогон"
+      },
+      "fix_commit": "26fa314",
+      "fix": "Добавлен маркер runs/passrate-probe-20260916-0740/NOT_A_RUN с причиной (по ADR-2: манифест выдумывать нельзя — ADR-028 п.1). Гейты после починки: оба exit 0",
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "evidence/passrate-baseline-v2.json, tools/passrate_probe.py, runs/passrate-probe-20260916/*"
+      ]
+    },
+    {
+      "step": 5,
+      "branch": "arch/laguna-pool-v2-fix",
+      "tip": "92ba58a",
+      "merge_commit": "842d2ec",
+      "conflicts": [],
+      "resolutions": [
+        "Конфликтов нет. Внесены приборы S3f-fix: tools/build_rev_envs.py, tools/check_eval_leakage.py, evidence/s1-data-audit.json (новейшие редакции среди ветвей кейса)",
+        "data/rev-envs-v2-card.json и tools/tests/run_tool_tests.sh возвращены стороне канона: карточка — канон ревизии S3p (mix-lr), тесты — объединение секций"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "evidence/s1-data-audit.json (S3f-fix), tools/build_rev_envs.py, tools/check_eval_leakage.py"
+      ]
+    },
+    {
+      "step": 6,
+      "branch": "arch/laguna-flex-check",
+      "tip": "d06caa1",
+      "merge_commit": "36309ad",
+      "conflicts": [
+        "README.md",
+        "tools/README.md"
+      ],
+      "resolutions": [
+        "README.md и tools/README.md — сторона канона; секция S3k и строки двух её приборов внесены шагом канон-прохода (в редакции канона их не было — это была бы потеря раздела)",
+        "run_tool_tests.sh — сторона канона"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "runs/flex-check-a/b/ppl-20260916-0745, evidence/flex-check.json, tools/run_flex_check.py, tools/flex_ppl_probe.py"
+      ]
+    },
+    {
+      "step": 7,
+      "branch": "arch/laguna-eval-set",
+      "tip": "04d69a8",
+      "merge_commit": "617b4bb",
+      "conflicts": [
+        "README.md",
+        "runs/calib-25-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-25-0.7-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.35-20260916-0820/run_manifest.json",
+        "runs/calib-50-0.7-20260916-0820/run_manifest.json",
+        "tools/tests/run_tool_tests.sh"
+      ],
+      "resolutions": [
+        "README и 4 манифеста и run_tool_tests.sh — сторона канона, сведение шагом канон-прохода",
+        "ADR-022 внесён автоматически в редакции eval-set (баннер «ОТОЗВАНО ПО ОСНОВАНИЮ — ADR-029») — это и есть предложенный канон §2",
+        "ADR-025/026/029 закрывают висячие зависимости ADR-027/030/031 (план §4.2)"
+      ],
+      "gates_initial": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 1
+      },
+      "gate_failure": {
+        "gate": "C-012 / AD-2",
+        "what": "три нарушения в сводимом дереве: runs/s3t-arms-20260916 без манифеста; runs/calib-grid-20260916-0820 и runs/calib-ppl-20260916-0820 несли ОДНОВРЕМЕННО маркер NOT_A_RUN и run_manifest.json (маркер S3s-1/S3s-2/S3r 17:08–17:16 против манифеста eval-set bd05ed4 16:16)"
+      },
+      "fix_commit": "2f7b67f",
+      "fix": [
+        "calib-grid и calib-ppl: канон — маркер (новее и по смыслу: прогоны — четыре руки runs/calib-<arm>-20260916-0820/, их манифесты на месте); манифесты eval-set убраны — AD-2 запрещает каталогу быть прогоном и не-прогоном сразу",
+        "s3t-arms: записан манифест tools/write_run_manifest.py по образцу однотипных s3q/s3v/s3w-arms той же ветви"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "ADR-025, ADR-026, ADR-029",
+        "docs/specs/EVAL-SETS.md, tools/build_general_eval_v3.py, tools/ppl_probe_v3.py, tools/build_general_eval_k2.py, tools/ppl_probe_k2.py, tools/assemble_s3*.py, tools/calib_ppl_arms.py, evidence/s3q-*, s3t-*, s3v-*, s3w-*"
+      ]
+    },
+    {
+      "step": 8,
+      "branch": "arch/laguna-mix-lr-calibration",
+      "tip": "df3627d",
+      "merge_commit": "256c902",
+      "conflicts": [
+        "README.md",
+        "runs/rev-pool-v2/exclusions.json"
+      ],
+      "resolutions": [
+        "README — сторона канона (сведение разделов шагом канон-прохода)",
+        "runs/rev-pool-v2/exclusions.json — сторона mix-lr: редакция S3p (35a96e9, 16:40) новее S3f-fix и совпадает с фактическим пулом на диске (9162 строки, sha256 e678eb68…) — ADR-028 п.1, факт первичен",
+        "Автоматически внесены надмножества mix-lr: CONSTRAINTS.yaml (20 правил, C-020), ADR-023 пп.8–11, ADR-024 (носитель чисел s3m-ppl-arms.json), evidence/s3m-ppl-arms.json (leak_check_ref), data/rev-envs-v2-card.json (карточка по факту 9162), ADR-018/021 (проверено: содержат все строки всех редакций — потерь нет)"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "ADR-018/021/023/024 в редакции с дополнениями, CONSTRAINTS.yaml C-020, evidence/s3m-ppl-arms.json"
+      ]
+    },
+    {
+      "step": 9,
+      "branch": "arch/laguna-sft-prep",
+      "tip": "7a31758",
+      "merge_commit": "c5f0b72",
+      "conflicts": [
+        "docs/specs/SFT-STAGE-PLAN.md",
+        "evidence/fleet-sft-prep.json"
+      ],
+      "resolutions": [
+        "Обе стороны — один узел S3x (sft-prep 5ba3fc9, 21:57; mix-lr 17945e5, 22:05). Канон — редакция mix-lr: позднее на 8 минут, длиннее (39.2 против 30.9 КБ; 35.6 против 22.3 КБ) и переписывает документ целиком. Проверено механически: checks_run sft-prep сохранён в provenance.tools_sha256 (те же три хеша), ссылки на ADR сохранены; теряется только поле base (case_worktree/based_on ветви sft-prep) — провенанс ветви, не факт стадии",
+        "Содержательных изменений сверх уже внесённого merge не даёт: diff индекса против канона пуст (дельты sft-prep покрыты предыдущими шагами)"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": []
+    },
+    {
+      "step": 10,
+      "branch": "arch/laguna-fleet-2",
+      "tip": "f71f61c",
+      "merge_commit": "8abe617",
+      "conflicts": [],
+      "resolutions": [
+        "Конфликтов нет. run_tool_tests.sh возвращён стороне канона (объединение секций шагом канон-прохода)"
+      ],
+      "gates": {
+        "check_symlink_hygiene.sh": 0,
+        "check_run_manifest.py": 0
+      },
+      "gained": [
+        "docs/specs/BRANCH-CANONIZATION.md, docs/specs/HANDOFF-CONTRACT-PROPOSAL.md, evidence/fleet-branch-divergence.json, evidence/fleet-handoff-contract.json, tools/check_handoff_contract.py, tools/_extract_eval_set_branch.py"
+      ]
+    }
+  ],
+  "canon_pass": {
+    "what": "Сведение содержания 38 разошедшихся имён поверх 10 merge-шагов (включая 3 имени, которых не было в карте аудита — они появились с ветвями flex-check, pool-v2-fix, sft-prep)",
+    "run_tool_tests_sh": {
+      "class": "additive_annotation (7 редакций по карте, 10 по факту)",
+      "canon": "UNION(SECTIONS)",
+      "sections": 36,
+      "bytes": 396942,
+      "sha256": "343db4ce2ee0dd2bcf3177aa8dcda926c8aba55027996fe2ef95ee04c253cf85",
+      "decisions": [
+        "14 pilot_chain.sh — редакция mix-lr (поколение S3p, 63 проверки против 56/57); уникальный блок pool-v2-fix «лейк-правило: роли проверяемых строк» внесён отдельно (проверяет build_rev_envs.leak_form — функцию канонического прибора)",
+        "15 build_gen_eval_v2.py и 15 validate_verifiers.py — редакция канона (различия только в хвосте/пустой строке)",
+        "16 S3m — редакция eval-set/mix-lr (59 проверок против 55); сообщение драйвера приведено к канону: tools/mix_lr_grid_chain.sh (control-arms, обобщённый) печатает «серия завершена», не «сетка завершена»",
+        "18 S3u — редакция канона (ADR-031, «peak_lr_scale 0.035»); редакция fleet-2/sft-prep проверяла снятую конфигурацию ADR-029"
+      ],
+      "verified_losses": [
+        "«сетка завершена: done» ↔ «серия завершена: done» — взаимоисключающие редакции одной проверки, оставлена согласованная с каноном драйвера",
+        "«пул v2 в кейсе совпадает с карточкой (артефакт собран и не разъехался)» — снята редакцией S3p в пользу более сильной («хеш, объём и раскладка сверены пересчётом файла»)",
+        "«replay 25 %, peak_lr_scale 0.35, сид 42» — снята ADR-031 (×0.035)"
+      ],
+      "loss_check": "552 уникальные expect_-строки объединения; все остальные строки всех 10 редакций присутствуют"
+    },
+    "manifests_rebuilt": [
+      "runs/calib-25-0.35-20260916-0820/run_manifest.json",
+      "runs/calib-25-0.7-20260916-0820/run_manifest.json",
+      "runs/calib-50-0.35-20260916-0820/run_manifest.json",
+      "runs/calib-50-0.7-20260916-0820/run_manifest.json",
+      "runs/replay50-collapse-20260916/run_manifest.json"
+    ],
+    "manifest_policy": [
+      "Пересобраны через tools/write_run_manifest.py (ADR-028 п.2): arch_base_version исключён, добавлены run_started_at_commit (null — коммит запуска неизвестен, не выдумывается) и manifest_written_at_commit (коммит, на котором стоял записывающий: 8abe617)",
+      "hyperparameters — объединение без arch_base_version; сохранено примечание protocol-diag corpus_value_note («исправлено по факту dataset_path»)",
+      "pipeline_path приведён к факту: runs/<рука>/laguna_pipeline_calib.py (значение calib/<рука>/… указывало в несуществующий каталог)",
+      "replay50-collapse: notes сохранены (ADR-028 п.7 — почему стадия failed), инструмент расширен флагом --note; corpus (=v12r у 25-рук, v12r50 у 50-рук) совпадал во всех ветвях — чинить было нечего"
+    ],
+    "other_names": [
+      "ARCHITECTURE-SPINE.md ← канон 09ea27e1ef (снимок passrate-probe/flex-check/pool-v2-fix отброшен)",
+      "ADR-015 ← канон; ADR-018/021 ← mix-lr (проверено: все строки всех редакций сохранены); ADR-022 ← редакция с баннером ADR-029; ADR-023/024 ← mix-lr; ADR-030 ← канон",
+      "CONSTRAINTS.yaml ← mix-lr (20 правил, C-020); data/rev-envs-v2-card.json и runs/rev-pool-v2/exclusions.json ← mix-lr (S3p, совпадают с пулом на диске); evidence/s1-data-audit.json ← pool-v2-fix (S3f-fix)",
+      "tools/build_rev_envs.py и tools/check_eval_leakage.py ← pool-v2-fix; tools/ppl_probe.py ← канон, sha256 5a2c3f724271f83e…abf72 совпал с объявленным в docs/specs/EVAL-SETS.md и процитированным в 5 evidence-файлах",
+      "tools/mix_lr_grid_chain.sh, run_mix_lr_calib.py, pilot_chain.sh, full_cpt_probe.py, run_full_cpt.py, write_run_manifest.py ← канон (обобщённые редакции)",
+      "README.md и tools/README.md — сведение разделов: карта ADR достроена до 31, карта evidence и таблица инструментов дополнены разделами ветвей, счётчики приведены к факту по гейтам; секция S3k внесена из flex-check (в каноне её не было)"
+    ],
+    "adr_union": "docs/adr/ = ADR-001…ADR-031 без пропусков и дублей номеров — все висячие зависимости (ADR-027 ← 025/026, ADR-030/031 ← 027/029, ADR-028 ← 025) закрыты",
+    "tool_changes": {
+      "tools/write_run_manifest.py": [
+        "ADR-028 п.2 (поля run_started_at_commit / manifest_written_at_commit вместо arch_base_version) внесены коммитом 2f7b67f (шаг 7-фикс) — тем же, которым пересобран манифест s3t-arms; ни одна из 11 исходных ветвей этих полей не несёт (проверено: grep по tools/write_run_manifest.py во всех ветвях — 0 совпадений)",
+        "флаг --note (примечания манифеста, ADR-028 п.7) — финальным коммитом канон-прохода: без него пересборка replay50-collapse потеряла бы notes, объясняющие, почему стадия failed"
+      ],
+      "tools/tests/run_tool_tests.sh": "объединение секций — финальный коммит канон-прохода (канон-проход собирает один носитель, а не семь редакций)"
+    },
+    "verification": {
+      "tool_tests": "bash tools/tests/run_tool_tests.sh → PASS=576 FAIL=0 (36 секций со всех ветвей, включая S3k/S3n/S3o/S3p/S3q/S3t/S3u/S3v/S3w/S3x и сторож C-021)",
+      "gate_c011": "bash tools/check_symlink_hygiene.sh → exit 0",
+      "gate_c012": "python3 tools/check_run_manifest.py --runs runs/ → exit 0 (15 прогонов + каталоги-непрогоны с маркером)",
+      "c021": "python3 tools/check_handoff_contract.py → в составе набора тестов, зелёный",
+      "leaf_checks": [
+        "sha256(tools/ppl_probe.py) = 5a2c3f724271f83e…abf72 — совпал с объявленным",
+        "файлов в объединении ветвей 474, в каноне 475 (потери — только два снятых манифеста, обоснование в self_check)",
+        "docs/adr/ = ADR-001…ADR-031 без пропусков и дублей",
+        "11 исходных ветвей на своих tip-ах, main нетронут"
+      ]
+    }
+  },
+  "not_merged": [
+    {
+      "branch": "arch/laguna-ppl-probe",
+      "status": "не существует в репозитории — проверить заявку",
+      "checked": "git rev-parse arch/laguna-ppl-probe → fatal: Needed a single revision"
+    },
+    {
+      "branch": "arch/laguna-verifiers",
+      "status": "не существует в репозитории — проверить заявку",
+      "checked": "git rev-parse arch/laguna-verifiers → fatal: Needed a single revision"
+    }
+  ],
+  "gates_final": {
+    "check_symlink_hygiene.sh": 0,
+    "check_run_manifest.py": 0,
+    "tools/tests/run_tool_tests.sh": "PASS=576 FAIL=0, TOOL TESTS OK (exit 0)",
+    "note": "Оба обязательных гейта задания — exit 0 после каждого из 10 merge-шагов и на финальном дереве. Полный набор тестов инструментов на каноне: 576 проверок, 0 красных (до сведения самая крупная редакция секции 14 несла 63 проверки, объединение даёт 36 секций и 552 уникальные expect_-строки)"
+  },
+  "invariants": [
+    "История git не переписывалась (ADR-028 п.4): только merge-коммиты и коммиты-шаги в новой ветви",
+    "main не трогалась",
+    "Живой CPT не трогался: стенд и NFS только читались, ни одна стадия не запускалась",
+    "Исходные ветви не удалены и не изменены: 11 ветвей кейса остались на своих tip-ах (проверяется сличением refs до/после)",
+    "AD-4 — данные и веса только симлинками; AD-2 — манифесты; AD-12 — доказательства (журнал этот)"
+  ],
+  "rollback": [
+    "git branch -D arch/laguna-canon (ветвь не слияна и не опубликована)",
+    "рабочее дерево — вернуть на arch/laguna-fleet-2 (f71f61c); исходные ветви не удалять до приёмки владельцем"
+  ],
+  "open_questions": [
+    "arch/laguna-ppl-probe и arch/laguna-verifiers заявлены в задании, но не существуют ни как локальные, ни как удалённые refs: либо их вклад уже вошёл в другие ветви (PPL-проба и валидация верификаторов есть в каноне как tools/ppl_probe.py, контур tools/calib_ppl_probe.py и tools/validate_verifiers.py), либо ветви не были созданы. Решение владельца: считать закрытым или назвать верные имена",
+    "S3f-fix-2 (c0a1480, проекция цепочек через промежуточные значения) — единственная ревизия, породившая фактический пул (9162, sha256 e678eb68…) и каноническую карточку S3p, но её код (tools/build_rev_envs.py = 5226d2b6, tools/probe_chain_projection.py) не входит НИ В ОДНУ из 12 сводимых ветвей — она живёт только в backup/pre-filterrepo-20260917. При сведении взят новейший build_rev_envs.py из ветвей кейса (pool-v2-fix, лейк-фильтр S3f-fix v1): карточка канона описывает S3f-fix-2, а прибор воспроизводит v1. Требуется решение: внести ревизию c0a1480 в канон или понизить карточку до v1",
+    "runs/s3q-arms, s3v-arms, s3w-domain, s3t-arms несут run_manifest.json для каталогов ЗАМЕРОВ (стадия ppl-probe), тогда как однотипные каталоги s3n-ppl, calib-ppl, calib-grid объявлены не-прогонами маркером NOT_A_RUN. Обе трактовки проходят гейт, но дерево непоследовательно: однотипные каталоги описаны по-разному. Нужно одно правило (предложение: каталог замера — не прогон, стадия ppl-probe заводится только у прогонов обучения)",
+    "README.md несёт нормативные счётчики (число ADR/правил/инструментов). При сведении они приведены к факту (31/20/50/40/31), но остаются рукописными: расхождение поймает только чтение. Стоит ли завести страж счётчиков README против факта дерева",
+    "stale-ссылки: раздел «Состояние гейта: S0 → S3a» в tools/README.md и строка «S3 (фаза 1) — пилот: … SFT идёт» в README.md не обновлялись с S3a/S3b и не входят в расхождения карты (файлы не разошлись по этим строкам). Сведение их не трогало — нужно решение, чинить ли задним числом"
+  ],
+  "self_check": {
+    "what": "Механическая проверка СВОЕГО результата (ADR-023 п.8), а не заявление о нём",
+    "files": {
+      "union_of_branches": 474,
+      "in_canon": 475,
+      "lost": [
+        "runs/calib-grid-20260916-0820/run_manifest.json",
+        "runs/calib-ppl-20260916-0820/run_manifest.json"
+      ],
+      "loss_justification": "Обе удалены сознательно (шаг 7-фикс): каталог не может нести и маркер NOT_A_RUN, и манифест AD-2. Факты из них сохранены носителями: runs/calib-grid-20260916-0820/grid_launch.json несёт руки (25-0.35, 50-0.7, 50-0.35) и steps_per_arm=2000, а постадийные итоги — манифесты четырёх рук runs/calib-<рука>-20260916-0820/",
+      "added": [
+        "runs/passrate-probe-20260916-0740/NOT_A_RUN",
+        "runs/replay50-collapse-20260916/compare_text.log",
+        "runs/s3t-arms-20260916/run_manifest.json"
+      ]
+    },
+    "divergent_names_resolved": 38,
+    "canon_equal_to_a_branch_revision": null,
+    "adr_union": "ADR-001…ADR-031 без пропусков и дублей",
+    "ppl_probe_sha256": "5a2c3f724271f83e5c5ffc1e224df7dd4065e2e6e2266f14a5978c31381abf72 (совпал с объявленным в docs/specs/EVAL-SETS.md и 5 evidence-файлах)",
+    "pinned_tool_hashes_intact": "Замороженные копии runs/<прогон>/write_run_manifest.py (sha256 ba3f889…) не тронуты — правка канонического tools/write_run_manifest.py их не касается",
+    "source_refs_unchanged": "11 исходных ветвей кейса остались на своих tip-ах (сверено поимённо); main = c359048 = origin/main; живой CPT (tmux s3u-full-cpt, сторож full_cpt_probe.py) не останавливался и не запускался",
+    "gates": [
+      "bash tools/check_symlink_hygiene.sh → exit 0",
+      "python3 tools/check_run_manifest.py --runs runs/ → exit 0"
+    ]
+  }
+}

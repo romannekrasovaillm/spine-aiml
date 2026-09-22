@@ -1,0 +1,89 @@
+{
+  "id": "fleet-handoff-contract",
+  "title": "Факты: дельты без JSON-контракта результата (AD-11 / ADR-023)",
+  "date": "2026-09-16",
+  "rule": "ADR-023 Decision 1/3/5 + спайн AD-12 «Дельта считается выполненной только при доказательствах» (условие 4): отчёт прогона обязан нести JSON-контракт (status ∈ complete|partial|blocked); код возврата харнесса не доказывает результат.",
+  "criterion": "Лог прогона считается «без контракта», если в его stdout нет JSON-объекта с полем \"status\" (зеркало parse_result_contract харнесса; верифицировано: 89/89 логов совпадают с вердиктом в заголовке лога).",
+  "sources": [
+    "/home/user/.arch-ml/reports/harness/hr-*.log (89 логов, по одному на прогон харнесса)",
+    "/home/user/.arch-ml/state/fleet/*.jsonl (события agent_done с полем contract_status)"
+  ],
+  "context_deltas": [
+    {
+      "log": "hr-20260916-103537-43.log",
+      "verdict": "missing",
+      "stdout_hint": "Waiting on the run (v1 batch 9/10). I'll respond only when a watcher fires.",
+      "note": "Дельта ушла в фоновое ожидание watcher и завершилась без контракта — результат не зафиксирован."
+    },
+    {
+      "log": "hr-20260916-171416-55.log",
+      "verdict": "missing",
+      "stdout_hint": "Scan in progress; I'll pick this up when the background build reports completion.",
+      "note": "Дельта отложила работу до фоновой сборки и закрыла прогон без контракта."
+    },
+    {
+      "log": "hr-20260916-173619-56.log",
+      "verdict": "valid",
+      "status": "complete",
+      "note": "«Частично»: тоже ушла в фоновое ожидание (ждала сборку K2), но довела в том же прогоне опросом ps/лога и выдала валидный контракт complete (коммит 5b408ab). Пример, что фон сам по себе не фатален — фатально закрытие без контракта."
+    }
+  ],
+  "session_20260916": {
+    "total_logs": 31,
+    "valid": 22,
+    "invalid": 0,
+    "missing": 9,
+    "missing_share": 0.2903225806451613,
+    "note": "Сессия 2026-09-16 — та, к которой относятся hr-43/hr-55/hr-56. Доля прогонов без контракта ≈ 29 %."
+  },
+  "all_logs_totals": {
+    "total": 89,
+    "valid": 58,
+    "invalid": 1,
+    "missing": 30,
+    "without_valid_contract": 31,
+    "without_valid_contract_share": 0.34831460674157305
+  },
+  "per_date": {
+    "20260912": {
+      "total": 14,
+      "valid": 7,
+      "invalid": 0,
+      "missing": 7
+    },
+    "20260913": {
+      "total": 33,
+      "valid": 22,
+      "invalid": 0,
+      "missing": 11
+    },
+    "20260914": {
+      "total": 11,
+      "valid": 7,
+      "invalid": 1,
+      "missing": 3
+    },
+    "20260916": {
+      "total": 31,
+      "valid": 22,
+      "invalid": 0,
+      "missing": 9
+    }
+  },
+  "fleet_jsonl_crosscheck": {
+    "agent_done_contract_status": {
+      "missing": 9,
+      "invalid": 1,
+      "complete": 6
+    },
+    "total": 16,
+    "note": "События agent_done во всех state/fleet/*.jsonl (флот-оркестрованные прогоны, не только hr-*). Тот же класс дефекта: 9 из 16 без контракта."
+  },
+  "guard_validation": {
+    "tool": "tools/check_handoff_contract.py",
+    "checked_logs": 89,
+    "mismatches_with_harness": 0,
+    "note": "Сторож заново извлекает и валидирует контракт из stdout; его вердикт совпал с вердиктом харнесса во всех 89 логах — реимплементация верна."
+  },
+  "status": "done"
+}

@@ -520,8 +520,10 @@ mod tests {
 
     #[test]
     fn for_caps_picks_high_contrast_theme() {
-        let mut caps = Caps::default();
-        caps.high_contrast = true;
+        let caps = Caps {
+            high_contrast: true,
+            ..Default::default()
+        };
         let t = Theme::for_caps(&caps);
         assert!(t.muted().add_modifier.contains(Modifier::BOLD));
         assert!(!t.muted().add_modifier.contains(Modifier::DIM));

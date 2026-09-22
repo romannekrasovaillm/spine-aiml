@@ -1,0 +1,927 @@
+{
+  "schema": "s3aq-budget-8192/1",
+  "tool": "tools/assemble_s3aq_evidence.py",
+  "stage": "S3aq",
+  "title": "Различающий замер бюджета: 8192 против 4096 — усечение растущих рассуждений или деградация обучения",
+  "date": "2026-09-20T14:58:46.036728+00:00",
+  "status": "complete",
+  "problem": "замер S3ap при бюджете 4096 дал обрывы 0.76 и покрытие 0.33 при медиане хода, упёршейся в бюджет; различить «усечение выросших рассуждений» и «деградацию обучения» можно только бюджетом выше медианы (ADR-045 п.2)",
+  "artifacts": {
+    "report_8192": {
+      "path": "runs/s3aq-budget-8192-20260920/format_wide_8192.json",
+      "role": "решающий отчёт прибора (бюджет 8192)",
+      "exists": true,
+      "bytes": 2655801,
+      "sha256": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a"
+    },
+    "report_4096_pair": {
+      "path": "runs/s3aq-budget-8192-20260920/format_wide_4096_pair.json",
+      "role": "парный контроль (тот же чекпойнт, 4096)",
+      "exists": true,
+      "bytes": 1796769,
+      "sha256": "b3479e75463565a05a2de72e6d1f09d2b7c36c94f8ff974405080ad4060703c9"
+    },
+    "baseline_4096": {
+      "path": "runs/s3ap-format-monitor-20260919/format_wide_standard.json",
+      "role": "нормативная база S3ap (бюджет 4096)",
+      "exists": true,
+      "bytes": 3605439,
+      "sha256": "11ec1baaf75e46735afbba0d3a582734f798821050d62d056e48c121e0679fe2"
+    },
+    "identity_core": {
+      "path": "runs/s3aq-budget-8192-20260920/identity_core_cfinal.json",
+      "role": "гейт тождества ядра промптов",
+      "exists": true,
+      "bytes": 29769,
+      "sha256": "2c0aee00ecf084ceb83db56169f04d270285b101d55c5f4817c681b388423ccb"
+    },
+    "identity_reference": {
+      "path": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+      "role": "эталон ядра промптов (S3ai)",
+      "exists": true,
+      "bytes": 17714,
+      "sha256": "8e3098eab92d9b84be6898b79b796cac7439738a6e311f8656068c05823a7186"
+    },
+    "pin_checkpoints": {
+      "path": "runs/s3aq-budget-8192-20260920/pin_checkpoints.json",
+      "role": "пиннинг чекпойнтов: sha256 копий против источников",
+      "exists": true,
+      "bytes": 1058,
+      "sha256": "3ff93fd8209ce1657b0e55dee7b0b82c1347574155cbd6875e7953a5a1f1b883"
+    },
+    "chain": {
+      "path": "runs/s3aq-budget-8192-20260920/chain.sh",
+      "role": "цепочка замера (объявленный протокол)",
+      "exists": true,
+      "bytes": 16304,
+      "sha256": "0aa6a4c5e4d9532d5bbf93da3f71c7a354fec3cc7d6cf0ea4f0901c89496987e"
+    },
+    "run_manifest": {
+      "path": "runs/s3aq-budget-8192-20260920/run_manifest.json",
+      "role": "манифест прогона (AD-2)",
+      "exists": true,
+      "bytes": 15897,
+      "sha256": "66bfceeedb8561c3369204dcd57d01f233e9d923b8b9778b9a6e741514347c53",
+      "covers": "runs/s3aq-budget-8192-20260920/format_wide_4096_pair.json",
+      "note": "манифест описывает последний прогон каталога (runs/s3aq-budget-8192-20260920/format_wide_4096_pair.json), а не решающий (runs/s3aq-budget-8192-20260920/format_wide_8192.json): файл один на каталог и перезаписывается каждым прогоном — решающий этап своего манифеста не оставил"
+    },
+    "device_check": {
+      "path": "runs/s3aq-budget-8192-20260920/device_check.json",
+      "role": "устройство: аллокация CUDA",
+      "exists": true,
+      "bytes": 191,
+      "sha256": "8a93cb2b1c15a67fb99d78322c11afedc8ed7edb2620d0eaba209efeda564c77"
+    },
+    "probe_record": {
+      "path": "runs/s3aq-budget-8192-20260920/probe_record.json",
+      "role": "запись прогона (пишет step 1 цепочки chain.sh)",
+      "exists": false,
+      "bytes": null,
+      "sha256": null,
+      "why_absent": "решающий прогон добран отделённой сессией (sidecar runs/s3aq-budget-8192-20260920/resume_confirmed.json), а probe_record.json пишет шаг 1 цепочки chain.sh — при доборе он не выполнялся"
+    },
+    "pin_manifest_snapshot": {
+      "path": "runs/s3aq-budget-8192-20260920/PIN.sha256",
+      "role": "снимок списка пиннинга; строка sft_probe_10000.pt помечена removed_by_retention (ADR-028 п.1: факт первичен — файла нет, строка приведена к факту)",
+      "exists": true,
+      "bytes": 608,
+      "sha256": "f540b2ab3d082194d5dd45f84a68989de50862be1305fc39ab45cefb0d97188a"
+    },
+    "tool": {
+      "path": "tools/probe_language_split.py",
+      "role": "прибор",
+      "exists": true,
+      "bytes": 149463,
+      "sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276"
+    },
+    "sha256": {
+      "report_8192": "c5fd7e1bcc34dd010058158ab279b64e5473913861195271201f3c39b8e1bc7a",
+      "report_4096_pair": "b3479e75463565a05a2de72e6d1f09d2b7c36c94f8ff974405080ad4060703c9",
+      "baseline_4096": "11ec1baaf75e46735afbba0d3a582734f798821050d62d056e48c121e0679fe2",
+      "identity_core": "2c0aee00ecf084ceb83db56169f04d270285b101d55c5f4817c681b388423ccb",
+      "identity_reference": "8e3098eab92d9b84be6898b79b796cac7439738a6e311f8656068c05823a7186",
+      "pin_checkpoints": "3ff93fd8209ce1657b0e55dee7b0b82c1347574155cbd6875e7953a5a1f1b883",
+      "chain": "0aa6a4c5e4d9532d5bbf93da3f71c7a354fec3cc7d6cf0ea4f0901c89496987e",
+      "run_manifest": "66bfceeedb8561c3369204dcd57d01f233e9d923b8b9778b9a6e741514347c53",
+      "device_check": "8a93cb2b1c15a67fb99d78322c11afedc8ed7edb2620d0eaba209efeda564c77",
+      "probe_record": null,
+      "pin_manifest_snapshot": "f540b2ab3d082194d5dd45f84a68989de50862be1305fc39ab45cefb0d97188a",
+      "tool": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276"
+    },
+    "missing": [
+      "probe_record"
+    ]
+  },
+  "framework": {
+    "tool": "tools/probe_language_split.py",
+    "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "mode": "штатный (greedy + запрет повторов 4-грамм, ADR-041); --legacy-decoding не использовался",
+    "n_per_state": 104,
+    "prompts_set": "wide",
+    "batch_size": 8,
+    "stop_at_turn_end": true,
+    "device": "cuda",
+    "where": "локальная RTX 4080 SUPER (стенд GB10 занят стадией SFT — AD-5); чекпойнты пиннуются локально из-за ретенции прогона",
+    "decoding_protocol": {
+      "default_mode": "greedy + запрет повторов 4-грамм (no_repeat_ngram=4)",
+      "standard_no_repeat_ngram": 4,
+      "no_repeat_ngram": 4,
+      "no_repeat_ngram_requested": null,
+      "standard": true,
+      "legacy_decoding": false,
+      "source": "умолчание прибора (STANDARD_NO_REPEAT_NGRAM)",
+      "allowed_for_conclusions": true,
+      "rules": {
+        "greedy_only_forbidden": "любые выводы о формате и языке по генерациям без запрета повторов n-грамм запрещены (S3al, ADR-040 п.6)",
+        "sampling_is_extra_check": "sampling — дополнительная проверка свободного режима, а не штатный режим: он петлю снижает частично (0.3333), а не снимает",
+        "legacy_is_for_identity": "--legacy-decoding существует для воспроизведения прежних замеров побайтово (мост тождества), а не для новых выводов"
+      }
+    }
+  },
+  "instrument_identity": {
+    "tool_sha256_current": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "tool_sha256_at_baseline": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "same_tool_file": true,
+    "core_byte_identity": {
+      "reference": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+      "checked": true,
+      "n": 5,
+      "byte_identical": true
+    },
+    "checkpoint_pinning": {
+      "why": "прогон SFT удаляет старые пробы (PROBE_KEEP_LAST=24); копия спасает замер от гонки с ретенцией и не меняет исходники (только чтение)",
+      "checkpoints": {
+        "cfinal": {
+          "source": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+          "pinned": "/home/user/s3aq-ckpts/cfinal.pt",
+          "sha256_source": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+          "sha256_pinned": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+          "identical": true,
+          "bytes": 2963141069
+        },
+        "sft_v13_21500": {
+          "source": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_21500.pt",
+          "pinned": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+          "sha256_source": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360",
+          "sha256_pinned": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360",
+          "identical": true,
+          "bytes": 2963139967
+        }
+      },
+      "all_identical": true
+    },
+    "reading": "прибор тот же: файл совпал по хешу и ядро проб совпало побайтово — числа 8192 и 4096 сопоставимы"
+  },
+  "table": [
+    {
+      "unclosed_think": 0.3365,
+      "tool_call": 0.7308,
+      "answer_coverage": 0.8269,
+      "truncated": 0.0481,
+      "looped": 0.0096,
+      "median_len": 1164.0,
+      "p90_len": 2233.0,
+      "mean_len": 1135.6154,
+      "cyr_think": 0.3072,
+      "cyr_answer": 0.3964,
+      "natural_stop_share": 0.9519,
+      "state": "cfinal",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3ap (19.09.2026)",
+      "n_natural": 99,
+      "unclosed_think_natural": 0.3333,
+      "share_at_budget": 0.0481,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt"
+    },
+    {
+      "unclosed_think": 0.3365,
+      "tool_call": 0.7308,
+      "answer_coverage": 0.8269,
+      "truncated": 0.0481,
+      "looped": 0.0096,
+      "median_len": 1164.0,
+      "p90_len": 2233.0,
+      "mean_len": 1135.6154,
+      "cyr_think": 0.3072,
+      "cyr_answer": 0.3964,
+      "natural_stop_share": 0.9519,
+      "state": "cfinal",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3aq (парный контроль)",
+      "n_natural": 99,
+      "unclosed_think_natural": 0.3333,
+      "share_at_budget": 0.0481,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt"
+    },
+    {
+      "unclosed_think": 0.3269,
+      "tool_call": 0.7308,
+      "answer_coverage": 0.8365,
+      "truncated": 0.0192,
+      "looped": 0.0096,
+      "median_len": 1164.0,
+      "p90_len": 2233.0,
+      "mean_len": 1246.2596,
+      "cyr_think": 0.3052,
+      "cyr_answer": 0.4066,
+      "natural_stop_share": 0.9808,
+      "state": "cfinal",
+      "budget": 8192,
+      "n": 104,
+      "source": "S3aq",
+      "n_natural": 102,
+      "unclosed_think_natural": 0.3333,
+      "share_at_budget": 0.0192,
+      "share_longer_than_4096": 0.0481,
+      "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt"
+    },
+    {
+      "unclosed_think": 0.1731,
+      "tool_call": 0.5,
+      "answer_coverage": 0.5865,
+      "truncated": 0.2981,
+      "looped": 0.0192,
+      "median_len": 408.0,
+      "p90_len": 4096.0,
+      "mean_len": 1637.9712,
+      "cyr_think": 0.5561,
+      "cyr_answer": 0.3705,
+      "natural_stop_share": 0.7019,
+      "state": "sft_v13_0500",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3ap (19.09.2026)",
+      "n_natural": 73,
+      "unclosed_think_natural": 0.1781,
+      "share_at_budget": 0.2981,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_500.pt"
+    },
+    {
+      "unclosed_think": 0.5865,
+      "tool_call": 0.5769,
+      "answer_coverage": 0.4038,
+      "truncated": 0.4712,
+      "looped": 0.0577,
+      "median_len": 1027.0,
+      "p90_len": 4096.0,
+      "mean_len": 2082.25,
+      "cyr_think": 0.5696,
+      "cyr_answer": 0.1901,
+      "natural_stop_share": 0.5288,
+      "state": "sft_v13_21500",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3aq (парный контроль)",
+      "n_natural": 55,
+      "unclosed_think_natural": 0.3636,
+      "share_at_budget": 0.4712,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt"
+    },
+    {
+      "unclosed_think": 0.5865,
+      "tool_call": 0.5769,
+      "answer_coverage": 0.4038,
+      "truncated": 0.4423,
+      "looped": 0.1731,
+      "median_len": 1027.0,
+      "p90_len": 8192.0,
+      "mean_len": 3947.5673,
+      "cyr_think": 0.5438,
+      "cyr_answer": 0.1854,
+      "natural_stop_share": 0.5577,
+      "state": "sft_v13_21500",
+      "budget": 8192,
+      "n": 104,
+      "source": "S3aq",
+      "n_natural": 58,
+      "unclosed_think_natural": 0.3793,
+      "share_at_budget": 0.4423,
+      "share_longer_than_4096": 0.4712,
+      "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt"
+    },
+    {
+      "unclosed_think": 0.6538,
+      "tool_call": 0.5865,
+      "answer_coverage": 0.3654,
+      "truncated": 0.4423,
+      "looped": 0.0096,
+      "median_len": 928.0,
+      "p90_len": 4096.0,
+      "mean_len": 2016.0577,
+      "cyr_think": 0.6001,
+      "cyr_answer": 0.2404,
+      "natural_stop_share": 0.5577,
+      "state": "sft_v13_5000",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3ap (19.09.2026)",
+      "n_natural": 58,
+      "unclosed_think_natural": 0.5172,
+      "share_at_budget": 0.4423,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_5000.pt"
+    },
+    {
+      "unclosed_think": 0.7596,
+      "tool_call": 0.6154,
+      "answer_coverage": 0.3269,
+      "truncated": 0.5288,
+      "looped": 0.0673,
+      "median_len": 4096.0,
+      "p90_len": 4096.0,
+      "mean_len": 2294.6346,
+      "cyr_think": 0.5434,
+      "cyr_answer": 0.1612,
+      "natural_stop_share": 0.4712,
+      "state": "sft_v13_9000",
+      "budget": 4096,
+      "n": 104,
+      "source": "S3ap (19.09.2026)",
+      "n_natural": 49,
+      "unclosed_think_natural": 0.6939,
+      "share_at_budget": 0.5288,
+      "share_longer_than_4096": null,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_9000.pt"
+    }
+  ],
+  "budget_8192": {
+    "source": "runs/s3aq-budget-8192-20260920/format_wide_8192.json",
+    "max_new_tokens": 8192,
+    "states": [
+      {
+        "state": "cfinal",
+        "budget": 8192,
+        "unclosed_think": 0.3269,
+        "tool_call": 0.7308,
+        "answer_coverage": 0.8365,
+        "truncated": 0.0192,
+        "looped": 0.0096,
+        "median_len": 1164.0,
+        "p90_len": 2233.0,
+        "mean_len": 1246.2596,
+        "cyr_think": 0.3052,
+        "cyr_answer": 0.4066,
+        "natural_stop_share": 0.9808,
+        "n": 104,
+        "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt",
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "n_new_tokens_sum": 129611,
+        "share_at_budget": 0.0192,
+        "share_longer_than_4096": 0.0481,
+        "median_over_budget": 0.1421,
+        "n_natural": 102,
+        "unclosed_think_natural": 0.3333,
+        "answer_coverage_natural": 0.8333,
+        "stop_reasons_share": {
+          "limit_in_think": 0.0096,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.9808
+        },
+        "unclosed_rule_shift": -0.0064
+      },
+      {
+        "state": "sft_v13_21500",
+        "budget": 8192,
+        "unclosed_think": 0.5865,
+        "tool_call": 0.5769,
+        "answer_coverage": 0.4038,
+        "truncated": 0.4423,
+        "looped": 0.1731,
+        "median_len": 1027.0,
+        "p90_len": 8192.0,
+        "mean_len": 3947.5673,
+        "cyr_think": 0.5438,
+        "cyr_answer": 0.1854,
+        "natural_stop_share": 0.5577,
+        "n": 104,
+        "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+        "checkpoint_sha256": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360",
+        "n_new_tokens_sum": 410547,
+        "share_at_budget": 0.4423,
+        "share_longer_than_4096": 0.4712,
+        "median_over_budget": 0.1254,
+        "n_natural": 58,
+        "unclosed_think_natural": 0.3793,
+        "answer_coverage_natural": 0.5517,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0288,
+          "limit_in_think": 0.0962,
+          "limit_in_tool_call": 0.3077,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.5577
+        },
+        "unclosed_rule_shift": 0.2072
+      }
+    ],
+    "unavailable": []
+  },
+  "budget_4096": {
+    "baseline_source": "runs/s3ap-format-monitor-20260919/format_wide_standard.json",
+    "pair_source": "runs/s3aq-budget-8192-20260920/format_wide_4096_pair.json",
+    "states_baseline": [
+      {
+        "state": "cfinal",
+        "budget": 4096,
+        "unclosed_think": 0.3365,
+        "tool_call": 0.7308,
+        "answer_coverage": 0.8269,
+        "truncated": 0.0481,
+        "looped": 0.0096,
+        "median_len": 1164.0,
+        "p90_len": 2233.0,
+        "mean_len": 1135.6154,
+        "cyr_think": 0.3072,
+        "cyr_answer": 0.3964,
+        "natural_stop_share": 0.9519,
+        "n": 104,
+        "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "n_new_tokens_sum": 118104,
+        "share_at_budget": 0.0481,
+        "share_longer_than_4096": null,
+        "median_over_budget": 0.2842,
+        "n_natural": 99,
+        "unclosed_think_natural": 0.3333,
+        "answer_coverage_natural": 0.8283,
+        "stop_reasons_share": {
+          "limit_in_think": 0.0288,
+          "limit_in_tool_response": 0.0192,
+          "turn_end": 0.9519
+        },
+        "unclosed_rule_shift": 0.0032
+      },
+      {
+        "state": "sft_v13_0500",
+        "budget": 4096,
+        "unclosed_think": 0.1731,
+        "tool_call": 0.5,
+        "answer_coverage": 0.5865,
+        "truncated": 0.2981,
+        "looped": 0.0192,
+        "median_len": 408.0,
+        "p90_len": 4096.0,
+        "mean_len": 1637.9712,
+        "cyr_think": 0.5561,
+        "cyr_answer": 0.3705,
+        "natural_stop_share": 0.7019,
+        "n": 104,
+        "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_500.pt",
+        "checkpoint_sha256": "3b021a6c2ef4d916425ec441e649a4c20a1f0eadc8f5f26167f4a8d7fcb3e185",
+        "n_new_tokens_sum": 170349,
+        "share_at_budget": 0.2981,
+        "share_longer_than_4096": null,
+        "median_over_budget": 0.0996,
+        "n_natural": 73,
+        "unclosed_think_natural": 0.1781,
+        "answer_coverage_natural": 0.4521,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0096,
+          "limit_in_think": 0.0577,
+          "limit_in_tool_call": 0.2115,
+          "limit_in_tool_response": 0.0192,
+          "turn_end": 0.7019
+        },
+        "unclosed_rule_shift": -0.005
+      },
+      {
+        "state": "sft_v13_5000",
+        "budget": 4096,
+        "unclosed_think": 0.6538,
+        "tool_call": 0.5865,
+        "answer_coverage": 0.3654,
+        "truncated": 0.4423,
+        "looped": 0.0096,
+        "median_len": 928.0,
+        "p90_len": 4096.0,
+        "mean_len": 2016.0577,
+        "cyr_think": 0.6001,
+        "cyr_answer": 0.2404,
+        "natural_stop_share": 0.5577,
+        "n": 104,
+        "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_5000.pt",
+        "checkpoint_sha256": "ce52eff496739af8dc414dc942ab656a6679d2469550a54b016c19c83559dfdd",
+        "n_new_tokens_sum": 209670,
+        "share_at_budget": 0.4423,
+        "share_longer_than_4096": null,
+        "median_over_budget": 0.2266,
+        "n_natural": 58,
+        "unclosed_think_natural": 0.5172,
+        "answer_coverage_natural": 0.4655,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0385,
+          "limit_in_think": 0.2019,
+          "limit_in_tool_call": 0.2019,
+          "turn_end": 0.5577
+        },
+        "unclosed_rule_shift": 0.1366
+      },
+      {
+        "state": "sft_v13_9000",
+        "budget": 4096,
+        "unclosed_think": 0.7596,
+        "tool_call": 0.6154,
+        "answer_coverage": 0.3269,
+        "truncated": 0.5288,
+        "looped": 0.0673,
+        "median_len": 4096.0,
+        "p90_len": 4096.0,
+        "mean_len": 2294.6346,
+        "cyr_think": 0.5434,
+        "cyr_answer": 0.1612,
+        "natural_stop_share": 0.4712,
+        "n": 104,
+        "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_9000.pt",
+        "checkpoint_sha256": "f5830974de53c96b812540b3c69b97847d5f90c48d6349b0d3cd75fb6ff11716",
+        "n_new_tokens_sum": 238642,
+        "share_at_budget": 0.5288,
+        "share_longer_than_4096": null,
+        "median_over_budget": 1.0,
+        "n_natural": 49,
+        "unclosed_think_natural": 0.6939,
+        "answer_coverage_natural": 0.3061,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0192,
+          "limit_in_think": 0.1731,
+          "limit_in_tool_call": 0.2981,
+          "limit_in_tool_response": 0.0385,
+          "turn_end": 0.4712
+        },
+        "unclosed_rule_shift": 0.0657
+      }
+    ],
+    "states_paired": [
+      {
+        "state": "cfinal",
+        "budget": 4096,
+        "unclosed_think": 0.3365,
+        "tool_call": 0.7308,
+        "answer_coverage": 0.8269,
+        "truncated": 0.0481,
+        "looped": 0.0096,
+        "median_len": 1164.0,
+        "p90_len": 2233.0,
+        "mean_len": 1135.6154,
+        "cyr_think": 0.3072,
+        "cyr_answer": 0.3964,
+        "natural_stop_share": 0.9519,
+        "n": 104,
+        "checkpoint": "/home/user/s3aq-ckpts/cfinal.pt",
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "n_new_tokens_sum": 118104,
+        "share_at_budget": 0.0481,
+        "share_longer_than_4096": null,
+        "median_over_budget": 0.2842,
+        "n_natural": 99,
+        "unclosed_think_natural": 0.3333,
+        "answer_coverage_natural": 0.8283,
+        "stop_reasons_share": {
+          "limit_in_think": 0.0288,
+          "limit_in_tool_response": 0.0192,
+          "turn_end": 0.9519
+        },
+        "unclosed_rule_shift": 0.0032
+      },
+      {
+        "state": "sft_v13_21500",
+        "budget": 4096,
+        "unclosed_think": 0.5865,
+        "tool_call": 0.5769,
+        "answer_coverage": 0.4038,
+        "truncated": 0.4712,
+        "looped": 0.0577,
+        "median_len": 1027.0,
+        "p90_len": 4096.0,
+        "mean_len": 2082.25,
+        "cyr_think": 0.5696,
+        "cyr_answer": 0.1901,
+        "natural_stop_share": 0.5288,
+        "n": 104,
+        "checkpoint": "/home/user/s3aq-ckpts/sft_probe_21500.pt",
+        "checkpoint_sha256": "72bcbe76a8bc93ba0cb796abebc0b7a4955c1f99a81400e106bd19091531b360",
+        "n_new_tokens_sum": 216554,
+        "share_at_budget": 0.4712,
+        "share_longer_than_4096": null,
+        "median_over_budget": 0.2507,
+        "n_natural": 55,
+        "unclosed_think_natural": 0.3636,
+        "answer_coverage_natural": 0.5636,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0385,
+          "limit_in_think": 0.1154,
+          "limit_in_tool_call": 0.3077,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.5288
+        },
+        "unclosed_rule_shift": 0.2229
+      }
+    ],
+    "unavailable": [],
+    "how": "база S3ap (19.09.2026, те же прибор/режим/набор) плюс парный контроль в те же сутки на свежем чекпойнте: парное сравнение не опирается ни на соседние шаги, ни на дрейф окружения"
+  },
+  "paired_comparison": {
+    "available": true,
+    "state": "sft_v13_21500",
+    "per_metric": {
+      "unclosed_think": {
+        "budget_4096": 0.5865,
+        "budget_8192": 0.5865,
+        "delta": 0.0,
+        "direction": "шум",
+        "significant": false
+      },
+      "answer_coverage": {
+        "budget_4096": 0.4038,
+        "budget_8192": 0.4038,
+        "delta": 0.0,
+        "direction": "шум",
+        "significant": false
+      },
+      "truncated": {
+        "budget_4096": 0.4712,
+        "budget_8192": 0.4423,
+        "delta": -0.0289,
+        "direction": "шум",
+        "significant": false
+      },
+      "median_len": {
+        "budget_4096": 1027.0,
+        "budget_8192": 1027.0,
+        "delta": 0.0,
+        "direction": "шум",
+        "significant": false
+      },
+      "tool_call": {
+        "budget_4096": 0.5769,
+        "budget_8192": 0.5769,
+        "delta": 0.0,
+        "direction": "шум",
+        "significant": false
+      },
+      "unclosed_think_natural": {
+        "budget_4096": 0.3636,
+        "budget_8192": 0.3793,
+        "delta": 0.0157,
+        "direction": "шум",
+        "significant": false
+      }
+    },
+    "unclosed_delta": 0.0,
+    "budget_explains_unclosed": false,
+    "reading": "на том же чекпойнте рост бюджета НЕ снизил обрывы (0.5865 → 0.5865), покрытие (0.4038 → 0.4038); сдвиг ниже порога значимости 0.1 — бюджет обрывы НЕ объясняет, число читается как свойство модели",
+    "probe_fate": {
+      "available": true,
+      "state": "sft_v13_21500",
+      "prompts_aligned_by_index": true,
+      "truncated_4096": 49,
+      "truncated_8192": 46,
+      "recovered_by_budget": {
+        "n": 3,
+        "indexes": [
+          87,
+          95,
+          99
+        ],
+        "still_unclosed_indexes": [
+          95,
+          99
+        ],
+        "closed_indexes": [
+          87
+        ]
+      },
+      "determinism": {
+        "finished_at_4096": 55,
+        "byte_identical_at_8192": 55,
+        "all_identical": true
+      },
+      "reading": "бюджет 8192 снял усечение у 3 ходов из 49; из них 2 остались с незакрытым `<think>` — у этих ходов незавершение не от бюджета",
+      "determinism_note": "ходы, дописанные при 4096 (55), при 8192 совпали побайтово (55 из 55): совпадение агрегатов на двух бюджетах частично следует из детерминизма greedy, поэтому само по себе свидетельством о модели не является — свидетельство даёт судьба ходов, зависящих от бюджета"
+    }
+  },
+  "verdict": {
+    "mechanism": "модель/обучение (бюджет не при чём)",
+    "unclosed_8192_natural": 0.3793,
+    "unclosed_8192_natural_cpt": 0.3333,
+    "unclosed_4096_natural_same_state": 0.3636,
+    "n_natural_8192": 58,
+    "rule_zone_natural": "insufficient_data",
+    "mechanism_natural": "недостаточно данных для вердикта",
+    "rule_zones_agree": false,
+    "rule_zones_note": "чтения расходятся: полное 0.5865 → degradation, по п.5 (только завершённые) 0.3793 → insufficient_data. Вердикт вынесен по полному чтению — ряду, на котором объявлено правило (порог 0.35 назван по уровню CPT 0.3365 из того же ряда); число по п.5 приведено рядом, решение читается по обоим",
+    "rule_zone_source": "полное чтение (все ходы) — ряд, на котором правило ADR-045 п.2 объявлено до замера",
+    "estimate_resolution": {
+      "why": "расстояние до границы зоны в сигмах — разрешение самой оценки, не сдвиг порогов: правило применяется как объявлено, а здесь видно, насколько число отделяет зоны при данном n",
+      "full_read": {
+        "value": 0.5865,
+        "n": 104,
+        "bound": 0.5,
+        "distance": 0.0865,
+        "two_sigma": 0.0966,
+        "sigmas": 1.79
+      },
+      "rule_5_natural": {
+        "value": 0.3793,
+        "n": 58,
+        "bound": 0.35,
+        "distance": 0.0293,
+        "two_sigma": 0.1274,
+        "sigmas": 0.46
+      },
+      "subsample_note": "0.5 — точка смеси, а не содержательная граница: полная доля 0.5865 лежит на 1.79σ выше неё, доля по естественно завершённым 0.3793 — на 1.89σ ниже (знак отклонения обратный), поэтому вердикт не сводится к «выше/ниже 0.5»: зону даёт объявленное правило, а механизм — парный контроль",
+      "reading": "число отделено от границы на 1.79σ — при n = 104 это пересечение границы, а не доказанное неравенство; решающим свидетельством механизма служит парный контроль (то же состояние на двух бюджетах), а не величина относительно порога"
+    },
+    "unclosed_8192": 0.5865,
+    "unclosed_8192_cpt": 0.3269,
+    "unclosed_4096_same_state": 0.5865,
+    "coverage_8192": 0.4038,
+    "coverage_8192_cpt": 0.8365,
+    "coverage_4096_same_state": 0.4038,
+    "rule_zone": "degradation",
+    "rule": {
+      "source": "ADR-045 п.2 (объявлено до замера)",
+      "cpt_level_max": 0.35,
+      "degradation_min": 0.5,
+      "reading": "обрывы при 8192 ≤ 0.35 → усечение; > 0.50 → деградация; между — недостаточно данных"
+    },
+    "coverage_restored_to_cpt": false,
+    "coverage_tolerance": 0.1,
+    "recommendation": "рекомендовать владельцу остановить стадию: бюджет не объясняет обрывы, причина в модели/обучении. Прогон дельта НЕ останавливала — решение владельца",
+    "recommend_stop_stage": true,
+    "what_would_change_decision": "число по п.5 (0.3793) ниже 0.35 — это сдвинуло бы вердикт в «усечение» (при полном чтении ниже 0.35); полное чтение выше 0.5 подтвердило бы деградацию на расширенной выборке",
+    "recommendation_caveat": "рекомендация опирается на полное чтение; при чтении по п.5 (ADR-045 п.5) число 0.3793 попадает в зону insufficient_data — решение принимается владельцем по обоим числам",
+    "decision_owner": "владелец стадии (дельта прогон не останавливала и не трогала)"
+  },
+  "length_growth": {
+    "budget_compared": 8192,
+    "per_state": [
+      {
+        "state": "cfinal",
+        "budget_4096_source": "парный контроль (те же сутки)",
+        "median_4096": 1164.0,
+        "median_8192": 1164.0,
+        "median_ratio": 1.0,
+        "p90_4096": 2233.0,
+        "p90_8192": 2233.0,
+        "share_at_budget_8192": 0.0192,
+        "share_at_budget_4096": 0.0481,
+        "share_longer_than_4096": 0.0481,
+        "median_over_budget": 0.1421,
+        "n_8192": 104,
+        "n_4096": 104,
+        "budget_note": "бюджет не ограничитель: в лимит упёрлось 0.0192 ходов (медиана 1164.0 — 0.14 бюджета)",
+        "budget_binds_minority": false,
+        "at_budget_8192_vs_4096": -0.0289
+      },
+      {
+        "state": "sft_v13_21500",
+        "budget_4096_source": "парный контроль (те же сутки)",
+        "median_4096": 1027.0,
+        "median_8192": 1027.0,
+        "median_ratio": 1.0,
+        "p90_4096": 4096.0,
+        "p90_8192": 8192.0,
+        "share_at_budget_8192": 0.4423,
+        "share_at_budget_4096": 0.4712,
+        "share_longer_than_4096": 0.4712,
+        "median_over_budget": 0.1254,
+        "n_8192": 104,
+        "n_4096": 104,
+        "budget_note": "бюджет ограничитель у меньшинства: медиана 1027.0 (0.13 бюджета) далека от лимита, но в лимит упёрлось 0.4423 ходов — распределение двумодальное, а не «длина выросла»",
+        "budget_binds_minority": true,
+        "at_budget_8192_vs_4096": -0.0289
+      }
+    ],
+    "share_at_budget_max": 0.4423,
+    "saturated_states": [],
+    "reading": "медиана ниже бюджета 8192 с запасом, но у sft_v13_21500 в лимит упёрлась заметная доля ходов (до 0.4423): рост длины не плавный — у части ходов ход не завершается вовсе, и по медиане этого не видно",
+    "method": "медиана/p90 — ближайший ранг (nearest-rank), как в приборе; сравнение по состояниям, измеренным на обоих бюджетах"
+  },
+  "unclosed_rule_applied": {
+    "rule": "незакрытый <think> — дефект только среди ходов, завершившихся естественно (stop_reason=turn_end); для усечённых показатель не определён",
+    "adr": "ADR-045 п.5",
+    "in_instrument": true,
+    "instrument_field": "aggregate.stop.natural.unclosed_think_share",
+    "instrument_note": "правило уже реализовано прибором (`stop_breakdown` → `natural`); правка tools/probe_language_split.py не делалась — она сломала бы тождество прибора с базой S3ap (проверяется хешем файла)",
+    "per_state": [
+      {
+        "state": "sft_v13_21500",
+        "budget": 8192,
+        "source": "замер 8192",
+        "n_all": 104,
+        "n_natural": 58,
+        "unclosed_all": 0.5865,
+        "unclosed_natural": 0.3793,
+        "shift": 0.2072,
+        "answer_coverage_all": 0.4038,
+        "answer_coverage_natural": 0.5517
+      },
+      {
+        "state": "cfinal",
+        "budget": 8192,
+        "source": "замер 8192",
+        "n_all": 104,
+        "n_natural": 102,
+        "unclosed_all": 0.3269,
+        "unclosed_natural": 0.3333,
+        "shift": -0.0064,
+        "answer_coverage_all": 0.8365,
+        "answer_coverage_natural": 0.8333
+      },
+      {
+        "state": "sft_v13_21500",
+        "budget": 4096,
+        "source": "парный замер 4096 (те же сутки)",
+        "n_all": 104,
+        "n_natural": 55,
+        "unclosed_all": 0.5865,
+        "unclosed_natural": 0.3636,
+        "shift": 0.2229,
+        "answer_coverage_all": 0.4038,
+        "answer_coverage_natural": 0.5636
+      }
+    ],
+    "max_abs_shift": 0.2229,
+    "shifted_up_states": [
+      "sft_v13_21500 (бюджет 8192, замер 8192)",
+      "sft_v13_21500 (бюджет 4096, парный замер 4096 (те же сутки))"
+    ],
+    "shifted_down_states": [
+      "cfinal (бюджет 8192, замер 8192)"
+    ],
+    "reading": "правило меняет число обрывов до 0.2229: полное чтение завышало его на состояниях sft_v13_21500 (бюджет 8192, замер 8192), sft_v13_21500 (бюджет 4096, парный замер 4096 (те же сутки)) и занижало на cfinal (бюджет 8192, замер 8192); вердикт считается по обеим величинам",
+    "caveat": "выборка «только завершённые» меньше полной (у усечённых состояний — на долю усечений), поэтому метрика по правилу шумнее; она идёт рядом с полным чтением, а не вместо него"
+  },
+  "measurement_cost": {
+    "available": true,
+    "source": "runs/s3aq-budget-8192-20260920/resume_probe.log",
+    "log_marks": 7,
+    "leg_a_8192": {
+      "budget": 8192,
+      "probes": 208,
+      "seconds": 16408,
+      "hours": 4.56,
+      "tokens": 540158,
+      "tokens_per_s": 32.9,
+      "s_per_probe": 78.9
+    },
+    "leg_b_4096": {
+      "budget": 4096,
+      "probes": 208,
+      "seconds": 5233,
+      "hours": 1.45,
+      "tokens": 334658,
+      "tokens_per_s": 64.0,
+      "s_per_probe": 25.2
+    },
+    "measured_total_h": 6.01,
+    "extrapolated_further_measurement": {
+      "budget": 12288,
+      "n_probes": 208,
+      "lower_h": 4.6,
+      "upper_h": 6.4,
+      "pair_4096_h": 1.5
+    },
+    "basis": "секунды — по отметкам журнала добора; токены — суммой n_new_tokens по пробам отчётов; темп — отношением, а не оценкой",
+    "caveat": "числа этапов A/B включают загрузку модели и кодирование промптов, то есть цена прогона целиком, а не чистой генерации; оценка добора — экстраполяция по измеренному темпу того же прибора, а не замер"
+  },
+  "unavailable_states": {
+    "states": [],
+    "why": "точки v13@500/5000/9000, снятые S3ap на 4096, удалены ретенцией прогона SFT (PROBE_KEEP_LAST = 24 пробы: держатся последние 24, более старые стираются при записи новых). Перемерять их на 8192 нечем — файлов нет",
+    "consequence": "таблица «состояние × бюджет» полна там, где состояние измеримо; для 5000/9000 столбца 8192 нет, и он не заменяется другим шагом: подмена сдвинула бы вывод"
+  },
+  "answers": {
+    "a_obryvy_8192": 0.5865,
+    "a_obryvy_8192_cpt": 0.3269,
+    "b_coverage_8192": 0.4038,
+    "b_coverage_restored_to_cpt": false,
+    "c_zone": "degradation",
+    "d_length_growth": "медиана ниже бюджета 8192 с запасом, но у sft_v13_21500 в лимит упёрлась заметная доля ходов (до 0.4423): рост длины не плавный — у части ходов ход не завершается вовсе, и по медиане этого не видно",
+    "e_rule_natural": "правило меняет число обрывов до 0.2229: полное чтение завышало его на состояниях sft_v13_21500 (бюджет 8192, замер 8192), sft_v13_21500 (бюджет 4096, парный замер 4096 (те же сутки)) и занижало на cfinal (бюджет 8192, замер 8192); вердикт считается по обеим величинам",
+    "f_zone_by_rule": "degradation",
+    "f_zone_by_rule_natural": "insufficient_data",
+    "f_zones_agree": false
+  },
+  "open_questions": [
+    "Точки v13@500/5000/9000 утрачены ретенцией: полного «состояние × бюджет» по ним не будет. Нужно ли менять протокол проб так, чтобы нужные точки пиннились до прогона (сейчас пиннинг делает цепочка замера — задним числом это не помогает).",
+    "Манифест AD-2 в каталоге один и описывает последний прогон (парный контроль 4096), а решающий этап 8192 своего манифеста не оставил: нужен ли манифест на КАЖДЫЙ этап каталога (или один сводный), чтобы факт прогона не терялся при доборе?",
+    "Чтения расходятся (полное 0.5865 → деградация, по п.5 0.3793 → промежуточная зона): какой ряд владелец считает показателем дефекта? Расхождение — не точность, а определение метрики, и домером оно не закрывается: 0.3793 стоит в 0.46σ от границы 0.35, то есть для отделения нужно n порядка тысячи.",
+    "32 из 104 ходов (0.3077) упираются в лимит **внутри tool_call**, причём доля одна и та же при 4096 и 8192 — то есть от бюджета не зависит: считать ли незавершённый вызов инструмента отдельным дефектом формата/агентности, независимым от обрывов `<think>`? Сейчас он попадает в общую долю усечений.",
+    "Если вердикт — «усечение»: рост длины рассуждений остаётся открытой проблемой. Что выбираем — нормирование длины в данных, предел длины в обучении или бюджет инференса ≥ 8192 как норма (ADR-045 п.3)?",
+    "Порог значимости 0.10 (≈2σ при n = 104) объявлен в своде; различия 5–10 п.п. остаются неразличимыми, и это ограничение метода, а не результат замера."
+  ],
+  "assumptions": [
+    "Числа бюджета 4096 там, где состояние не перемерялось, берутся из S3ap (те же прибор, режим, набор промптов, batch 8) — это нормативная база, а не новая база критерия.",
+    "Парный контроль 4096 снят в те же сутки на том же чекпойнте, что и 8192: именно он, а не соседние шаги, отвечает на вопрос «снял ли бюджет обрывы».",
+    "Свежая точка выбирается правилом «устоявшийся файл» (mtime > 180 с, размер не меняется 20 с) и пиннуется локально: прогон SFT пишет и удаляет чекпойнты прямо во время замера.",
+    "Правило ADR-045 п.5 уже реализовано прибором (aggregate.stop.natural) — файл прибора не правился, иначе сломалось бы тождество с базой S3ap.",
+    "Вердикт считается по тому же ряду, на котором правило ADR-045 п.2 объявлено до замера: порог 0.35 назван по уровню CPT из таблицы ADR-045 (0.3365) — это полное чтение (все ходы). Число по правилу п.5 (только естественно завершённые ходы) приводится рядом второй зоной; при расхождении зон названы обе, а не выбрана удобная — ряд не подменяется после того, как число стало известно.",
+    "Строка sft_probe_10000.pt в списке пиннинга приведена к факту (файла нет — ретенция прогона SFT) пометкой removed_by_retention, а не удалением: ADR-028 п.1 — факт первичен, след сохраняется. Снимок списка лежит в каталоге прогона (pin_manifest_snapshot), sha256 сверяется с источником."
+  ],
+  "problems": []
+}

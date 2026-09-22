@@ -1443,7 +1443,7 @@ mod tests {
         std::fs::create_dir_all(skill_md.parent().expect("parent")).expect("dirs");
         std::fs::write(
             &skill_md,
-            "---\nname: arch-core\ndescription: Архитектурное ядро банка: каркас решений по ADR.\n---\n\
+            "---\nname: arch-core\ndescription: Архитектурное ядро ML-платформы: каркас решений по ADR.\n---\n\
              # Arch Core\n\nМетодика принятия решений: фиксируйте ADR в каталоге model/adr.\n",
         )
         .expect("SKILL.md");

@@ -1,0 +1,522 @@
+{
+  "schema": "s3ap-format-monitor/1",
+  "tool": "tools/assemble_s3ap_evidence.py",
+  "stage": "S3ap",
+  "title": "Метрики формата на точках SFT(v13) против CPT-базы",
+  "date": "2026-09-20T03:02:48.057021+00:00",
+  "status": "complete",
+  "problem": "нормализация SFT-набора (ADR-042) должна была снять обрывы рассуждений, вернуть агентность и поднять покрытие ответа; проверка — числами, не дожидаясь конца стадии",
+  "artifacts": {
+    "report": "runs/s3ap-format-monitor-20260919/format_wide_standard.json",
+    "report_sha256": "11ec1baaf75e46735afbba0d3a582734f798821050d62d056e48c121e0679fe2",
+    "identity_gate": "runs/s3ap-format-monitor-20260919/identity_core_cfinal.json",
+    "identity_reference": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+    "baseline_source": "runs/s3al-decoding-protocol-20260918/language_wide_standard.json",
+    "chain": "runs/s3ap-format-monitor-20260919/chain.sh",
+    "run_manifest": "runs/s3ap-format-monitor-20260919/run_manifest.json",
+    "device_check": "runs/s3ap-format-monitor-20260919/device_check.json",
+    "probe_record": "runs/s3ap-format-monitor-20260919/probe_record.json",
+    "sha256": {
+      "report": "11ec1baaf75e46735afbba0d3a582734f798821050d62d056e48c121e0679fe2",
+      "chain": "298ad046dd4b61314fcff52eb35ff51db5f946f311f6dbc07d4ff05641a64533",
+      "tool": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276"
+    }
+  },
+  "framework": {
+    "tool": "tools/probe_language_split.py",
+    "tool_sha256": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "mode": "штатный (greedy + запрет повторов 4-грамм, ADR-041); --legacy-decoding не использовался",
+    "n_per_state": 104,
+    "prompts_set": "wide",
+    "max_new_tokens": 4096,
+    "stop_at_turn_end": true,
+    "device": "cuda",
+    "where": "локальная RTX 4080 SUPER (GB10 занят стадией SFT — AD-5)",
+    "decoding_protocol": {
+      "default_mode": "greedy + запрет повторов 4-грамм (no_repeat_ngram=4)",
+      "standard_no_repeat_ngram": 4,
+      "no_repeat_ngram": 4,
+      "no_repeat_ngram_requested": null,
+      "standard": true,
+      "legacy_decoding": false,
+      "source": "умолчание прибора (STANDARD_NO_REPEAT_NGRAM)",
+      "allowed_for_conclusions": true,
+      "rules": {
+        "greedy_only_forbidden": "любые выводы о формате и языке по генерациям без запрета повторов n-грамм запрещены (S3al, ADR-040 п.6)",
+        "sampling_is_extra_check": "sampling — дополнительная проверка свободного режима, а не штатный режим: он петлю снижает частично (0.3333), а не снимает",
+        "legacy_is_for_identity": "--legacy-decoding существует для воспроизведения прежних замеров побайтово (мост тождества), а не для новых выводов"
+      }
+    }
+  },
+  "instrument_identity": {
+    "tool_sha256_current": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "tool_sha256_at_baseline": "99dafa8d9551caaa57b770d4cd321da6f0c09b28deb1885500034c9d62eeb276",
+    "same_tool_file": true,
+    "core_byte_identity": {
+      "reference": "runs/s3ai-probes-20260917/identity_core_cfinal.json",
+      "checked": true,
+      "n": 5,
+      "byte_identical": true
+    },
+    "reading": "прибор тот же: файл совпал по хешу и ядро проб совпало побайтово"
+  },
+  "states": [
+    {
+      "state": "cfinal",
+      "step": null,
+      "n": 104,
+      "checkpoint": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "unclosed_think": 0.3365,
+      "tool_call": 0.7308,
+      "answer_coverage": 0.8269,
+      "truncated": 0.0481,
+      "looped": 0.0096,
+      "median_len": 1164.0,
+      "cyr_think": 0.3072,
+      "cyr_answer": 0.3964,
+      "stray_think_close": 0.3942,
+      "has_think": 0.8654,
+      "marker_pairing_ok": 0.2693,
+      "think_blocks_mean": 1.6538,
+      "natural_stop_share": 0.9519,
+      "deltas_vs_cpt": null
+    },
+    {
+      "state": "sft_v13_0500",
+      "step": 500,
+      "n": 104,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_500.pt",
+      "unclosed_think": 0.1731,
+      "tool_call": 0.5,
+      "answer_coverage": 0.5865,
+      "truncated": 0.2981,
+      "looped": 0.0192,
+      "median_len": 408.0,
+      "cyr_think": 0.5561,
+      "cyr_answer": 0.3705,
+      "stray_think_close": 0.2404,
+      "has_think": 0.7115,
+      "marker_pairing_ok": 0.5865,
+      "think_blocks_mean": 1.0288,
+      "natural_stop_share": 0.7019,
+      "deltas_vs_cpt": {
+        "unclosed_think": {
+          "delta": -0.1634,
+          "direction": "лучше",
+          "significant": true
+        },
+        "tool_call": {
+          "delta": -0.2308,
+          "direction": "хуже",
+          "significant": true
+        },
+        "answer_coverage": {
+          "delta": -0.2404,
+          "direction": "хуже",
+          "significant": true
+        },
+        "truncated": {
+          "delta": 0.25,
+          "direction": "хуже",
+          "significant": true
+        },
+        "looped": {
+          "delta": 0.0096,
+          "direction": "шум",
+          "significant": false
+        }
+      }
+    },
+    {
+      "state": "sft_v13_5000",
+      "step": 5000,
+      "n": 104,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_5000.pt",
+      "unclosed_think": 0.6538,
+      "tool_call": 0.5865,
+      "answer_coverage": 0.3654,
+      "truncated": 0.4423,
+      "looped": 0.0096,
+      "median_len": 928.0,
+      "cyr_think": 0.6001,
+      "cyr_answer": 0.2404,
+      "stray_think_close": 0.0769,
+      "has_think": 0.9808,
+      "marker_pairing_ok": 0.2693,
+      "think_blocks_mean": 1.1058,
+      "natural_stop_share": 0.5577,
+      "deltas_vs_cpt": {
+        "unclosed_think": {
+          "delta": 0.3173,
+          "direction": "хуже",
+          "significant": true
+        },
+        "tool_call": {
+          "delta": -0.1443,
+          "direction": "хуже",
+          "significant": true
+        },
+        "answer_coverage": {
+          "delta": -0.4615,
+          "direction": "хуже",
+          "significant": true
+        },
+        "truncated": {
+          "delta": 0.3942,
+          "direction": "хуже",
+          "significant": true
+        },
+        "looped": {
+          "delta": 0.0,
+          "direction": "шум",
+          "significant": false
+        }
+      }
+    },
+    {
+      "state": "sft_v13_9000",
+      "step": 9000,
+      "n": 104,
+      "checkpoint": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_probe_9000.pt",
+      "unclosed_think": 0.7596,
+      "tool_call": 0.6154,
+      "answer_coverage": 0.3269,
+      "truncated": 0.5288,
+      "looped": 0.0673,
+      "median_len": 4096.0,
+      "cyr_think": 0.5434,
+      "cyr_answer": 0.1612,
+      "stray_think_close": 0.0481,
+      "has_think": 0.9327,
+      "marker_pairing_ok": 0.1923,
+      "think_blocks_mean": 1.1923,
+      "natural_stop_share": 0.4712,
+      "deltas_vs_cpt": {
+        "unclosed_think": {
+          "delta": 0.4231,
+          "direction": "хуже",
+          "significant": true
+        },
+        "tool_call": {
+          "delta": -0.1154,
+          "direction": "хуже",
+          "significant": true
+        },
+        "answer_coverage": {
+          "delta": -0.5,
+          "direction": "хуже",
+          "significant": true
+        },
+        "truncated": {
+          "delta": 0.4807,
+          "direction": "хуже",
+          "significant": true
+        },
+        "looped": {
+          "delta": 0.0577,
+          "direction": "шум",
+          "significant": false
+        }
+      }
+    }
+  ],
+  "baseline_cpt": {
+    "source": "runs/s3al-decoding-protocol-20260918/language_wide_standard.json#states.cfinal.aggregate",
+    "how": "штатный режим (greedy + запрет повторов 4-грамм), набор wide, n=104; числа взяты из прежнего замера, а не пересняты заново",
+    "adr": "ADR-042 п.5",
+    "metrics": {
+      "unclosed_think": 0.3365,
+      "tool_call": 0.7308,
+      "answer_coverage": 0.8269,
+      "truncated": 0.0481,
+      "looped": 0.0096,
+      "median_len": 1164.0,
+      "cyr_think": 0.3072,
+      "cyr_answer": 0.3964,
+      "stray_think_close": 0.3942,
+      "has_think": 0.8654,
+      "n": 104,
+      "marker_pairing_ok": 0.2693,
+      "think_blocks_mean": 1.6538,
+      "stop_reasons_share": {
+        "limit_in_think": 0.0288,
+        "limit_in_tool_response": 0.0192,
+        "turn_end": 0.9519
+      },
+      "natural_stop_share": 0.9519
+    }
+  },
+  "defect_v12_reference": {
+    "source": "runs/s3al-decoding-protocol-20260918/language_wide_standard.json#states.{sft_resume_24000,sft_resume_28000}.aggregate",
+    "how": "те же прибор и режим на дефектном наборе v12 (для контраста)",
+    "metrics": {
+      "sft_resume_24000": {
+        "unclosed_think": 0.5096,
+        "tool_call": 0.5288,
+        "answer_coverage": 0.6346,
+        "truncated": 0.3365,
+        "looped": 0.0385,
+        "median_len": 347.0,
+        "cyr_think": 0.7949,
+        "cyr_answer": 0.2679,
+        "stray_think_close": 0.0865,
+        "has_think": 1.0,
+        "n": 104,
+        "marker_pairing_ok": 0.4039,
+        "think_blocks_mean": 1.4519,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0288,
+          "limit_in_think": 0.1154,
+          "limit_in_tool_call": 0.1635,
+          "limit_in_tool_response": 0.0288,
+          "turn_end": 0.6635
+        },
+        "natural_stop_share": 0.6635
+      },
+      "sft_resume_28000": {
+        "unclosed_think": 0.5673,
+        "tool_call": 0.5673,
+        "answer_coverage": 0.5288,
+        "truncated": 0.4712,
+        "looped": 0.0385,
+        "median_len": 2574.0,
+        "cyr_think": 0.7311,
+        "cyr_answer": 0.2318,
+        "stray_think_close": 0.0769,
+        "has_think": 1.0,
+        "n": 104,
+        "marker_pairing_ok": 0.3558,
+        "think_blocks_mean": 1.4423,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0865,
+          "limit_in_think": 0.0865,
+          "limit_in_tool_call": 0.2885,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.5288
+        },
+        "natural_stop_share": 0.5288
+      }
+    }
+  },
+  "baseline_reproduction": {
+    "checked": true,
+    "metrics_reproduced": true,
+    "differences": {},
+    "how": "CPT-финал снят в этом же прогоне тем же прибором и флагами; вердикт строится на сравнении с ним (один процесс), а эталон ADR-042 п.5 остаётся нормативной базой"
+  },
+  "verdict": {
+    "obryvy": {
+      "metric": "unclosed_think",
+      "base_cpt": 0.3365,
+      "defect_v12_reference": 0.5673,
+      "per_state": [
+        {
+          "state": "sft_v13_0500",
+          "step": 500,
+          "value": 0.1731,
+          "delta": -0.1634,
+          "direction": "лучше",
+          "significant": true,
+          "better": true
+        },
+        {
+          "state": "sft_v13_5000",
+          "step": 5000,
+          "value": 0.6538,
+          "delta": 0.3173,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        },
+        {
+          "state": "sft_v13_9000",
+          "step": 9000,
+          "value": 0.7596,
+          "delta": 0.4231,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        }
+      ],
+      "summary": "частично — лучше CPT не на всех точках",
+      "lower_is_better": true
+    },
+    "agentnost": {
+      "metric": "tool_call",
+      "base_cpt": 0.7308,
+      "defect_v12_reference": 0.5673,
+      "per_state": [
+        {
+          "state": "sft_v13_0500",
+          "step": 500,
+          "value": 0.5,
+          "delta": -0.2308,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        },
+        {
+          "state": "sft_v13_5000",
+          "step": 5000,
+          "value": 0.5865,
+          "delta": -0.1443,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        },
+        {
+          "state": "sft_v13_9000",
+          "step": 9000,
+          "value": 0.6154,
+          "delta": -0.1154,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        }
+      ],
+      "summary": "нет — хуже CPT значимо",
+      "lower_is_better": false
+    },
+    "pokrytie": {
+      "metric": "answer_coverage",
+      "base_cpt": 0.8269,
+      "defect_v12_reference": 0.5288,
+      "per_state": [
+        {
+          "state": "sft_v13_0500",
+          "step": 500,
+          "value": 0.5865,
+          "delta": -0.2404,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        },
+        {
+          "state": "sft_v13_5000",
+          "step": 5000,
+          "value": 0.3654,
+          "delta": -0.4615,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        },
+        {
+          "state": "sft_v13_9000",
+          "step": 9000,
+          "value": 0.3269,
+          "delta": -0.5,
+          "direction": "хуже",
+          "significant": true,
+          "better": false
+        }
+      ],
+      "summary": "нет — хуже CPT значимо",
+      "lower_is_better": false
+    },
+    "net_effect": {
+      "worse_than_cpt": [
+        "agentnost",
+        "pokrytie"
+      ],
+      "better_than_cpt": [
+        "obryvy"
+      ],
+      "reading": "нормализация данных не перенесла формат на уровень CPT: как минимум одна метрика значимо хуже CPT",
+      "tolerance": 0.1,
+      "tolerance_note": "порог значимости 0.10 объявлен до чтения чисел (≈2σ доли при n=104)",
+      "defect_data_hypothesis": "дефект данных был не единственной причиной деградации формата"
+    }
+  },
+  "trends": {
+    "unclosed_think": {
+      "points": [
+        [
+          500,
+          0.1731
+        ],
+        [
+          5000,
+          0.6538
+        ],
+        [
+          9000,
+          0.7596
+        ]
+      ],
+      "first": 0.1731,
+      "last": 0.7596,
+      "direction": "растёт",
+      "slope_per_1k_steps": 0.069
+    },
+    "tool_call": {
+      "points": [
+        [
+          500,
+          0.5
+        ],
+        [
+          5000,
+          0.5865
+        ],
+        [
+          9000,
+          0.6154
+        ]
+      ],
+      "first": 0.5,
+      "last": 0.6154,
+      "direction": "растёт",
+      "slope_per_1k_steps": 0.0136
+    },
+    "answer_coverage": {
+      "points": [
+        [
+          500,
+          0.5865
+        ],
+        [
+          5000,
+          0.3654
+        ],
+        [
+          9000,
+          0.3269
+        ]
+      ],
+      "first": 0.5865,
+      "last": 0.3269,
+      "direction": "падает",
+      "slope_per_1k_steps": -0.0305
+    }
+  },
+  "recommendation": {
+    "recommendation": "продолжать под наблюдением: числа не дают основания ни остановить, ни закрыть вопрос",
+    "why": "часть метрик хуже CPT, часть в пределах шума или лучше — вопрос о валидности стадии остаётся открытым до следующих точек",
+    "worse_than_cpt": [
+      "agentnost",
+      "pokrytie"
+    ],
+    "within_noise": [],
+    "better_than_cpt": [
+      "obryvy"
+    ],
+    "next_checkpoint_proposal": "снять те же метрики на следующей доступной точке (шаг ~20000, ≈1/3 стадии) тем же прибором и режимом; решение об остановке — за владельцем стадии",
+    "decision_owner": "владелец стадии (сам прогон дельта не останавливала и не трогала)"
+  },
+  "answers": {
+    "a_obryvy": "частично — лучше CPT не на всех точках",
+    "b_agentnost": "нет — хуже CPT значимо",
+    "c_pokrytie": "нет — хуже CPT значимо"
+  },
+  "open_questions": [
+    "Точки 500/5000/свежая — это 0.8–14 % стадии (66 157 шагов): числа говорят о начале обучения, а не о его исходе. Нужна ли ещё одна точка (~шаг 20000) перед решением об остановке — решает владелец.",
+    "Эталон ADR-042 п.5 снят на n=104 в штатном режиме на том же наборе wide; если архитектор считает нужным переснять CPT-финал целиком как новую базу критерия (а не как эталон сравнения) — это отдельное решение.",
+    "Порог значимости 0.10 (≈2σ) объявлен в приборе свода; при n=104 различие 5–10 п.п. остаётся неразличимым, и это ограничение метода, а не результат."
+  ],
+  "assumptions": [
+    "Числа дефектного SFT (v12) взяты из того же замера S3al (sft_resume_24000/sft_resume_28000) — это историческая линия отсчёта, а не новая база.",
+    "Свежая точка выбирается правилом «устоявшийся файл» (mtime > 180 с, размер не меняется 20 с) — прогон пишет чекпойнты прямо во время замера.",
+    "Шаг состояния читается из имени чекпойнта (sft_probe_<шаг>.pt)."
+  ],
+  "problems": []
+}

@@ -1,0 +1,190 @@
+{
+ "tool": "assemble_s3ao_evidence.py",
+ "stage": "S3ao",
+ "title": "Домен-набор v3 из другого корпуса (чистый от обучения)",
+ "adr": [
+  "ADR-043 п.3",
+  "ADR-025 п.1/п.6",
+  "ADR-031 п.4",
+  "ADR-018"
+ ],
+ "date": "2026-09-19T06:49:00+00:00",
+ "status": "complete",
+ "problem": "domain_eval_v2.txt собран из того же семейства карточек, что обучающий корпус; определения концептов цитируются в <tool_response> траекторий, поэтому доменное отношение на нём частично показывает узнавание формулировок, а не обобщение (ADR-043 п.3)",
+ "source": {
+  "path": "~/Документы/КОД/gigachat/РАЗБОРЫ",
+  "kind": "архив русскоязычных ML/AI-разборов, отчётов и обзоров (DOCX/MD/TXT)",
+  "origin": "личный рабочий архив владельца: разборы статей, обзоры архитектур, отчёты по проектам, учебные материалы. Другой корпус, чем библиотека концептов Ariadna, из которой собран обучающий CPT-корпус",
+  "license_note": "internal_only (AD-8): документы внутренние, часть помечена CONFIDENTIAL, в тексте есть имена и рабочий контекст. Публикация производных запрещена; набор живёт на gb10-shared и в git не попадает (AD-4 — симлинк на сетевой диск)",
+  "selection": "детерминированный отбор: сид, разрез, фильтры (см. карточку сборки)"
+ },
+ "dataset": {
+  "path": "/home/user/gb10-shared/datasets/domain_eval_v3.txt",
+  "sha256": "a0b35f3f10142a2f2bbf962c6262bfb4444b88d22f8a99ad6b27a3a717dd3f60",
+  "bytes": 910943,
+  "docs": 200,
+  "tokens": 176149,
+  "docs_counted": 200,
+  "tokens_previous_set": 125322,
+  "sources_used": 200,
+  "length": {
+   "min": 115,
+   "median": 2786,
+   "max": 4193,
+   "mean": 2754.1,
+   "chars_total": 550813
+  },
+  "builder_card": "runs/s3ao-domain-v3-20260919/domain-eval-v3-card.json"
+ },
+ "overlap": {
+  "tool": "tools/check_measurement_overlap.py",
+  "window_size": 12,
+  "units_seen": 11235142,
+  "units_skipped_too_long": 0,
+  "docs_with_training": 0,
+  "ngram_docs_shared_by_train": {
+   "SFT13": 0,
+   "SFT12": 0,
+   "CPT10.1": 0,
+   "CPTFULL": 0,
+   "CPT10": 0,
+   "REPLAY": 0,
+   "CTRL100": 0
+  },
+  "ngram_docs_shared_total": 0,
+  "ngram_windows_shared": 0,
+  "ngram_windows_shared_note": "ноль следует из нуля документов с общими окнами и подтверждён прямой выкладкой окон против SFT v13 и CPT v10.1",
+  "docs_total": 200,
+  "vs_previous_domain": {
+   "set": "DOMAIN2 (domain_eval_v2.txt)",
+   "docs_with_training": 200,
+   "ngram_docs_shared_total": 200,
+   "ngram_docs_shared_by_train": {
+    "SFT13": 119,
+    "SFT12": 119,
+    "CPT10.1": 156,
+    "CPTFULL": 200,
+    "CPT10": 156,
+    "REPLAY": 0,
+    "CTRL100": 0
+   },
+   "docs_total": 200
+  },
+  "vs_K1K2": {
+   "docs": 0,
+   "ngram_docs_shared": 0,
+   "by_train": {
+    "K1": 0,
+    "K2": 0
+   },
+   "report": "runs/s3ao-domain-v3-20260919/overlap_v3_vs_K1K2.json"
+  },
+  "verdict": "нулевое пересечение документов с обучением — гейт ADR-025 п.1 пройден; 12-граммы названы числом (п.6)",
+  "matrix_report": "runs/s3ao-domain-v3-20260919/overlap_v2_v3_vs_all_training.json"
+ },
+ "residual_v101": {
+  "question": "остаток cpt_corpus_v10.1.txt, не попавший в обучающие чанки, как альтернативный источник",
+  "tokens_total": 60064649,
+  "tokens_used": 60063744,
+  "tokens_residual": 905,
+  "residual_units": 2,
+  "residual_chars": 16272,
+  "chunks_match": true,
+  "verdict": "не годится: остаток — две единицы (16 КБ) промпт-шаблона в хвосте корпуса, а не тексты домена; набора из них не собрать",
+  "report": "runs/s3ao-domain-v3-20260919/v101_residual.json"
+ },
+ "baseline": {
+  "set": "v3_domain",
+  "ppl": 13.559192599924007,
+  "ceiling_2x": 27.118385199848014,
+  "previous_set": {
+   "set": "v2_domain",
+   "ppl": 11.134115855539092,
+   "ceiling_2x": 22.268231711078183
+  },
+  "where": "локальная RTX 4080 (стенд GB10 занят стадией SFT — AD-5)",
+  "instrument": "tools/calib_ppl_probe.py → tools/ppl_probe.py:measure",
+  "base_restored": true
+ },
+ "states_measured": {
+  "cpt_final": {
+   "ckpt": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+   "ckpt_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+   "v3_domain": {
+    "ppl": 10.158863932877162,
+    "ratio_to_base": 0.7492233669528449
+   },
+   "v2_domain": {
+    "ppl": 3.852687296332968,
+    "ratio_to_base": 0.34602543626455096
+   }
+  },
+  "sft_fresh": {
+   "ckpt": "/home/user/gb10-shared/sft-20260919-0810/checkpoints/sft_checkpoint_1200.pt",
+   "ckpt_sha256": "334dd9dfb5c9a5c44c6d4efe31a8470e350e500a982487c779af3caeb794afb3",
+   "v3_domain": {
+    "ppl": 10.423097081264084,
+    "ratio_to_base": 0.768710747668154
+   },
+   "v2_domain": {
+    "ppl": 3.9600861718623834,
+    "ratio_to_base": 0.35567136387325154
+   }
+  },
+  "report_cpt": "runs/s3ao-domain-v3-20260919/ppl_cpt_final.json",
+  "report_sft": "runs/s3ao-domain-v3-20260919/ppl_sft_fresh.json"
+ },
+ "source_integrity": {
+  "before": "runs/s3ao-domain-v3-20260919/source_hashes_before.json",
+  "after": "runs/s3ao-domain-v3-20260919/source_hashes_after.json",
+  "unchanged": true,
+  "files": {
+   "domain_eval_v2": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+   "domain_eval_v1": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+   "general_eval_v3": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+   "general_eval_k2": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+   "cpt_corpus_v10.1": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+   "cpt_corpus_full": "9dfce433b7fd1c262343123d8f8aeed4fe2aa7d4c3f6ede573985575618504e5",
+   "cpt_corpus_v10": "4f1db3ebdaf7861cd807d1aff710b0337565f1a28d2217a52ca5d38ccbe36267",
+   "general_replay_ru": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+   "sft_train_v13_fixed": "71c4bd2b011b210b906e7c77eca373ad094c14264b86353189faaa0596983b01",
+   "sft_train_v12": "39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6"
+  }
+ },
+ "dataset_fitness": {
+  "verdict": "valid как решающий домен-набор",
+  "why": [
+   "нулевое пересечение документов с обучением (ADR-025 п.1) — гейт пройден против семи обучающих входов, включая оба CPT-корпуса, вики-реплей и оба SFT-набора",
+   "12-граммы названы числом против каждого входа (п.6) — см. overlap",
+   "объём и различимость: 200 документов, длины в диапазоне, при котором прибор читает документ целиком (обрезание до 1024 токенов)",
+   "источник — другой корпус, а не то же семейство карточек: падение доменного отношения на нём нельзя объяснить знакомством с текстом обучения"
+  ],
+  "limits": [
+   "архив владельца, а не внешний публичный корпус: источник внутренний, воспроизводимость за пределами контура ограничена (AD-8, internal_only)",
+   "жанр шире, чем у v2 (рабочие отчёты, обзоры, учебные материалы), поэтому абсолютная шкала ниже/выше v2 сравнима только как отношение к базе"
+  ]
+ },
+ "registry_updated": {
+  "branch": "arch/laguna-control-arms",
+  "file": "docs/specs/DOMAIN-EVAL-V3.md",
+  "role": "deciding_domain_v3",
+  "canon": "реестр измерительных наборов — docs/specs/EVAL-SETS.md в ветке arch/laguna-eval-set; здесь короткий раздел, потому что канон живёт в другой ветке (номера ADR между ветками не уникальны)"
+ },
+ "artifacts": {
+  "builder_card": "runs/s3ao-domain-v3-20260919/domain-eval-v3-card.json",
+  "overlap_matrix": "runs/s3ao-domain-v3-20260919/overlap_v2_v3_vs_all_training.json",
+  "overlap_k1k2": "runs/s3ao-domain-v3-20260919/overlap_v3_vs_K1K2.json",
+  "residual": "runs/s3ao-domain-v3-20260919/v101_residual.json",
+  "probe_cpt": "runs/s3ao-domain-v3-20260919/ppl_cpt_final.json",
+  "probe_sft": "runs/s3ao-domain-v3-20260919/ppl_sft_fresh.json",
+  "hashes_before": "runs/s3ao-domain-v3-20260919/source_hashes_before.json",
+  "hashes_after": "runs/s3ao-domain-v3-20260919/source_hashes_after.json"
+ },
+ "open_questions": [
+  "Читать ли доменный вердикт по v3 без оговорки ADR-043 п.3 — решает архитектор: набор чист по документам, но собран из архива владельца, а не из внешнего корпуса.",
+  "Что делать с v2: остаётся исторической шкалой или снимается с решающей роли полностью (сейчас v2 и v3 считаются в одном прогоне именно для сравнимости)."
+ ],
+ "assumptions": [
+  "Токены набора в отчёте — по прибору (документ обрезается до 1024 токенов), а не по полному тексту: иначе число не отвечало бы тому, что мерит прибор."
+ ]
+}

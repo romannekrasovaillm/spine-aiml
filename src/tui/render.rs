@@ -1800,38 +1800,35 @@ fn draw_input_state(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
         // Что происходит прямо сейчас: если выполняется инструмент — говорим
         // какой и сколько уже (долгая команда не выглядит «офлайном» модели),
         // иначе — таймер разгона самой модели.
-        let label = match app.running_tool() {
-            Some((name, action, secs)) => {
-                // action начинается с «: » (конвенция action_desc) — в строке
-                // состояния свой разделитель, дубль-двоеточие не нужно.
-                let what = match action.trim_start_matches(':').trim_start() {
-                    "" => name.to_string(),
-                    a => format!("{name}: {a}"),
-                };
-                format!(
-                    "{pulse} выполняется: {} · {}",
-                    truncate_chars(&what, 60),
-                    fmt_elapsed(secs)
-                )
-            }
-            None => {
-                let elapsed = app
-                    .thinking_elapsed()
-                    .map(|s| format!(" · {}", fmt_elapsed(s)))
-                    .unwrap_or_default();
-                match app.stream_stats() {
-                    // Видимый ответ уже стримится: сколько и с какой скоростью.
-                    Some((answer, _, secs)) if answer > 0 => {
-                        let (tok, rate) = stream_tok_rate(answer, secs);
-                        format!("{pulse} отвечает{elapsed} · ~{tok} ток · ~{rate} т/с")
-                    }
-                    // Пока только «мысли»: это тоже живой стрим — объём виден.
-                    Some((_, think, secs)) if think > 0 => {
-                        let (tok, rate) = stream_tok_rate(think, secs);
-                        format!("{pulse} модель думает{elapsed} · ~{tok} ток · ~{rate} т/с")
-                    }
-                    _ => format!("{pulse} модель думает{elapsed}"),
+        let label = if let Some((name, action, secs)) = app.running_tool() {
+            // action начинается с «: » (конвенция action_desc) — в строке
+            // состояния свой разделитель, дубль-двоеточие не нужно.
+            let what = match action.trim_start_matches(':').trim_start() {
+                "" => name.to_string(),
+                a => format!("{name}: {a}"),
+            };
+            format!(
+                "{pulse} выполняется: {} · {}",
+                truncate_chars(&what, 60),
+                fmt_elapsed(secs)
+            )
+        } else {
+            let elapsed = app
+                .thinking_elapsed()
+                .map(|s| format!(" · {}", fmt_elapsed(s)))
+                .unwrap_or_default();
+            match app.stream_stats() {
+                // Видимый ответ уже стримится: сколько и с какой скоростью.
+                Some((answer, _, secs)) if answer > 0 => {
+                    let (tok, rate) = stream_tok_rate(answer, secs);
+                    format!("{pulse} отвечает{elapsed} · ~{tok} ток · ~{rate} т/с")
                 }
+                // Пока только «мысли»: это тоже живой стрим — объём виден.
+                Some((_, think, secs)) if think > 0 => {
+                    let (tok, rate) = stream_tok_rate(think, secs);
+                    format!("{pulse} модель думает{elapsed} · ~{tok} ток · ~{rate} т/с")
+                }
+                _ => format!("{pulse} модель думает{elapsed}"),
             }
         };
         let mut spans = vec![Span::styled(
@@ -2013,7 +2010,7 @@ fn draw_status(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
             let room = left_budget.saturating_sub(used + 4); // «  · » + «…»
             if room >= 8 {
                 spans.push(Span::styled(
-                    format!("  · {}…", clip_display_width(&extra, room)),
+                    format!("  · {}…", clip_display_width(extra, room)),
                     style,
                 ));
             }

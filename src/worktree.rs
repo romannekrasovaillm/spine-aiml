@@ -940,7 +940,7 @@ mod tests {
         std::fs::write(dir.join("HYPOTHESES.json"), "{\"hits\":[]}\n").expect("write");
     }
 
-    /// Тест (г): post_accept доходит ДО уборки .arch-handoff — хук успевает
+    /// Тест (г): `post_accept` доходит ДО уборки .arch-handoff — хук успевает
     /// увидеть HYPOTHESES.json worktree.
     #[tokio::test]
     async fn accept_runs_post_accept_before_handoff_cleanup() {
@@ -975,7 +975,7 @@ mod tests {
         assert!(!path.exists(), "worktree убран после accept");
     }
 
-    /// include_hooks=false глушит post_accept (проверка маркером).
+    /// `include_hooks=false` глушит `post_accept` (проверка маркером).
     #[tokio::test]
     async fn accept_include_hooks_false_skips_post_accept() {
         let tmp = tempfile::tempdir().expect("tmp");
@@ -1001,7 +1001,7 @@ mod tests {
         assert!(repo.join("feature.md").is_file(), "merge выполнен");
     }
 
-    /// Тест (д): падающий post_accept (exit 3) не превращает accept в Err.
+    /// Тест (д): падающий `post_accept` (exit 3) не превращает accept в Err.
     #[tokio::test]
     async fn accept_failing_post_accept_hook_is_not_fatal() {
         let tmp = tempfile::tempdir().expect("tmp");

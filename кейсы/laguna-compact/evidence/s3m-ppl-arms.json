@@ -1,0 +1,822 @@
+{
+  "schema": "s3m-ppl-arms/1",
+  "stage": "S3m-2",
+  "status": "complete",
+  "date": "2026-09-16T13:16:04.671697+00:00",
+  "purpose": "PPL общего языка четырёх рук калибровки микса×LR против потолка ADR-022 (2× базы) — выбор конфига для полного CPT",
+  "decision_rule": {
+    "adr": "ADR-022 п.3(б)",
+    "criterion": "ppl_general(v1_general) ≤ 2× базы",
+    "set": "v1_general",
+    "why_this_set": "числа базы S3h (11.9319) сняты на v1_general, и критерий назван для v1; сравнение по другому набору несопоставимо",
+    "loss_not_used": "лосс микса между руками не сравнивается: у 25 % и 50 % разный состав данных, меньший лосс там означает другую смесь, а не лучшее усвоение (требование дельты)"
+  },
+  "instrument": {
+    "measure": "tools/calib_ppl_probe.py → tools/ppl_probe.py:measure (методика _ppl_eval S3h)",
+    "split": "text.split('\\n---\\n'), len(doc.strip()) > 50, encode(add_special_tokens=False)[:1024], len(enc) > 8",
+    "batch": 4,
+    "max_len": 1024,
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "host": "локальная машина (RTX 4080 SUPER), НЕ стенд GB10",
+    "tokenizer_setup": "pipeline (8 спецтокенов + resize)",
+    "base_weights": "/home/user/gb10-shared/models-store/experiments/kda-graft/models/qwen2.5-0.5b-base",
+    "load_checkpoint": "пайплайн прогона руки:_load_ckpt_with_resize",
+    "loader_same_across_arms": true,
+    "loaders": {
+      "25-0.35": {
+        "file": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-mix-lr-calibration/кейсы/laguna-compact/runs/calib-25-0.35-20260916-0820/laguna_pipeline_calib.py",
+        "lines": [
+          1081,
+          1098
+        ],
+        "sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19"
+      },
+      "25-0.7": {
+        "file": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-mix-lr-calibration/кейсы/laguna-compact/runs/calib-25-0.7-20260916-0820/laguna_pipeline_calib.py",
+        "lines": [
+          1078,
+          1095
+        ],
+        "sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19"
+      },
+      "50-0.35": {
+        "file": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-mix-lr-calibration/кейсы/laguna-compact/runs/calib-50-0.35-20260916-0820/laguna_pipeline_calib.py",
+        "lines": [
+          1081,
+          1098
+        ],
+        "sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19"
+      },
+      "50-0.7": {
+        "file": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-mix-lr-calibration/кейсы/laguna-compact/runs/calib-50-0.7-20260916-0820/laguna_pipeline_calib.py",
+        "lines": [
+          1081,
+          1098
+        ],
+        "sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19"
+      }
+    },
+    "env_shims": [
+      "urllib3.contrib.pyopenssl подменён заглушкой (pyOpenSSL сломан: AttributeError: module 'lib' has no attribute 'GEN_EMAIL') — необязательный TLS-бэкенд botocore, в пути пробы не используется"
+    ],
+    "checkpoint_sha256_note": "хеши считаются по файлам на каждом прогоне; кэш метаданных отклонён (см. комментарий в tools/calib_ppl_arms.py)"
+  },
+  "datasets": {
+    "v1_general": {
+      "path": "datasets/general_eval.txt",
+      "sha256": "11b3164df8df1c0117817f84ecec9061e534653542b4ca2ac27a882aed159f3c",
+      "docs_kept": 24,
+      "tokens": 3682
+    },
+    "v1_domain": {
+      "path": "datasets/domain_eval.txt",
+      "sha256": "33682cd5d1c8bec061f1409b346a4c26beea1c38231f958ec0870c4c40501c49",
+      "docs_kept": 5,
+      "tokens": 2604
+    },
+    "v2_general": {
+      "path": "datasets/general_eval_v2.txt",
+      "sha256": "7a8455ed52467415bfd73050930da99399db74299ec1ffb3e8c507807045de29",
+      "docs_kept": 200,
+      "tokens": 39747
+    },
+    "v2_domain": {
+      "path": "datasets/domain_eval_v2.txt",
+      "sha256": "7ac83fe30d97be6208af5060e010f12927b7e9acdb34325f0e893ab83dfd444e",
+      "docs_kept": 200,
+      "tokens": 125322
+    }
+  },
+  "baseline_ppl": 11.931923888434497,
+  "baseline_source": {
+    "file": "evidence/ppl-baseline-v1v2.json",
+    "sha256": "36f19e64b89eb48c30a4fa8d5aa178e98522bf3a2f3a9ecdb69e15ca6fd8f8ea",
+    "values_all_sets": {
+      "v1_general": 11.931923888434497,
+      "v1_domain": 9.29019390347789,
+      "v2_general": 10.76515409368884,
+      "v2_domain": 11.134115855539092
+    },
+    "s3h_reference_all_sets": {
+      "v1_general": 11.931923888434497,
+      "v1_domain": 9.29019390347789,
+      "v2_general": 10.76515409368884,
+      "v2_domain": 11.134115855539092
+    },
+    "worst_rel_delta_vs_s3h": 0.0,
+    "tolerance": 1e-06,
+    "from": "те же отчёты пробы (состояние base каждого прогона), сверено с эталоном S3h"
+  },
+  "ceiling": 23.863847776868994,
+  "ceiling_formula": "2 × 11.931923888434497 = 23.863847776868994",
+  "artifacts": [
+    {
+      "path": "runs/calib-ppl-20260916-0820/ppl.json",
+      "what": "сводный отчёт пробы"
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/ppl-25-0.35.json",
+      "sha256": "749b8717309e69f503305a8b5e638d1e31c98789802dccb17261ea568920ffd7",
+      "what": "отчёт пробы руки 25-0.35"
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/ppl-25-0.7.json",
+      "sha256": "7943f46414bf543dc3c38dcaf5292912ac2ecddacc41193c43d2f3422c2eaaf9",
+      "what": "отчёт пробы руки 25-0.7"
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/ppl-50-0.35.json",
+      "sha256": "3c1dd860609b3de9b7901c41e30a1367261f6512024461d7b4352bfa6f62422d",
+      "what": "отчёт пробы руки 50-0.35"
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/ppl-50-0.7.json",
+      "sha256": "40308dbb64ee02f0ef772bf288d2ef5cbf20e13a72e0a93870abc85f1c51d44f",
+      "what": "отчёт пробы руки 50-0.7"
+    },
+    {
+      "path": "runs/calib-ppl-20260916-0820/run_manifest.json",
+      "what": "манифест AD-2 каталога пробы",
+      "stages": [
+        "ppl-probe"
+      ],
+      "complete": true,
+      "error": null
+    }
+  ],
+  "arms": [
+    {
+      "arm": "25-0.35",
+      "replay_pct": 25,
+      "lr_scale": 0.35,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "checkpoint_path": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "1f9f29f19d262e7be0dad0c3663d93138cf3a39a068157a2716f7f39605294ad",
+      "checkpoint_bytes": 2963141069,
+      "pipeline": "runs/calib-25-0.35-20260916-0820/laguna_pipeline_calib.py",
+      "loader_sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19",
+      "ppl_general": 56.77497343598341,
+      "ratio_vs_base": 4.758241333655746,
+      "passes_ceiling": false,
+      "ppl_all_sets": {
+        "v1_general": 56.77497343598341,
+        "v1_domain": 4.850528362483078,
+        "v2_general": 14.263007827967728,
+        "v2_domain": 4.3489838785484505
+      },
+      "ratio_all_sets": {
+        "v1_general": 4.758241333655746,
+        "v1_domain": 0.5221127150712352,
+        "v2_general": 1.3249237032593462,
+        "v2_domain": 0.3905998406137369
+      }
+    },
+    {
+      "arm": "25-0.7",
+      "replay_pct": 25,
+      "lr_scale": 0.7,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "checkpoint_path": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "237fd02afbdd479c83ee40abebdb614288eea25a4dc6cb849accdb054755efd2",
+      "checkpoint_bytes": 2963141069,
+      "pipeline": "runs/calib-25-0.7-20260916-0820/laguna_pipeline_calib.py",
+      "loader_sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19",
+      "ppl_general": 113.07658930044082,
+      "ratio_vs_base": 9.476811146109045,
+      "passes_ceiling": false,
+      "ppl_all_sets": {
+        "v1_general": 113.07658930044082,
+        "v1_domain": 5.899026932489226,
+        "v2_general": 19.286408879054786,
+        "v2_domain": 5.142101861551874
+      },
+      "ratio_all_sets": {
+        "v1_general": 9.476811146109045,
+        "v1_domain": 0.6349734993454613,
+        "v2_general": 1.7915590163601653,
+        "v2_domain": 0.46183297607719237
+      }
+    },
+    {
+      "arm": "50-0.35",
+      "replay_pct": 50,
+      "lr_scale": 0.35,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "checkpoint_path": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "c1866d6f77b78d44a80cf64bdd46f335eaac9d5268e51babb2694fb0aa3981fa",
+      "checkpoint_bytes": 2963141069,
+      "pipeline": "runs/calib-50-0.35-20260916-0820/laguna_pipeline_calib.py",
+      "loader_sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19",
+      "ppl_general": 55.27144883890439,
+      "ratio_vs_base": 4.632232769476387,
+      "passes_ceiling": false,
+      "ppl_all_sets": {
+        "v1_general": 55.27144883890439,
+        "v1_domain": 4.967359547674651,
+        "v2_general": 10.654009680399357,
+        "v2_domain": 4.479908334927121
+      },
+      "ratio_all_sets": {
+        "v1_general": 4.632232769476387,
+        "v1_domain": 0.5346884682154011,
+        "v2_general": 0.9896755390287777,
+        "v2_domain": 0.4023586958364924
+      }
+    },
+    {
+      "arm": "50-0.7",
+      "replay_pct": 50,
+      "lr_scale": 0.7,
+      "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+      "checkpoint_path": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "b1f650d6fdc5716f7601c631bb647ab2f8384fb17c7af0fe3c224c41d5bdbabf",
+      "checkpoint_bytes": 2963141069,
+      "pipeline": "runs/calib-50-0.7-20260916-0820/laguna_pipeline_calib.py",
+      "loader_sha256": "e11f751bebf863df7a25a1a4bf1ff0e5d84116415a87242a4ef4909c1ef24a19",
+      "ppl_general": 102.08283892292631,
+      "ratio_vs_base": 8.555438324734393,
+      "passes_ceiling": false,
+      "ppl_all_sets": {
+        "v1_general": 102.08283892292631,
+        "v1_domain": 6.204108412656972,
+        "v2_general": 13.312923452307714,
+        "v2_domain": 5.405920610323565
+      },
+      "ratio_all_sets": {
+        "v1_general": 8.555438324734393,
+        "v1_domain": 0.6678125857345554,
+        "v2_general": 1.2366681736690164,
+        "v2_domain": 0.48552760546623763
+      }
+    }
+  ],
+  "factor_effects": {
+    "ceilings_note": "отношение PPL/база; усреднено по парам, различающимся одним фактором",
+    "lr_0.35_to_0.7": 1.9192993762846184,
+    "replay_25_to_50": 0.938146949241622
+  },
+  "loss_trajectory_criterion_a": {
+    "25-0.35": {
+      "available": true,
+      "steps": 2000,
+      "first_third_mean": 2.1055249194125154,
+      "last_third_mean": 1.7226888719979707,
+      "delta": -0.3828360474145447,
+      "min": 1.0210354328155518,
+      "max": 3.79504132270813,
+      "decreasing": true
+    },
+    "25-0.7": {
+      "available": true,
+      "steps": 2000,
+      "first_third_mean": 2.5243976552923164,
+      "last_third_mean": 1.966238343858862,
+      "delta": -0.5581593114334544,
+      "min": 1.2086535692214966,
+      "max": 4.755285739898682,
+      "decreasing": true
+    },
+    "50-0.35": {
+      "available": true,
+      "steps": 2000,
+      "first_third_mean": 2.3514931830199988,
+      "last_third_mean": 1.938759965402586,
+      "delta": -0.4127332176174128,
+      "min": 1.3165677785873413,
+      "max": 3.8577511310577393,
+      "decreasing": true
+    },
+    "50-0.7": {
+      "available": true,
+      "steps": 2000,
+      "first_third_mean": 2.7593613814663245,
+      "last_third_mean": 2.1720366748245628,
+      "delta": -0.5873247066417617,
+      "min": 1.4744244813919067,
+      "max": 4.751468181610107,
+      "decreasing": true
+    }
+  },
+  "probes_observation": {
+    "25-0.35": {
+      "available": true,
+      "path": "calib/calib-25-0.35-20260916-0820/logs/probes_cpt.json",
+      "source_file": "/home/user/gb10-shared/calib/calib-25-0.35-20260916-0820/logs/probes_cpt.json",
+      "decoding": "greedy",
+      "max_new_tokens": 384,
+      "probes": [
+        {
+          "tag": "domain_tool",
+          "chars": 1883,
+          "max_window_repeat": 2,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'grpo' and 'advan",
+          "shares_head_with_other_probe": true
+        },
+        {
+          "tag": "domain_knowledge",
+          "chars": 1734,
+          "max_window_repeat": 2,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'grpo' and 'advan",
+          "shares_head_with_other_probe": true
+        },
+        {
+          "tag": "general_language",
+          "chars": 957,
+          "max_window_repeat": 2,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'hypothesis_of_hy",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_reasoning",
+          "chars": 1849,
+          "max_window_repeat": 2,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'mixture_of_exper",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "instruction",
+          "chars": 1569,
+          "max_window_repeat": 4,
+          "head": "<think> The user asks me to write a recommendation based on the provided tool results. I h",
+          "shares_head_with_other_probe": false
+        }
+      ],
+      "worst_window_repeat": 4,
+      "degenerate_repeat_probes": 1,
+      "template_collapse_probes": 2,
+      "descriptor": "окно 40 симв., шаг 5, порог вырождения 3"
+    },
+    "25-0.7": {
+      "available": true,
+      "path": "calib/calib-25-0.7-20260916-0820/logs/probes_cpt.json",
+      "source_file": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/logs/probes_cpt.json",
+      "decoding": "greedy",
+      "max_new_tokens": 384,
+      "probes": [
+        {
+          "tag": "domain_tool",
+          "chars": 1855,
+          "max_window_repeat": 3,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'grpo' and 'advan",
+          "shares_head_with_other_probe": true
+        },
+        {
+          "tag": "domain_knowledge",
+          "chars": 1693,
+          "max_window_repeat": 2,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'grpo' and 'advan",
+          "shares_head_with_other_probe": true
+        },
+        {
+          "tag": "general_language",
+          "chars": 1528,
+          "max_window_repeat": 3,
+          "head": "<think> The user asks me to trace the connection chain between three concepts: 'hypothesis",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_reasoning",
+          "chars": 1788,
+          "max_window_repeat": 4,
+          "head": "<think> The user asks me to explain the connection between two concepts: 'multi_agent_deba",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "instruction",
+          "chars": 1516,
+          "max_window_repeat": 5,
+          "head": "<think> The user asks me to build a chain of reasoning connecting three concepts: 'hypothe",
+          "shares_head_with_other_probe": false
+        }
+      ],
+      "worst_window_repeat": 5,
+      "degenerate_repeat_probes": 4,
+      "template_collapse_probes": 2,
+      "descriptor": "окно 40 симв., шаг 5, порог вырождения 3"
+    },
+    "50-0.35": {
+      "available": true,
+      "path": "calib/calib-50-0.35-20260916-0820/logs/probes_cpt.json",
+      "source_file": "/home/user/gb10-shared/calib/calib-50-0.35-20260916-0820/logs/probes_cpt.json",
+      "decoding": "greedy",
+      "max_new_tokens": 384,
+      "probes": [
+        {
+          "tag": "domain_tool",
+          "chars": 1293,
+          "max_window_repeat": 21,
+          "head": "Предсказать, какие концепты будут использованы для обучения. Группа выходов для каждого вх",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "domain_knowledge",
+          "chars": 1261,
+          "max_window_repeat": 26,
+          "head": "Объясни, что это GRPO, и почему он используется. Глобальная политика, а не отдельные дейст",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_language",
+          "chars": 865,
+          "max_window_repeat": 15,
+          "head": "Приготовить домашний хлеб. Господа, вы готовите хлеб. Господа, вы готовите хлеб. Господа, ",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_reasoning",
+          "chars": 1035,
+          "max_window_repeat": 20,
+          "head": "При помощи инструмента, который позволяет увидеть, как мы смотрим, мы можем увидеть, как м",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "instruction",
+          "chars": 1148,
+          "max_window_repeat": 22,
+          "head": "При помощи банка-контроллера ( банк-контроллер) можно определить, какие действия были сдел",
+          "shares_head_with_other_probe": false
+        }
+      ],
+      "worst_window_repeat": 26,
+      "degenerate_repeat_probes": 5,
+      "template_collapse_probes": 0,
+      "descriptor": "окно 40 симв., шаг 5, порог вырождения 3"
+    },
+    "50-0.7": {
+      "available": true,
+      "path": "calib/calib-50-0.7-20260916-0820/logs/probes_cpt.json",
+      "source_file": "/home/user/gb10-shared/calib/calib-50-0.7-20260916-0820/logs/probes_cpt.json",
+      "decoding": "greedy",
+      "max_new_tokens": 384,
+      "probes": [
+        {
+          "tag": "domain_tool",
+          "chars": 969,
+          "max_window_repeat": 6,
+          "head": "Найди концепты в библиотеке концептов. 2018 - **Сигнал введения:** \"We use the GRPO algori",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "domain_knowledge",
+          "chars": 1379,
+          "max_window_repeat": 13,
+          "head": "Объясняет, почему GRPO не может эффективно использовать преимущество в RL.################",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_language",
+          "chars": 920,
+          "max_window_repeat": 18,
+          "head": "Приготовить домашний хлеб на хлебе. Капиталистический хлеб. Капиталистический хлеб. Капита",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "general_reasoning",
+          "chars": 615,
+          "max_window_repeat": 15,
+          "head": "Призрак Призрак Призрак Призрак Призрак Призрак Призрак Призрак Призрак Призрак Призрак Пр",
+          "shares_head_with_other_probe": false
+        },
+        {
+          "tag": "instruction",
+          "chars": 809,
+          "max_window_repeat": 14,
+          "head": "Призывные к чтению Призывные к чтению Призывные к чтению Призывные к чтению Призывные к чт",
+          "shares_head_with_other_probe": false
+        }
+      ],
+      "worst_window_repeat": 18,
+      "degenerate_repeat_probes": 5,
+      "template_collapse_probes": 0,
+      "descriptor": "окно 40 симв., шаг 5, порог вырождения 3"
+    }
+  },
+  "side_observations": {
+    "smoke_step500": {
+      "available": true,
+      "path": "runs/calib-ppl-20260916-0820/smoke.json",
+      "date": "2026-09-16T05:51:09.034249+00:00",
+      "sets": [
+        "v1_general",
+        "v1_domain"
+      ],
+      "states": {
+        "base": {
+          "checkpoint": null,
+          "ppl": 11.931923888434497,
+          "ratio_vs_base": 1.0
+        },
+        "smoke25-0.7-c500": {
+          "checkpoint": "/home/user/gb10-shared/calib/calib-25-0.7-20260916-0820/checkpoints/checkpoint_500.pt",
+          "ppl": 204.44178711987345,
+          "ratio_vs_base": 17.134017031238105
+        }
+      },
+      "note": "в вердикт не входит: другой прогон пробы (только v1, одно состояние), назван как точка внутри окна калибровки"
+    }
+  },
+  "cross_check_v1_vs_v2": {
+    "mix_card": {
+      "card": "data/corpus-card-v12r50.json",
+      "replay_source": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "replay_sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "replay_docs": 157269,
+      "replay_tokens": 28617440,
+      "replay_chunks_available": 3493,
+      "v12r50_replay_chunks_used": 3493,
+      "v12r50_replay_tokens_used": 28614656,
+      "fraction_of_source_used": 0.999903
+    },
+    "gen_eval_card": {
+      "card": "data/gen-eval-v2-card.json",
+      "source": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "cut": "документы реплей-корпуса (split '\\n\\n', ≥50 симв.) в файловом порядке; обученный префикс = первые 2444 чанков × 8192 токенов = 20021248",
+      "candidates": 157269,
+      "excluded_replay_token_prefix": 103497,
+      "consumed_prefix_docs": 103497,
+      "consumed_prefix_tokens": 20021248
+    },
+    "status": "measured",
+    "found": {
+      "general_eval": {
+        "docs": 24,
+        "found_in_replay_source": 0,
+        "positions_frac": []
+      },
+      "general_eval_v2": {
+        "docs": 200,
+        "found_in_replay_source": 200,
+        "positions_frac": [
+          0.6878,
+          0.6892,
+          0.6915,
+          0.692,
+          0.6945,
+          0.6988,
+          0.6996,
+          0.7019,
+          0.7026,
+          0.7043,
+          0.7052,
+          0.7054,
+          0.7056,
+          0.7115,
+          0.7128,
+          0.7136,
+          0.7181,
+          0.7192,
+          0.7197,
+          0.722,
+          0.7222,
+          0.7234,
+          0.724,
+          0.7249,
+          0.7252,
+          0.726,
+          0.726,
+          0.7262,
+          0.7299,
+          0.73,
+          0.7305,
+          0.7336,
+          0.7342,
+          0.7362,
+          0.7372,
+          0.7377,
+          0.7395,
+          0.7418,
+          0.7424,
+          0.7426,
+          0.7446,
+          0.7464,
+          0.7472,
+          0.7473,
+          0.7475,
+          0.7488,
+          0.7527,
+          0.7546,
+          0.7551,
+          0.7572,
+          0.7596,
+          0.7628,
+          0.7633,
+          0.7634,
+          0.7649,
+          0.77,
+          0.7716,
+          0.7729,
+          0.7737,
+          0.7738,
+          0.7747,
+          0.7754,
+          0.7758,
+          0.7766,
+          0.7802,
+          0.7839,
+          0.7916,
+          0.7949,
+          0.7949,
+          0.7961,
+          0.8007,
+          0.8017,
+          0.8022,
+          0.8029,
+          0.8041,
+          0.8047,
+          0.8063,
+          0.8066,
+          0.8067,
+          0.807,
+          0.8071,
+          0.8082,
+          0.8091,
+          0.8107,
+          0.8114,
+          0.8115,
+          0.8121,
+          0.8137,
+          0.8138,
+          0.8168,
+          0.8176,
+          0.8183,
+          0.8205,
+          0.8205,
+          0.8213,
+          0.8218,
+          0.8235,
+          0.8295,
+          0.8298,
+          0.8303,
+          0.8304,
+          0.8305,
+          0.8314,
+          0.8314,
+          0.8318,
+          0.8328,
+          0.8359,
+          0.8373,
+          0.8374,
+          0.8375,
+          0.8377,
+          0.8432,
+          0.8452,
+          0.8454,
+          0.8477,
+          0.8523,
+          0.8551,
+          0.8571,
+          0.8575,
+          0.8623,
+          0.8624,
+          0.8655,
+          0.8687,
+          0.8695,
+          0.8706,
+          0.8707,
+          0.8729,
+          0.8786,
+          0.8805,
+          0.8819,
+          0.882,
+          0.8825,
+          0.8835,
+          0.8864,
+          0.8886,
+          0.8888,
+          0.891,
+          0.8914,
+          0.8917,
+          0.8918,
+          0.8926,
+          0.8942,
+          0.9003,
+          0.9023,
+          0.9026,
+          0.9034,
+          0.9129,
+          0.9142,
+          0.9143,
+          0.9146,
+          0.9149,
+          0.918,
+          0.9212,
+          0.9232,
+          0.9288,
+          0.9299,
+          0.9309,
+          0.9311,
+          0.9336,
+          0.9339,
+          0.9353,
+          0.9391,
+          0.9432,
+          0.9483,
+          0.9485,
+          0.9499,
+          0.9525,
+          0.9558,
+          0.9564,
+          0.9589,
+          0.9599,
+          0.9599,
+          0.9608,
+          0.963,
+          0.9649,
+          0.9707,
+          0.9717,
+          0.9723,
+          0.9738,
+          0.9745,
+          0.9758,
+          0.9763,
+          0.9774,
+          0.9776,
+          0.9776,
+          0.9777,
+          0.9807,
+          0.9809,
+          0.9831,
+          0.9842,
+          0.9848,
+          0.9851,
+          0.9867,
+          0.9893,
+          0.9894,
+          0.9929,
+          0.993,
+          0.9948,
+          0.9977,
+          0.9982
+        ]
+      }
+    },
+    "note": "v1_general — независимый набор общего языка (в источнике реплея не найден ни один документ); v2_general собран из документов источника реплея, поэтому у рук с 50 % replay он попадает внутрь обученного материала"
+  },
+  "checks": [
+    {
+      "name": "instrument_vs_s3h",
+      "verdict": "ok",
+      "what": "каждый из четырёх прогонов пробы воспроизвёл базу S3h",
+      "worst_rel_delta": 0.0,
+      "tolerance": 1e-06
+    },
+    {
+      "name": "base_restored",
+      "verdict": "ok",
+      "what": "после загрузки чекпойнтов веса возвращаются к базовым (вакуумная точка)",
+      "detail": "25-0.35: ['ok']; 25-0.7: ['ok']; 50-0.35: ['ok']; 50-0.7: ['ok']"
+    },
+    {
+      "name": "loader_identity",
+      "verdict": "ok",
+      "what": "все руки грузятся одной и той же функцией _load_ckpt_with_resize",
+      "detail": "25-0.35: e11f751bebf8; 25-0.7: e11f751bebf8; 50-0.35: e11f751bebf8; 50-0.7: e11f751bebf8"
+    },
+    {
+      "name": "base_from_reports",
+      "verdict": "ok",
+      "what": "база взята из отчётов, а не вписана в инструмент",
+      "detail": "v1_general = 11.931923888434497"
+    },
+    {
+      "name": "criterion_a_loss_decreasing",
+      "verdict": "ok",
+      "what": "ADR-022 п.3(а): лосс убывает по траектории **внутри** руки",
+      "detail": "25-0.35: 2.1055 → 1.7227; 25-0.7: 2.5244 → 1.9662; 50-0.35: 2.3515 → 1.9388; 50-0.7: 2.7594 → 2.1720",
+      "note": "критерий (а) выполнен всеми четырьмя руками — решение держит (б), PPL"
+    }
+  ],
+  "verdict": {
+    "recommended_arm": null,
+    "least_damaging_arm": "50-0.35",
+    "least_damaging_arm_note": "минимум PPL; разница с соседней 0.35-рукой внутри разброса прибора, см. consistency_with_probes",
+    "least_repetition_arm": "25-0.35",
+    "arms_passing_ceiling": [],
+    "reason": "ни одна из 4 рук не проходит потолок ADR-022 (2× базы = 23.86): минимум по рукам — 50-0.35 (55.27, ×4.63). Рекомендовать её в полный CPT значит начать стадию с заведомо проваленным критерием валидности (ADR-022 п.3: невыполнение — стоп стадии, а не «продолжаем и посмотрим»). Факторы разведены: удвоение пика LR поднимает PPL в ×1.92 раза (0.7 против 0.35 при том же миксе), переход replay 25 % → 50 % меняет её в ×0.94 раза. То есть пик LR — сильный фактор, доля replay в этом окне — слабый; при этом ×0.35 всё ещё даёт ×4.6 к базе, то есть недостаточно и его. Следующий шаг — не выбор из этих четырёх, а калибровка пика LR **ниже** 0.35: сетка проверила 0.7 и 0.35, обе вне потолка, а «×0.35 сработает на полном прогоне» — надежда, продолжать на которой ADR-022 п.3 запрещает.",
+    "consistency_with_probes": "частично расходятся. В грубом — согласны: провалены все 4 руки, и обе линии это показывают; по PPL удвоение пика LR даёт ×1.92. В тонком (какая рука ближе к пригодности) — расходятся: минимум PPL у 50-0.35 (55.27, ×4.63), пробы называют 25%-руки (вырожденных в повтор ответов: [1, 4] у 25 % против [5, 5] у 50 %; худший повтор [4, 5] против [26, 18]). Разница PPL между двумя спорящими руками — 1.50 при базе 11.93 на наборе из 24 документов, то есть внутри разброса прибора; разница проб — качественная (связный текст против зацикливания). В этой паре решает вторая линия, и PPL её не подтверждает — расхождение названо, а не сглажено. Решение от этого не меняется: обе 0.35-руки всё равно вне потолка."
+  },
+  "assumptions": [
+    "критерий ADR-022 п.3(б) применён к концу калибровочного окна (2000 шагов): полный CPT идёт по другому расписанию, и число шагов у стадии больше; калибровка существует затем, чтобы решать до полного прогона",
+    "потолок считается от базы v1_general 11.9319, воспроизведённой пробой",
+    "решающий набор — v1_general (24 документа, 3682 токена) как единственный, на котором снята база; его малый объём — ограничение точности, названное, а не смягчённое",
+    "проба меряет состояние чекпойнта штатным SDPA, а обучение рук шло с LAGUNA_ATTN=flex — тем же расхождением, что у GEN-EVAL и у диагностики S3k"
+  ],
+  "not_verified": [
+    "генерация (тексты ответов) после калибровки не оценивалась: пробы качества — из журналов прогона, это описание, а не измерение",
+    "причина деградации не установлена: разделены факторы LR и replay, но не проверено, достаточно ли ×0.35 вообще (более низкий пик не мерился)"
+  ],
+  "open_questions": [
+    "пик LR: сетка проверила 0.35 и 0.7 — обе вне потолка. Каким должен быть пик, чтобы 2000 шагов дали ppl_general ≤ 23.86, и проверяется ли он той же сеткой (это следующая дельта, не эта)",
+    "доля replay: переход 25 % → 50 % меняет PPL в ×0.94 раза, то есть меньше, чем разброс между руками одного LR. Остаётся ли она фактором вообще, или решение принимается по LR и по доменному качеству",
+    "прибор: решающий набор v1_general — 24 документов и 3682 токенов. Этого хватает, чтобы отличить ×4.6 от ×9.5, но не чтобы различить ×4.63 и ×4.76; нужен ли расширенный v1 общего языка под этот критерий",
+    "набор v2 общего языка собран фильтром против префикса реплея **v12r** (ADR-018 п.3: обучено = 103497 документов), а у v12r50 реплей-часть — все 3493 чанка источника (0.9999 файла). Проверено: 200 из 200 документов v2 найдены в источнике реплея дословно, то есть у 50 %-рук v2_general — текст из их обучения, и его низкий PPL (×0.99 у 50-0.35) не измеряет форгеттинг. Фильтр ADR-018 привязан к составу микса и устаревает при его смене (ADR-047): пересобирать ли набор под каждый микс или зафиксировать инвариант «general-набор не пересекается с любым кандидатным миксом»"
+  ],
+  "reproduction": {
+    "measure": "python3 tools/calib_ppl_probe.py --pipeline runs/calib-<arm>-20260916-0820/laguna_pipeline_calib.py --state base=base --state final=ckpt:<shared>/calib/calib-<arm>-20260916-0820/checkpoints/checkpoint_final.pt --state base_untouched=base --sets all --out runs/calib-ppl-20260916-0820/ppl-<arm>.json",
+    "summarize": "python3 tools/calib_ppl_arms.py --ts 20260916-0820",
+    "plan": "python3 tools/calib_ppl_arms.py --ts 20260916-0820 --plan"
+  },
+  "rollback": "свод — производное от замеров; откат = удалить evidence/s3m-ppl-arms.json, runs/calib-ppl-<ts>/ppl.json и манифест пробы. Чекпойнты калибровки в /home/user/gb10-shared/calib/ не удаляются: они исходные данные решения о полном CPT",
+  "leak_check_ref": "evidence/calib-protocol-audit.json"
+}

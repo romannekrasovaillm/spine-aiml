@@ -1,0 +1,108 @@
+{
+  "schema": "mix-v12r50-build/1",
+  "stage": "S3m",
+  "date": "2026-09-16T05:44:23.576776+00:00",
+  "tool": {
+    "path": "tools/build_mix_v12r50.py",
+    "sha256": "d90ee32523632dc708fc4d699349dad5cead1eeb6f6ad506894fb4f271259354",
+    "argv": [
+      "--datasets-dir",
+      "/workspace/shared/datasets",
+      "--report",
+      "/workspace/shared/calib/mix-v12r50-build.json"
+    ]
+  },
+  "recipe": {
+    "chunk_len": 8192,
+    "seed": 42,
+    "shuffle": "numpy RandomState(seed).shuffle по оси чанков",
+    "domain_sep": "'\\n---\\n'",
+    "replay_sep": "'\\n\\n'",
+    "min_doc_chars": 50,
+    "chunking": "нехвостовые блоки max_len, хвост отброшен"
+  },
+  "tokenizer": {
+    "tokenizer_dir": "hf-cache:Qwen/Qwen2.5-0.5B",
+    "vocab_before": 151665,
+    "vocab_after": 151671,
+    "model_id": "Qwen/Qwen2.5-0.5B"
+  },
+  "env_shims": {
+    "from": "не требуются (окружение без известных дефектов)",
+    "why": "tools/ppl_probe.py недоступен — путь стенда (сборка идёт в контейнере, токенизатор из HF-кэша)"
+  },
+  "sources": {
+    "domain": {
+      "path": "/workspace/shared/datasets/cpt_corpus_v10.1.txt",
+      "bytes": 299141131,
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+      "docs": 168528,
+      "tokens": 60066303,
+      "chunks_available": 7332
+    },
+    "replay": {
+      "path": "/workspace/shared/datasets/general_replay_ru.txt",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "docs": 157269,
+      "tokens": 28617440,
+      "chunks_available": 3493
+    }
+  },
+  "fidelity_check": {
+    "what": "пересборка v12r тем же кодом (7332 домен + 2444 реплей, seed 42) побайтово сравнена с существующими кэшами; отдельно сверена доменная чанковка с кэшем v10.1",
+    "domain_chunks_equal": true,
+    "tokens_equal": true,
+    "pos_equal": true,
+    "reference": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f"
+    },
+    "reference_pos": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy",
+      "sha256": "ec0c199a892ebc36e31a34e31db2b2a330604dc2a9cea256a6998a2dc9434ff8"
+    },
+    "reference_domain": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v10.1_8192_qwen25.npy",
+      "sha256": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+    }
+  },
+  "mix": {
+    "out_stem": "cpt_corpus_v12r50",
+    "domain_chunks": 3493,
+    "replay_chunks": 3493,
+    "chunks": 6986,
+    "chunk_len": 8192,
+    "tokens": 57229312,
+    "mix_domain_ratio": 0.5,
+    "mix_replay_ratio": 0.5,
+    "seed": 42,
+    "prefix_of_v12r": {
+      "domain": "первые 3493 чанков того же доменного потока, что v12r (там 7332)",
+      "replay": "первые 3493 чанков того же реплей-потока, что v12r (там 2444)"
+    },
+    "arithmetic": "3493 × 8192 = 28614656 домен; 3493 × 8192 = 28614656 реплей; сумма 57229312"
+  },
+  "written": [
+    {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+      "bytes": 228917376,
+      "sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35"
+    },
+    {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25_pos.npy",
+      "bytes": 228917376,
+      "sha256": "ae0d86d958583252e7c8644250186e62ea2d568a5d4a5d936de7add081553fee"
+    },
+    {
+      "path": "/workspace/shared/datasets/cpt_corpus_v12r50.txt",
+      "bytes": 1385,
+      "sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe"
+    }
+  ],
+  "manifest_sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe",
+  "inputs_sha256": {
+    "domain_txt": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+    "replay_txt": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063"
+  }
+}

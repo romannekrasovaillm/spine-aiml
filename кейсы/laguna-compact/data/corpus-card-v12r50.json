@@ -1,0 +1,172 @@
+{
+  "card": "cpt-corpus-v12r50",
+  "artifact": "претокен-кэш CPT-микса v12r50 (доля replay 50 %) — калибровочный микс S3m",
+  "date": "2026-09-16",
+  "constraint": "C-010 (AD-7: состав CPT-микса зафиксирован карточкой с хешем корпуса); изменение состава относительно v12r — ADR-047",
+  "derived_from": [
+    "tools/build_mix_v12r50.py (сборка кэшей: chunk_tokens, смешение, shuffle)",
+    "data/mix-v12r50-build.json (отчёт сборки: хеши входов и выходов, самопроверка)",
+    "рецепт v12r: build_cpt_v12r_mix.py + build_cpt_v12r_pos.py (тот же порядок сборки)",
+    "фактические sha256 и размеры файлов на /home/user/gb10-shared (посчитаны сборкой)"
+  ],
+  "source": {
+    "domain": {
+      "path": "/home/user/gb10-shared/datasets/cpt_corpus_v10.1.txt",
+      "what": "концепт-карты Ariadna (домен ML/AI) — тот же поток, что у v12r",
+      "provenance": "внутренний корпус контура; каждая карточка несёт поле sources с arXiv-id",
+      "bytes": 299141131,
+      "sha256": "1765628e6bde4c516068305b9d150196e59328550289ba98f9bc04683c27b92c",
+      "docs": 168528,
+      "tokens": 60066303,
+      "chunks_available": 7332
+    },
+    "replay": {
+      "path": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+      "what": "общий русский текст для реплея против форгеттинга общего языка",
+      "provenance": "HF-датасет wikimedia/wikipedia, конфигурация 20231101.ru (стриминг; fetch_general_replay.py), статьи <200 символов отброшены",
+      "bytes": 136766843,
+      "sha256": "6497022d24f25ec5250df7870807418f23474cf2c9a8a2554e04d6d552057063",
+      "docs": 157269,
+      "tokens": 28617440,
+      "chunks_available": 3493
+    },
+    "manifest": {
+      "path": "cpt_corpus_v12r50.txt",
+      "resolved": "/home/user/gb10-shared/datasets/cpt_corpus_v12r50.txt",
+      "bytes": 1385,
+      "sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe",
+      "what": "текстовый манифест микса (только описание: CPTDataset читает кэш по stem'у имени)"
+    }
+  },
+  "license": {
+    "replay": "CC BY-SA 4.0 (Wikimedia, дамп 20231101.ru; атрибуция — история правок Wikipedia)",
+    "domain": "не задекларирована в контуре: концепт-карты Ariadna произведены внутри контура, поле sources ссылается на arXiv",
+    "domain_license_unresolved": true,
+    "license_status": "internal_only",
+    "license_note": "лицензия не устанавливается — режим внутреннего использования (ADR-005 Accepted, решение владельца 14.09.2026); публикация производных запрещена и требует отдельного решения владельца и нового ADR",
+    "license_adr": "ADR-005 (граница «внутреннее / публикация»): при статусе unresolved публикация — только owner-гейтом"
+  },
+  "mix": {
+    "domain_chunks": 3493,
+    "replay_chunks": 3493,
+    "chunks": 6986,
+    "tokens": 57229312,
+    "tokens_human": "≈57.2M",
+    "chunk_len": 8192,
+    "mix_domain_ratio": 0.5,
+    "mix_replay_ratio": 0.5,
+    "seed": 42,
+    "shuffle": "numpy RandomState(seed).shuffle по оси чанков (chunk-level, после конкатенации домен+реплей)",
+    "arithmetic": "3493 × 8192 = 28614656 домен; 3493 × 8192 = 28614656 реплей; сумма 57229312",
+    "prefix_of_v12r": {
+      "domain": "первые 3493 чанков того же доменного потока, что v12r (там 7332)",
+      "replay": "первые 3493 чанков того же реплей-потока, что v12r (там 2444)"
+    },
+    "source_ceiling": {
+      "why": "доля replay 50 % недостижима на полном доменном пуле v12r: 50 % из 7332 доменных чанков требовали бы 7332 реплей-чанков, а источник даёт 3493",
+      "replay_chunks_available": 3493,
+      "v12r_domain_chunks": 7332,
+      "v12r_replay_chunks": 2444,
+      "consequence": "микс собран равными долями (3493 + 3493); доменный пул вдвое меньше, чем у v12r — содвинутый фактор, названный в evidence.mix-lr-calibration.json"
+    }
+  },
+  "sha256": {
+    "cpt_corpus_v12r50_8192_qwen25.npy": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35",
+    "cpt_corpus_v12r50_8192_qwen25_pos.npy": "ae0d86d958583252e7c8644250186e62ea2d568a5d4a5d936de7add081553fee",
+    "cpt_corpus_v12r_8192_qwen25.npy": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+    "cpt_corpus_v12r_8192_qwen25_pos.npy": "ec0c199a892ebc36e31a34e31db2b2a330604dc2a9cea256a6998a2dc9434ff8"
+  },
+  "artifacts": [
+    {
+      "path": "datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+      "role": "рабочий кэш калибровки: целевое семейство Qwen2.5-0.5B (ADR-002)",
+      "tag": "qwen25",
+      "dtype": "int32",
+      "shape": [
+        6986,
+        8192
+      ],
+      "bytes": 228917376,
+      "sha256": "4debedab81f59c2c8f8935556960fb9a96eeeb0ee13c2fc77427468dfced2f35"
+    },
+    {
+      "path": "datasets/tok/cpt_corpus_v12r50_8192_qwen25_pos.npy",
+      "resolved": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25_pos.npy",
+      "role": "компаньон position_ids (диагональное маскирование документов, flex-режим)",
+      "tag": "qwen25",
+      "dtype": "int32",
+      "shape": [
+        6986,
+        8192
+      ],
+      "bytes": 228917376,
+      "sha256": "ae0d86d958583252e7c8644250186e62ea2d568a5d4a5d936de7add081553fee"
+    },
+    {
+      "path": "cpt_corpus_v12r50.txt",
+      "resolved": "/home/user/gb10-shared/datasets/cpt_corpus_v12r50.txt",
+      "role": "манифест микса (описание; кэш читается по stem'у имени файла)",
+      "bytes": 1385,
+      "sha256": "c447009a01d1344ff9f68bc99e235333370d9fe95bb09792cce502a3fe4b84fe"
+    }
+  ],
+  "tokenization": {
+    "special_tokens": [
+      "<think>",
+      "</think>",
+      "<tool_call>",
+      "</tool_call>",
+      "<tool_response>",
+      "</tool_response>",
+      "<reasoning>",
+      "</reasoning>"
+    ],
+    "tokenizers": {
+      "qwen25": "Qwen/Qwen2.5-0.5B"
+    },
+    "tokenizer_dir": "hf-cache:Qwen/Qwen2.5-0.5B",
+    "vocab": {
+      "before": 151665,
+      "after": 151671
+    },
+    "chunking": "chunk_tokens: нехвостовые блоки max_len (хвост < max_len отбрасывается)",
+    "guard": "C-008 / tools/check_special_tokens.py"
+  },
+  "fidelity_check": {
+    "what": "пересборка v12r тем же кодом (7332 домен + 2444 реплей, seed 42) побайтово сравнена с существующими кэшами; отдельно сверена доменная чанковка с кэшем v10.1",
+    "domain_chunks_equal": true,
+    "tokens_equal": true,
+    "pos_equal": true,
+    "reference": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f"
+    },
+    "reference_pos": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy",
+      "sha256": "ec0c199a892ebc36e31a34e31db2b2a330604dc2a9cea256a6998a2dc9434ff8"
+    },
+    "reference_domain": {
+      "path": "/workspace/shared/datasets/tok/cpt_corpus_v10.1_8192_qwen25.npy",
+      "sha256": "6b341f3ae5fd402bd35a2c8485b4f7b230a3be5b30b6c938388ca6569804a3e2"
+    }
+  },
+  "coupled_changes": {
+    "peak_lr_scale": [
+      0.7,
+      0.35
+    ],
+    "why": "калибровка S3m: сетка replay {25,50} × peak_lr_scale {0.7,0.35}; полный CPT пойдёт конфигом, выбранным по вердикту evidence/mix-lr-calibration.json",
+    "replay_share": [
+      0.25,
+      0.5
+    ]
+  },
+  "notes": [
+    "Обе части микса — префиксы соответствующих частей v12r: домен берёт первые 3493 чанка того же потока (у v12r 7332), реплей — первые 3493 (у v12r 2444).",
+    "Существующие кэши v12r не перезаписывались: сборщик их только читает, а самопроверка сравнивает пересборку v12r с кэшем побайтово (fidelity_check).",
+    "Сборка детерминирована: тот же вход и сид дают тот же sha256 (тест на синтетике).",
+    "Сборка шла в контейнере стенда (kэш корпуса лежит в datasets/tok, каталог принадлежит root — так собраны и существующие кэши). Пути в отчёте сборки — контейнерные (/workspace/shared/...), в карточке — хостовые (/home/user/gb10-shared/...).",
+    "Кэши собраны под тег qwen25 (целевое семейство). Под qwen3/qwen35 микс не собирался: они вне ревизии (AD-1)."
+  ]
+}

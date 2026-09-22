@@ -1,0 +1,370 @@
+{
+  "schema": "s3o-control-arms/1",
+  "stage": "S3o",
+  "date": "2026-09-16T14:03:03.415807+00:00",
+  "status": "partial",
+  "status_basis": "частично: обе контрольные руки запущены автономно и идут (факты старта ниже), но стадии не завершены и PPL не снят — судить о причине форгеттинга пока не по чему. Дельта закрывается прогоном PPL по чекпойнтам (команда в next_step), после чего вердикт считается `run_mix_lr_calib.py --analyze --arms C1 C2`",
+  "task": "ADR-022 п.1–2 — контрольные руки CPT: чистый протокол (C1) и низкий LR (C2)",
+  "question": "Разрушает ли язык сам протокол CPT (C1: общий текст без домена) или причина в пике LR (C2: v12r с пиком в 10 раз ниже) — при том, что flex-маска уже исключена (S3k) и утечки общего eval в корпуса нет",
+  "stand_check": {
+    "command": "bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified",
+    "verdict": "CAN-START (exit 0)",
+    "owner": "наша ревизия: флаг паузы REVISION-WINDOW.lock на месте и читается контуром лесенки (restart_v12.sh); автозапуск обезврежен",
+    "facts": [
+      "память: доступно 76.8 ГБ из 121.7 (порог 35)",
+      "тренировочных нагрузок на GB10: 0 (опознание по exp_name)",
+      "диск: 1.2 ТБ свободно на /home/user/gb10-shared (требование ≥33 ГБ)"
+    ],
+    "when": "проверка выполнена дважды: до подготовки каталогов и перед запуском цепочки"
+  },
+  "corpus_c1": {
+    "what": "корпус C1 — 100 % общий язык (general_replay_ru.txt), домена нет вовсе",
+    "builder": "tools/build_ctrl_c1_corpus.py (чанкер импортирован из tools/build_mix_v12r50.py — рецепт не переписывался)",
+    "report": "data/mix-ctrl100-build.json",
+    "chunks": 3493,
+    "tokens": 28614656,
+    "seed": 42,
+    "written": [
+      {
+        "path": "/workspace/shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy",
+        "bytes": 114458752,
+        "sha256": "8dab637313d32ac2c8365c0f5891c47c9f1dddcbb853e296dfbf7d1ffd73e25e"
+      },
+      {
+        "path": "/workspace/shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25_pos.npy",
+        "bytes": 114458752,
+        "sha256": "c474f56956d52db5e45350b36f2cfe04969dd80504a03135b248b2fdfceab62a"
+      },
+      {
+        "path": "/workspace/shared/datasets/cpt_corpus_ctrl100.txt",
+        "bytes": 2281,
+        "sha256": "0fc82e6eab48b6ead1461b8084e6c17edff7e04ae798ab4d32d0b25874d103dd"
+      }
+    ],
+    "fidelity_check": {
+      "what": "реплей-блок существующих кэшей восстановлен обратной перестановкой (shuffled[inv[n_dom:n_dom+n_rep]]) и сравнён побайтово с нашими первыми n_rep чанками; тождество shuffle==x[perm] проверено фикстурой на тех же длинах",
+      "shuffle_equals_permutation": {
+        "9776": true,
+        "6986": true
+      },
+      "checks": [
+        {
+          "mix": "v12r",
+          "reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+          "n_dom": 7332,
+          "n_rep": 2444,
+          "shape": [
+            2444,
+            8192
+          ],
+          "shape_ok": true,
+          "tokens_equal": true,
+          "mismatched_chunks": 0,
+          "pos_reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25_pos.npy",
+          "pos_equal": true
+        },
+        {
+          "mix": "v12r50",
+          "reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25.npy",
+          "n_dom": 3493,
+          "n_rep": 3493,
+          "shape": [
+            3493,
+            8192
+          ],
+          "shape_ok": true,
+          "tokens_equal": true,
+          "mismatched_chunks": 0,
+          "pos_reference": "/workspace/shared/datasets/tok/cpt_corpus_v12r50_8192_qwen25_pos.npy",
+          "pos_equal": true
+        }
+      ],
+      "summary": "v12r: tokens=True pos=True; v12r50: tokens=True pos=True"
+    },
+    "fidelity_meaning": "реплей-блок существующих кэшей восстановлен обратной перестановкой и сравнён побайтово: наши первые 2444 чанка равны реплей-блоку v12r, первые 3493 — реплей-блоку v12r50. Значит отличие C1 от рук сетки объясняется составом корпуса, а не дрейфом токенизатора, фильтров или чанкера",
+    "coupled_change": [
+      "корпус короче эталонов: 3493 чанков против 6986 (v12r50) и 9776 (v12r) — при 2000 шагах × батч 1 доля корпуса, увиденная за стадию, больше",
+      "число чанков несёт только общий язык: сравнение с руками S3m по абсолютному уровню loss некорректно, вердикт — по PPL (ADR-022 п.3)"
+    ]
+  },
+  "arms": [
+    {
+      "id": "C1-100-0.35",
+      "replay_pct": 100,
+      "peak_lr_scale": 0.35,
+      "run_dir": "runs/ctrl-C1-100-0.35-20260916-1632",
+      "stand_dir": "/home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632",
+      "corpus": "ctrl100 (0/100 — общий язык, домена нет; tools/build_ctrl_c1_corpus.py)",
+      "corpus_txt_ctr": "/workspace/shared/datasets/cpt_corpus_ctrl100.txt",
+      "corpus_cache_host": "/home/user/gb10-shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy",
+      "corpus_sha256": "8dab637313d32ac2c8365c0f5891c47c9f1dddcbb853e296dfbf7d1ffd73e25e",
+      "run_manifest": "runs/ctrl-C1-100-0.35-20260916-1632/run_manifest.json",
+      "launched_at": "2026-09-16T10:32:46-03:00",
+      "launched_unix_utc": "2026-09-16T13:32:30.040715+00:00",
+      "config": {
+        "task": "S3o — контрольные руки CPT: чистый протокол и низкий LR (ADR-022 п.1–2, диагностика причины форгеттинга)",
+        "arm": "C1-100-0.35",
+        "replay_share_pct": 100,
+        "peak_lr_scale": 0.35,
+        "cpt_data_ctr": "/workspace/shared/datasets/cpt_corpus_ctrl100.txt",
+        "cpt_dataset_host": "/home/user/gb10-shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy",
+        "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+        "cpt_steps": 2000,
+        "cpt_batch": 1,
+        "seed": 42,
+        "max_len": 8192
+      },
+      "evidence_of_start": {
+        "chain_status": "running",
+        "loss_trace_lines": "734",
+        "loss_trace_last": "{\"step\": 733, \"loss\": 2.4495317935943604, \"lr\": 0.000175, \"t\": 1789567378.8471904}",
+        "cpt_log_tail": [
+          "13:59:37 [INFO] CPT step 650/2000 | loss=2.4327 | lr=1.75e-04 | tok/s=3350",
+          "14:01:38 [INFO] CPT step 700/2000 | loss=2.8963 | lr=1.75e-04 | tok/s=3352"
+        ],
+        "mem_sampler_bytes": "88305",
+        "checkpoints": "calib_checkpoint_500.pt run_manifest.json"
+      },
+      "protocol_identity_lr_vs_s3m": {
+        "reference_arm": "25-0.35",
+        "reference_ts": "20260916-0820",
+        "steps": [
+          50,
+          100,
+          150
+        ],
+        "lr_this_arm": {
+          "50": 8.749999999999999e-05,
+          "100": 0.000175,
+          "150": 0.000175
+        },
+        "lr_reference": {
+          "50": 8.749999999999999e-05,
+          "100": 0.000175,
+          "150": 0.000175
+        },
+        "identical": true,
+        "what": "расписание LR по шагам: совпадение с рукой сетки той же шкалы пика означает, что отличаются только названные факторы (корпус/пик LR), а не расписание, батч, сид или режим внимания",
+        "structural_identity": {
+          "same_runner": "tools/run_mix_lr_calib.py",
+          "same_pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+          "chain_command": "bash /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/pilot_chain.sh --run-dir /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632 --ctr-run-dir /workspace/shared/calib/ctrl-C1-100-0.35-20260916-1632 --stages-file /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/stages.tsv --exp-base ctrl-C1-100-0.35-20260916-1632 --ctr-prefix laguna-ctrl-20260916-1632-C1-100-0.35 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/calib/ctrl-C1-100-0.35-20260916-1632/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_ctrl100.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy --runner-name tools/run_mix_lr_calib.py --extra-hyperparam replay_share_pct=100 --extra-hyperparam peak_lr_scale=0.35 --extra-hyperparam pipeline_base_sha256=8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d --extra-hyperparam corpus=ctrl100 --guard /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/smoke_mem_sampler.sh --sampler-seconds 10800 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 5230efeb3fb7 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.35 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 20"
+        }
+      }
+    },
+    {
+      "id": "C2-25-0.035",
+      "replay_pct": 25,
+      "peak_lr_scale": 0.035,
+      "run_dir": "runs/ctrl-C2-25-0.035-20260916-1632",
+      "stand_dir": "/home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632",
+      "corpus": "v12r (75/25, существующий кэш контура — не пересобирался)",
+      "corpus_txt_ctr": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+      "corpus_cache_host": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+      "corpus_sha256": "203aab53d561ae5bba09ed640dd7d9514a66ca43fc6d7b490767f24391f99f6f",
+      "run_manifest": "runs/ctrl-C2-25-0.035-20260916-1632/run_manifest.json",
+      "launched_at": "2026-09-16T10:32:46-03:00",
+      "launched_unix_utc": "2026-09-16T13:32:37.103774+00:00",
+      "config": {
+        "task": "S3o — контрольные руки CPT: чистый протокол и низкий LR (ADR-022 п.1–2, диагностика причины форгеттинга)",
+        "arm": "C2-25-0.035",
+        "replay_share_pct": 25,
+        "peak_lr_scale": 0.035,
+        "cpt_data_ctr": "/workspace/shared/datasets/cpt_corpus_v12r.txt",
+        "cpt_dataset_host": "/home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy",
+        "attn": "flex (LAGUNA_ATTN=flex, FLEX_COMPILE=0) — режим оставлен владельцем",
+        "cpt_steps": 2000,
+        "cpt_batch": 1,
+        "seed": 42,
+        "max_len": 8192
+      },
+      "evidence_of_start": {
+        "chain_status": "none",
+        "loss_trace_lines": "0",
+        "loss_trace_last": "",
+        "cpt_log_tail": [],
+        "mem_sampler_bytes": "0",
+        "checkpoints": ""
+      },
+      "protocol_identity_lr_vs_s3m": {
+        "reference_arm": null,
+        "reference_ts": "20260916-0820",
+        "steps": [],
+        "lr_this_arm": {},
+        "lr_reference": {},
+        "identical": null,
+        "what": "шкала пика 0.035 в сетке S3m отсутствует (там 0.7 и 0.35): пошаговой сверки расписания для C2 нет — она появилась бы только против руки с той же шкалой. Идентичность протокола C2 показана строкой запуска (та же копия пайплайна, тот же раннер, те же батч/сид/max_len/режим внимания) и проверяется в тесте 17c",
+        "structural_identity": {
+          "same_runner": "tools/run_mix_lr_calib.py",
+          "same_pipeline_base_sha256": "8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d",
+          "chain_command": "bash /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/pilot_chain.sh --run-dir /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632 --ctr-run-dir /workspace/shared/calib/ctrl-C2-25-0.035-20260916-1632 --stages-file /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/stages.tsv --exp-base ctrl-C2-25-0.035-20260916-1632 --ctr-prefix laguna-ctrl-20260916-1632-C2-25-0.035 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/calib/ctrl-C2-25-0.035-20260916-1632/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_mix_lr_calib.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.035 --extra-hyperparam pipeline_base_sha256=8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d --extra-hyperparam corpus=v12r --guard /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/smoke_mem_sampler.sh --sampler-seconds 10800 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 5230efeb3fb7 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.035 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 20"
+        }
+      }
+    }
+  ],
+  "launch": {
+    "autonomous": true,
+    "why": "прогон ~4.4 ч: цепочка живёт в tmux на стенде и переживает смерть раннера (инцидент hr-40: `--launch` без драйвера оставил сетку на 1 из 4)",
+    "driver": {
+      "path": "tools/mix_lr_grid_chain.sh",
+      "sha256": "21eb82f0b5afa5ed08929c8e1a55e2a3a3323086eef233d3c60ac74db4eb64ae"
+    },
+    "session": "ctrl-grid-20260916-1632",
+    "grid_dir": "/home/user/gb10-shared/calib/ctrl-grid-20260916-1632",
+    "command": "setsid nohup bash /home/user/gb10-shared/calib/ctrl-grid-20260916-1632/mix_lr_grid_chain.sh --ts 20260916-1632 --arms 'C1-100-0.35 C2-25-0.035' --shared /home/user/gb10-shared --run-prefix ctrl --grid-name ctrl-grid-20260916-1632 >> /home/user/gb10-shared/calib/ctrl-grid-20260916-1632/grid.log 2>&1 < /dev/null",
+    "start_row": {
+      "row_first_arm": [
+        "2026-09-16T10:32:46-03:00\tC1-100-0.35\tstart\t-"
+      ],
+      "seconds": 0.8
+    },
+    "containers_at_launch": [],
+    "live": {
+      "tmux": "ctrl-grid-20260916-1632: 1 windows (created Wed Sep 16 10:32:46 2026)",
+      "containers": "laguna-ctrl-20260916-1632-C1-100-0.35-cpt Up 30 minutes",
+      "grid_status_tsv": "2026-09-16T10:32:46-03:00\tC1-100-0.35\tstart\t-"
+    },
+    "arm_commands": {
+      "C1-100-0.35": "bash /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/pilot_chain.sh --run-dir /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632 --ctr-run-dir /workspace/shared/calib/ctrl-C1-100-0.35-20260916-1632 --stages-file /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/stages.tsv --exp-base ctrl-C1-100-0.35-20260916-1632 --ctr-prefix laguna-ctrl-20260916-1632-C1-100-0.35 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/calib/ctrl-C1-100-0.35-20260916-1632/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_ctrl100.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_ctrl100_8192_qwen25.npy --runner-name tools/run_mix_lr_calib.py --extra-hyperparam replay_share_pct=100 --extra-hyperparam peak_lr_scale=0.35 --extra-hyperparam pipeline_base_sha256=8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d --extra-hyperparam corpus=ctrl100 --guard /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/smoke_mem_sampler.sh --sampler-seconds 10800 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/calib/ctrl-C1-100-0.35-20260916-1632/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 5230efeb3fb7 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.35 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 20",
+      "C2-25-0.035": "bash /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/pilot_chain.sh --run-dir /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632 --ctr-run-dir /workspace/shared/calib/ctrl-C2-25-0.035-20260916-1632 --stages-file /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/stages.tsv --exp-base ctrl-C2-25-0.035-20260916-1632 --ctr-prefix laguna-ctrl-20260916-1632-C2-25-0.035 --shared /home/user/gb10-shared --experiments /home/user/experiments --pipeline /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/laguna_pipeline_calib.py --pipeline-ctr /workspace/shared/calib/ctrl-C2-25-0.035-20260916-1632/laguna_pipeline_calib.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /home/user/gb10-shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --runner-name tools/run_mix_lr_calib.py --extra-hyperparam replay_share_pct=25 --extra-hyperparam peak_lr_scale=0.035 --extra-hyperparam pipeline_base_sha256=8fe7ac7bb57e22a3ea8f9d6d75ef479e2169212abdd2c45e16cd0d3aecf7621d --extra-hyperparam corpus=v12r --guard /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/check_resource_owner.sh --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --sampler /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/smoke_mem_sampler.sh --sampler-seconds 10800 --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --manifest-tool /home/user/gb10-shared/calib/ctrl-C2-25-0.035-20260916-1632/write_run_manifest.py --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --nvrm-log /home/user/experiments/nvrm_watch.log --runner-sha12 5230efeb3fb7 --model Qwen/Qwen2.5-0.5B --seed 42 --max-len 8192 --max-samples 50000 --peak-lr-scale 0.035 --attn flex --cpt-gen-eval-every 0 --mem-cap 100g --stall-minutes 20"
+    }
+  },
+  "how_to_collect_result": [
+    "прогресс: python3 tools/run_mix_lr_calib.py --grid-wait --arms C1-100-0.35 C2-25-0.035 --ts 20260916-1632 --timeout 600",
+    "забрать логи и манифест серии: --grid-fetch --arms C1-100-0.35 C2-25-0.035 --ts 20260916-1632",
+    "PPL чекпойнтов (шаги 500/1000/1500/2000 по обеим рукам): --probe --arms C1-100-0.35 C2-25-0.035 --ts 20260916-1632",
+    "вердикт по потолку 2× базы: --analyze --arms C1-100-0.35 C2-25-0.035 --ts 20260916-1632 → evidence/ctrl-arms-analysis.json",
+    "руками: docker logs laguna-ctrl-<ts>-<arm>-cpt; loss_trace на стенде: /home/user/gb10-shared/calib/ctrl-<arm>-20260916-1632/logs/loss_trace.jsonl"
+  ],
+  "next_step": [
+    "дождаться двух стадий (сейчас идёт C1; после её checkpoint_final.pt драйвер сам поднимает C2 — AD-5: одна нагрузка за раз)",
+    "снять PPL чекпойнтов обеих рук прибором tools/calib_ppl_probe.py (--probe): решающая точка — шаг 2000, наборы v1 (24 документа) и v2",
+    "судить по ADR-022 п.3б: ppl_general(2000) ≤ 2× базы (v1: ≤23.86). Для C1 решает **v1**: набор v2 заражён её же обучением (см. findings.eval_v2_contaminated)",
+    "при проходе C2 — это кандидат-конфиг для полного CPT; при провале обеих — причина не в домене и не в LR, следующий шаг называет архитектор"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "what": "набор измерения PPL `v2_general` заражён обучающим материалом рук, которые берут реплей-источник целиком (C1 — и, тем же правилом, руки 50 % сетки S3m: их корпус v12r50 тоже состоит из всех 3493 чанков реплей-источника)",
+      "measure": {
+        "tool": "tools/audit_ctrl_corpus_leak.py",
+        "report": "runs/ctrl-audit-20260916/leak.json",
+        "v2_general_docs_over_50_chars": 200,
+        "v2_docs_with_shared_run": 200,
+        "v2_docs_run_ge_20_words": 183,
+        "v2_max_run_words": 429,
+        "v1_docs_with_shared_run": 0,
+        "v1_max_run_words": 0,
+        "v2_documents_verbatim": 200,
+        "unit": "документ набора (блок между '\\n---\\n'), как их режет _ppl_eval: v1 — 24, v2 — 200"
+      },
+      "what_the_card_says": {
+        "source": "data/gen-eval-v2-card.json (ADR-018)",
+        "general_source": "/home/user/gb10-shared/datasets/general_replay_ru.txt",
+        "cut": "документы реплей-корпуса (split '\\n\\n', ≥50 симв.) в файловом порядке; обученный префикс = первые 2444 чанков × 8192 токенов = 20021248",
+        "residual_overlap_vs_trained_prefix": {
+          "ngram": 12,
+          "documents": 200,
+          "documents_with_shared": 2,
+          "median_frac": 0.0,
+          "p90_frac": 0.0,
+          "max_frac": 0.0435,
+          "index_shingles": 5797761,
+          "caveat": "доля 12-грамм документа, встречающихся в обученном префиксе реплея; включает формульные обороты — гейтом не является"
+        },
+        "near_duplicate_vs_trained_prefix": {
+          "docs_with_shared": 403,
+          "docs_over_threshold": 70,
+          "max_frac": 1.0
+        }
+      },
+      "why": "ADR-018 п.3 исключал документы v2 против префикса пилота (2444 чанка), а не против всего реплей-источника: документы за этим префиксом остались в наборе, хотя в руках с полным реплей-источником они обучающие. Карточка набора это и фиксирует: остаточное пересечение считалось против ПРЕФИКСА (2 документа из 200), а не против файла целиком — против файла пересечение полное (200 из 200)",
+      "consequence": "PPL по v2 у C1 (и у рук 50 % сетки) занижен обучением и вердиктом быть не может; решающий набор — v1_general",
+      "what_is_not_claimed": "это не «утечка в корпуса»: корпуса собраны по объявленному рецепту, вопрос — в чистоте самого набора измерения для рук с полным реплей-источником"
+    },
+    {
+      "id": "F2",
+      "what": "инструмент уровня C при первом прогоне дал ложные совпадения на CRC32 (5 из 24 документов v1 «с общим окном» при нуле настоящих)",
+      "measure": "хеш окна заменён на 63-битный blake2b; тот же набор на нём даёт 0 совпадений, как и независимый пересчёт",
+      "consequence": "числа уровня C в отчёте воспроизводимы и не зависят от случайных коллизий; пороги разделены (≥1 окно — шум, ≥20 слов — сигнал)"
+    }
+  ],
+  "verification": {
+    "tool_tests": {
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "result": "PASS=386 FAIL=3",
+      "failing": [
+        "дерево кейса без копий данных (AD-4): 217-МБ копии кэшей в runs/replay50-collapse-20260916/ — артефакт узла replay50-collapse, не этой дельты",
+        "печатается вердикт SYMLINK HYGIENE OK — тот же каталог",
+        "пул v2 в кейсе совпадает с карточкой: файл на сетевом диске (9162 строки) разошёлся с карточкой узла S3f (9197 строк)"
+      ],
+      "own_section": "17 (S3o) — 22 из 22 зелёные; раздел 16 (S3m) не сломан",
+      "pre_existing": "все три падения воспроизводятся на неизменённых чужих артефактах; ни один файл этих каталогов дельтой не изменялся"
+    },
+    "corpus_fidelity": {
+      "command": "python3 tools/build_ctrl_c1_corpus.py (в контейнере стенда)",
+      "result": "ОТКАЗ-гейт пройден: наши первые 2444 чанка == реплей-блок v12r, первые 3493 == реплей-блок v12r50 (побайтово, tokens и pos)"
+    },
+    "protocol_identity": {
+      "command": "сверка loss_trace.jsonl руки C1 с рукой 25-0.35 сетки",
+      "result": "LR по шагам 50/100/150 совпал точно (8.75e-05, 1.75e-04, 1.75e-04): расписание, а значит и режим шага, у контрольной руки то же"
+    }
+  },
+  "fitness_check": {
+    "command": "arch-ml control check .",
+    "expected_red": [
+      "C-014 (AD-1): отчёта результата нет — результат ещё не получен"
+    ],
+    "red_beyond_expected": [
+      "C-012 (AD-2): 8 каталогов в runs/, созданных ПРЕДЫДУЩИМИ узлами, без run_manifest.json — 4 руки сетки S3m, calib-grid, calib-ppl, calib-audit, replay50-collapse. Манифесты рук S3m лежат на стенде и забираются `--fetch --arm <рука> --ts 20260916-0820`; каталог пробы S3m пуст по существу (проба не запускалась)",
+      "C-011 (AD-4): 217-МБ копии кэшей корпуса в runs/replay50-collapse-20260916/(узел replay50-collapse), блобы уже в git-индексе — правка требует решения владельца (история)"
+    ],
+    "own_catalogs": "каталоги S3o (обе руки, серия, аудит) гейт проходят: манифест пишется сразу при старте (стадия running), каталог аудита помечен NOT_A_RUN с причиной"
+  },
+  "invariants": {
+    "AD-4": "корпуса и чекпойнты — на gb10-shared; в кейсе только логи/манифесты и симлинк на чекпойнты рук (C-011)",
+    "AD-2": "у каждой руки run_manifest.json с хешем корпуса (dataset_sha256), базовой моделью, сидом, образом и стадией",
+    "AD-5": "руки идут последовательно одной tmux-сессией; сборка корпуса C1 — CPU-контейнер без GPU",
+    "AD-9/ADR-012": "стенд наш (флаг паузы читается лесенкой); при чужой нагрузке запуск не состоялся бы — страж стоит в каждой стадии цепочки",
+    "AD-12": "доказательства — этот файл, каталоги рук и серии, отчёты сборки корпуса и утечки; финальный git-коммит"
+  },
+  "open_questions": [
+    "Заражение набора v2 у рук на полном реплей-источнике (F1) — это дефект набора или ожидаемое свойство? Если набор v2 остаётся в протоколе, у рук 50 % сетки S3m и у C1 он не может быть основанием вердикта: нужен либо набор, отфильтрованный против ВСЕГО реплей-источника, либо решение оставить решающим только v1 (24 документа).",
+    "C1 обходит вопрос «виновата доля replay» иначе, чем сетка: у неё нет домена вовсе, но и корпус короче (3493 чанка против 6986/9776), поэтому «сколько раз рука прошла по корпусу» у C1 и у рук сетки разное — сопряжённое отличие названо в отчёте сборки и в coupled_change.",
+    "Порядок рук: C1 идёт первой, C2 второй. Если между ними изменится чужое состояние стенда (буря NVRM, чужой прогон), сравнение C1 и C2 по абсолютному уровню лосса станет некорректным — PPL снимается прибором после обеих, но траектории пишутся в разное время."
+  ],
+  "artifacts": [
+    {
+      "path": "tools/build_ctrl_c1_corpus.py",
+      "what": "сборка корпуса C1 с побайтовой самопроверкой против реплей-блоков"
+    },
+    {
+      "path": "data/mix-ctrl100-build.json",
+      "what": "отчёт сборки корпуса C1: состав, хеши, сверка, сопряжённые отличия"
+    },
+    {
+      "path": "tools/audit_ctrl_corpus_leak.py",
+      "what": "проверка утечки наборов PPL (v1 и v2) в корпуса контрольных рук"
+    },
+    {
+      "path": "runs/ctrl-audit-20260916/leak.json",
+      "what": "отчёт этой проверки"
+    },
+    {
+      "path": "tools/run_mix_lr_calib.py",
+      "what": "раннер: контрольные руки тем же протоколом + манифест старта"
+    },
+    {
+      "path": "tools/mix_lr_grid_chain.sh",
+      "what": "драйвер серии: префикс каталогов рук и имя каталога серии — параметры"
+    },
+    {
+      "path": "runs/ctrl-grid-20260916-1632/grid_launch.json",
+      "what": "файл запуска серии: команда, сессия, строка старта, доставленные файлы"
+    },
+    {
+      "path": "evidence/s3o-control-arms.json",
+      "what": "этот файл"
+    }
+  ]
+}

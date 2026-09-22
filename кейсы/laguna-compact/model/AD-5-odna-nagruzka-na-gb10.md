@@ -3,7 +3,7 @@ id: AD-5
 type: ad
 title: "На GB10 — одна GPU-нагрузка за раз"
 status: "PROPOSED"
-affects: [C-015]
+affects: []
 verified_by: [C-015]
 source: "docs/adr/ADR-001-predmet-revizii-laguny-os-uspeha-i-obyom-delty.md"
 ---

@@ -1,0 +1,1076 @@
+{
+ "schema": "acceptance-record/1",
+ "date": "2026-09-22",
+ "case": "кейсы/laguna-compact",
+ "what": "Сведение в канон (main) четырёх ветвей кейса, накопивших незабранную работу, по процедуре ADR-024 (шесть шагов): порядок proof-of-execution → sft-decode-diagnosis → sft-loop-origin → rl-env-probe; каноническая нумерация правил (C-029 запрет сна, C-030 идентичность набора, C-031 доказательство исполнения), механический страж уникальности номеров правил (C-032) и акт приёмки. Ветви не удалялись, git push не делался.",
+ "owner_approve": {
+  "given_by": "владелец (Роман Некрасов)",
+  "when": "2026-09-22",
+  "how": "задание выдано явно (TASK.md handoff-пакета): четыре ветви, порядок сведения, классы разрешения конфликтов, обязательный новый страж и обязательный коммит; прогон проверок и запись акта — в автономном режиме"
+ },
+ "rule_numbering_canonical": {
+  "before": {
+   "rules": 27,
+   "ids": "C-001…C-020, C-023…C-028, C-030",
+   "free": [
+    "C-029",
+    "C-031",
+    "C-032"
+   ]
+  },
+  "after": {
+   "rules": 30,
+   "ids": "C-001…C-020, C-023…C-032",
+   "free": [
+    "C-033"
+   ],
+   "duplicates": [],
+   "note": "проверено механически: множество id, дублей нет"
+  },
+  "canonical": {
+   "C-029": "запрет сна во время GPU-нагрузки (AD-9, вторая грань) — ветвь arch/sft-decode-diagnosis",
+   "C-030": "идентичность набора стадии (S3av) — уже в main до сведения",
+   "C-031": "«Доказательство исполнения» у новых ADR — ветвь arch/proof-of-execution (перенумеровано из C-029 коммитом 51ca0a5 ДО сведения)",
+   "C-032": "уникальность номеров правил: номер — ресурс канона (ADR-046 п.8) — введено этим сведением"
+  },
+  "texts_not_rewritten": {
+   "method": "сравнение полей каждого правила (строки-комментарии исключены как не принадлежащие правилу) между каноном после сведения и: (а) ветвью-источником для её правила, (б) main до сведения — для всех общих",
+   "C-031_canon_eq_branch": true,
+   "C-029_canon_eq_branch": true,
+   "C-030_canon_eq_main_before": true,
+   "C-026_C-027_C-028_canon_eq_main_before": true,
+   "C-001_C-025_canon_eq_main_before": true,
+   "renumber_commit_proof": "51ca0a5 изменяет в CONSTRAINTS.yaml ровно одну строку — «- id: C-029» → «- id: C-031» (git show 51ca0a5 --stat: 5 файлов, 6 вставок, 6 удалений, из них 4 — правки ссылок в README/ADR-042/ADR-051/тестах); текст правила не тронут",
+   "only_divergence_vs_branches": "C-025: у трёх ветвей (sft-decode-diagnosis, sft-loop-origin, rl-env-probe) редакция C-025 старее канонической (правка evidence реестра приборов сделана в control-arms уже после их точки ветвления) — сведение сохранило редакцию main (более новую); текст правила не разбирался"
+  }
+ },
+ "preflight": {
+  "baseline_ref": "231d9d2 (main до работы исполнителя)",
+  "baseline_tests": {
+   "command": "bash tools/tests/run_tool_tests.sh",
+   "result": "PASS=807 FAIL=0 SKIP=0",
+   "when": "2026-09-22, прогон на нетронутом main (лог /tmp/s3az-consol-baseline-tests.log, EXIT=0)"
+  },
+  "worktree_clean": true,
+  "branches": [
+   "arch/proof-of-execution",
+   "arch/sft-decode-diagnosis",
+   "arch/sft-loop-origin",
+   "arch/rl-env-probe",
+   "arch/sft-length-policy"
+  ]
+ },
+ "merges": [
+  {
+   "branch": "arch/proof-of-execution",
+   "branch_tip": "51ca0a5d9f428e8ee67284a7acba4813bd8bd760",
+   "merge_commit": "1acd633",
+   "parents": {
+    "canon_before": "231d9d2",
+    "branch_tip": "51ca0a5"
+   },
+   "base": "31e6895",
+   "method": "merge --no-ff",
+   "commits": 2,
+   "files": 6,
+   "insertions": 540,
+   "deletions": 2,
+   "carries": "обязательный раздел «Доказательство исполнения» для ADR от 2026-09-21 + правило C-031 + tools/check_execution_proof.py + секция 34 тестов (109 строк)",
+   "conflicts": [
+    {
+     "file": "кейсы/laguna-compact/CONSTRAINTS.yaml",
+     "class": "add/add в конце реестра",
+     "resolution": "объединение реестров: блок C-030 (main) + блок C-031 (ветвь), порядок по номерам",
+     "texts_unchanged": true
+    },
+    {
+     "file": "кейсы/laguna-compact/tools/tests/run_tool_tests.sh",
+     "class": "add/add в конце файла",
+     "resolution": "объединение секций: секция main (33, S3av) + секция ветви (переномерована 33 → 34); обе стороны сохранены",
+     "sections_kept": "обе"
+    }
+   ],
+   "auto_merged": [
+    "README.md",
+    "docs/adr/ADR-042-….md",
+    "docs/adr/ADR-051-….md",
+    "tools/check_execution_proof.py"
+   ],
+   "lost": "ничего: все 6 файлов ветви присутствуют в каноне",
+   "tests_after": "PASS=824 FAIL=0 SKIP=0",
+   "gate_after": "правил 28, error 2 — AD-1 (унаследованная) и model/AD-13 (унаследованная); новых находок нет"
+  },
+  {
+   "branch": "arch/sft-decode-diagnosis",
+   "branch_tip": "1159452c185ce8d88898755e83bdad65c9c008e0",
+   "merge_commit": "98ab751",
+   "parents": {
+    "canon_before": "1acd633",
+    "branch_tip": "1159452"
+   },
+   "base": "72b5124",
+   "method": "merge --no-ff",
+   "commits": 6,
+   "files": 40,
+   "insertions": 41591,
+   "deletions": 12,
+   "carries": "диагностика декодирования (три режима), evidence/sft-decode-diagnosis.json и evidence/rl-rollout-viability.json, обвязка запрета сна (guard_cuda_run.sh, chain_sleep_guard.sh, check_gpu_sleep_guard.py), правило C-029, секции 35–37 тестов (967 строк)",
+   "conflicts": [
+    {
+     "file": "кейсы/laguna-compact/CONSTRAINTS.yaml",
+     "class": "add/add в конце реестра (ветвь форкнута до C-026…C-028)",
+     "resolution": "взята редакция main целиком (она содержит C-026/C-027/C-028/C-030/C-031), из ветви добавлен ТОЛЬКО её блок C-029 — вставлен перед C-030, порядок по номерам",
+     "note": "устаревшая копия evidence правила C-025 из ветви не взята: канон новее"
+    },
+    {
+     "file": "кейсы/laguna-compact/README.md",
+     "class": "add/add (таблица инструментов и строка состава правил)",
+     "resolution": "таблица — обе строки (check_gpu_sleep_guard C-029 и check_execution_proof C-031, по номерам); строка состава правил приведена к факту: «C-001…C-020 и C-023…C-031»",
+     "note": "строка состава — не текст правила, а описание текущего состояния гейта; приведена к фактическому (позже, на шаге C-032, — к C-023…C-032)"
+    },
+    {
+     "file": "кейсы/laguna-compact/model/AD-9-hozyain-resursa.md",
+     "class": "конфликт полей frontmatter",
+     "resolution": "affects — редакция канона (пустой список: 22517ca убрал ссылки на правила из affects как дубль verified_by), verified_by — объединение [C-018, C-029]",
+     "note": "редакция ветви (affects: [C-018]) вернула бы уже исправленный дефект"
+    },
+    {
+     "file": "кейсы/laguna-compact/tools/tests/run_tool_tests.sh",
+     "class": "add/add в конце файла",
+     "resolution": "объединение секций: main (32–34) + ветвь (32–34 переномерованы в 35–37)",
+     "sections_kept": "обе"
+    }
+   ],
+   "auto_merged": [
+    "ARCHITECTURE-SPINE.md",
+    "tools/README.md",
+    "tools/launch_sft_stage.py",
+    "runs/sft-decode-diagnosis-20260920/**"
+   ],
+   "lost": "ничего: все 40 файлов ветви присутствуют в каноне",
+   "tests_after": "PASS=956 FAIL=0 SKIP=0",
+   "gate_after": "правил 29, error 2 — те же унаследованные; новых находок нет"
+  },
+  {
+   "branch": "arch/sft-loop-origin",
+   "branch_tip": "db80f08",
+   "merge_commit": "43af1b6",
+   "parents": {
+    "canon_before": "98ab751",
+    "branch_tip": "db80f08"
+   },
+   "base": "72b5124",
+   "method": "merge --no-ff",
+   "commits": 3,
+   "files": 36,
+   "insertions": 116854,
+   "deletions": 0,
+   "carries": "профиль петель S3ar/S3at, evidence/sft-loop-origin.json, sft-loop-trend.json, sft-loop-onset.json, tools/analyze_loop_origin.py, analyze_loop_trend.py, assemble_s3at_onset.py, секции 38–39 тестов (246 строк)",
+   "conflicts": [
+    {
+     "file": "кейсы/laguna-compact/README.md",
+     "class": "add/add (журнал стадий и таблица инструментов)",
+     "resolution": "объединение: добавлены обе стороны (S3ar/S3at рядом с decode-diagnosis)",
+     "note": "строка таблицы инструментов со стороны ветви сохранена дословно, включая сдвиг колонок — названная мелочь, не правка"
+    },
+    {
+     "file": "кейсы/laguna-compact/tools/tests/run_tool_tests.sh",
+     "class": "add/add в конце файла",
+     "resolution": "объединение секций: main (до 37) + ветвь (32–33 переномерованы в 38–39)",
+     "sections_kept": "обе"
+    }
+   ],
+   "auto_merged": [
+    "tools/README.md",
+    "runs/sft-loop-trend-20260921/**",
+    "runs/s3at-loop-onset-20260921/**"
+   ],
+   "lost": "ничего: все 36 файлов ветви присутствуют в каноне",
+   "tests_after": "PASS=967 FAIL=0 SKIP=0",
+   "gate_after": "правил 29, error 4 — добавлено НОВОЕ красное C-029 (см. new_findings_from_consolidation)",
+   "note": "гейт сразу после этого коммита не прогонялся (промах исполнителя); находка поймана на следующем прогоне и атрибутирована пересчётом гейта на коммите 43af1b6"
+  },
+  {
+   "branch": "arch/rl-env-probe",
+   "branch_tip": "aae7a1a",
+   "merge_commit": "3ab2d7a",
+   "parents": {
+    "canon_before": "43af1b6",
+    "branch_tip": "aae7a1a"
+   },
+   "base": "72b5124",
+   "method": "merge --no-ff",
+   "commits": 1,
+   "files": 4,
+   "insertions": 6342,
+   "deletions": 0,
+   "carries": "проба предусловий RL на стенде GB10 (ADR-049 п.10), evidence/rl-env-probe-gb10.json, tools/rl_env_probe_gb10.py, секция 40 тестов (83 строки)",
+   "conflicts": [
+    {
+     "file": "кейсы/laguna-compact/README.md",
+     "class": "add/add (таблица evidence и журнал стадий)",
+     "resolution": "объединение: строка rl-env-probe-gb10 добавлена к обеим таблицам",
+     "note": "взят текст ветви дословно, включая ставшую неточной оговорку «в канон не сведено — ADR-049 ещё Proposed в другой ветви»: сведение этой ветви её опровергает. Переписывать не стали — названо, а не умолчано (см. open_questions текста ответа)"
+    },
+    {
+     "file": "кейсы/laguna-compact/tools/tests/run_tool_tests.sh",
+     "class": "add/add (ветвь вставляет секцию в середину файла)",
+     "resolution": "блок ветви сохранён дословно (сверен построчно: 83 строки, отличие только в номере секции 17 → 40), обе стороны остались",
+     "sections_kept": "обе"
+    }
+   ],
+   "auto_merged": [
+    "evidence/rl-env-probe-gb10.json",
+    "tools/rl_env_probe_gb10.py"
+   ],
+   "lost": "ничего: все 4 файла ветви присутствуют в каноне",
+   "tests_after": "PASS=971 FAIL=0 SKIP=0; после добавления стража C-032 — PASS=988 FAIL=0 SKIP=0",
+   "gate_after": "правил 30 (с C-032), error 4"
+  }
+ ],
+ "skipped_branches": [
+  {
+   "branch": "arch/sft-length-policy",
+   "tip": "72b5124",
+   "reason": "впереди main НЕТ НИ ОДНОГО коммита: вершина ветви — предок канона (git rev-list --count main..arch/sft-length-policy = 0). Работы, которую надо забирать, в ветви нет; выдумывать её не стали.",
+   "evidence": "git rev-parse arch/sft-length-policy == 72b5124 == merge-base с тремя сводимыми ветвями; содержимое (ADR-050) вошло в канон ранее"
+  }
+ ],
+ "test_sections_line_counts": {
+  "method": "git diff --numstat <merge>^1 <merge> -- tools/tests/run_tool_tests.sh",
+  "arch/proof-of-execution": 109,
+  "arch/sft-decode-diagnosis": 967,
+  "arch/sft-loop-origin": 246,
+  "arch/rl-env-probe": 83,
+  "expected_by_owner": "≈110 + 968 + 247 + 84",
+  "note": "расхождение в 1 строку у rl-env-probe — разделительная пустая строка перед секцией, поглощённая слиянием; блок секции сверен построчно (83 строки, идентичен)"
+ },
+ "postmerge_gate": {
+  "run_tool_tests": {
+   "command": "bash tools/tests/run_tool_tests.sh",
+   "before": "PASS=807 FAIL=0 SKIP=0 (main 231d9d2)",
+   "after_each_merge": [
+    "824/0",
+    "956/0",
+    "967/0",
+    "971/0"
+   ],
+   "final": "PASS=988 FAIL=0 SKIP=0",
+   "sections": {
+    "before": 53,
+    "after": 61
+   },
+   "when": "2026-09-22",
+   "note": "провалов не было ни на одном шаге; docker-секции (30, 32, 37, 40, 41) исполнились — docker доступен; флаки-секция check_env_contract.py (C-028) на этих прогонах не падала"
+  },
+  "case_gate": {
+   "command": "arch-ml control check кейсы/laguna-compact --constraints кейсы/laguna-compact/CONSTRAINTS.yaml --json",
+   "result": "FAIL (exit 1) — правил 30, нарушений 4 (error 4, warn 0)",
+   "findings": {
+    "AD-1 / evidence/result-report-*.json": "унаследованная (была на main до сведения: тот же finding в baseline-гейте)",
+    "model/AD-13-zazemlenie-nagrady.md": "унаследованная (была на main до сведения)",
+    "C-029 (страж сна)": "НОВАЯ — см. new_findings_from_consolidation",
+    "C-018 (хозяин стенда)": "живой сенсор: читает свободную память стенда, мерцает по занятости стадии (22.2–32.5 ГБ против порога 35 ГБ; документировано в README кейса)"
+   }
+  },
+  "spine_lint": {
+   "command": "arch-ml control spine кейсы/laguna-compact/ARCHITECTURE-SPINE.md",
+   "result": "PASS — нарушений нет"
+  },
+  "trace_check": {
+   "command": "spine trace_check (MCP)",
+   "result": "PASS — сущностей 35, правил 30, инвариантов 13, error 0; звено «AD → fitness-правило» 13/13 (unverifiable 2), ADR→CMP 10/10, CMP→fitness 12/12"
+  },
+  "model_validate": {
+   "command": "spine model_validate (MCP)",
+   "result": "PASS — сущностей 35, находок 0 (на приёмке 20.09 было 33 сущности и 11 bad-link-target)"
+  },
+  "adr_registry": {
+   "command": "spine adr_registry (MCP)",
+   "result": "51 запись, 1 находка — prose_model_divergence ADR-049 (проза «Accepted», модель «Proposed»); унаследована, к сведению не относится"
+  },
+  "dangling_adr_refs": {
+   "method": "все ADR-NNN, упомянутые в docs/adr/**, model/**, README.md, ARCHITECTURE-SPINE.md, docs/specs/**, evidence/**, сверены с именами файлов docs/adr/",
+   "result": "упомянут 51 различных номеров, висячих 0"
+  }
+ },
+ "new_rule_C032": {
+  "id": "C-032",
+  "name": "ADR-046 п.8: номер правила — ресурс канона — выданный незалитой ветвью номер не занят каноном (и не выдан второй ветвью)",
+  "tool": "кейсы/laguna-compact/tools/check_rule_numbers.py",
+  "why": "номер правила выдаётся локальным счётом каталога в каждом worktree; класс дефекта воспроизвёлся трижды (ADR-024, C-020/C-021, C-029→C-031) и каждый раз ловился человеком",
+  "checks": [
+   "ветви находятся через git for-each-ref refs/heads/",
+   "номера читаются из CONSTRAINTS.yaml кейса на трёх ревизиях: канон, вершина ветви, точка ветвления",
+   "«выданные ветвью» = номера ветви минус номера точки ветвления (git merge-base)",
+   "красное при пересечении с номерами канона — конфликт назван поимённо (ветвь, номер, точка ветвления)",
+   "красное, если один номер выдан более чем одной незалитой ветвью (класс C-029)",
+   "красное при дубле номера внутри самого файла правил",
+   "слитые ветви пропускаются (git merge-base --is-ancestor) — на них страж не краснеет",
+   "NOT-VERIFIED (exit 2): нет git-репозитория, нет канона или нет файла правил канона",
+   "страж только читает: ветвей не создаёт, не удаляет и не двигает"
+  ],
+  "teeth_on_real_repo": {
+   "how": "временная ссылка zz-teeth-demo-<pid> на служебный коммит, где CONSTRAINTS.yaml ветви arch/g8-s4-protocol дополнен правилом с номером C-027 (занят каноном)",
+   "command": "python3 tools/check_rule_numbers.py",
+   "output": "RC=1; «[КОЛЛИЗИЯ] zz-teeth-demo-3890039: выдала ['C-027']»; «номер C-027 выдан ветвью от 74eb638d и УЖЕ ЗАНЯТ в каноне (main)»",
+   "cleanup": "git update-ref -d — ссылка удалена, повторный прогон зелёный (RC=0)"
+  },
+  "teeth_in_tests": {
+   "section": "41",
+   "cases": [
+    "ветвь со свободным номером → 0",
+    "ветвь, выдавшая номер, который канон занял позже → 1 (ветвь и номер названы)",
+    "два кандидата на один номер → 1 (оба названы)",
+    "слитая ветвь → пропуск merged-into-canon, не красное",
+    "удаление конфликтующих ветвей → снова 0",
+    "дубль номера внутри файла → 1",
+    "нет файла правил канона / не репозиторий → 2",
+    "страж только читает: набор ссылок и вершины не изменились"
+   ]
+  },
+  "registered_in": [
+   "CONSTRAINTS.yaml (правило C-032, command_succeeds, severity error)",
+   "README.md — таблица инструментов",
+   "tools/README.md — таблица правил",
+   "tools/tests/run_tool_tests.sh — секция 41"
+  ]
+ },
+ "new_findings_from_consolidation": [
+  {
+   "id": "C-029 / runs/sft-loop-trend-20260921",
+   "severity": "error",
+   "fact": "правило C-029 считает находкой прогон, начатый после 2026-09-21 и не несущий доказательства защиты сна. Находка: sft-loop-trend-20260921 (начат 2026-09-21T11:10:13+00:00 = 14:10:13 MSK)",
+   "created_by": "пара шагов сведения: правило C-029 пришло merge 2 (98ab751), каталог прогона — merge 3 (43af1b6). Проверено пересчётом: на коммите 43af1b6 гейт уже даёт это красное, на 98ab751 — ещё нет",
+   "root_cause_measured": "порог по умолчанию в приборе — 2026-09-21T00:00Z (начало суток), а само правило C-029 вошло в ветвь коммитом ed87e8b в 14:22:35 MSK; обвязка guard_cuda_run.sh появилась в ветви коммитом 772697f в 13:41:19 MSK. Прогон начат в 14:10:13 MSK — до вступления правила в силу: расписки у него быть не могло, требовать её значит получить красное по построению (ADR-023 п.12)",
+   "why_not_fixed_by_executor": "правка порога или текста правила — решение владельца правила, а не исполнителя сведения: изменение условия, по которому гейт краснеет, было бы маскировкой находки обходным редизайном (прямо запрещено заданием). Прибор к тому же пиннут реестром редакций (C-025)",
+   "options_for_owner": [
+    "порог правила — момент вступления правила в силу (коммит ed87e8b), а не начало суток; тогда прогон 14:10 — исторический (по образцу legacy-not-checked у C-030/C-031)",
+    "либо признать находку верной и записать прогон как исполненный без защиты сна (факт, а не умолчание)",
+    "вариант «дописать расписку задним числом» запрещён (ADR-023 п.9, ADR-028 п.4)"
+   ]
+  }
+ ],
+ "open_reds": [
+  {
+   "id": "C-014 / AD-1",
+   "severity": "high",
+   "kind": "documentary",
+   "fact": "glob evidence/result-report-*.json не находит файла — правилу нечего проверять",
+   "why_inherited": "на main до сведения то же самое; артефакт появится по существу стадии A5",
+   "action": "не чинилось, правило не ослаблено"
+  },
+  {
+   "id": "model/AD-13-zazemlenie-nagrady.md",
+   "severity": "high",
+   "kind": "link",
+   "fact": "инвариант не привязан к правилу по формату: в файле verified_by: [\"C-026\", \"C-027\", \"C-028\"] — идентификаторы в кавычках, а правило гейта ищет шаблон verified_by: [C-0…",
+   "why_inherited": "файл пришёл в main коммитом 98eb548; сведение его не касалось",
+   "action": "не чинилось: правка файла модели в задании сведения не значилась. Механическая правка (снять кавычки) — кандидат отдельной дельты; trace_check при этом PASS (13/13)"
+  },
+  {
+   "id": "C-029 / sft-loop-trend-20260921",
+   "severity": "high",
+   "kind": "behavioural",
+   "fact": "см. new_findings_from_consolidation — новое красное, созданное парой сведённых ветвей",
+   "action": "названо, не замаскировано; решение за владельцем правила"
+  },
+  {
+   "id": "C-018 / стенд",
+   "severity": "info",
+   "kind": "live_sensor",
+   "fact": "AD-9 читает свободную unified-память стенда: 22.2–32.5 ГБ против порога 35 ГБ при живом SFT-прогоне; вердикт мерцает по занятости стадии",
+   "why_inherited": "документировано в README самого кейса: «C-018 … мерцает по занятости стадии; на приёмке информационен — решение архитектора 20.09.2026»",
+   "action": "не чинилось"
+  }
+ ],
+ "not_verified": [
+  "Числа прогонов, пришедших с ветвями, заново не снимались и не перепроверялись на стенде: задание прямо запрещало нагрузки на GB10 (там идёт полная SFT-стадия sft-v13-2e6-20260921-2054)",
+  "Живой прогон под обвязкой guard_cuda_run.sh по-прежнему не снят (граница названа в самой ветви): защита сна подтверждена синтетикой и структурной недостижимостью сна на стенде, но не распиской реального прогона",
+  "Ветвь arch/sft-length-policy содержимого не несёт — проверено, а не пропущено выборочно: сверять было нечего",
+  "Ветви вне четырёх названных на предмет сведения не смотрелись (страж C-032 читает их CONSTRAINTS.yaml — только номера)",
+  "Независимый ревьюер вердикта не давал; decision_quality / semantic_quality в маршруте гейта SKIP",
+  "Ветви с несвязанной историей (publish/aiml-edition-2026-09-14) стражем номеров не сравниваются — названный пропуск (no-merge-base)",
+  "Тексты правил сверены механически по полям; смысловая эквивалентность (что правило значит то же) — за ревьюером"
+ ],
+ "state_after": {
+  "main_head": "3ab2d7aad6797b4782100bf75ae02b22ba4835ae",
+  "commits_added": [
+   "1acd633 (merge proof-of-execution)",
+   "98ab751 (merge sft-decode-diagnosis)",
+   "43af1b6 (merge sft-loop-origin)",
+   "3ab2d7a (merge rl-env-probe)",
+   "коммит дельты сведения (страж C-032, акт приёмки, BRANCH-CANONIZATION)"
+  ],
+  "rules": {
+   "before": 27,
+   "after": 30
+  },
+  "test_sections": {
+   "before": 53,
+   "after": 61
+  },
+  "model_entities": 35,
+  "adr_prose_files": 51,
+  "adr_typed_entities": 10,
+  "branches_intact": {
+   "arch/proof-of-execution": "51ca0a5",
+   "arch/sft-decode-diagnosis": "1159452",
+   "arch/sft-loop-origin": "db80f08",
+   "arch/rl-env-probe": "aae7a1a",
+   "arch/sft-length-policy": "72b5124"
+  },
+  "deleted_branches": [],
+  "pushed": false,
+  "open_reds": [
+   "C-014/AD-1 (унаследованная)",
+   "model/AD-13 verified_by (унаследованная)",
+   "C-029 / sft-loop-trend-20260921 (новая)",
+   "C-018 (живой сенсор стенда)"
+  ],
+  "recorded_before_own_commit": "акт фиксирует состояние на момент приёмки — то же соглашение, что у акта 2026-09-21 (там main_head указывает на d7c8378, а сам акт приходит следующим коммитом 7de0182). Коммит этой дельты (страж C-032, акт, дополнение BRANCH-CANONIZATION) — потомок main_head и содержит только перечисленные файлы",
+  "worktree_files_of_this_delta": [
+   "кейсы/laguna-compact/CONSTRAINTS.yaml (правило C-032)",
+   "кейсы/laguna-compact/tools/check_rule_numbers.py (новый страж)",
+   "кейсы/laguna-compact/tools/tests/run_tool_tests.sh (секция 41)",
+   "кейсы/laguna-compact/README.md, tools/README.md (регистрация стража)",
+   "кейсы/laguna-compact/docs/specs/BRANCH-CANONIZATION.md (раздел 8)",
+   "кейсы/laguna-compact/evidence/acceptance-2026-09-22-consolidation.json (этот акт)"
+  ]
+ },
+ "environment_notes": [
+  "Стенд GB10 не занимался исполнителем: туда не отправлялось ни одной нагрузки, ни одного ssh-эксперимента. Правила C-018 и C-029 сами читают стенд через ssh — только чтение (ps, systemctl is-enabled, попытка старта masked-цели)",
+  "Локальная RTX 4080 нагрузок не получала; обучение не запускалось",
+  "Ветви не удалялись и не двигались; git push не выполнялся",
+  "Служебная ветвь демонстрации зуба стража (zz-teeth-demo-<pid>) создана и удалена в одном шаге; проверено: git for-each-ref по ней пуст",
+  "Docker использовался секциями тестов кейса (контракт среды, скелет заземления, проба RL, страж сна, страж номеров) — это штатные прогоны тестов кейса, не нагрузки на стенде"
+ ],
+ "wave2": {
+  "schema": "acceptance-record/1",
+  "wave": "вторая волна приёмки (S3bb): две оставшиеся ветви + реализация ADR-053 + гигиена канона",
+  "date": "2026-09-22",
+  "owner_approve": {
+   "given_by": "владелец (Роман Некрасов)",
+   "when": "2026-09-22",
+   "how": "задание выдано явно (TASK.md handoff-пакета): реализовать ADR-053 по разделу «Реализация» п.1–5; принять две ветви по процедуре ADR-024 (мерж по одной, после каждой тесты и гейт); закрыть гигиенические находки первой волны"
+  },
+  "preflight": {
+   "baseline_ref": "221842d (main на момент старта исполнителя); baseline отката — 5e9f03d",
+   "baseline_tests": {
+    "command": "bash tools/tests/run_tool_tests.sh",
+    "result": "PASS=987 FAIL=1 SKIP=0",
+    "when": "2026-09-22, прогон на нетронутом дереве (лог /tmp/s3bb-baseline-tests.log)",
+    "note": "988/0 из акта первой волны относится к 5e9f03d: коммит ADR-053 (221842d) внёс НОВОЕ красное — у самого ADR-053 нет обязательного раздела «Доказательство исполнения» (C-031), и тест «доказательство: дерево кейса зелёное» падает. Числа до/после этой волны считаются от 987/1, а не от 988/0"
+   },
+   "worktree_clean": true,
+   "branches": [
+    {
+     "branch": "arch/ladder-full-plan",
+     "tip": "7f114d8",
+     "carries": "ADR-052, docs/specs/LADDER-FULL-PLAN.md, оговорка области у AD-1, строка WORK-BACKLOG"
+    },
+    {
+     "branch": "arch/sft-v13-arm",
+     "tip": "2baa36b",
+     "commits": 2,
+     "carries": "S3ay-fix (предохранитель памяти без зависимости от локали), инструменты S3ax/S3ay-arm, evidence/sft-v13-full-launch.json"
+    }
+   ],
+   "skipped_branches": []
+  },
+  "merges": [
+   {
+    "branch": "arch/ladder-full-plan",
+    "branch_tip": "7f114d8",
+    "merge_commit": "038396e",
+    "parents": {
+     "canon_before": "221842d",
+     "branch_tip": "7f114d8"
+    },
+    "base": "d278b16",
+    "method": "merge --no-ff",
+    "commits": 1,
+    "files": 4,
+    "insertions": 524,
+    "deletions": 2,
+    "carries": "ADR-052 (полная лесенка возвращается из Deferred), docs/specs/LADDER-FULL-PLAN.md (382 строки), оговорка области у AD-1 в спайне, строка «Полная лесенка: старт волны В-1» в WORK-BACKLOG",
+    "conflicts": [],
+    "auto_merged": [
+     "ARCHITECTURE-SPINE.md (правки в разных блоках)"
+    ],
+    "lost": "ничего: все 4 файла ветви присутствуют в каноне",
+    "tests_after": "PASS=987 FAIL=1 SKIP=0 — новых падений нет: единственное падение — унаследованное C-031 (ADR-052 и ADR-053 без раздела «Доказательство исполнения»), снятое этой же дельтой",
+    "gate_after": "правил 30, error 6 — унаследованные (AD-1, AD-9/живой сенсор) + 2 от структуры ADR-052 + 2 от ADR-053 (обе появятся ниже как починенные)"
+   },
+   {
+    "branch": "arch/sft-v13-arm",
+    "branch_tip": "2baa36b",
+    "merge_commit": "633efab",
+    "parents": {
+     "canon_before": "038396e",
+     "branch_tip": "2baa36b"
+    },
+    "base": "d278b16",
+    "method": "merge --no-ff",
+    "commits": 2,
+    "files": 16,
+    "insertions": 4165,
+    "deletions": 9,
+    "carries": "S3ay-fix: предохранитель памяти не зависит от локали (tools/early_gate_watch.py и обвязка), инструменты S3ax/S3ay-arm (launch_full_stage.py, start_full_stage.py, launch_v13_lr_arm.py, launch_arm_probe.py, check_stage_lr.py, assemble_s3ax_evidence.py, assemble_s3ay_evidence.py, probe_v13_arm.sh), evidence/sft-v13-full-launch.json, runs/sft-v13-arm-20260921 (каталог-непрогон с маркером NOT_A_RUN)",
+    "conflicts": [],
+    "numbering_collision": {
+     "what": "секция тестов ветви имела номер 34, уже занятый в каноне (check_execution_proof.py)",
+     "why_no_git_conflict": "обе стороны дописывали файл тестов в конец — git слил аддитивно и механического конфликта не увидел",
+     "resolution": "секция ветви переномерована 34 → 42 (прецедент первой волны); строки тестов не потеряны — блок в 424 строки целиком лежит перед итоговой строкой"
+    },
+    "lost": "ничего: все 16 файлов ветви присутствуют в каноне",
+    "tests_after": "PASS=1004 FAIL=2 SKIP=0 — добавлены 424 строки тестов ветви (секция 42); падения: унаследованное C-031 (ADR-052+ADR-053) и НОВОЕ, созданное ветвью, — гонка в её тесте памяти (см. findings_fixed_on_acceptance)",
+    "gate_after": "правил 30; добавлено новое красное C-025 (ложная атрибуция цитаты хеша в launch_arm_probe.py) и новые находки C-001/C-002 по структуре ADR-052"
+   }
+  ],
+  "adr053": {
+   "decision": "docs/adr/ADR-053-porog-primenimosti-pravila-strazha-moment-vstupleniya-v-silu.md — порог применимости правила-стража есть МОМЕНТ вступления правила в силу, а не начало суток",
+   "implemented": [
+    "tools/check_gpu_sleep_guard.py: ENACTED_AT = 2026-09-21T11:22:35+00:00 (14:22:35 MSK — коммит ed87e8b, которым C-029 вошло в ветвь); комментарий константы называет, почему гранулярность «сутки» была источником дефекта, и что сдвиг порога — только решением с ADR и записью редакции",
+    "CONSTRAINTS.yaml, правило C-029: формулировка «прогон после 21.09.2026» → «прогон после момента вступления правила в силу (2026-09-21 14:22:35 MSK)»; в evidence названо третье состояние (прогоны раньше порога печатаются поимённо как legacy-not-checked — «старше правила, защита сна НЕ доказана» — и находкой не выставляются, ADR-023 п.12, симметрия с C-030/C-031). Остальной текст правила не тронут",
+    "tools/check_gpu_sleep_guard.py, check_receipts: прогон старше порога печатается поимённо как legacy-not-checked; печать в отчёте — та же строка «не находка», но со словами, отличающими «НЕ доказано» от «проверено»",
+    "docs/specs/INSTRUMENT-VERSIONS.md §6, строка B-1: запись редакции прибора (ADR-023 п.10) — что изменилось, когда, по какому решению и что числа прибора до/после НЕСРАВНИМЫ по границе применимости",
+    "tools/tests/run_tool_tests.sh, секция 37: три состояния мутантами — (а) прогон до порога без расписки → legacy-not-checked, гейт зелёный; (б) после порога без расписки → находка; (в) после порога с распиской с именем способа → зелёный; плюс зубы: тот же вход с порогом 00:00:00 краснеет, и константа ENACTED_AT проверяется тестом (в т.ч. что порог — не полночь)",
+    "текст правила о пороге приведён к факту и в документации: README.md (§«Состояние гейта» и раздел про C-029), tools/README.md: строка стража сна"
+   ],
+   "gate_line_named": "не находка: sft-loop-trend-20260921: legacy-not-checked — старше правила (начат 2026-09-21T11:10:13.633505+00:00, run_manifest.json:created_at), защита сна НЕ доказана",
+   "gate_command": "python3 tools/check_gpu_sleep_guard.py --host gb10-fast --unreachable-not-verified (read-only; стенд занят полной SFT-стадией)",
+   "gate_exit": 0,
+   "not_done_retroactively": "ни расписка, ни артефакт прогона задним числом не дописаны (ADR-023 п.9, ADR-028 п.4): изменено только то, к какому прошлому прибор применяет требование"
+  },
+  "findings_fixed_on_acceptance": [
+   {
+    "id": "гонка в тесте памяти (секция 42, ветвь arch/sft-v13-arm)",
+    "kind": "flaky test",
+    "fact": "тест сравнивал available_gb из отчёта прибора с повторно прочитанным /proc/meminfo на равенство с точностью до 0.01 ГБ",
+    "root_cause_measured": "MemAvailable — живая величина: на машине, которую делят параллельные дельты флота, за секунды уезжает на 0.01 ГБ (измерено на приёмке: 37.78 против 37.79) — ровно на пороге округления; на площадке ветви тест проходил по случайности",
+    "resolution": "проверка переведена на допуск 1 ГБ с названной причиной; зубы проверки не ослаблены — неверный источник, None или число не из meminfo расходятся на гигабайты"
+   },
+   {
+    "id": "C-025 (реестр приборов): ложная атрибуция цитаты хеша",
+    "kind": "false attribution, созданная ветвью",
+    "fact": "tools/launch_arm_probe.py: константа PROBE_TOOL_SHA (хеш 99dafa8d… — пиннутый прибор probe_language_split.py, ADR-041) стояла сразу под списком модулей PROBE_TOOLS, где назван и ppl_probe — прибор РЕЕСТРА; страж относит хеш к прибору по ближайшей вверх ссылке на файл и краснел",
+    "resolution": "имя пиннутого прибора названо в комментарии над константой; смысл не менялся, изменилась различимость имени"
+   },
+   {
+    "id": "C-001/C-002 (структура ADR): ADR-052 и ADR-053",
+    "kind": "документарное, пришло с ветвью (ADR-052) и с коммитом ADR-053",
+    "fact": "у обоих решений секции назывались «## Alternatives» и «**Отрицательные**» вместо канонических «## Alternatives Considered» и «### Negative» (в каноне так у 51 ADR из 53); severity critical",
+    "resolution": "заголовки приведены к канону, содержимое не менялось; у ADR-052 заодно снято выделение в строке статуса (артефакт «Proposed**» расходился с моделью при сверке граней), у обоих добавлен обязательный раздел «Доказательство исполнения» (C-031)"
+   },
+   {
+    "id": "model/AD-13: verified_by в кавычках",
+    "kind": "связь модели не ловилась шаблоном гейта",
+    "fact": "verified_by: [\"C-026\", \"C-027\", \"C-028\"] — идентификаторы в кавычках (унаследовано от 98eb548)",
+    "resolution": "кавычки сняты (механическая правка, смысл не менялся); связь ловится — модель и трассируемость зелёные (см. postmerge_gate)"
+   },
+   {
+    "id": "spine-ref-missing-in-model (ADR-052)",
+    "kind": "трассируемость: спайн ссылается на сущность, которой нет в модели",
+    "fact": "спайн (раздел Deferred и оговорка области AD-1) называет ADR-052, а типизированной сущности model/ADR-052.md не было; у остальных 10 названных спайном ADR сущности есть",
+    "resolution": "добавлен model/ADR-052.md (решение, опора, обратимость, unverifiable с причиной); заголовок и статус сущности сверены с прозой (расхождение граней — 0 новых находок реестра)"
+   },
+   {
+    "id": "устаревшая оговорка README про rl-env-probe (гигиена первой волны)",
+    "kind": "утверждение, разошедшееся с фактом",
+    "fact": "README.md: «(в канон не сведено — ADR-049 ещё Proposed в другой ветви)» — а ветвь сведена и ADR-049 Accepted (62e44c2)",
+    "resolution": "формулировка исправлена на факт; сам факт приёмки не переписывался"
+   }
+  ],
+  "postmerge_gate": {
+   "run_tool_tests": {
+    "command": "bash tools/tests/run_tool_tests.sh (изолированно; секция check_env_contract.py не терпит конкуренции за docker-сеть)",
+    "before": "PASS=987 FAIL=1 SKIP=0 (221842d)",
+    "after_each_merge": [
+     "038396e (ladder-full-plan): PASS=987 FAIL=1 SKIP=0",
+     "633efab (sft-v13-arm): PASS=1004 FAIL=2 SKIP=0"
+    ],
+    "final": "PASS=1013 FAIL=0 SKIP=0",
+    "sections": {
+     "before": 61,
+     "after": 62
+    },
+    "when": "2026-09-22",
+    "note": "провалов нет; docker-секции исполнились (docker доступен); числа различаются от акта первой волны потому, что счёт идёт от 987/1 (см. preflight.baseline_tests.note)"
+   },
+   "case_gate": {
+    "command": "arch-ml control check кейсы/laguna-compact --constraints кейсы/laguna-compact/CONSTRAINTS.yaml --json",
+    "baseline_result": "FAIL (exit 1) — правил 30, нарушений 6 (error 6): AD-1 (унаследовано), AD-9/C-018 (живой сенсор), C-029 против runs/sft-loop-trend-20260921 (названо первой волной), model/AD-13 (кавычки), структура ADR-052 (2) и ADR-053 (2)",
+    "result": "FAIL (exit 1) — правил 30, нарушений 2 (error 2)",
+    "findings": {
+     "AD-1 / evidence/result-report-*.json": "унаследованная: glob не находит файла — правилу нечего проверять; артефакт появляется по существу стадии A5",
+     "AD-9 / крест C-018 (хозяин стенда)": "живой сенсор: читает занятость стенда, мерцает по ходу полной SFT-стадии sft-v13-2e6-20260921-2054; свойство задокументировано с 20.09.2026, на приёмке информационен"
+    },
+    "fixed": "C-029 (порог), model/AD-13 (кавычки), C-001/C-002 у ADR-052 и ADR-053 (структура) — 4 находки снято; новых находок от приёмки не осталось"
+   },
+   "spine_lint": {
+    "command": "arch-ml control spine кейсы/laguna-compact/ARCHITECTURE-SPINE.md",
+    "result": "PASS — нарушений нет"
+   },
+   "trace_check": {
+    "command": "spine trace_check (MCP)",
+    "result": "PASS — сущностей 36, правил 30, инвариантов 13, error 0; звено ADR → CMP 11/11 (было 10/10), AD → fitness-правило 13/13; сироты AD-1/AD-5/AD-8 в звене «AD → исполняемое правило» — названы и унаследованы (2 unverifiable)"
+   },
+   "model_validate": {
+    "command": "spine model_validate (MCP)",
+    "result": "PASS — сущностей 36, находок 0 (на приёмке первой волны было 35 сущностей и 0 находок)"
+   },
+   "adr_registry": {
+    "command": "spine adr_registry (MCP)",
+    "result": "53 записи, 1 находка — prose_model_divergence ADR-049 (проза «Accepted», модель «Proposed»): унаследована первой волной, не чинилась этой (правка модели ADR-049 в задание не входила)"
+   },
+   "execution_proof": {
+    "command": "python3 tools/check_execution_proof.py",
+    "result": "PASS (exit 0) — 3 ADR после 2026-09-21 (051, 052, 053) с носителем и потребителем; 50 исторических не переписывались"
+   },
+   "instrument_versions": {
+    "command": "python3 tools/check_instrument_versions.py",
+    "result": "PASS (exit 0) — реестр ↔ снимок ↔ дерево ↔ история согласованы; запись B-1 в §6 раздела приборов не открывает"
+   },
+   "rule_numbers": {
+    "command": "python3 tools/check_rule_numbers.py",
+    "result": "PASS (RC=0) — коллизий нет; канон 30 правил (C-001…C-020, C-023…C-032), дублей нет; arch/sft-v13-arm «выдала —» (своих номеров не выдавала)"
+   },
+   "dangling_adr_refs": {
+    "method": "все ADR-NNN, упомянутые в docs/adr/**, model/**, README.md, ARCHITECTURE-SPINE.md, docs/specs/**, evidence/**, сверены с файлами в docs/adr/",
+    "result": "ADR-файлов 53, упомянуто 53 различных номера, висячих 0; линия 001…053 без пропусков"
+   }
+  },
+  "open_reds": [
+   {
+    "id": "C-014 / AD-1",
+    "severity": "high",
+    "kind": "documentary",
+    "fact": "glob evidence/result-report-*.json не находит файла — правилу нечего проверять",
+    "why_inherited": "то же было на main до этой волны",
+    "action": "не чинилось, правило не ослаблено"
+   },
+   {
+    "id": "C-018 / AD-9 (хозяин стенда)",
+    "severity": "informational на приёмке",
+    "kind": "behavioural / живой сенсор",
+    "fact": "страж читает занятость стенда и мерцает по ходу идущей полной SFT-стадии",
+    "action": "не чинилось: свойство задокументировано с 20.09.2026 (README, раздел «Состояние правил»), решение архитектора — обязателен как предусловие старта, на приёмке информационен"
+   },
+   {
+    "id": "prose_model_divergence ADR-049",
+    "severity": "low",
+    "kind": "реестр ADR (отчёт, не гейт)",
+    "fact": "проза «Accepted», модель «Proposed»",
+    "why_inherited": "унаследовано от приёмки ADR-049 (62e44c2)",
+    "action": "не чинилось: правка model/ADR-049.md в задание не входила; названо, не замаскировано"
+   },
+   {
+    "id": "ADR-052/ADR-053 — статус «Proposed» у обоих",
+    "severity": "low",
+    "kind": "решения ждут владельца",
+    "fact": "ADR-052 ждёт ратификации числа сидов и семантики сида; ADR-053 реализован этой дельтой, но переводится в Accepted решением владельца правила, а не исполнителем",
+    "action": "не менялось: статус решения — не решение исполнителя"
+   }
+  ],
+  "not_verified": [
+   "прогоны на стенде не запускались: там идёт полная SFT-стадия sft-v13-2e6-20260921-2054 (AD-5/AD-9) — эта волна стенд не занимала, страж сна только опрашивала чтением",
+   "веса 10 из 12 моделей лесенки на стенде не проверялись (это предусловие Н-3 решения ADR-052, а не работа сведения)",
+   "цена календаря лесенки (330 против 149 суток) — расчёт по названному допущению, а не замер (названо и в ADR-052, и в его разделе «Доказательство исполнения»)",
+   "объявленная ось лесенки (§6 плана) числами не заполнена — предусловие Н-6; старт волны В-1 без неё запрещён решением п.3",
+   "проверки, требующие сети/Docker на стенде (пробы G4 и подобные), в этой волне не запускались: docker-секции тестов исполнились локально, стенд не трогался"
+  ],
+  "state_after": {
+   "main_head_before_own_commit": "633efab + рабочее дерево этой дельты (коммит исполнителя — один, поверх baseline 5e9f03d)",
+   "rules": {
+    "before": 30,
+    "after": 30,
+    "ids": "C-001…C-020, C-023…C-032 (C-021/C-022 зарезервированы предложениями)",
+    "duplicates": "нет — проверено tools/check_rule_numbers.py (RC=0)"
+   },
+   "test_sections": {
+    "before": 61,
+    "after": 62
+   },
+   "model_entities": 36,
+   "adr_prose_files": 53,
+   "adr_typed_entities": 11,
+   "branches_intact": {
+    "arch/ladder-full-plan": "7f114d8",
+    "arch/sft-v13-arm": "2baa36b"
+   },
+   "deleted_branches": [],
+   "pushed": false,
+   "rollback": "git reset --hard 5e9f03d — вся работа этой волны приходит одним коммитом поверх baseline"
+  },
+  "environment_notes": [
+   "базовая линия отката — 5e9f03d, а не 221842d: работа исполнителя начинается поверх коммита ADR-053 и приходит одним коммитом",
+   "машина делится с флотом параллельных дельт: тесты гонялись изолированно (секция check_env_contract.py ложно падает от конкуренции за docker-сеть), а гонка в тесте памяти ветви — прямое следствие этой общности (см. findings_fixed_on_acceptance)",
+   "стенд gb10-fast занят полной SFT-стадией; из обращений к нему — только read-only опрос стража сна (ps и проба механизма через ssh)"
+  ]
+ },
+ "wave3": {
+  "schema": "acceptance-record/1",
+  "wave": "третья волна (S3bd): четыре вопроса дельты S3bc закрыты по решениям архитектора — glob правила C-014 под каноническое имя отчёта, шаг «замер критерия 3» в плане RL-стадии, пометка unverifiable у ADR-017 под факт, вопрос по пулу оставлен владельцу",
+  "date": "2026-09-22",
+  "what": "решения архитектора записаны в TASK дельты S3bd; исполнитель их реализовал, не переобсуждая",
+  "owner_approve": {
+   "given_by": "владелец (Роман Некрасов)",
+   "when": "2026-09-22",
+   "how": "задание выдано явно (TASK дельты S3bd): четыре решения с прямым запретом менять смысл правила C-014, решать за владельца вопрос по пулу и занимать стенд GB10"
+  },
+  "preflight": {
+   "baseline_ref": "949816a (main на момент старта исполнителя; baseline отката — он же)",
+   "baseline_tests": {
+    "command": "bash tools/tests/run_tool_tests.sh",
+    "result": "PASS=1030 FAIL=1 SKIP=0",
+    "when": "2026-09-22, прогон на дереве до правок исполнителя (лог /tmp/s3bd-baseline-tests.log)",
+    "note": "на 949816a БЕЗ чужого ADR-054 набор даёт 1031/0 — это число называет RL-STAGE-PLAN §3.3. Единственный FAIL этой волны вызван не работой дельты: в дереве лежит untracked `docs/adr/ADR-054-...md` параллельной сессии, и тест «доказательство: дерево кейса зелёное» читает его. Доказано пересчётом: `python3 tools/check_execution_proof.py --adr-dir <копия без ADR-054>` → RC=0; тот же вызов по дереву → RC=1 с поимённой находкой по ADR-054"
+   },
+   "worktree_clean_before": true
+  },
+  "decisions": {
+   "1_C014_glob": {
+    "decision": "glob правила C-014 привести к каноническому имени отчёта; имя, pattern, severity, kind не менять, номер не выдавать (ADR-046 п.8)",
+    "implemented": "CONSTRAINTS.yaml: glob `evidence/result-report-*.json` → `evidence/result-report*.json`; в evidence-строке одной фразой названа причина (расхождение с §5 протокола); над правилом — комментарий с оговоркой о чтении красного",
+    "not_weakened": "name/type/pattern/severity/kind/scope не менялись; проверено тестом (секция 43 сверяет семь требуемых полей pattern, severity high, kind documentary)",
+    "teeth": [
+     "секция 43 тестов: каноническое имя из §5 протокола И из схемы попадает под glob правила (fnmatch) — на прежнем glob утверждение падает (проверено мутантом: exit 1 на `evidence/result-report-*.json`)",
+     "секция 43: отчёт, собранный из ОБЯЗАТЕЛЬНЫХ полей схемы, правило принимает (движок `arch-ml control check`, passed=true)",
+     "секция 43: неполный отчёт (заглушка без семи ключей) правило красит поимённо («паттерн … не найден в файле»)",
+     "секция 43: пустой набор по glob — красное, и в сообщении ИМЕННО новый glob (прежнего в нём быть не должно)"
+    ],
+    "open_reading": "C-014 остаётся красным на дереве кейса, пока отчёт не сдан: пустой набор файлов по glob — находка движка (docs/control.md, `each_file_must_contain`), а S4-PROTOCOL §5 запрещает создавать отчёт заранее («иначе правило станет ложно зелёным»). Дефект был другой — правило не увидело бы отчёт и ПОСЛЕ сдачи; он закрыт и показан зелёным на фикстуре"
+   },
+   "2_measure_step": {
+    "decision": "в docs/specs/RL-STAGE-PLAN.md добавить обязательный шаг «замер критерия 3»: прибор, площадка (карта, не GB10), вход (RL-чекпойнт), выход (generation.k1|k2|domain_v3), цена, окно, оговорка конкуренции за площадку; назвать расхождение шкал",
+    "implemented": [
+     "новый §6.1 «Шаг стадии „замер критерия 3“» — таблица прибор/площадка/вход/команда/выход/кто запускает/цена/окно/чего шаг не делает",
+     "§0 — строка о назначенном замере; §4.2 — цена и окно; §7 п.6 переведён из креста в галочку (назначен, не сделан); §9 — строка «правила, которые читает замер»; §10 — долг закрыт ценой",
+     "расхождение шкал названо явно: тренд GEN-EVAL идёт на v1 (`laguna_pipeline_v8.py:1587–1588`, `general_eval_history.jsonl`), вердикт — на v3/k2/domain-v3; это два ряда, подмена запрещена, вердикт читается только по v3-числам того же чекпойнта"
+    ],
+    "instrument_reconciliation": {
+     "decision_named": "tools/flex_ppl_probe.py",
+     "used_in_plan": "tools/calib_ppl_probe.py (мера — tools/ppl_probe.py:measure, загрузка — _load_ckpt_with_resize из копии пайплайна прогона)",
+     "why": "на карте flex_ppl_probe неисполним: `python3 tools/flex_ppl_probe.py --pipeline <stub> --set … --state base=base` → exit 2, «NOT-VERIFIED: окружение пробы не собрано (huggingface-hub 1.27.0)»: заглушек окружения у него нет, а у ppl_probe/calib_ppl_probe есть; весь его измеренный опыт — стенд GB10 (device: NVIDIA GB10). Числа критерия 3 (базы 7.504686 / 6.159936 / 13.559193) сняты именно calib_ppl_probe (S3q/S3t/S3ao, локальная 4080) — иначе порог и метрика оказались бы на разных рядах"
+    },
+    "price_measured": "5.0–6.6 с на набор из 200 документов на состояние (runs/full-cpt-ppl-20260916-1933/*.json, out_tail: v3_general 6.0–7.2 с / 153 863 токена, k2_general 5.4–6.6 с / 141 042); полный круг из трёх состояний на карте — 78–120 с (watch.log, точки s2000/s2500/s3000); с загрузкой чекпойнта и ожиданием карты ≈5 мин, потолок 10 мин",
+    "window": "после финиша RL-стадии (чекпойнт rl_checkpoint_final.pt) и до сведения отчёта S4; отдельным вызовом, не шагом цепочки (как S3q/S3t/S3ao; протокол ожидания карты — tools/full_cpt_probe.py). Стенд GB10 не занимается (AD-9)"
+   },
+   "3_adr017_unverifiable": {
+    "decision": "в model/ADR-017 пометку unverifiable сохранить, но переформулировать под факт: сенсор существует и назван; правило намеренно не заведено до ряда; условие снятия пометки — механическое",
+    "implemented": "unverifiable переписана: (а) сенсор `tools/rl_degeneracy.py` (классы/пороги/действия), встроен в `tools/pilot_chain.sh` (ADR-010 п.3), вердикт `var/degenerate_verdict.json`, зубы — секции 14c2/14c3 и `--self-test`; (б) правило в CONSTRAINTS.yaml не заведено, пока нет ряда — ни один RL-прогон не нёс `rollouts_log.jsonl`, правило «на будущее» краснело бы by construction (ADR-023 п.12; приём ADR-049); (в) условие снятия: первый прогон с `rollouts_log.jsonl` → правило гейта с различением фаз по образцу C-030/C-031",
+    "consistency_fix": "в том же файле строка «Pending evidence» говорила «механического стража нет» — приведена к факту («правила нет, сенсор есть и назван»); иначе файл противоречил бы сам себе. Текст решения ADR-017 и проза (docs/adr/) не тронуты",
+    "checks": "model_validate: сущностей 36, находок 0 → PASS; adr_registry: 54 записи, 1 находка — унаследованное prose_model_divergence ADR-049 (не этой дельты); trace_check: error 0, 13/13 AD→правило (unverifiable 2) → PASS"
+   },
+   "4_pool_question": {
+    "decision": "вопрос по пулу — владельцу, исполнителю не решать; заготовку не «поправлять»",
+    "implemented": "RL-POOL-QUESTION.md не изменялся; рекомендация не тронута; решение за владельцем",
+    "fact_added_elsewhere": "измерена цена прогона C-017 по паре «новый набор против обучающего»: `python3 tools/check_sft_rl_overlap.py --sft <sft_train_v13_fixed.jsonl> --rl <rl_tasks_revpool_v2.jsonl> --max-matched 0` → exit 0, 4.29 с (второй замер, по объявленной паре v12 + filtered pool — 4.45 с). Число названо здесь, а не в заготовке вопроса: файл в это время правит параллельная сессия (ADR-054, шаг 5 её реализации)",
+    "foreign_decision_in_tree": "решение владельца по пулу появилось в дереве параллельной сессией: untracked `docs/adr/ADR-054-sostav-kurrikuluma-rl-stadii-nabor-v2-nabory-ox-isklyucheny.md` (mtime 22.09.2026 07:16, «Состав курикулума RL-стадии: набор v2; наборы ox исключены»). Исполнитель S3bd его НЕ коммитил и не правил: файл не завершён (нет «## Доказательство исполнения» → C-031, нет C-001/C-002) и его «Реализация» (шаги 3 и 5 — обновить RL-STAGE-PLAN §2/§7 п.1 и RL-POOL-QUESTION) принадлежит той дельте, а не этой"
+   }
+  },
+  "postmerge_gate": {
+   "run_tool_tests": {
+    "command": "bash tools/tests/run_tool_tests.sh",
+    "before": "PASS=1030 FAIL=1 SKIP=0",
+    "after": "PASS=1034 FAIL=1 SKIP=0",
+    "delta": "+4 (секция 43: четыре проверки C-014), FAIL не изменился и его причина названа (чужой ADR-054)",
+    "sections": {
+     "before": 42,
+     "after": 43
+    },
+    "when": "2026-09-22"
+   },
+   "case_gate": {
+    "command": "arch-ml control check кейсы/laguna-compact --constraints кейсы/laguna-compact/CONSTRAINTS.yaml --json",
+    "result": "FAIL (exit 1) — правил 30, нарушений 6 (error 6, warn 0)",
+    "findings": {
+     "evidence/result-report*.json (C-014)": "сообщение СМЕНИЛОСЬ на новый glob (дефект имени закрыт); красное остаётся по существу — отчёт не сдан (S4-PROTOCOL §5)",
+     "docs/adr/ADR-054-*.md × 2 (C-001, C-002) и C-031": "НОВЫЕ, но не этой дельты — untracked файл параллельной сессии (не коммичен S3bd)",
+     "C-030 (идентичность набора)": "унаследованная",
+     "C-018 (хозяин стенда)": "живой сенсор: читает свободную память GB10, мерцает по занятости стадии (SFT идёт)"
+    }
+   },
+   "other_guards": {
+    "spine_lint": "PASS — ARCHITECTURE-SPINE.md, нарушений нет",
+    "trace_check": "PASS — сущностей 36, правил 30, инвариантов 13, error 0; AD→правило 13/13 (unverifiable 2), ADR→CMP 11/11, CMP→fitness 12/12",
+    "model_validate": "PASS — сущностей 36, находок 0",
+    "check_rule_numbers": "RC=0 — коллизий нет (число правил 30, новых номеров не выдавалось)",
+    "check_instrument_versions": "RC=0 — реестр редакций согласован (приборы не правились)",
+    "adr_registry": "54 записи, 1 находка — унаследованное prose_model_divergence ADR-049"
+   }
+  },
+  "open_reds": [
+   {
+    "id": "C-014 / AD-1",
+    "severity": "high",
+    "kind": "documentary",
+    "fact": "правило красное: отчёт evidence/result-report.json не сдан (пустой набор по glob — находка движка). Прежний дефект — glob не видел канонического имени — закрыт",
+    "action": "не маскировалось: отчёт-заглушка в evidence/ не создавался (S4-PROTOCOL §5), зубы стоят на фикстуре секции 43"
+   },
+   {
+    "id": "docs/adr/ADR-054-*.md",
+    "severity": "high",
+    "kind": "documentary+behavioural",
+    "fact": "untracked файл параллельной сессии: нет разделов C-001/C-002 и «Доказательство исполнения» (C-031) — отсюда единственный FAIL набора тестов",
+    "action": "названо, не тронуто и не коммичено: чужая незавершённая работа"
+   },
+   {
+    "id": "model/AD-13 verified_by в кавычках",
+    "severity": "high",
+    "kind": "link",
+    "fact": "унаследованное (см. первую волну)",
+    "action": "не чинилось"
+   },
+   {
+    "id": "C-030 (идентичность набора SFT)",
+    "severity": "error",
+    "kind": "behavioural",
+    "fact": "унаследованное: прогон sft-v13-2e6-20260921-2054 без объявления набора в манифесте",
+    "action": "не чинилось"
+   },
+   {
+    "id": "C-018 / стенд",
+    "severity": "info",
+    "kind": "live_sensor",
+    "fact": "стенд занят полной SFT-стадией — AD-9 красное по построению",
+    "action": "не чинилось; замеры шли на карте, стенд не занимался"
+   }
+  ],
+  "not_verified": [
+   "Замер критерия 3 не выполнялся: чекпойнта RL-стадии ещё не существует (стадия не начата), а площадка занята. Названы прибор, вход, выход, цена (≈5 мин, потолок 10) и окно — это назначение, а не измерение",
+   "Цена v3_domain принята по соседним наборам той же длины (6.0–7.2 с на 200 документов), своего прогона на этом наборе в замере цены не было: +85 к токенам против k2_general",
+   "Проверка C-014 «в движке» выполнена на синтетических фикстурах (полный/неполный/пустой набор), а не на сданном отчёте: сдавать его заранее запрещено (S4-PROTOCOL §5)",
+   "Разница приборов flex_ppl_probe против calib_ppl_probe в числах не измерялась: flex_ppl_probe на карте не запускается вовсе (exit 2), поэтому сравнивать было не с чем",
+   "Смысловая эквивалентность правила C-014 до/после правки проверена механически по полям (имя/pattern/severity/kind), а не ревьюером"
+  ],
+  "state_after": {
+   "main_head_before_own_commit": "949816a",
+   "files_of_this_delta": [
+    "кейсы/laguna-compact/CONSTRAINTS.yaml (глоб правила C-014 + причина правки)",
+    "кейсы/laguna-compact/model/ADR-017-vyrozhdennaya-nagrada-rl.md (unverifiable и Pending evidence под факт S3bc)",
+    "кейсы/laguna-compact/docs/specs/RL-STAGE-PLAN.md (§6.1 «замер критерия 3», расхождение шкал, §0/§4.2/§7/§9/§10, запись о закрытой находке C-014)",
+    "кейсы/laguna-compact/tools/tests/run_tool_tests.sh (секция 43)",
+    "кейсы/laguna-compact/evidence/s1-data-audit.json (запись в sft_rl_overlap_history: замер v12↔filtered 4.45 с и v13_fixed↔revpool_v2 4.29 с — прибор сам пишет свою историю)",
+    "кейсы/laguna-compact/README.md, кейсы/laguna-compact/tools/README.md (имя отчёта в живой формулировке)",
+    "кейсы/laguna-compact/evidence/acceptance-2026-09-22-consolidation.json (этот раздел wave3)"
+   ],
+   "rules": {
+    "before": 30,
+    "after": 30,
+    "numbers_issued": []
+   },
+   "test_sections": {
+    "before": 42,
+    "after": 43
+   },
+   "branches_intact": true,
+   "branches_deleted": [],
+   "pushed": false,
+   "recorded_before_own_commit": "акт фиксирует состояние на момент прогона проверок; коммит этой дельты — потомок 949816a и содержит только перечисленные файлы"
+  },
+  "environment_notes": [
+   "Стенд GB10 не занимался: ни одной нагрузки, ни одной пробы; C-018 читает стенд только на чтение (и красное по построению — там идёт SFT)",
+   "Локальная RTX 4080 нагрузок не получала: замер цены шага `flex_ppl_probe` на карте — это ПРОБА ИСПОЛНИМОСТИ (exit 2 до любого счёта, CUDA не инициализируется), а не измерение; обучение не запускалось",
+   "Замеры цены C-017 — CPU-only (чтение двух jsonl), 4.29 и 4.45 с",
+   "Docker использовали штатные секции тестов кейса, не нагрузки на стенде",
+   "В дереве работала параллельная сессия (`claude -p`, cwd — корень этого worktree): ею создан untracked ADR-054. Она же правила RL-STAGE-PLAN и RL-POOL-QUESTION — поэтому S3bd их не трогал"
+  ]
+ },
+ "wave4": {
+  "schema": "acceptance-record/1",
+  "wave": "четвёртая волна (S3be, доведена дельтой S3bf): ложное красное C-030 закрыто сменой носителя объявления, правило C-014 переведено на фазу, шаги 1–2 реализации ADR-054 исполнены (раннеры v1→v2, объявление набора курикулума = факт)",
+  "date": "2026-09-22",
+  "what": "дельта S3be была оборвана по контракту: код сделан, документация, тесты и финальный коммит — нет. S3bf проверил сделанное, нашёл и починил дефект (дубль блока объявления в pilot_chain.sh), дописал остаток и зафиксировал одним коммитом",
+  "owner_approve": {
+   "given_by": "владелец (Роман Некрасов)",
+   "when": "2026-09-22",
+   "how": "задание выдано явно (TASK дельты S3bf): доделать и закоммитить S3be, не переделывая сделанное; запреты — не занимать стенд GB10 (там идёт полная SFT-стадия), не переписывать историю прошлых прогонов (ADR-023 п.9), не менять смысл правил C-030/C-014 (только носитель объявления и фаза+конъюнкция), не менять наборы/веса/карточки/ось/LR/бюджет шагов (AD-7), не решать вопрос о семантике сида лесенки, не делать git push"
+  },
+  "preflight": {
+   "baseline_ref": "ed58468 (последний коммит канона перед работой исполнителя; он же — точка отката `git reset --hard ed58468`)",
+   "baseline_tests": {
+    "command": "bash tools/tests/run_tool_tests.sh",
+    "result": "PASS=1018 FAIL=17 SKIP=0 (прогон 22.09.2026, лог /tmp/laguna-s3bf-tests-pre.txt)",
+    "note": "число снято на дереве С незакоммиченными правками оборванного прогона: он успел сделать код, но не тронул тесты, поэтому 17 падений — это его след, а не красное канона. На чистом дереве (до этих правок) набор давал PASS=1035 FAIL=0 SKIP=0 — ровно то число, что названо заданием. Сверка состава: все 17 падений разобраны поимённо в разделе «tests», ни одно не оставлено без причины"
+   },
+   "worktree_clean_before": false,
+   "worktree_state_before": "10 файлов staged (CONSTRAINTS.yaml, check_dataset_identity.py, check_result_report.py (новый), patch_pipeline_sft.py, pilot_chain.sh, run_pilot.py, run_rl_probe.py, run_mask_smoke.py, build_gen_eval_v2.py, analyze_agentic_ban_interaction.py) — незакоммиченная работа оборванного прогона"
+  },
+  "verified_prior_work": {
+   "note": "задание прямо требовало не переделывать сделанное, а проверить его. Проверено выборочно и подтверждено фактами:",
+   "check_dataset_identity.py": "первичный носитель объявления (`sft_input.declared_path`/`declared_sha256`) читается раньше исторического; добавлен предмет `rl_input` (ADR-054 п.2) тем же механизмом; обязательные части блока берутся из предмета (у RL-набора тензора нет)",
+   "check_result_report.py": "новый прибор: три состояния (PENDING-EVIDENCE / MISSING-REPORT / INCOMPLETE-COMPLETE), полнота — конъюнкция обязательных полей схемы рекурсивно, значения-константы по `const`",
+   "CONSTRAINTS.yaml C-014": "тип `each_file_must_contain` → `command_succeeds` с вызовом прибора; severity `high`, имя и номер не менялись; `pattern` убран (дизъюнкция подстрок)",
+   "раннеры v1→v2": "8 вхождений в 3 файлах → 0 (`grep` по tools/*.py, tools/*.sh: `rl_tasks_revpool_v1` не встречается)",
+   "pilot_chain.sh": "добавлены `RL_DATA`/`RL_DATA_SHA256`, `declare_named_set` (nameref), `--rl-data`/`--rl-data-sha256`; объявление манифеста и вход стадии берутся из одного значения",
+   "patch_pipeline_sft.py": "патч 6 (`rl_input_identity`): загрузчик называет открытый файл (`source_path`), стадия пишет блок `rl_input`, отказ до первого шага при расхождении с `--rl_data_sha256`",
+   "defect_found_and_fixed": {
+    "where": "кейсы/laguna-compact/tools/pilot_chain.sh, блок объявления наборов после `declare_named_set`",
+    "fact": "в файле остался ЧЕРНОВИК прежнего подхода к тому же делу: четыре вызова `mapfile -t _sft_decl < <(declare_named_set …)` / `_rl_decl` (строки 397–411), которые автор заменил на nameref и не удалил. Дубль не безвреден: `declare_named_set` возвращает результат через переменные NAMED_SET_*, а не через stdout, поэтому второй вызов в подоболочке (а) передавал в `local -n` ЗНАЧЕНИЕ хеша вместо имени переменной — bash отвечает «не заданы границы переменной», пустой `$4` даёт «недопустимый идентификатор», (б) захватывал в mapfile строки журнала от `log`, (в) ПЕРЕЗАПИСЫВАЛ `SFT_DATA_HOST`/`RL_DATA_HOST` пустой строкой. Следствие — `--dataset-extra sft=` в манифесте AD-2, то есть молчаливо пустое объявление набора SFT: ровно тот класс, который дельта и чинит",
+    "fix": "блок удалён (строки 397–411); `bash -n` чист, `mapfile` в файле — 0 вхождений",
+    "how_found": "чтением применённого диффа при проверке, а не тестом: тесты цепочку с непустым `stages.tsv` по этому пути не проходят (проверено — набор был зелёным и с дублем)",
+    "reported": "названо здесь поимённо; исполнитель откат не выполнял и проблему обходным редизайном не маскировал"
+   }
+  },
+  "decisions": {
+   "1_C030_carrier": {
+    "decision": "носитель объявления назван явно: первичный — `declared_path`/`declared_sha256` блока идентичности манифеста СТАДИИ (`sft_input`; для набора курикулума — `rl_input`), исторический — поля манифеста прогона AD-2 (`datasets_extra`, `hyperparameters.sft_dataset[_sha256/_samples]`, `rl_dataset`). Читается первичный, если он есть; исторический не выбрасывается (ADR-023 п.9)",
+    "why": "пока прибор искал объявление только в старых полях, он красил `no-declaration` прогон, который объявляет набор КОРРЕКТНО, но в новом носителе. Это не «объявления нет», а «объявление в другом носителе» — ложное красное на правильно объявленном прогоне (класс ADR-023 п.12)",
+    "not_weakened": "имя правила, номер и severity не менялись; добавлено состояние `declaration-incomplete` (объявлен путь без хеша — сверять нечем) и `declaration-hash-not-full` (усечённый объявленный хеш — класс слепоты AD-2/G9)"
+   },
+   "2_C014_phase": {
+    "decision": "правило переведено с `each_file_must_contain` на `command_succeeds` → `python3 tools/check_result_report.py`: PENDING-EVIDENCE (отчёта нет, точка решения не пройдена) — warn, гейт не краснеет; MISSING-REPORT (точка пройдена, отчёта нет) и INCOMPLETE (не все обязательные поля схемы) — error. Полнота — КОНЪЮНКЦИЯ полей схемы, а не дизъюнкция подстрок",
+    "why": "пустой набор файлов по glob — находка движка, а S4-PROTOCOL §5 запрещает создавать отчёт заранее; значит до точки S4 правило было красным ПО ПОСТРОЕНИЮ — класс, который лечится фазой (ADR-023 п.12). Прежний `pattern` считал полным отчёт с одним словом «axis»",
+    "not_weakened": "id, name, severity (`high`) не менялись; номер не выдавался (ADR-046 п.8); `kind` сменился на `behavioural` как следствие смены типа (правило стало живой проверкой), а не отдельным решением. Смысл сохранён: ось (`axis.metric = judge_mean`), `single_seed`/`n_attempts`/`k_of_k`/`std`, `generation.k1|k2|domain_v3`, `rl_health.entropy|clip_frac|zero_reward_share|hit_timeout`, `verdict` — всё это обязательные поля схемы",
+    "carrier_of_state": "признак пройденной точки берётся в `runs/*/logs/` (там его пишет сама стадия), а НЕ в корне прогона: `rl_metrics.json` в корне пишет проба цены шага (`run_rl_probe.py`), у которой «сходимость не критерий» (ADR-010 п.3) — иначе `runs/rl-probe-20260914-0956` держал бы правило красным по построению"
+   },
+   "3_ADR054_steps_1_2": {
+    "decision": "шаг 1 реализации ADR-054 (переключить раннеры v1→v2) и шаг 2 (манифест стадии объявляет v2, объявленное совпадает с прочитанным — класс C-030 применён к RL-набору тем же механизмом)",
+    "v1_occurrences": {
+     "before": 8,
+     "after": 0,
+     "where_before": "tools/run_pilot.py — 2 (`RL_POOL_STAND`, `RL_POOL_CASE`), tools/run_rl_probe.py — 4 (`RL_DATA_STAND`/`CTR`/`CASE` + симлинк), tools/pilot_chain.sh — 2 (литерал `--rl_data` в `pipeline_args` + симлинк `rl_pool=`)",
+     "where_after": "в этих трёх файлах — 0; по всему каталогу `tools/` v1 остаётся в 5 файлах, и это ПРАВИЛЬНЫЕ места, а не недоделка: `audit_rl_pool_candidates.py` (прибор фактов обязан называть v1 кандидатом), `passrate_probe.py` (намеренно сравнивает v1 против v2), `build_rev_envs.py` (конвертер v1→v2), `audit_eval_leakage_calib.py`, `s3aa_sft_launch_evidence.py` (текст исторического свидетельства)",
+     "command": "git show ed58468:кейсы/laguna-compact/tools/<файл> | grep -c 'rl_tasks_revpool_v1'; затем grep -c по рабочему дереву",
+     "note": "вхождения в `runs/`, `evidence/` прошлых дельт и в ADR не считаются и не правились: это история (ADR-023 п.9). Число 8 совпало с названным в ADR-054 п.2 и в задании"
+    },
+    "not_weakened": "наборы, веса, карточки, ось, объявленный LR и бюджет шагов не менялись (AD-7); v1 остаётся историческим носителем и в стадию не идёт (ADR-054 п.3)"
+   },
+   "4_docs": {
+    "decision": "ADR-054 шаги 3–5: `RL-STAGE-PLAN.md` (§0 «Курикулум RL — выбран», §2 факты и вывод, §6/§6.1, §7 п.1 и п.8/10, §9, §10), `WORK-BACKLOG.md` §4 (исход назван, утилизация `ox-merged` — отдельный долг, история пункта сохранена), `RL-POOL-QUESTION.md` (вопрос закрыт ADR-054, факты замера не переписаны), `README.md` и `tools/README.md` (живые формулировки C-014/C-030)",
+    "not_rewritten": "числа замеров, `evidence/*` прошлых дельт и тексты ADR не правились"
+   }
+  },
+  "live_red_removed": {
+   "subject": "живой прогон sft-v13-2e6-20260921-2054 (полная SFT-стадия на GB10)",
+   "before": {
+    "command": "python3 /tmp/laguna-s3bf-old-check.py --runs runs/ --stand-runs /home/user/gb10-shared   # прибор из baseline ed58468, извлечён `git show ed58468:…`",
+    "result": "rc=1",
+    "line": "[error] sft-v13-2e6-20260921-2054: no-declaration — манифест прогона (AD-2) не объявляет набор SFT ни в datasets_extra (имя семейства sft*), ни в hyperparameters.sft_dataset — сверять нечего"
+   },
+   "after": {
+    "command": "python3 tools/check_dataset_identity.py --runs runs/ --stand-runs /home/user/gb10-shared",
+    "result": "rc=0",
+    "line": "идентичность набора сходится: объявленное и прочитанное совпадают",
+    "note": "нарушений 0 (было 1); прогон назван в выводе стражем — по SFT-части он идёт основным путём и проходит по первичному носителю, по RL-части получает отдельную оговорку"
+   },
+   "fact_behind_the_line": {
+    "declared_path": "/workspace/shared/datasets/sft_train_v13_fixed.jsonl",
+    "declared_sha256": "71c4bd2b011b210b… (полные 64 символа)",
+    "jsonl": "тот же путь, sha256 71c4bd2b011b210b…, hash_scope=full, samples=44105 — объявленное совпало с прочитанным символ-в-символ",
+    "why_old_tool_was_red": "в корневом манифесте прогона НЕТ ни `datasets_extra`, ни `hyperparameters` (проверено чтением файла): прогон объявляет набор в новом носителе, и старый прибор называл это «объявления нет»"
+   },
+   "stand_untouched": "запросы к стенду только на чтение (манифест и sha256 уже посчитаны стадией; прибор файлов не читает — сверяет две записи). Нагрузок и проб не запускалось, `pkill` не применялся"
+  },
+  "tests": {
+   "command": "bash tools/tests/run_tool_tests.sh",
+   "before": "PASS=1018 FAIL=17 SKIP=0",
+   "after": "PASS=1051 FAIL=0 SKIP=0",
+   "clean_tree_baseline": "PASS=1035 FAIL=0 SKIP=0",
+   "delta": "проверок в наборе 1035 → 1051 (+16): секция 43 переписана под фазу C-014 (4 → 13), добавлена секция 33д (6), гейт-проверки «в плане разведки нет v1» (1)",
+   "isolation": "прогон изолированный, не параллельно с чужими прогонами: секция `check_env_contract.py` ложно падает от конкуренции за docker-сеть (названо в задании). Перед стартом проверено `ps` — конкурирующих прогонов не было",
+   "seventeen_baseline_failures": {
+    "fixed": "все 17 закрыты, поимённо по классам",
+    "classes": {
+     "фикстуры v1 → v2": "3 падения: `run_rl_probe` манифест и план разведки (2), фикстура `build_gen_eval_v2` (1) — и 6 каскадных падений сборки GEN-EVAL, вызванных той же фикстурой",
+     "паспорт патча": "1 падение: `applied` 4 → 5 (патч 6 идентичности набора курикулума), `anchors` +3, объявлен `rl_input_identity` с зубом «тензора у набора курикулума нет»",
+     "мутанты C-030": "1 падение: фикстура разводит объявление по ДВУМ носителям (было — только по историческому), иначе мутант «объявлен v13 — прочитан v12» проходил по другой находке и не проверял носитель",
+     "секция 43 (C-014)": "4 падения: секция переписана под тип `command_succeeds` и фазу"
+    }
+   },
+   "teeth": {
+    "C-014": "подмена НОСИТЕЛЯ состояния (признак в корне прогона — зелёное; тот же признак в `logs/` — красное), подмена СПИСКА полей (поле, снятое из схемы, уходит из вердикта; вложенное `rl_health.zero_reward_share`, снятое из отчёта, краснеет поимённо; заглушка с одним словом «axis» полным не считается), четыре состояния прибора плюс `--mode pending` и NOT-VERIFIED",
+    "C-030": "подмена носителя: мутант `mutant-legacy-honest-block-drift` (историк честен, объявление стадии разошлось) краснеет; тот же каталог со снятым `declared_*` — зелёный, и это проверяется отдельно, то есть зуб доказывает, что первичный носитель несёт нагрузку. Плюс `no-declaration-anywhere` (оба носителя пусты → красное поимённо) и `legacy-only-declared` (только старое поле → зелёное как исторический носитель)",
+    "ложное_зелёное_исключено": "в проверке «тот же каталог без первичного носителя зелёный» дополнительно утверждается, что обход каталога НЕпуст (`--runs` — каталог каталогов): иначе пустой обход дал бы зелёное «ничего не найдено» и зуб был бы фиктивным"
+   }
+  },
+  "postmerge_gate": {
+   "command": "arch-ml control check . --json (в каталоге кейса)",
+   "result": "FAIL (exit 1) — правил 30, находок 1 (error 1, warn 0)",
+   "findings": {
+    "C-018 / AD-9": "«команда 'bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified' завершилась неуспешно (код 2)» — живой сенсор памяти стенда: там идёт полная SFT-стадия sft-v13-2e6-20260921-2054. Ожидание задания («1 error, только C-018») совпало; C-018 не чинилось (запрещено — это свойство площадки, а не дефект правила)"
+   },
+   "closed_by_this_wave": {
+    "C-014": "зелёное: долг/неполнота не наступили, отчёта заранее не создавали (S4-PROTOCOL §5) — прибор отвечает PENDING-EVIDENCE, гейт не краснеет",
+    "C-030": "зелёное: живой прогон проходит по первичному носителю (см. live_red_removed)",
+    "ADR-054 C-001/C-002/C-031": "закрыты коммитом ed58468 (ADR-054 дописан и закоммичен до этой дельты) — в предыдущей волне они были красными как untracked файл параллельной сессии"
+   },
+   "other_guards": {
+    "spine_lint": "PASS — ARCHITECTURE-SPINE.md, нарушений 0 (error 0, warn 0)",
+    "trace_check": "PASS — сущностей 36, правил 30, инвариантов 13, error 0, warn 0; AD → исполняемое правило 11/13 (сироты AD-5, AD-8 — унаследованные, 2 unverifiable)",
+    "model_validate": "PASS — сущностей 36, находок 0",
+    "check_rule_numbers": "RC=0 — коллизий нет; просмотрено 38 ветвей (8 кандидатов, 30 пропущено поимённо: merged-into-canon / no-constraints-of-case / no-merge-base), «выдала —» у всех восьми"
+   }
+  },
+  "open_reds": [
+   {
+    "id": "C-018 / AD-9",
+    "severity": "info",
+    "kind": "live_sensor",
+    "fact": "стенд занят полной SFT-стадией — правило красное по построению (читает свободную память GB10)",
+    "action": "не чинилось (запрещено заданием: C-018 не «чинить»); стенд не занимался, только чтение"
+   },
+   {
+    "id": "заземлённый пул стадии (не скелет)",
+    "severity": "high",
+    "kind": "phase",
+    "fact": "предусловие 2 чек-листа §7 — крест: пул стадии не собран (есть walking skeleton 5 задач × 3 инструмента)",
+    "action": "не этой дельты: требует стенда и окна (ADR-049 п.4), названо в плане"
+   },
+   {
+    "id": "окно стенда (предусловие 3 §7)",
+    "severity": "info",
+    "kind": "phase",
+    "fact": "предусловие 3 — крест: стенд занят SFT, `check_resource_owner.sh --stage rl` не даёт CAN-START (порог 49 ГБ)",
+    "action": "не этой дельты: ждёт финиша SFT"
+   }
+  ],
+  "not_verified": [
+   "Числа прогонов стенда заново не снимались: задание запрещало нагрузки на GB10 (там идёт полная SFT-стадия). Прогон sft-v13-2e6-20260921-2054 читался ТОЛЬКО на чтение — манифесты и уже записанные стадией sha256; файлы наборов прибор не читает по построению (сверка двух записей)",
+   "Замер критерия 3 (K1/K2/домен-v3) на RL-чекпойнте не делался: нет ни чекпойнта, ни окна — шаг назначен (§6.1), а не исполнен",
+   "Патч 6 (`rl_input_identity`) проверен мутантами и исполнением трёх помощников на синтетике; на живом пайплайне стадии RL он ещё не применялся — стадия RL не запускалась (нет окна и нет заземлённого пула)",
+   "Смысловая эквивалентность правил C-030/C-014 (что они значат то же, а не только называются так же) — за ревьюером: сверены поля, номер, severity и сохранённый смысл, но не независимым суждением",
+   "Независимый ревьюер вердикта не давал; decision_quality / semantic_quality в маршруте гейта SKIP",
+   "Секция 43 проверяет связку с движком `arch-ml`; при отсутствии `arch-ml` она даёт SKIP, а не зелёное (в этом прогоне arch-ml есть, SKIP=0)"
+  ],
+  "state_after": {
+   "files_of_this_delta": [
+    "кейсы/laguna-compact/CONSTRAINTS.yaml (правило C-014: тип → command_succeeds, фаза и конъюнкция; комментарий с историей S3bd и S3be)",
+    "кейсы/laguna-compact/tools/check_dataset_identity.py (два носителя объявления, предмет `rl_input`)",
+    "кейсы/laguna-compact/tools/check_result_report.py (новый прибор правила C-014)",
+    "кейсы/laguna-compact/tools/patch_pipeline_sft.py (патч 6: `rl_input_identity`)",
+    "кейсы/laguna-compact/tools/pilot_chain.sh (RL_DATA/RL_DATA_SHA256, declare_named_set; удалён дубль блока объявления)",
+    "кейсы/laguna-compact/tools/run_pilot.py, run_rl_probe.py, run_mask_smoke.py, build_gen_eval_v2.py, analyze_agentic_ban_interaction.py (набор v2 вместо v1)",
+    "кейсы/laguna-compact/tools/tests/run_tool_tests.sh (секция 43 переписана, секция 33д добавлена, мутанты C-030 и фикстуры v1→v2)",
+    "кейсы/laguna-compact/docs/specs/RL-STAGE-PLAN.md, WORK-BACKLOG.md, RL-POOL-QUESTION.md (ADR-054 шаги 3–5)",
+    "кейсы/laguna-compact/README.md, кейсы/laguna-compact/tools/README.md (живые формулировки C-014/C-030)",
+    "кейсы/laguna-compact/evidence/acceptance-2026-09-22-consolidation.json (этот раздел wave4)"
+   ],
+   "waves_1_3_not_rewritten": "разделы `preflight`/`merges`/`new_rule_C032`/`wave2`/`wave3` не правились (ADR-023 п.9): новая волна добавлена ключом `wave4`",
+   "rules": {
+    "before": 30,
+    "after": 30,
+    "numbers_issued": [],
+    "note": "номера правил не менялись и новых не выдавалось (ADR-046 п.8): правились условия C-014 и носитель у C-030"
+   },
+   "test_sections": {
+    "before": 43,
+    "after": 43,
+    "note": "секция 43 переписана, не добавлена; новая работа легла в неё и в секцию 33д внутри 33"
+   },
+   "branches_intact": true,
+   "branches_deleted": [],
+   "pushed": false,
+   "commit": "один коммит дельты S3bf поверх ed58468 (результат предыдущего прогона иначе был бы потерян — именно на отсутствии коммита он и оборвался)"
+  },
+  "environment_notes": [
+   "Стенд GB10 не занимался: ни одной нагрузки, ни одной пробы; обращения к нему — только чтение (манифесты прогона, `check_resource_owner.sh` опрошен гейтом)",
+   "Локальная RTX 4080 нагрузок не получала: эта дельта не запускала ни одной пробы на карте",
+   "Docker использовали штатные секции тестов кейса, не нагрузки на стенде; прогон набора тестов шёл изолированно (конкурирующих прогонов не было — проверено `ps` перед стартом)",
+   "Параллельные сессии во время работы: канон двигали другие узлы (ADR-053/ADR-054 закоммичены до старта дельты). Исполнитель читал только своё дерево и не трогал чужие ветви и worktree",
+   "Долгие прогоны запускались в фоне с записью в /tmp с префиксом дельты (`laguna-s3bf-*`): общий /tmp делят параллельные дельты, безымянные фикстуры уже терялись под чужим прогоном (ADR-021, 16.09.2026)"
+  ]
+ }
+}

@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Лесенка обучения маленькой модели (CPT→SFT→RL) на одной GPU (v1)",
+    "output": "ml-pipeline-v1.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-path",
+        "label": "Главный путь прогона",
+        "focus": [
+          "researcher",
+          "notebook",
+          "gateway",
+          "trainer",
+          "gpu-cloud",
+          "artifacts",
+          "journal-db"
+        ],
+        "note": "Путь прогона: рабочее место → оркестратор → артефакты → GPU-облако."
+      },
+      {
+        "id": "security",
+        "label": "Периметр и бюджет",
+        "focus": [
+          "registry",
+          "budget",
+          "leak-guard",
+          "trainer"
+        ],
+        "note": "Приватный сегмент весов и датасетов, страж утечек и бюджет вокруг оркестратора."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "researcher",
+      "type": "external",
+      "label": "ML-исследователь",
+      "sublabel": "владелец прогона",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "notebook",
+      "type": "frontend",
+      "label": "Рабочее место",
+      "sublabel": "Jupyter / IDE",
+      "pos": [
+        230,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "API-шлюз платформы",
+      "sublabel": "rate limiting",
+      "tag": "ML-08",
+      "pos": [
+        420,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "trainer",
+      "type": "backend",
+      "label": "Оркестратор обучения",
+      "sublabel": "лесенка CPT→SFT→RL",
+      "tag": "ML-01..06",
+      "pos": [
+        630,
+        300
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "gpu-cloud",
+      "type": "external",
+      "label": "GPU-облако",
+      "sublabel": "внешний периметр",
+      "pos": [
+        900,
+        300
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "Реестр весов",
+      "sublabel": "карточки + sha256",
+      "tag": "ML-07",
+      "pos": [
+        640,
+        130
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "budget",
+      "type": "security",
+      "label": "Бюджетный страж",
+      "sublabel": "потолок стоимости",
+      "tag": "ML-09",
+      "pos": [
+        400,
+        130
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "leak-guard",
+      "type": "security",
+      "label": "Страж утечек",
+      "sublabel": "приватный контур",
+      "tag": "ML-01/ML-03",
+      "pos": [
+        400,
+        470
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "artifacts",
+      "type": "backend",
+      "label": "Хранилище артефактов",
+      "sublabel": "чекпоинты / логи",
+      "tag": "ML-06",
+      "pos": [
+        630,
+        470
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "journal-db",
+      "type": "database",
+      "label": "Журнал прогонов",
+      "sublabel": "append-only",
+      "pos": [
+        830,
+        470
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "Событийная шина",
+      "sublabel": "события прогонов",
+      "pos": [
+        1030,
+        470
+      ],
+      "size": [
+        140,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Периметр исследователя (лаборатория / GB10)",
+      "wraps": [
+        "notebook",
+        "gateway",
+        "trainer",
+        "registry",
+        "budget",
+        "leak-guard",
+        "artifacts",
+        "journal-db",
+        "events"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Приватный сегмент (веса и датасеты)",
+      "wraps": [
+        "registry"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Страж утечек (ML-01/03)",
+      "wraps": [
+        "leak-guard"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Бюджетный контроль (ML-09)",
+      "wraps": [
+        "budget"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "researcher-to-notebook",
+      "from": "researcher",
+      "to": "notebook",
+      "label": "SSH / HTTPS",
+      "variant": "emphasis",
+      "labelAt": [
+        205,
+        296
+      ]
+    },
+    {
+      "id": "notebook-to-gateway",
+      "from": "notebook",
+      "to": "gateway",
+      "label": "REST"
+    },
+    {
+      "id": "gateway-to-trainer",
+      "from": "gateway",
+      "to": "trainer",
+      "label": "REST + JWT"
+    },
+    {
+      "id": "trainer-to-gpu",
+      "from": "trainer",
+      "to": "gpu-cloud",
+      "label": "аренда GPU / mTLS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "trainer-to-artifacts",
+      "from": "trainer",
+      "to": "artifacts",
+      "label": "чекпоинты / манифесты",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24,
+      "labelAt": [
+        790,
+        395
+      ]
+    },
+    {
+      "id": "artifacts-to-db",
+      "from": "artifacts",
+      "to": "journal-db",
+      "label": "записи / идемпотентно",
+      "labelAt": [
+        800,
+        544
+      ]
+    },
+    {
+      "id": "trainer-to-registry",
+      "from": "trainer",
+      "to": "registry",
+      "label": "карточки данных",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        712,
+        236
+      ]
+    },
+    {
+      "id": "trainer-to-leakguard",
+      "from": "trainer",
+      "to": "leak-guard",
+      "label": "проверка контура",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "trainer-to-budget",
+      "from": "trainer",
+      "to": "budget",
+      "label": "лимит ML-09",
+      "fromSide": "top",
+      "toSide": "right"
+    },
+    {
+      "id": "artifacts-to-events",
+      "from": "artifacts",
+      "to": "events",
+      "label": "события прогона",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Данные и обучение",
+      "items": [
+        "корпус концептов v12r → карточка + аудит утечек",
+        "sft_train → набор инструкций (провенанс, ML-07)",
+        "eval_holdout → замер без пересечений с трейном"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Периметр (ML-01/02/03/13)",
+      "items": [
+        "веса и датасеты — только симлинками, копии запрещены",
+        "приватный вход — только local-* моделям (ML-02)",
+        "публикации обезличиваются (ML-13)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Бюджет и воспроизводимость",
+      "items": [
+        "ML-09: потолок стоимости объявлен до запуска",
+        "ML-06: конфиг + версии + seed в манифесте прогона",
+        "ML-08: pre-flight проверки до аренды GPU"
+      ]
+    }
+  ]
+}
