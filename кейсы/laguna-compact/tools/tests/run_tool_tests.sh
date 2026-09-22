@@ -14822,6 +14822,83 @@ assert q3["tokens_cache"]["missing"] == [], q3["tokens_cache"]
 print("   кэш: sha256 =", want[:16], "… (совпал с содержимым файла)")
 PYS3BG
 
+echo "  --- 44г. перевыпуск носителя оси: счёт рук, архив и неподвижность порога (S3bk) ---"
+# Предмет: носитель оси перевыпущен под счёт «две руки на модель» (Решение 3 дельты
+# S3bk). Проверяются ТРИ стороны, и все три — механически, а не глазами:
+#   (1) счёт рук назван ЧИСЛОМ (arms_per_model, wave_arms, В-1 = 6 рук × 12 ч = 72 ч),
+#       а не примечанием — прежняя редакция считала руки «по семейству» и давала 36 ч;
+#   (2) прежняя редакция НЕ переписана: sha256 архива совпадает с объявленным в
+#       supersedes (ADR-023 п.9 — архив вместо перезаписи);
+#   (3) порог и модель дисперсии перевыпуск НЕ затронул: все ОБЩИЕ числовые поля
+#       архива и нового носителя совпадают, а se_table/model/required_m/shortfall/
+#       reproduction_criterion — покомпонентно равны.
+# Негативная сторона обязательна (иначе проверка не проверена): подмена счёта рук,
+# подмена объявленного хеша архива и сдвиг порога — каждая обязана краснеть.
+CHK="$TMP/s3bk-carrier-check.py"
+cat > "$CHK" <<'PYS3BK'
+import hashlib, json, sys
+ARCH, NEW = sys.argv[1], sys.argv[2]
+a = json.load(open(ARCH)); b = json.load(open(NEW))
+ec = b["eval_cost"]
+assert ec["arms_per_model"] == 2, f"arms_per_model={ec['arms_per_model']}"
+assert "две на модель" in ec["arms_rule"], ec["arms_rule"]
+arms = {w["wave"]: w["arms"] for w in ec["wave_arms"]}
+assert arms == {"В-1": 6, "В-2": 4, "В-3": 2, "В-5": 10, "В-4": 4}, arms
+wc = ec["wave_eval_cost_calibration_model"]
+assert (wc["arms"], wc["hours_per_arm"], wc["hours"], wc["days"]) == (6, 12.0, 72.0, 3.0), wc
+h = hashlib.sha256(open(ARCH, "rb").read()).hexdigest()
+assert b["supersedes"]["sha256"] == h, f"supersedes.sha256 разошёлся с архивом: {h}"
+assert b["supersedes"]["file"] == ARCH, b["supersedes"]["file"]
+
+
+def nums(o, p=""):
+    out = {}
+    if isinstance(o, dict):
+        for k, v in o.items():
+            out.update(nums(v, f"{p}.{k}" if p else k))
+    elif isinstance(o, list):
+        for i, v in enumerate(o):
+            out.update(nums(v, f"{p}[{i}]"))
+    elif isinstance(o, (int, float)) and not isinstance(o, bool):
+        out[p] = o
+    return out
+
+
+na, nb = nums(a), nums(b)
+shared = set(na) & set(nb)
+diff = {k: (na[k], nb[k]) for k in shared if na[k] != nb[k]}
+assert not diff, f"числовые расхождения с архивом: {diff}"
+assert len(shared) >= 190, f"общих числовых полей всего {len(shared)}"
+assert a["se_table"] == b["se_table"], "таблица SE изменилась"
+assert a["model"] == b["model"], "модель дисперсии изменилась"
+assert a["required_m"] == b["required_m"] and a["shortfall"] == b["shortfall"]
+assert a["reproduction_criterion"] == b["reproduction_criterion"]
+print(f"   счёт рук: {arms} | В-1 = {wc['hours']} ч = {wc['days']} сут | архив {h[:16]}… | "
+      f"общих числовых полей {len(shared)}, расхождений 0 | порог и модель дисперсии совпали")
+PYS3BK
+MUT="$TMP/s3bk-carrier-mutate.py"
+cat > "$MUT" <<'PYS3BK'
+import json, sys
+kind, src, dst = sys.argv[1], sys.argv[2], sys.argv[3]
+b = json.load(open(src))
+if kind == "arms":
+    b["eval_cost"]["arms_per_model"] = 1
+    b["eval_cost"]["wave_arms"][0]["arms"] = 3      # возврат к счёту «по семейству»
+elif kind == "sha":
+    b["supersedes"]["sha256"] = "0" * 64            # объявление архива разошлось
+elif kind == "threshold":
+    b["se_table"][2]["mdd_95_bonf3_pct"] += 0.5     # сдвиг порога при перевыпуске
+json.dump(b, open(dst, "w"), ensure_ascii=False)
+PYS3BK
+ARCH="evidence/ladder-axis-arithmetic-2026-09-22.json"
+NEW="evidence/ladder-axis-arithmetic.json"
+expect_exit 0 "носитель оси: счёт рук, архив по sha256, порог не двинулся" \
+  python3 "$CHK" "$ARCH" "$NEW"
+for mut in arms sha threshold; do
+  expect_exit 1 "носитель оси: мутация «$mut» краснеет, а не проходит" \
+    bash -c "python3 '$MUT' '$mut' '$NEW' '$TMP/s3bk-mut-$mut.json' && python3 '$CHK' '$ARCH' '$TMP/s3bk-mut-$mut.json'"
+done
+
 echo "== 45. S3bh: ворота поддержки qwen3_5 — три состояния и отвязка от чужой лесенки =="
 # Предмет гейта — один вопрос: берёт ли стек архитектуру `model_type qwen3_5`.
 # Стенд НЕ занимается: проба подменяется (`--probe-cmd`), сенсор занятости —

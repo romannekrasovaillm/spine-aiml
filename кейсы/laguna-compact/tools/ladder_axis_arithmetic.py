@@ -24,6 +24,20 @@ SE, посчитанный при p = 0.5, не занижен ни для ка�
 95 % (`z = 1.96`) — обычная сравнительная заявка. `z = 2.394` — тот же 95 %, но
 с поправкой Бонферрони на **три** сравнения (три семейства в волне В-1).
 
+**Счёт рук — две на модель (или на семейство), и это объявлено явно (дельта S3bk).**
+Ось сравнивает **парно**: RL-рука против SFT-базы того же чекпойнта того же
+семейства, поэтому цена волны считается по **двум** рукам на модель, а не по одной
+(`arms_rule`, `arms_per_model`). Прежняя редакция считала руки «по семейству» (три
+на волну В-1) и давала 36 ч вместо 72 ч — не потому, что арифметика была иной, а
+потому, что счёт был другой. Прежняя редакция сохранена архивом
+(`evidence/ladder-axis-arithmetic-2026-09-22.json`), содержимое не менялось
+(ADR-023 п.9); `supersedes` называет файл, его sha256 и причину. **Порог и модель
+дисперсии перевыпуск не трогает**: `p = 0.5`, формулы SE и порог ≈5,0 п.п. в
+перевыпуске совпадают с прежними численно. Цена волн В-2/В-3/В-5 здесь **не
+считается**: у них рука дороже калибровочной (0.5B), и единственный носитель этого
+посчёта — `LADDER-FULL-PLAN.md` §5.1а (два носителя одного числа расходятся,
+ADR-023 п.10).
+
 Запуск: `python3 tools/ladder_axis_arithmetic.py --json evidence/ladder-axis-arithmetic.json`
 Ничего не пишет на стенд, GPU не трогает, наборы не меняет (AD-7): читает только
 счётчики существующих наборов.
@@ -43,6 +57,36 @@ CASE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMPARISONS_WAVE1 = 3
 Z_95 = 1.959964
 Z_95_BONF3 = 2.394003  # двухсторонний квантиль для alpha = 0.05/3
+
+# ── Счёт рук (Решение 3 архитектора, дельта S3bk) ────────────────────────────
+# Рука — один прогон eval. Ось сравнивает ПАРНО (RL-рука против SFT-базы того же
+# чекпойнта того же семейства, ADR-055 п.1), поэтому рук на модель ДВЕ, а не одна.
+ARMS_PER_MODEL = 2
+ARMS_RULE = ("число рук волны = две на модель: RL-рука и SFT-база одного семейства "
+             "(ADR-055 п.1 — сравнение парное)")
+# Состав волн — факт решения (ADR-056 п.1, LADDER-FULL-PLAN §5.1а), а не счёт прибора:
+# В-1 — три семейства класса ≤1B (0,5B из В-0 + 0,6B + 0,8B); В-2 — два размера
+# внутри Qwen2.5 (1,5B, 3B); В-3 — верхний размер (7B); В-5 — 5 остаточных моделей.
+# В-4 отдельно: его руки — RL-руки двух дополнительных сидов над ОБЩЕЙ SFT-базой,
+# уже посчитанной в В-1, поэтому «две руки на модель» его не удваивает.
+WAVE_MODELS = {
+    "В-1": {"models": 3, "unit": "семейства класса ≤1B", "note": "0,5B переоценивается внутри В-1: три семейства — один порог (иначе «≥2 из 3» вырождается в «2 из 2», §5.3)"},
+    "В-2": {"models": 2, "unit": "размеры внутри Qwen2.5 (1,5B, 3B)", "note": ""},
+    "В-3": {"models": 1, "unit": "верхний размер (7B)", "note": ""},
+    "В-5": {"models": 5, "unit": "остаточные модели состава", "note": "Qwen3-1.7B в §2.3 не посчитан — цена 5 моделей из 6"},
+}
+WAVE_4_ARMS_OVER_WAVE_1 = 4  # RL-руки двух доп. сидов на двух опорных моделях
+
+# Прежняя редакция носителя: сохранена архивом, содержимое не менялось (ADR-023 п.9).
+SUPERSEDES = {
+    "file": "evidence/ladder-axis-arithmetic-2026-09-22.json",
+    "sha256": "7d41c67148782f812cda26c49e2a69f87af8509a82d4b318c10bdc50f3a04355",
+    "reason": ("прежняя редакция считала руки волны В-1 «по семейству» (три) и несла цену eval 36 ч; "
+               "объявленный счёт — две руки на модель (RL-рука и SFT-база одного семейства), то есть "
+               "6 рук и 72 ч. Содержимое прежней редакции не изменялось (ADR-023 п.9). Порог ≈5,0 п.п. "
+               "и модель дисперсии перевыпуском НЕ затронуты: p, формулы SE, se_table, required_m и "
+               "reproduction_criterion совпадают с прежними численно — изменились цена и число рук"),
+}
 
 
 def phi(x: float) -> float:
@@ -121,7 +165,11 @@ def main() -> int:
 
     out = {
         "tool": "tools/ladder_axis_arithmetic.py",
-        "stage": "S3bg",
+        "stage": "S3bk",
+        "editorial_history": ("первая редакция — S3bg (2026-09-22; архив evidence/ladder-axis-arithmetic-2026-09-22.json); "
+                              "перевыпуск S3bk (Решение 3 архитектора): счёт рук волны назван явно, цена eval "
+                              "пересчитана с двух рук на модель; порог и модель дисперсии не менялись"),
+        "supersedes": SUPERSEDES,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "purpose": "числа для объявления оси лесенки (ADR-052 п.2 / LADDER-FULL-PLAN §6)",
         "model": {
@@ -226,14 +274,39 @@ def main() -> int:
 
     # Цена eval: калибровка по ADR-013 п.1 (192 задачи + eval_sft ≈ 2 ч, n=1).
     cost_per_task_attempt_s = 2 * 3600 / (avail * 1) if avail else None
+    arm_hours_n6 = round(avail * 6 * cost_per_task_attempt_s / 3600, 1) if cost_per_task_attempt_s else None
+    wave_arms = {w: WAVE_MODELS[w]["models"] * ARMS_PER_MODEL for w in WAVE_MODELS}
     out["eval_cost"] = {
         "calibration": "ADR-013 п.1: ≈2 ч на 192 задачи (n=1) вместе с eval_sft — верхняя граница",
         "seconds_per_task_attempt_upper": round(cost_per_task_attempt_s, 1) if cost_per_task_attempt_s else None,
+        "arms_rule": ARMS_RULE,
+        "arms_per_model": ARMS_PER_MODEL,
+        "wave_arms": [
+            {"wave": w, "models": WAVE_MODELS[w]["models"], "unit": WAVE_MODELS[w]["unit"],
+             "arms": wave_arms[w], "note": WAVE_MODELS[w]["note"]}
+            for w in ("В-1", "В-2", "В-3", "В-5")
+        ] + [{"wave": "В-4", "models": 2, "unit": "дополнительные сиды двух опорных ≤1B",
+              "arms": WAVE_4_ARMS_OVER_WAVE_1,
+              "note": ("сверх В-1: это только RL-руки доп. сидов, SFT-база у трёх сидов общая "
+                       "(форк, ADR-056 п.2) и уже посчитана в В-1 — «две руки на модель» В-4 не удваивает")}],
         "per_arm_hours": [
             {"m": m, "n": n, "hours_upper": round(m * n * cost_per_task_attempt_s / 3600, 1)}
             for m, n in ((192, 1), (192, 2), (192, 3), (192, 6), (400, 3), (800, 3))
         ] if cost_per_task_attempt_s else [],
-        "note": "цена линейна по m·n; число рук волны В-1 — три (по семейству)",
+        "wave_eval_cost_calibration_model": {
+            "wave": "В-1",
+            "arms": wave_arms.get("В-1"),
+            "hours_per_arm": arm_hours_n6,
+            "hours": round(wave_arms.get("В-1", 0) * arm_hours_n6, 1) if arm_hours_n6 else None,
+            "days": round(wave_arms.get("В-1", 0) * arm_hours_n6 / 24, 2) if arm_hours_n6 else None,
+            "scope": ("точная цена только для руки класса 0,5B (калибровка здесь). Для моделей крупнее "
+                      "рука дороже, поэтому это НИЖНЯЯ граница. Цены волн В-2/В-3/В-5 здесь НЕ считаются: "
+                      "их единственный носитель — LADDER-FULL-PLAN.md §5.1а (два носителя одного числа "
+                      "расходятся, ADR-023 п.10)"),
+        },
+        "note": ("цена линейна по m·n; число рук волны В-1 — шесть (три семейства × две руки). "
+                 "Поправка дельты S3bk: прежде стояло «три (по семейству)» и цена 36 ч — это был счёт "
+                 "одной руки на семейство, а не арифметическая разница"),
     }
 
     text = json.dumps(out, ensure_ascii=False, indent=1)
@@ -294,10 +367,17 @@ def render_markdown(out) -> str:
           f"«2 из 3» = {out['reproduction_criterion']['alternative_per_family_95']['k2_of_3_pct']} %, "
           f"«3 из 3» = {out['reproduction_criterion']['alternative_per_family_95']['k3_of_3_pct']} %.", ""]
     L += ["## Цена eval (калибровка ADR-013 п.1)", "",
+          f"Счёт рук: **{out['eval_cost']['arms_rule']}** — `arms_per_model = "
+          f"{out['eval_cost']['arms_per_model']}`.", "",
           "| m | n | часов на руку (верхняя граница) |", "|---|---|---|"]
     for r in out["eval_cost"]["per_arm_hours"]:
         L.append(f"| {r['m']} | {r['n']} | {r['hours_upper']} |")
-    L.append("")
+    L += ["", "| Волна | Моделей | Рук | Примечание |", "|---|---|---|---|"]
+    for r in out["eval_cost"]["wave_arms"]:
+        L.append(f"| {r['wave']} | {r['models']} ({r['unit']}) | **{r['arms']}** | {r['note']} |")
+    wc = out["eval_cost"]["wave_eval_cost_calibration_model"]
+    L += ["", f"Волна В-1 при калибровочной руке (0,5B, n=6): {wc['arms']} × {wc['hours_per_arm']} ч = "
+              f"**{wc['hours']} ч = {wc['days']} сут**. {wc['scope']}.", ""]
     return "\n".join(L)
 
 

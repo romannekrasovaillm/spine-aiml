@@ -3475,6 +3475,15 @@ fn control_ruleset(
     repo: &Path,
     explicit: Option<PathBuf>,
 ) -> Result<(PathBuf, Option<arch_harness::control::ResolvedRuleset>)> {
+    // Несуществующий репозиторий — отдельная понятная ошибка (контракт SDK),
+    // а не «ruleset не найден» с перечислением путей.
+    if !repo.is_dir() {
+        return Err(arch_harness::error::HarnessError::Control(format!(
+            "репозиторий недоступен: {}",
+            repo.display()
+        ))
+        .into());
+    }
     if let Some(path) = explicit {
         return Ok((path, None));
     }
