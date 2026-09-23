@@ -77,7 +77,10 @@ GPU-карте: стражи ресурса, ревизии корпуса, пи
   детекторы петель, редакция секретов в выводе и журнале.
 - **Индикатор контекста** в статус-баре: `◈ 12.3k/1.0M ▰▰▱▱▱▱▱▱ 1%` —
   заполнение окна активной модели; шкала зелёная до порога L1, оранжевая
-  до L3, дальше красная.
+  до L3, дальше красная. Следом сегмент `· кэш N%` — доля промпта последнего
+  ответа, попавшая в prompt-кэш провайдера (показывается, только когда
+  провайдер прислал `cached_tokens`): зелёный ≥ 70 %, оранжевый 30–69 %,
+  красный < 30 % — ранний сигнал взлёта стоимости при сломе кэша.
 
 ## Библиотека скиллов и плагины (agent-plugins.org)
 
@@ -121,6 +124,19 @@ GPU-карте: стражи ресурса, ревизии корпуса, пи
   whitelist инструментов (спеки `agents/*.md` в плагинах); индикатор в
   статус-баре (`· ⣿ субагенты: N`), живой реестр задач и превью отчётов —
   вкладка `◉ Субагенты` (`F7`).
+- ACP-транспорт кодовых харнессов (`transport = "acp"`, ADR-049): живой
+  структурный ход прогона (tool-вызовы, план, usage — в логе флота и
+  TUI-хвосте; `_meta.cached_tokens` своих агентов — как hit-rate кэша),
+  детерминированные ответы на запросы разрешений
+  (`acp_permission`, fail-closed), продолжение контекста между прогонами —
+  только по имени-алиасу `acp_session` (свежая сессия — дефолт;
+  «возобновить-или-создать», карта `state/acp-sessions.json`). Проверено с
+  `kimi acp`.
+- Hit-rate prompt-кэша в метриках: колонка «Кэш hit %» в
+  `arch-ml metrics --cost-report` (по модели/сессии/итог, знаменатель —
+  только записи с полем кэша), строка в `arch-ml metrics`; в отчёте
+  субагента (`reports/subagents/<id>.md`) — строка токенов с долей
+  попаданий (сессия субагента идёт стрим-путём, usage не теряется).
 - `ralph_run` — ralph-цикл: до 6 раундов к неизменной цели свежими агентами,
   состояние — файлы + handoff (status/summary/evidence/next_steps/blockers).
 - `worktree_new` + `arch-ml worktree new|list|diff|accept|drop` — изоляция
@@ -558,7 +574,11 @@ mechanical verdict, the private corpus never leaves the perimeter).
   loop detectors, secret redaction in tool output and journals.
 - **Context gauge** in the status bar: `◈ 12.3k/1.0M ▰▰▱▱▱▱▱▱ 1%` — live
   fill of the active model's context window; the bar is green up to the L1
-  threshold, orange up to L3, red beyond.
+  threshold, orange up to L3, red beyond. It is followed by a `· кэш N%`
+  segment — the share of the last request's prompt served from the provider's
+  prompt cache (shown only when the provider reports `cached_tokens`): green
+  ≥ 70 %, orange 30–69 %, red < 30 % — an early signal of a cost spike when
+  caching breaks.
 
 **Skills library & plugins** ([agent-plugins.org](https://agent-plugins.org) layout)
 
@@ -595,6 +615,20 @@ mechanical verdict, the private corpus never leaves the perimeter).
   least-privilege tool whitelists (specs in plugin `agents/*.md`); live
   status-bar indicator (`· ⣿ subagents: N`), with the `◉ Subagents` right-panel
   tab (`F7`) showing the live registry and report previews.
+- ACP transport for coding harnesses (`transport = "acp"`, ADR-049): live
+  structured run progress (tool calls, plan, usage in the fleet log and TUI
+  tail; `_meta.cached_tokens` from own agents surfaces as cache hit-rate),
+  deterministic answers to agent permission requests
+  (`acp_permission`, fail-closed), and context carry-over between runs —
+  only via a named alias `acp_session` (fresh session is the default;
+  "resume-or-create", map in `state/acp-sessions.json`). Verified against
+  `kimi acp`.
+- Prompt-cache hit-rate in metrics: "Cache hit %" column in
+  `arch-ml metrics --cost-report` (per model/session/total, denominator is
+  limited to records that carry the cache field), a line in
+  `arch-ml metrics`; sub-agent reports (`reports/subagents/<id>.md`) carry
+  a token line with the cache hit share (sub-agent sessions take the
+  streaming path, so usage is not lost).
 - `ralph_run` — multi-round cycles toward an immutable objective, each round a
   fresh agent; state travels via workspace files + bounded handoff JSON.
 - `worktree_new` + `arch-ml worktree …` — isolated git worktrees for risky or

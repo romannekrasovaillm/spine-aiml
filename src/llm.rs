@@ -299,6 +299,10 @@ pub struct Usage {
     pub prompt_tokens: u64,
     /// Токены ответа.
     pub completion_tokens: u64,
+    /// Токены промпта, попавшие в кэш провайдера; None — API такого поля
+    /// не отдал (формы: `prompt_cache_hit_tokens` у `DeepSeek`,
+    /// `prompt_tokens_details.cached_tokens` у `OpenAI`).
+    pub cached_tokens: Option<u64>,
 }
 
 impl Usage {

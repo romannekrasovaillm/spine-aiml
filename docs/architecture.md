@@ -40,7 +40,8 @@ function calling), ошибки инструментов — данные для
 | `kb.rs` | Локальная база знаний: walkdir + кэш корпуса (mtime+len, LRU 256 МБ) + BM25-скоринг (IDF, словоформы, фразы, md-заголовки, триграммный фолбэк) + сниппеты с breadcrumb. |
 | `mcp.rs` | MCP-клиент: stdio NDJSON JSON-RPC, `McpManager`, `McpToolAdapter`. |
 | `mcp_server.rs` | MCP-сервер (ADR-008): stdio NDJSON JSON-RPC, `arch-ml mcp serve`; 10 read-only инструментов (6 контроля + 4 чтения знаний — kb_search, skill_search, skill_load, mermaid_render, T4); -32700/-32601/-32602/isError, rubric_run без ключа → -32603. |
-| `harness.rs` | Handoff-пакеты `.arch-handoff/` и запуск кодовых харнессов; `[fleet] require_worktree` — enforced-изоляция прогона в git worktree (`arch/<run-id>`), интеграция — гейтом владельца `arch-ml fleet merge` (`docs/fleet.md`). |
+| `harness.rs` | Handoff-пакеты `.arch-handoff/` и запуск кодовых харнессов (два транспорта: процессный — argv/stdin, и протокольный ACP при `transport = "acp"` — живые `session/update`, продолжение контекста по алиасам, ADR-049); `[fleet] require_worktree` — enforced-изоляция прогона в git worktree (`arch/<run-id>`), интеграция — гейтом владельца `arch-ml fleet merge` (`docs/fleet.md`). |
+| `acp.rs` | ACP-клиент (Agent Client Protocol v1, ADR-049): ndjson JSON-RPC поверх stdio агента, диспетчер входящих запросов (разрешения — политикой `acp_permission`, прочее fail-closed `-32601`), проекция `session/update`, карта закреплённых сессий алиас→sessionId (`state/acp-sessions.json`, атомарная запись). |
 | `control.rs` | Архитектурный контроль: score, линтер spine, сенсоры, fitness, ADR. Fitness-правила — 9 типов, включая структурные `dependency_direction` (направление зависимостей/слои, ADR-029) и `context_boundary` (границы контекстов по `code_roots` CMP, ADR-030). |
 | `rehearsal.rs` | Гейт A4 rollback-first: машиночитаемый план отката `ROLLBACK.yaml` в пакете, репетиция шагов во временном git-worktree на baseline_commit (denylist деструктивных/внешних шагов, fail-fast), evidence `REHEARSAL.json`; CLI `arch control gate A4 <repo> [--rehearse]`, для Critical репетиция обязательна (`--require-rehearsal`). |
 | `model.rs`, `model/{parse,graph,validate,project,exchange}.rs` | Типизированная модель архитектуры (ADR-003): сущности model/*.md (frontmatter + проза; в т.ч. `QAS-*`, количественные поля ADR-007, `code_roots` CMP — ADR-030 и `contract` INT — ADR-035), валидация ссылок, граф (text/mermaid), проекция ADR в .arch-handoff/adr/, обмен с отраслевыми форматами (exchange: экспорт Structurizr DSL/PlantUML/drawio, импорт Structurizr DSL, round-trip — ADR-009; экспорт ArchiMate Open Exchange 3.2, только экспорт — ADR-032); инструмент model_query. |
@@ -186,8 +187,10 @@ LLM-запроса и каждого `dispatch`. Отмена во время в
 Журнал: append-only JSONL `sessions/session-<yyyymmdd-hhmmss>.jsonl`,
 события `system`/`user`/`assistant`/`tool`/`event`/`usage` с ISO-метками; каждая
 запись флашится (журнал переживает падение). Запись `usage` — реальные токены
-ответа LLM (`stream_options.include_usage`): модель, prompt, completion;
-пишется после каждого assistant-сообщения стрим-ответа, провайдер usage не
+ответа LLM (`stream_options.include_usage`): модель, prompt, completion и —
+когда провайдер прислал попадание в prompt-кэш — `cached_tokens` (без него
+поля в записи нет вовсе); пишется после каждого assistant-сообщения
+стрим-ответа, провайдер usage не
 отдал — записи нет (старые журналы без `usage` читаются, метрики таких сессий
 работают на оценке chars/4). Недоступность журнала — не
 фатальна (warn в tracing).

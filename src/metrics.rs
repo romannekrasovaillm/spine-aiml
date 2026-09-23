@@ -40,6 +40,14 @@ pub struct HarnessMetrics {
     pub total_prompt_tokens: u64,
     /// Реальные выходные токены (сумма `completion_tokens` записей `usage`).
     pub total_completion_tokens: u64,
+    /// Токены, попавшие в prompt-кэш провайдера (сумма `cached_tokens`
+    /// записей `usage`; поле присылают не все API — учёт только по записям
+    /// с полем).
+    pub total_cached_tokens: u64,
+    /// Входные токены по записям с полем `cached_tokens` — знаменатель
+    /// hit-rate кэша (делить на общий prompt нельзя: у провайдеров без
+    /// поля кэша hit-rate был бы занижен).
+    pub cache_prompt_tokens: u64,
     /// Сессий, давших записи `usage` (из них считаются реальные токены).
     pub sessions_with_usage: usize,
     /// Суммарная стоимость по тарифам моделей из конфига (заполняет CLI
@@ -119,6 +127,17 @@ impl HarnessMetrics {
         self.total_prompt_tokens + self.total_completion_tokens > 0
     }
 
+    /// Hit-rate prompt-кэша, % (только по записям usage с полем
+    /// `cached_tokens`). None — ни один провайдер поле кэша не прислал.
+    #[must_use]
+    pub fn cache_hit_pct(&self) -> Option<f64> {
+        if self.cache_prompt_tokens == 0 {
+            None
+        } else {
+            Some(100.0 * self.total_cached_tokens as f64 / self.cache_prompt_tokens as f64)
+        }
+    }
+
     /// Токены на один проверенный результат: реальные usage, если они есть,
     /// иначе грубая оценка chars/4 (fallback). None — результатов ещё нет.
     #[must_use]
@@ -174,6 +193,13 @@ impl HarnessMetrics {
                 self.total_completion_tokens,
                 self.sessions_with_usage,
                 self.sessions
+            );
+        }
+        if let Some(pct) = self.cache_hit_pct() {
+            let _ = writeln!(
+                out,
+                "- Попадание в prompt-кэш: **{pct:.0}%** ({} из {} входных токенов по записям с полем кэша)",
+                self.total_cached_tokens, self.cache_prompt_tokens
             );
         }
         let _ = writeln!(
@@ -267,6 +293,11 @@ pub struct ModelUsageRow {
     pub prompt_tokens: u64,
     /// Суммарные выходные токены.
     pub completion_tokens: u64,
+    /// Токены, попавшие в prompt-кэш (по записям с полем `cached_tokens`).
+    pub cached_tokens: u64,
+    /// Входные токены по записям с полем `cached_tokens` (знаменатель
+    /// hit-rate).
+    pub cache_prompt_tokens: u64,
     /// Стоимость по тарифу из конфига; None — тариф не задан.
     pub cost: Option<f64>,
 }
@@ -280,6 +311,10 @@ pub struct SessionUsageRow {
     pub prompt_tokens: u64,
     /// Суммарные выходные токены сессии.
     pub completion_tokens: u64,
+    /// Токены, попавшие в prompt-кэш (по записям с полем `cached_tokens`).
+    pub cached_tokens: u64,
+    /// Входные токены по записям с полем `cached_tokens`.
+    pub cache_prompt_tokens: u64,
     /// Стоимость сессии по тарифам; None — ни у одной модели сессии нет тарифа.
     pub cost: Option<f64>,
 }
@@ -295,8 +330,22 @@ pub struct CostReport {
     pub total_prompt_tokens: u64,
     /// Суммарные выходные токены.
     pub total_completion_tokens: u64,
+    /// Суммарные токены попадания в prompt-кэш (по записям с полем).
+    pub total_cached_tokens: u64,
+    /// Входные токены по записям с полем `cached_tokens` (знаменатель
+    /// итогового hit-rate).
+    pub total_cache_prompt_tokens: u64,
     /// Суммарная стоимость по моделям с тарифом; None — тарифов нет вовсе.
     pub total_cost: Option<f64>,
+}
+
+/// Hit-rate prompt-кэша, % (None — данных с полем кэша нет).
+fn cache_pct(cached: u64, prompt: u64) -> Option<f64> {
+    if prompt == 0 {
+        None
+    } else {
+        Some(100.0 * cached as f64 / prompt as f64)
+    }
 }
 
 /// Стоимость одной usage-записи по тарифу модели из конфига; None — тариф
@@ -325,8 +374,10 @@ fn model_config_by_id<'a>(
         .or_else(|| models.get(model_id))
 }
 
-/// Читает записи `usage` одного журнала: (модель, prompt, completion).
-fn parse_usage_records(text: &str) -> Vec<(String, u64, u64)> {
+/// Читает записи `usage` одного журнала: модель, число входных и выходных
+/// токенов и `cached_tokens`. `cached_tokens` — Option: поле присылают не
+/// все API (`DeepSeek` — всегда, `OpenAI` — в `prompt_tokens_details`).
+fn parse_usage_records(text: &str) -> Vec<(String, u64, u64, Option<u64>)> {
     let mut out = Vec::new();
     for line in text.lines() {
         let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
@@ -348,7 +399,8 @@ fn parse_usage_records(text: &str) -> Vec<(String, u64, u64)> {
             .get("completion_tokens")
             .and_then(serde_json::Value::as_u64)
             .unwrap_or(0);
-        out.push((model, prompt, completion));
+        let cached = v.get("cached_tokens").and_then(serde_json::Value::as_u64);
+        out.push((model, prompt, completion, cached));
     }
     out
 }
@@ -400,7 +452,7 @@ pub fn cost_report(sessions_dir: &Path, models: &BTreeMap<String, ModelConfig>) 
         // Модели этой сессии — для счётчика «сессий» по модели (одна сессия
         // со сменой модели засчитывается каждой из них один раз).
         let mut seen_models: std::collections::BTreeSet<usize> = std::collections::BTreeSet::new();
-        for (model, prompt, completion) in records {
+        for (model, prompt, completion, cached) in records {
             let idx = *model_idx.entry(model.clone()).or_insert_with(|| {
                 report.by_model.push(ModelUsageRow {
                     model: model.clone(),
@@ -412,6 +464,14 @@ pub fn cost_report(sessions_dir: &Path, models: &BTreeMap<String, ModelConfig>) 
             let mrow = &mut report.by_model[idx];
             mrow.prompt_tokens += prompt;
             mrow.completion_tokens += completion;
+            if let Some(cached_tokens) = cached {
+                mrow.cached_tokens += cached_tokens;
+                mrow.cache_prompt_tokens += prompt;
+                row.cached_tokens += cached_tokens;
+                row.cache_prompt_tokens += prompt;
+                report.total_cached_tokens += cached_tokens;
+                report.total_cache_prompt_tokens += prompt;
+            }
             if let Some(c) = cost {
                 *mrow.cost.get_or_insert(0.0) += c;
                 *row.cost.get_or_insert(0.0) += c;
@@ -445,8 +505,8 @@ pub fn render_cost_report(report: &CostReport) -> String {
         );
         return out;
     }
-    out.push_str("| Модель | Сессий | Prompt | Completion | Стоимость |\n");
-    out.push_str("|---|---:|---:|---:|---:|\n");
+    out.push_str("| Модель | Сессий | Prompt | Completion | Кэш hit % | Стоимость |\n");
+    out.push_str("|---|---:|---:|---:|---:|---:|\n");
     let mut unpriced: Vec<&str> = Vec::new();
     for row in &report.by_model {
         let cost = if let Some(c) = row.cost {
@@ -455,21 +515,26 @@ pub fn render_cost_report(report: &CostReport) -> String {
             unpriced.push(row.model.as_str());
             "—".into()
         };
+        let cache = cache_pct(row.cached_tokens, row.cache_prompt_tokens)
+            .map_or_else(|| "—".into(), |p| format!("{p:.0}%"));
         let _ = writeln!(
             out,
-            "| {} | {} | {} | {} | {} |",
-            row.model, row.sessions, row.prompt_tokens, row.completion_tokens, cost
+            "| {} | {} | {} | {} | {} | {} |",
+            row.model, row.sessions, row.prompt_tokens, row.completion_tokens, cache, cost
         );
     }
     let total_cost = report
         .total_cost
         .map_or_else(|| "—".into(), |c| format!("{c:.2}"));
+    let total_cache = cache_pct(report.total_cached_tokens, report.total_cache_prompt_tokens)
+        .map_or_else(|| "—".into(), |p| format!("{p:.0}%"));
     let _ = writeln!(
         out,
-        "| **Итого** | {} | {} | {} | {} |",
+        "| **Итого** | {} | {} | {} | {} | {} |",
         report.sessions.len(),
         report.total_prompt_tokens,
         report.total_completion_tokens,
+        total_cache,
         total_cost
     );
     if !unpriced.is_empty() {
@@ -484,26 +549,30 @@ pub fn render_cost_report(report: &CostReport) -> String {
     out.push_str("\n## Топ-10 самых дорогих сессий (по токенам)\n\n");
     let mut sessions = report.sessions.clone();
     sessions.sort_by_key(|s| std::cmp::Reverse(s.prompt_tokens + s.completion_tokens));
-    out.push_str("| Сессия | Prompt | Completion | Всего | Стоимость |\n");
-    out.push_str("|---|---:|---:|---:|---:|\n");
+    out.push_str("| Сессия | Prompt | Completion | Кэш hit % | Всего | Стоимость |\n");
+    out.push_str("|---|---:|---:|---:|---:|---:|\n");
     for s in sessions.iter().take(10) {
         let cost = s.cost.map_or_else(|| "—".into(), |c| format!("{c:.2}"));
+        let cache = cache_pct(s.cached_tokens, s.cache_prompt_tokens)
+            .map_or_else(|| "—".into(), |p| format!("{p:.0}%"));
         let _ = writeln!(
             out,
-            "| {} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} |",
             s.session,
             s.prompt_tokens,
             s.completion_tokens,
+            cache,
             s.prompt_tokens + s.completion_tokens,
             cost
         );
     }
     let _ = writeln!(
         out,
-        "\nИтог: сессий с usage: {}; prompt {}; completion {}; стоимость: {}",
+        "\nИтог: сессий с usage: {}; prompt {}; completion {}; попадание в кэш: {}; стоимость: {}",
         report.sessions.len(),
         report.total_prompt_tokens,
         report.total_completion_tokens,
+        total_cache,
         total_cost
     );
     out
@@ -565,14 +634,19 @@ fn parse_journal(text: &str, m: &mut HarnessMetrics) {
             }
             "usage" => {
                 saw_usage = true;
-                m.total_prompt_tokens += v
+                let prompt = v
                     .get("prompt_tokens")
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0);
+                m.total_prompt_tokens += prompt;
                 m.total_completion_tokens += v
                     .get("completion_tokens")
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0);
+                if let Some(cached) = v.get("cached_tokens").and_then(serde_json::Value::as_u64) {
+                    m.total_cached_tokens += cached;
+                    m.cache_prompt_tokens += prompt;
+                }
             }
             "event" if v.get("event").and_then(|e| e.as_str()) == Some("ask") => {
                 m.asks += 1;
@@ -819,11 +893,11 @@ mod tests {
 
         let text = render_cost_report(&report);
         assert!(
-            text.contains("| deepseek-v4-flash | 1 | 2000000 | 1000000 | 400.00 |"),
+            text.contains("| deepseek-v4-flash | 1 | 2000000 | 1000000 | — | 400.00 |"),
             "{text}"
         );
         assert!(
-            text.contains("| **Итого** | 2 | 2000100 | 1000050 | 400.00 |"),
+            text.contains("| **Итого** | 2 | 2000100 | 1000050 | — | 400.00 |"),
             "{text}"
         );
         // Топ сессий: дорогая первая (0 — остаток заголовка, 1 — пустая,
@@ -834,6 +908,79 @@ mod tests {
         // Модель без тарифа названа в сноске.
         assert!(text.contains("local-free"), "{text}");
         assert!(text.contains("Тариф не задан для: local-free"), "{text}");
+    }
+
+    #[test]
+    fn cache_hit_rate_aggregates_and_renders() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let sessions = tmp.path().join("sessions");
+        std::fs::create_dir_all(&sessions).expect("sessions");
+        // DeepSeek: кэш-поле есть в обеих записях (hit 300k + 500k).
+        std::fs::write(
+            sessions.join("session-20260923-100000.jsonl"),
+            concat!(
+                "{\"ts\":\"t\",\"kind\":\"usage\",\"model\":\"deepseek-v4-flash\",\"prompt_tokens\":1000000,\"completion_tokens\":100,\"cached_tokens\":300000}\n",
+                "{\"ts\":\"t\",\"kind\":\"usage\",\"model\":\"deepseek-v4-flash\",\"prompt_tokens\":1000000,\"completion_tokens\":100,\"cached_tokens\":500000}\n"
+            ),
+        )
+        .expect("journal ds");
+        // Провайдер без поля кэша: в знаменатель hit-rate НЕ идёт.
+        std::fs::write(
+            sessions.join("session-20260923-110000.jsonl"),
+            "{\"ts\":\"t\",\"kind\":\"usage\",\"model\":\"local-free\",\"prompt_tokens\":10000,\"completion_tokens\":50}\n",
+        )
+        .expect("journal free");
+
+        let report = cost_report(&sessions, &BTreeMap::new());
+        let ds = &report.by_model[0];
+        assert_eq!(ds.cached_tokens, 800_000);
+        assert_eq!(ds.cache_prompt_tokens, 2_000_000);
+        let free = &report.by_model[1];
+        assert_eq!(free.cached_tokens, 0);
+        assert_eq!(free.cache_prompt_tokens, 0);
+        assert_eq!(report.total_cached_tokens, 800_000);
+        assert_eq!(report.total_cache_prompt_tokens, 2_000_000);
+
+        let text = render_cost_report(&report);
+        // 800k из 2M = 40% — у модели и в итоге; у local-free — «—».
+        assert!(
+            text.contains("| deepseek-v4-flash | 1 | 2000000 | 200 | 40% | — |"),
+            "{text}"
+        );
+        assert!(
+            text.contains("| local-free | 1 | 10000 | 50 | — | — |"),
+            "{text}"
+        );
+        assert!(
+            text.contains("| **Итого** | 2 | 2010000 | 250 | 40% | — |"),
+            "{text}"
+        );
+        // Строка сессии в топе — со своим hit-rate.
+        let top = text.split("Топ-10").nth(1).expect("секция топа");
+        assert!(
+            top.contains("| session-20260923-100000.jsonl | 2000000 | 200 | 40% | 2000200 | — |"),
+            "{top}"
+        );
+
+        // Сводка HarnessMetrics: та же пара сумм по журналу.
+        let mut m = HarnessMetrics::default();
+        parse_journal(
+            "{\"ts\":\"t\",\"kind\":\"usage\",\"model\":\"deepseek-v4-flash\",\"prompt_tokens\":1000,\"completion_tokens\":10,\"cached_tokens\":250}\n",
+            &mut m,
+        );
+        parse_journal(
+            "{\"ts\":\"t\",\"kind\":\"usage\",\"model\":\"local-free\",\"prompt_tokens\":5000,\"completion_tokens\":10}\n",
+            &mut m,
+        );
+        assert_eq!(m.total_cached_tokens, 250);
+        assert_eq!(m.cache_prompt_tokens, 1000);
+        let pct = m.cache_hit_pct().expect("есть записи с кэшем");
+        assert!((pct - 25.0).abs() < 0.01, "pct: {pct}");
+        let md = m.to_markdown();
+        assert!(md.contains("Попадание в prompt-кэш: **25%**"), "{md}");
+        // Без записей с полем — метрики нет (None, а не 0%).
+        let m2 = HarnessMetrics::default();
+        assert!(m2.cache_hit_pct().is_none());
     }
 
     #[test]

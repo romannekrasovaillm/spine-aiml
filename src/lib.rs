@@ -17,6 +17,7 @@
 //! ```
 
 pub mod accept_gate;
+pub mod acp;
 pub mod adr_registry;
 pub mod agent;
 pub mod agentsmd;

@@ -1,0 +1,1038 @@
+{
+  "spec": "docs/specs/LADDER-FORK-CARRIER.md",
+  "decision": "docs/adr/ADR-057-nositel-fork-semantiki-sida-seriynaya-cepochka-stadiy-keysa-vmesto-ustarevshego-run-seeded-ladder-sh-n-7.md",
+  "task": "Н-7 — исполнимый носитель форк-семантики сида (план серии + серийный драйвер)",
+  "generated_at": "2026-09-23T03:24:13+00:00",
+  "carriers": {
+    "driver": {
+      "path": "tools/fork_series_chain.sh",
+      "sha256": "7ec9659f926446a75f597f90df5fc585f642301678e0d1a5e384a8c052eb6747",
+      "note": "хеш на момент ДЕЛЬТЫ 2 (после шага финализации); дельта 1 предъявляла 21e80c2a84c747e08c578055a4eb802c695ea1782bfd2eef3b307e4d0ae9f2a8 — прежнее значение сохранено, а не стёрто (ADR-023 п.9)",
+      "sha256_before_delta3": "c2330e2f0ed0778605a5dad55e30b6709090e0d3d3241b9bd3fdab6667072a7c"
+    },
+    "tests": {
+      "path": "tools/tests/run_tool_tests.sh",
+      "sha256": "4f91449ddac544533704b8973fe17d931e5152216c3beaad77f9abb370bc3a3f",
+      "section": "48/49/50",
+      "note": "секция 48 — дельта 1 (план серии и драйвер); секция 49 — дельта 2 (выставление; форма приведена к плоской дельтой 3); секция 50 — дельта 3 (плоская выставка и снятие регистра)",
+      "sha256_before_delta3": "9b792de994d6ea3e357ac78375f54b6c685c08c442b054741d9f3728a0f52ccd"
+    },
+    "planner": {
+      "path": "tools/build_fork_plan.py",
+      "sha256": "370539292735d92828b064fabe426fbf256c43565e1b907ccdd4c2a76ff56881"
+    }
+  },
+  "this_is_not_a_gate": "Акт самопроверки, а не гейт и не вердикт: носитель числа — файл тестов (секция 48). Стенд не занимался, обучение не запускалось, ssh/docker не вызывались: серия имитируется стабами записанных строк.",
+  "gates": [
+    {
+      "id": "A1",
+      "what": "dry-run имитированной серии (3 руки × 2 модели): план напечатан, стенда не требует",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --model-short qwen3-06b --seeds 42,1337,2024 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "план серии форк-семантики сида (Н-7): units=all, стенд не нужен",
+        "  каталог серии: /tmp/laguna-n7-selftest-s2wvc135/shared/series",
+        "  контейнер:     /workspace/shared/series",
+        "  k = 3 (сиды: 42, 1337, 2024)",
+        "  моделей: 2",
+        "  · qwen25-05b (Qwen/Qwen2.5-0.5B, семейство Qwen2.5): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen25-05b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen25-05b-base/checkpoints/checkpoint_final.pt, qwen25-05b-base/checkpoints/sft_checkpoint_final.pt, qwen25-05b-base/logs/eval_results_base.json, qwen25-05b-base/logs/eval_results_sft.json",
+        "  · qwen3-06b (Qwen/Qwen3-0.6B, семейство Qwen3): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen3-06b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen3-06b-base/checkpoints/checkpoint_final.pt, qwen3-06b-base/checkpoints/sft_checkpoint_final.pt, qwen3-06b-base/logs/eval_results_base.json, qwen3-06b-base/logs/eval_results_sft.json",
+        "  общий SFT-вход рук qwen25-05b: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  общий SFT-вход рук qwen3-06b: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  рук: 6",
+        "  · рука qwen25-05b-rl-s42: сид 42, каталог qwen25-05b-rl-s42, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen25-05b-rl-s42/checkpoints/rl_checkpoint_final.pt, qwen25-05b-rl-s42/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen25-05b-rl-s1337: сид 1337, каталог qwen25-05b-rl-s1337, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen25-05b-rl-s1337/checkpoints/rl_checkpoint_final.pt, qwen25-05b-rl-s1337/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen25-05b-rl-s2024: сид 2024, каталог qwen25-05b-rl-s2024, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen25-05b-rl-s2024/checkpoints/rl_checkpoint_final.pt, qwen25-05b-rl-s2024/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen3-06b-rl-s42: сид 42, каталог qwen3-06b-rl-s42, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen3-06b-rl-s42/checkpoints/rl_checkpoint_final.pt, qwen3-06b-rl-s42/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen3-06b-rl-s1337: сид 1337, каталог qwen3-06b-rl-s1337, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen3-06b-rl-s1337/checkpoints/rl_checkpoint_final.pt, qwen3-06b-rl-s1337/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen3-06b-rl-s2024: сид 2024, каталог qwen3-06b-rl-s2024, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen3-06b-rl-s2024/checkpoints/rl_checkpoint_final.pt, qwen3-06b-rl-s2024/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base --ctr-run-dir /workspace/shared/series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "    [база qwen3-06b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base --ctr-run-dir /workspace/shared/series/qwen3-06b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/stages.tsv --exp-base qwen3-06b-base --ctr-prefix laguna-fork-qwen3-06b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen3-0.6B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "    [рука qwen25-05b-rl-s42] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42 --ctr-run-dir /workspace/shared/series/qwen25-05b-rl-s42 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42/stages.tsv --exp-base qwen25-05b-rl-s42 --ctr-prefix laguna-fork-qwen25-05b-rl-s42 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt",
+        "    [рука qwen25-05b-rl-s1337] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s1337 --ctr-run-dir /workspace/shared/series/qwen25-05b-rl-s1337 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s1337/stages.tsv --exp-base qwen25-05b-rl-s1337 --ctr-prefix laguna-fork-qwen25-05b-rl-s1337 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 1337 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt",
+        "    [рука qwen25-05b-rl-s2024] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s2024 --ctr-run-dir /workspace/shared/series/qwen25-05b-rl-s2024 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s2024/stages.tsv --exp-base qwen25-05b-rl-s2024 --ctr-prefix laguna-fork-qwen25-05b-rl-s2024 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 2024 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt",
+        "    [рука qwen3-06b-rl-s42] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s42 --ctr-run-dir /workspace/shared/series/qwen3-06b-rl-s42 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s42/stages.tsv --exp-base qwen3-06b-rl-s42 --ctr-prefix laguna-fork-qwen3-06b-rl-s42 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen3-0.6B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt",
+        "    [рука qwen3-06b-rl-s1337] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s1337 --ctr-run-dir /workspace/shared/series/qwen3-06b-rl-s1337 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s1337/stages.tsv --exp-base qwen3-06b-rl-s1337 --ctr-prefix laguna-fork-qwen3-06b-rl-s1337 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen3-0.6B --seed 1337 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt",
+        "    [рука qwen3-06b-rl-s2024] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s2024 --ctr-run-dir /workspace/shared/series/qwen3-06b-rl-s2024 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-rl-s2024/stages.tsv --exp-base qwen3-06b-rl-s2024 --ctr-prefix laguna-fork-qwen3-06b-rl-s2024 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen3.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen3-0.6B --seed 2024 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen3-06b-base/checkpoints/sft_checkpoint_final.pt",
+        "  примечание: рецепт шагов взят с прогона 0,5B и для другого семейства не калиброван (LADDER-FORK-CARRIER.md §4): числа шагов и батчи — из рецепта, а не из замера этого семейства",
+        "  примечание: общий SFT-вход не объявлен у модели qwen25-05b, qwen3-06b (ни файла, ни --sft-sha256): план печатается, чтобы был виден состав серии; --write такой план не соберёт, серия рук на неизмеренном входе не стартует (I2)"
+      ],
+      "ssh_docker_in_output": [],
+      "facts_checked": {
+        "k_по_умолчанию": true,
+        "базовые_стадии": true,
+        "имена_рук": true,
+        "общий_вход": true,
+        "ожидаемые_артефакты": true
+      }
+    },
+    {
+      "id": "A2",
+      "what": "I3: повтор сида — отказ планировщика (две руки в одном каталоге)",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,42 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "ОТКАЗ: I3: сид повторяется 42 — две руки получили бы один каталог и одни пути артефактов (коллизия вместо сравнения)",
+        "NOT-VERIFIED: план серии не собран"
+      ]
+    },
+    {
+      "id": "A2",
+      "what": "фикстура: план базовых стадий собран",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  моделей: 1",
+        "  · qwen25-05b (Qwen/Qwen2.5-0.5B, семейство Qwen2.5): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen25-05b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen25-05b-base/checkpoints/checkpoint_final.pt, qwen25-05b-base/checkpoints/sft_checkpoint_final.pt, qwen25-05b-base/logs/eval_results_base.json, qwen25-05b-base/logs/eval_results_sft.json",
+        "  общий SFT-вход рук qwen25-05b: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  рук: 0",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base --ctr-run-dir /workspace/shared/series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "  руки не планируются (--units base): после базовых стадий — --units arms --write",
+        "  примечание: план несёт только базовые стадии (units=base): руки планируются после того, как SFT-чекпойнт базы появится и будет измерен (units=arms)",
+        "  примечание: общий вход объявлен путём; sha256 появится при планировании рук (units=arms) — до измерения входа серия рук не стартует (I2)"
+      ]
+    },
+    {
+      "id": "A2",
+      "what": "фикстура: руки планируются после замера входа",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units arms --write --force",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  · рука qwen25-05b-rl-s42: сид 42, каталог qwen25-05b-rl-s42, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen25-05b-rl-s42/checkpoints/rl_checkpoint_final.pt, qwen25-05b-rl-s42/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  · рука qwen25-05b-rl-s1337: сид 1337, каталог qwen25-05b-rl-s1337, стадии rl → eval_rl",
+        "      ожидаемые артефакты: qwen25-05b-rl-s1337/checkpoints/rl_checkpoint_final.pt, qwen25-05b-rl-s1337/logs/eval_results.json",
+        "      вход: /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt → checkpoints/sft_checkpoint_final.pt",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base --ctr-run-dir /workspace/shared/series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "    [рука qwen25-05b-rl-s42] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42 --ctr-run-dir /workspace/shared/series/qwen25-05b-rl-s42 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42/stages.tsv --exp-base qwen25-05b-rl-s42 --ctr-prefix laguna-fork-qwen25-05b-rl-s42 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt --extra-hyperparam sft_shared_checkpoint_sha256=091a770ab9e4a9bc44980d6c1d8b7b68a748083fdbef2b358a8a9bbdd81b4f73",
+        "    [рука qwen25-05b-rl-s1337] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s1337 --ctr-run-dir /workspace/shared/series/qwen25-05b-rl-s1337 --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s1337/stages.tsv --exp-base qwen25-05b-rl-s1337 --ctr-prefix laguna-fork-qwen25-05b-rl-s1337 --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 1337 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7 --extra-hyperparam sft_shared_checkpoint=/tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt --extra-hyperparam sft_shared_checkpoint_sha256=091a770ab9e4a9bc44980d6c1d8b7b68a748083fdbef2b358a8a9bbdd81b4f73"
+      ]
+    },
+    {
+      "id": "A2",
+      "what": "I3: две руки с одним путём артефакта — отказ валидатора с поимённым конфликтом",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --check-plan /tmp/laguna-n7-selftest-s2wvc135/plan-collision.json",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "ОТКАЗ: I3: коллизия артефактов: рука qwen25-05b-rl-s42 (сид 42) [1] и рука qwen25-05b-rl-s42 (сид 1337) [2] пишут один путь qwen25-05b-rl-s42/checkpoints/rl_checkpoint_final.pt — руки перезапишут друг друга",
+        "ОТКАЗ: I3: коллизия артефактов: рука qwen25-05b-rl-s42 (сид 42) [1] и рука qwen25-05b-rl-s42 (сид 1337) [2] пишут один путь qwen25-05b-rl-s42/logs/eval_results.json — руки перезапишут друг друга",
+        "ОТКАЗ: I3: единицы рука qwen25-05b-rl-s42 (сид 42) [1] и рука qwen25-05b-rl-s42 (сид 1337) [2] делят один каталог qwen25-05b-rl-s42",
+        "NOT-VERIFIED: план /tmp/laguna-n7-selftest-s2wvc135/plan-collision.json не годен (3 находок)"
+      ]
+    },
+    {
+      "id": "A3",
+      "what": "I2: серия рук без объявленного и не измеренного SFT-входа — отказ планировщика",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/no-input --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units arms --write",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "ОТКАЗ: I2: нет объявленного SFT-входа — все k рук обязаны объявить один и тот же SFT-чекпойнт (путь + sha256), а у модели qwen25-05b он не объявлен: файла /tmp/laguna-n7-selftest-s2wvc135/shared/no-input/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt нет и --sft-sha256 не задан. Порядок: сначала базовые стадии (--units base), затем руки (--units arms) — серия не стартует на неизмеренном входе",
+        "NOT-VERIFIED: план серии не собран"
+      ]
+    },
+    {
+      "id": "A3",
+      "what": "I2: рука без объявленного SFT-входа — отказ валидатора",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --check-plan /tmp/laguna-n7-selftest-s2wvc135/plan-no-input.json",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "ОТКАЗ: I2: рука qwen25-05b-rl-s42: нет объявленного SFT-входа (путь + sha256)",
+        "NOT-VERIFIED: план /tmp/laguna-n7-selftest-s2wvc135/plan-no-input.json не годен (1 находок)"
+      ]
+    },
+    {
+      "id": "A4",
+      "what": "I7: рука не done → драйвер возвращает 1 и следующая не стартует",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/series --poll 1",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T06:23:45+03:00] СТАРТ единицы qwen25-05b-rl-s42 (arm, exp-base qwen25-05b-rl-s42, сид 42)",
+        "[2026-09-23T06:23:45+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42/var /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42/logs; bash /tmp/laguna-n7-selftest-s2wvc135/tools/check_resource_owner.sh --stage rl --exp-name qwen25-05b-rl-s42 >/dev/null; printf \"failed\\n\" > /tmp/laguna-n7-selftest-s2wvc135/shared/series/qwen25-05b-rl-s42/var/chain.status; printf \"qwen25-05b-rl-s42\\n\" >> /tmp/laguna-n7-selftest-s2wvc135/shared/series/stub_marker.txt'",
+        "[2026-09-23T06:23:45+03:00]   qwen25-05b-rl-s42: объектов checkpoint* в каталоге 1 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T06:23:46+03:00] ИТОГ единицы qwen25-05b-rl-s42: failed за 1 с",
+        "[2026-09-23T06:23:46+03:00] серия остановлена на единице qwen25-05b-rl-s42: статус failed (следующие не запускаются, I7)",
+        "[2026-09-23T06:23:46+03:00] == серия завершена: failed =="
+      ],
+      "facts_checked": {
+        "запущены_единицы": [
+          "qwen25-05b-base",
+          "qwen25-05b-rl-s42"
+        ],
+        "следующая_не_стартовала": true,
+        "в_status_tsv_нет_старта_следующей": true,
+        "итог_серии": "failed"
+      }
+    },
+    {
+      "id": "A5",
+      "what": "первая запись плана",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  моделей: 1",
+        "  · qwen25-05b (Qwen/Qwen2.5-0.5B, семейство Qwen2.5): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen25-05b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen25-05b-base/checkpoints/checkpoint_final.pt, qwen25-05b-base/checkpoints/sft_checkpoint_final.pt, qwen25-05b-base/logs/eval_results_base.json, qwen25-05b-base/logs/eval_results_sft.json",
+        "  общий SFT-вход рук qwen25-05b: /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  рук: 0",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base --ctr-run-dir /workspace/shared/idem-series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "  руки не планируются (--units base): после базовых стадий — --units arms --write",
+        "  примечание: план несёт только базовые стадии (units=base): руки планируются после того, как SFT-чекпойнт базы появится и будет измерен (units=arms)",
+        "  примечание: общий вход объявлен путём; sha256 появится при планировании рук (units=arms) — до измерения входа серия рук не стартует (I2)"
+      ]
+    },
+    {
+      "id": "A5",
+      "what": "повторная запись тех же входов",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  моделей: 1",
+        "  · qwen25-05b (Qwen/Qwen2.5-0.5B, семейство Qwen2.5): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen25-05b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen25-05b-base/checkpoints/checkpoint_final.pt, qwen25-05b-base/checkpoints/sft_checkpoint_final.pt, qwen25-05b-base/logs/eval_results_base.json, qwen25-05b-base/logs/eval_results_sft.json",
+        "  общий SFT-вход рук qwen25-05b: /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  рук: 0",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base --ctr-run-dir /workspace/shared/idem-series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "  руки не планируются (--units base): после базовых стадий — --units arms --write",
+        "  примечание: план несёт только базовые стадии (units=base): руки планируются после того, как SFT-чекпойнт базы появится и будет измерен (units=arms)",
+        "  примечание: общий вход объявлен путём; sha256 появится при планировании рук (units=arms) — до измерения входа серия рук не стартует (I2)"
+      ]
+    },
+    {
+      "id": "A5",
+      "what": "расхождение входов без --force — отказ",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,777 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "ОТКАЗ: план в каталоге серии расходится с собранным (сравнение байт) — пересборка только осознанно (--force). Разошлось: seeds",
+        "NOT-VERIFIED: план серии не собран"
+      ]
+    },
+    {
+      "id": "A5",
+      "what": "--force пересобирает план осознанно",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,777 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write --force",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  моделей: 1",
+        "  · qwen25-05b (Qwen/Qwen2.5-0.5B, семейство Qwen2.5): базовые стадии cpt → sft → eval_base → eval_sft, каталог qwen25-05b-base, сид базы 42",
+        "      ожидаемые артефакты: qwen25-05b-base/checkpoints/checkpoint_final.pt, qwen25-05b-base/checkpoints/sft_checkpoint_final.pt, qwen25-05b-base/logs/eval_results_base.json, qwen25-05b-base/logs/eval_results_sft.json",
+        "  общий SFT-вход рук qwen25-05b: /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt (sha256: НЕ ОБЪЯВЛЕН (серию рук с --write собрать нельзя), unmeasured)",
+        "  рук: 0",
+        "  рецепт шагов: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/pilot-compact-s42-20260914-1626/stages.tsv (sha256 86b79fa50c89…)",
+        "  инструменты цепочки: /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py, /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh",
+        "  записанные строки запуска (исполняется записанное, а не помнимое):",
+        "    [база qwen25-05b-base] bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/pilot_chain.sh --run-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base --ctr-run-dir /workspace/shared/idem-series/qwen25-05b-base --stages-file /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series/qwen25-05b-base/stages.tsv --exp-base qwen25-05b-base --ctr-prefix laguna-fork-qwen25-05b-base --shared /tmp/laguna-n7-selftest-s2wvc135/shared --experiments /home/user/experiments --pipeline /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/laguna_pipeline_v8.py --pipeline-ctr /workspace/shared/laguna_pipeline_v8.py --cpt-data /workspace/shared/datasets/cpt_corpus_v12r.txt --dataset /tmp/laguna-n7-selftest-s2wvc135/shared/datasets/tok/cpt_corpus_v12r_8192_qwen25.npy --sft-data /workspace/shared/datasets/sft_train_v12.jsonl --rl-data /workspace/shared/datasets/rl_tasks_revpool_v2.jsonl --model Qwen/Qwen2.5-0.5B --seed 42 --guard /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_resource_owner.sh --manifest-tool /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/write_run_manifest.py --safe-start /home/user/gb10-shared/nvrm-storm/safe_start.sh --storm-gap /home/user/gb10-shared/nvrm-storm/storm_gap.sh --sampler /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/smoke_mem_sampler.sh --image nvcr.io/nvidia/pytorch:26.07-py3-vllm --glm-env /home/user/gb10-shared/.glm_env --runner-name tools/fork_series_chain.sh --runner-sha12 21e80c2a84c7",
+        "  руки не планируются (--units base): после базовых стадий — --units arms --write",
+        "  примечание: план несёт только базовые стадии (units=base): руки планируются после того, как SFT-чекпойнт базы появится и будет измерен (units=arms)",
+        "  примечание: общий вход объявлен путём; sha256 появится при планировании рук (units=arms) — до измерения входа серия рук не стартует (I2)"
+      ]
+    },
+    {
+      "id": "A5",
+      "what": "идемпотентность: повторная сборка тех же входов не переписала файл",
+      "status": "pass",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write; python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/build_fork_plan.py --model-short qwen25-05b --seeds 42,1337 --series-dir /tmp/laguna-n7-selftest-s2wvc135/shared/idem-series --shared /tmp/laguna-n7-selftest-s2wvc135/shared --shared-ctr /workspace/shared --units base --write",
+      "output_tail": [
+        "sha256 до: d0a6d1609a0c1cf8…",
+        "sha256 после: d0a6d1609a0c1cf8…",
+        "байты совпали — план не переписан"
+      ]
+    },
+    {
+      "id": "A6",
+      "what": "python: планировщик разбирается (ast.parse)",
+      "command": "python3 -c import ast,pathlib; ast.parse(pathlib.Path('tools/build_fork_plan.py').read_text())",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A6",
+      "what": "bash -n: драйвер серии синтаксически корректен",
+      "command": "bash -n tools/fork_series_chain.sh",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A6",
+      "what": "тесты инструментов: строка `итого:` прогона",
+      "status": "pass",
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "output_tail": [
+        "итого: PASS=1200 FAIL=0 SKIP=0"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "fitness/control: правила кейса — унаследованный красный AD-9, НОВЫХ находок нет",
+      "command": "arch-ml control check .",
+      "exit_code": 1,
+      "expected_exit_code": null,
+      "status": "pass",
+      "output_tail": [
+        "Ruleset: ./CONSTRAINTS.yaml (рабочий ruleset)",
+        "Правил: 30, нарушений: 1 (error: 1, warn: 0)",
+        "  [error] .:0 AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки — command_succeeds: команда 'bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified' завершилась неуспешно (код 2); хвост вывода:",
+        "== AD-9: хозяин ресурса GB10 ==",
+        "стенд: gb10-fast (ssh)",
+        "стадия: cpt (порог свободной unified-памяти 35 ГБ, ADR-008/ADR-011)",
+        "",
+        "[ok  ] хозяин    флаг паузы REVISION-WINDOW.lock на месте и поддержан restart_v12.sh: активная @reboot-строка автозапуска обезврежена — скрипт остановится на флаге, не тронув контейнеры",
+        "[ok  ] поддержка флаг паузы читает restart_v12.sh: да",
+        "[FAIL] память    32.1 ГБ против порога 35",
+        "[ok  ] нагрузки  тренировочных нагрузок: 1 (опознание: exp_name)",
+        "",
+        "ВЕРДИКТ: СТАРТОВАТЬ НЕЛЬЗЯ — причина:",
+        "  · память: доступно 32.1 ГБ < порога 35 ГБ (ADR-008/ADR-011)",
+        "Самые медленные правила:",
+        "  13.8s AD-7: eval-набор без утечек — slug-ответ не встречается в промпте, пересечение eval ↔ SFT/RL по нормализованному тексту пусто",
+        "  3.8s ADR-049 п.1 G4: контракт среды (выход закрыт ПОПЫТКОЙ, лимит шагов из задачи, шаг под супервизором) → красное при открытом выходе",
+        "  3.3s AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки",
+        "  2.1s AD-7: пул ревизии без задач, дословно совпадающих с SFT (0 совпадений; исходный замер — 39 пар / 8 задач, ADR-007)",
+        "  1.2s ADR-023 п.10: реестр редакций приборов сходится со снимком, деревом и git-историей, а замороженные цитаты не переписаны",
+        "Итог: FAIL"
+      ],
+      "facts_checked": {
+        "сводка_правил": "Правил: 30, нарушений: 1 (error: 1, warn: 0)",
+        "вердикт": "Итог: FAIL",
+        "находки_error": [
+          "[error] .:0 AD-9: хозяин стенда доказан (флаг паузы, читаемый контуром лесенки, либо сторож неисполняем и его строк нет) + память по стадии + ≤1 нагрузки — command_succeeds: команда 'bash tools/check_resource_owner.sh --stage cpt --unreachable-not-verified' завершилась неуспешно (код 2); хвост вывода:"
+        ],
+        "базовая_находка_унаследована": true,
+        "новых_находок_нет": true
+      }
+    },
+    {
+      "id": "A7",
+      "what": "гейт манифестов AD-2 по существующим прогонам",
+      "command": "python3 tools/check_run_manifest.py --runs runs/",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  - ctrl-C1-100-0.35-20260916-1632: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - ctrl-C2-25-0.035-20260916-1632: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - ctrl-grid-20260916-1632: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - full-cpt-20260916-1933: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - full-cpt-20260916-2149: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - pilot-compact-s42-20260914-1626: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - replay50-collapse-20260916: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - s3am-standard-mode-20260918: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: ['probe'])",
+        "  - sft-20260916-2246: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - sft-resume-20260917-1215: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "",
+        "RUN MANIFESTS OK"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "доказательство исполнения ADR (раздел «Доказательство исполнения»)",
+      "command": "python3 tools/check_execution_proof.py",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  · ADR-047: ADR от 2026-09-16 до 2026-09-21 — legacy-not-checked (историю не переписываем, ADR-023 п.9)",
+        "  · ADR-048: ADR от 2026-09-20 до 2026-09-21 — legacy-not-checked (историю не переписываем, ADR-023 п.9)",
+        "  · ADR-049: ADR от 2026-09-20 до 2026-09-21 — legacy-not-checked (историю не переписываем, ADR-023 п.9)",
+        "  · ADR-050: ADR от 2026-09-20 до 2026-09-21 — legacy-not-checked (историю не переписываем, ADR-023 п.9)",
+        "  ok ADR-051: носитель — путь артефакта: «tools/patch_pipeline_sft.py», поле-носитель: «`size.sha256_full`», sha/хеш + дайджест: «39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6», число/счётчик: «число сэмплов»; потребитель — «дошло»",
+        "  ok ADR-052: носитель — путь артефакта: «`ARCHITECTURE-SPINE.md`»; потребитель — «дошло»",
+        "  ok ADR-053: носитель — путь артефакта: «tools/check_gpu_sleep_guard.py», поле-носитель: «`CONSTRAINTS.yaml`»; потребитель — «дошло»",
+        "  ok ADR-054: носитель — путь артефакта: «`RL-POOL-QUESTION.md`», поле-носитель: «`rl_tasks_revpool_v1.jsonl`»; потребитель — «дошло»",
+        "  ok ADR-055: носитель — путь артефакта: «evidence/ladder-axis-arithmetic.json»; потребитель — «Потребитель»",
+        "  ok ADR-056: носитель — путь артефакта: «docs/specs/LADDER-FULL-PLAN.md»; потребитель — «Потребитель»",
+        "  ok ADR-057: носитель — путь артефакта: «`run_manifest.json`», поле-носитель: «`sft_input.declared_sha256`»; потребитель — «Потребитель»",
+        "доказательство исполнения предъявлено: раздел есть, носитель и потребитель названы (7 ADR после 2026-09-21; исторических не проверялось: 50)"
+      ]
+    },
+    {
+      "id": "A8",
+      "what": "живой прогон В-0 дельтой не тронут: файлы новее старта дельты — собственные записи живого прогона",
+      "status": "pass",
+      "command": "find /home/user/gb10-shared/sft-v13-2e6-20260921-2054 -newermt 2026-09-23T02:52:30Z; stat -c '%n %U %y' /home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_checkpoint_25400.pt",
+      "output_tail": [
+        "файлы новее старта дельты (пишет живая стадия, владелец root):",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/general_eval_history.jsonl",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_checkpoint_25400.pt",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_checkpoint_25200.pt",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_probe_25500.pt",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/logs/loss_trace.jsonl",
+        "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/logs/sft.log",
+        "владелец свежего чекпойнта: /home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_checkpoint_25400.pt root 2026-09-23 06:15:23.041756945 +0300",
+        "в исходниках дельты нет записи в gb10-shared: grep по tools/build_fork_plan.py, tools/fork_series_chain.sh — совпадений нет",
+        "git status дельты: изменения только в файлах кейса (см. коммит), runs/** не тронут"
+      ],
+      "caveat": "mtime этих файлов новее старта дельты, потому что в каталоге ИДЁТ живая SFT-стадия: чекпойнты и логи пишет она сама (владелец root — контейнеры прогона, не пользователь roman). Дельта не пишет в /home/user/gb10-shared: её инструменты адресуют каталог серии, переданный аргументом; критерий A8 — «дельтой не изменялись», и он выполнен."
+    },
+    {
+      "id": "A9",
+      "what": "шаг финализации: единица done с манифестом выставляется симлинком в runs/ (серия возвращает 0)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs --poll 1",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "── предполётная сверка записей (I6) ──────────────────────────────────────",
+        "[2026-09-23T07:31:01+03:00] записи сходятся с планом: единиц 1",
+        "[2026-09-23T07:31:01+03:00] СТАРТ единицы qwen25-05b-base (base, exp-base qwen25-05b-base, сид 42)",
+        "[2026-09-23T07:31:01+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/logs; bash /tmp/laguna-n7-delta2-selftest-mt1dy7xl/tools/check_resource_owner.sh --stage rl --exp-name qwen25-05b-base >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var/chain.status; printf \"{\\\"dataset_sha256\\\": \\\"abababababababababababababababababababababababababababababababab\\\", \\\"base_model_id\\\": \\\"Qwen/Qwen2.5-0.5B\\\", \\\"pipeline_version\\\": \\\"стаб единицы серии (акт дельты 2)\\\", \\\"image\\\": \\\"nvcr.io/nvidia/pytorch:stub\\\", \\\"seed\\\": 42, \\\"stages\\\": [{\\\"name\\\": \\\"cpt\\\", \\\"status\\\": \\\"done\\\"}], \\\"pipeline_complete\\\": true}\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/run_manifest.json; printf \"qwen25-05b-base\\n\" >> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/link-a.marker'",
+        "[2026-09-23T07:31:01+03:00]   qwen25-05b-base: объектов checkpoint* в каталоге 0 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T07:31:02+03:00] ИТОГ единицы qwen25-05b-base: done за 1 с",
+        "[2026-09-23T07:31:02+03:00] единица выставлена: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base → /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base (манифест гейт читает через симлинк)",
+        "[2026-09-23T07:31:02+03:00] == серия завершена: done =="
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "выставлен СИМЛИНК (не каталог, не копия: AD-4), цель — каталог единицы под объявленным сетевым диском",
+      "command": "ls -l /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/ && readlink -f /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "итого 4",
+        "lrwxrwxrwx 1 roman roman 69 сен 23 07:31 qwen25-05b-base -> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base",
+        "/tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base"
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "гейт AD-2 читает манифест ЧЕРЕЗ симлинк: единица перечислена, вердикт RUN MANIFESTS OK",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_run_manifest.py --runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "== C-012 / AD-2: манифесты прогонов ==",
+        "каталог: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a  прогонов: 1",
+        "  qwen25-05b-base              OK",
+        "RUN MANIFESTS OK"
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "повторный вызов на уже выставленной единице идемпотентен: код 0, симлинк не переставлен (mtime СИМЛИНКА 1790137862 → 1790137862 — правки не было)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs --poll 1",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "── предполётная сверка записей (I6) ──────────────────────────────────────",
+        "[2026-09-23T07:31:03+03:00] записи сходятся с планом: единиц 1",
+        "[2026-09-23T07:31:03+03:00] СТАРТ единицы qwen25-05b-base (base, exp-base qwen25-05b-base, сид 42)",
+        "[2026-09-23T07:31:03+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/logs; bash /tmp/laguna-n7-delta2-selftest-mt1dy7xl/tools/check_resource_owner.sh --stage rl --exp-name qwen25-05b-base >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var/chain.status; printf \"{\\\"dataset_sha256\\\": \\\"abababababababababababababababababababababababababababababababab\\\", \\\"base_model_id\\\": \\\"Qwen/Qwen2.5-0.5B\\\", \\\"pipeline_version\\\": \\\"стаб единицы серии (акт дельты 2)\\\", \\\"image\\\": \\\"nvcr.io/nvidia/pytorch:stub\\\", \\\"seed\\\": 42, \\\"stages\\\": [{\\\"name\\\": \\\"cpt\\\", \\\"status\\\": \\\"done\\\"}], \\\"pipeline_complete\\\": true}\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/run_manifest.json; printf \"qwen25-05b-base\\n\" >> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/link-a.marker'",
+        "[2026-09-23T07:31:03+03:00]   qwen25-05b-base: объектов checkpoint* в каталоге 0 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T07:31:04+03:00] ИТОГ единицы qwen25-05b-base: done за 1 с",
+        "[2026-09-23T07:31:04+03:00] единица уже выставлена: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base → /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base (повтор без правки)",
+        "[2026-09-23T07:31:04+03:00] == серия завершена: done =="
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "гигиена симлинков C-011 (п.б) принимает выставленную единицу: цель внутрь --shared, SYMLINK HYGIENE OK",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_symlink_hygiene.sh /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a --shared /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "== C-011 / AD-4: гигиена данных и весов ==",
+        "root:   /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a",
+        "shared: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared",
+        "порог:  > 50 МБ",
+        "ПРЕДУПРЕЖДЕНИЕ: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a вне git-репозитория — проверка индекса (в) пропущена",
+        "СИМЛИНКИ (1):",
+        "  /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base -> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base (каталог)",
+        "SYMLINK HYGIENE OK: копий данных в дереве кейса нет"
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "контроль той же проверки: симлинк НАРУЖУ сетевого диска краснеет — зелёное выше не «декорация»",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_symlink_hygiene.sh /tmp/laguna-n7-delta2-selftest-mt1dy7xl/outside --shared /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "== C-011 / AD-4: гигиена данных и весов ==",
+        "root:   /tmp/laguna-n7-delta2-selftest-mt1dy7xl/outside",
+        "shared: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared",
+        "порог:  > 50 МБ",
+        "НАРУШЕНИЕ (симлинк вне сетевого диска): /tmp/laguna-n7-delta2-selftest-mt1dy7xl/outside/bad -> /tmp",
+        "ПРЕДУПРЕЖДЕНИЕ: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/outside вне git-репозитория — проверка индекса (в) пропущена",
+        "СИМЛИНКОВ НЕТ",
+        "FAIL: нарушений AD-4 — 1"
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "ГРАНИЦА: гейт корнем кейса (--runs runs/, как правило C-012) видит каталог серии, а не выставленную единицу: файла манифеста у него нет",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_run_manifest.py --runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "== C-012 / AD-2: манифесты прогонов ==",
+        "каталог: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs  прогонов: 1",
+        "  link-a                       FAIL (1)",
+        "      - нет run_manifest.json — прогон без манифеста не является доказательством (AD-2)",
+        "FAIL: нарушений AD-2 — 1"
+      ],
+      "caveat": "Единица выставлена на уровень глубже каталога серии (runs/<series-id>/<единица>, формулировка решения ADR-057 п.1), а гейт C-012 читает один уровень (check_run_manifest.py:187 — runs.iterdir()). Механизм выставления при этом работает: на каталоге серии (--runs runs/<series-id>) гейт видит единицу и зелён. Это расхождение решения с гейтом кейса — вопрос архитектору, не подгонка теста: тест 49а закрепляет факт."
+    },
+    {
+      "id": "A10",
+      "what": "единица дошла до done, но манифеста нет — код 2 (NOT-VERIFIED), симлинк не ставится вовсе",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs --poll 1",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T07:31:05+03:00] записи сходятся с планом: единиц 1",
+        "[2026-09-23T07:31:05+03:00] СТАРТ единицы qwen25-05b-base (base, exp-base qwen25-05b-base, сид 42)",
+        "[2026-09-23T07:31:05+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/qwen25-05b-base/var /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/qwen25-05b-base/logs; bash /tmp/laguna-n7-delta2-selftest-mt1dy7xl/tools/check_resource_owner.sh --stage rl --exp-name qwen25-05b-base >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/qwen25-05b-base/var/chain.status; printf \"qwen25-05b-base\\n\" >> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/link-b.marker'",
+        "[2026-09-23T07:31:05+03:00]   qwen25-05b-base: объектов checkpoint* в каталоге 0 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T07:31:06+03:00] ИТОГ единицы qwen25-05b-base: done за 1 с",
+        "[2026-09-23T07:31:06+03:00] ОТКАЗ AD-2: единица qwen25-05b-base дошла до done, но её манифеста нет (/tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/qwen25-05b-base/run_manifest.json): выставлять нечего — гейт пометил бы каталог находкой. Симлинк не ставится",
+        "[2026-09-23T07:31:06+03:00] серия остановлена: единица qwen25-05b-base отработала, но не выставлена в /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs (финализация, ADR-057 п.1)",
+        "[2026-09-23T07:31:06+03:00] == серия завершена: not_verified =="
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "после отказа: симлинка нет, каталог серии в местах выставления не заведён, статус серии — not_verified (а не failed)",
+      "command": "test ! -e /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-b/qwen25-05b-base && test ! -e /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-b && grep -qx not_verified /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/status && tail -2 /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-b/series.log",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T07:31:06+03:00] серия остановлена: единица qwen25-05b-base отработала, но не выставлена в /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs (финализация, ADR-057 п.1)",
+        "[2026-09-23T07:31:06+03:00] == серия завершена: not_verified =="
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "каталога выставления нет — код 2; драйвер его не создаёт (иначе писал бы в дерево, которого оператор не называл)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-c --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/no-such-runs --poll 1",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "план годен: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-c/fork_plan.json; единиц 1 (баз 1, рук 0), k=3, входы: qwen25-05b=не объявлен",
+        "NOT-VERIFIED: нет каталога выставления: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/no-such-runs (--link-into-runs) — симлинки ставить некуда, а создавать его драйвер не вправе"
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "отказ по каталогу выставления снят ДО нагрузки: единица не запускалась (стаб не вызывался, прогресса нет)",
+      "command": "test ! -e /tmp/laguna-n7-delta2-selftest-mt1dy7xl/link-c.marker && test ! -e /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-c/status.tsv",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A10",
+      "what": "флаг --link-into-runs назван без каталога — код 2 (молчаливого умолчания нет)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-c --link-into-runs ''",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "NOT-VERIFIED: флаг --link-into-runs назван без каталога"
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "series-id читается ИЗ ПЛАНА: пустое имя каталога серии — код 2 («выставить в /» не происходит)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --plan /tmp/laguna-n7-delta2-selftest-mt1dy7xl/plan-no-id.json --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "план годен: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/plan-no-id.json; единиц 1 (баз 1, рук 0), k=3, входы: qwen25-05b=не объявлен",
+        "NOT-VERIFIED: series-id не читается из плана /tmp/laguna-n7-delta2-selftest-mt1dy7xl/plan-no-id.json: имя каталога серии пусто (series_dir=/) — выставлять единицы некуда"
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "существующий симлинк ведёт на другой путь — код 2, чужая цель НЕ перезаписана",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a --link-into-runs /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs --poll 1",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T07:31:06+03:00] записи сходятся с планом: единиц 1",
+        "[2026-09-23T07:31:06+03:00] СТАРТ единицы qwen25-05b-base (base, exp-base qwen25-05b-base, сид 42)",
+        "[2026-09-23T07:31:06+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/logs; bash /tmp/laguna-n7-delta2-selftest-mt1dy7xl/tools/check_resource_owner.sh --stage rl --exp-name qwen25-05b-base >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/var/chain.status; printf \"{\\\"dataset_sha256\\\": \\\"abababababababababababababababababababababababababababababababab\\\", \\\"base_model_id\\\": \\\"Qwen/Qwen2.5-0.5B\\\", \\\"pipeline_version\\\": \\\"стаб единицы серии (акт дельты 2)\\\", \\\"image\\\": \\\"nvcr.io/nvidia/pytorch:stub\\\", \\\"seed\\\": 42, \\\"stages\\\": [{\\\"name\\\": \\\"cpt\\\", \\\"status\\\": \\\"done\\\"}], \\\"pipeline_complete\\\": true}\" > /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base/run_manifest.json; printf \"qwen25-05b-base\\n\" >> /tmp/laguna-n7-delta2-selftest-mt1dy7xl/link-a.marker'",
+        "[2026-09-23T07:31:06+03:00]   qwen25-05b-base: объектов checkpoint* в каталоге 0 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T07:31:07+03:00] ИТОГ единицы qwen25-05b-base: done за 1 с",
+        "[2026-09-23T07:31:07+03:00] ОТКАЗ: /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base уже указывает на другой путь (/tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/elsewhere) ≠ /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/qwen25-05b-base — чужое утверждение о пути не перезаписываю",
+        "[2026-09-23T07:31:07+03:00] серия остановлена: единица qwen25-05b-base отработала, но не выставлена в /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs (финализация, ADR-057 п.1)",
+        "[2026-09-23T07:31:07+03:00] == серия завершена: not_verified =="
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "после отказа: цель симлинка та же (elsewhere), в status.tsv строка not_exhibited",
+      "command": "readlink /tmp/laguna-n7-delta2-selftest-mt1dy7xl/runs/link-a/qwen25-05b-base && grep -qP 'qwen25-05b-base\\tnot_exhibited' /tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/link-a/status.tsv",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "/tmp/laguna-n7-delta2-selftest-mt1dy7xl/shared/elsewhere"
+      ]
+    },
+    {
+      "id": "A10",
+      "what": "дерево кейса дельтой не тронуто: серий фикстуры в runs/ кейса нет (каталог выставления назывался явно)",
+      "command": "find /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact -name .git -prune -o -type l -print | grep -c . ; test ! -e /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/link-a && test ! -e /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/link-b && test ! -e /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/link-c && test ! -e /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/runs/link-d",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "16"
+      ]
+    },
+    {
+      "id": "A9",
+      "what": "механическая проверка синтаксиса драйвера после правки дельты 2",
+      "command": "bash -n tools/fork_series_chain.sh",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A9",
+      "what": "тесты носителя: секции 48 (дельта 1) и 49 (дельта 2) — строка «итого» без FAIL",
+      "command": "bash tools/tests/run_tool_tests.sh | tail -3",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "итого: PASS=1240 FAIL=0 SKIP=0"
+      ]
+    },
+    {
+      "id": "A11",
+      "what": "серия из четырёх единиц (база + k=3 руки) отработала и выставила их",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a --poll 1 --link-into-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T08:01:17+03:00] СТАРТ единицы qwen25-05b-rl-s2024 (arm, exp-base qwen25-05b-rl-s2024, сид 2024)",
+        "[2026-09-23T08:01:17+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024/var /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024/logs; bash /tmp/laguna-n7-delta3-selftest-bn9yuue8/tools/check_resource_owner.sh --stage cpt --exp-name qwen25-05b-rl-s2024 >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024/var/chain.status; printf \"{\\\"dataset_sha256\\\": \\\"abababababababababababababababababababababababababababababababab\\\", \\\"base_model_id\\\": \\\"Qwen/Qwen2.5-0.5B\\\", \\\"pipeline_version\\\": \\\"стаб единицы серии (акт дельты 3)\\\", \\\"image\\\": \\\"stub\\\", \\\"seed\\\": 42, \\\"stages\\\": [{\\\"name\\\": \\\"cpt\\\", \\\"status\\\": \\\"done\\\"}], \\\"pipeline_complete\\\": true}\" > /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024/run_manifest.json'",
+        "[2026-09-23T08:01:17+03:00]   qwen25-05b-rl-s2024: объектов checkpoint* в каталоге 1 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T08:01:18+03:00] ИТОГ единицы qwen25-05b-rl-s2024: done за 1 с",
+        "[2026-09-23T08:01:18+03:00] единица выставлена плоско: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s2024 → /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024 (манифест гейт читает через симлинк)",
+        "[2026-09-23T08:01:18+03:00] == серия завершена: done =="
+      ]
+    },
+    {
+      "id": "A11",
+      "what": "форма выставки: в корне регистра только симлинки (`l`), по одному на единицу",
+      "command": "bash -c find '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs' -mindepth 1 -maxdepth 1 -printf '%y %f -> %l\\n' | sort",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "l qwen25-05b-base -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base",
+        "l qwen25-05b-rl-s1337 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s1337",
+        "l qwen25-05b-rl-s2024 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024",
+        "l qwen25-05b-rl-s42 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s42"
+      ]
+    },
+    {
+      "id": "A11",
+      "what": "глубже одного уровня под корнем регистра записей нет (промежуточного каталога серии нет)",
+      "command": "bash -c find '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs' -mindepth 2 -print | wc -l",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "0"
+      ]
+    },
+    {
+      "id": "A11",
+      "what": "каталог серии в регистре не заведён: связь с серией живёт в плане, а не в пути",
+      "command": "bash -c test ! -e '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/ser-a'",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A11",
+      "what": "гейт C-012 на КОРНЕ регистра (как в правиле C-012: --runs runs/): единицы перечислены, находок нет",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_run_manifest.py --runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "каталог: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs  прогонов: 4",
+        "  qwen25-05b-base              OK",
+        "  qwen25-05b-rl-s1337          OK",
+        "  qwen25-05b-rl-s2024          OK",
+        "  qwen25-05b-rl-s42            OK",
+        "RUN MANIFESTS OK"
+      ]
+    },
+    {
+      "id": "A11 (контроль)",
+      "what": "посторонний каталог без манифеста на том же корне краснеет — выставка нарушения не маскирует",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_run_manifest.py --runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "  qwen25-05b-rl-s1337          OK",
+        "  qwen25-05b-rl-s2024          OK",
+        "  qwen25-05b-rl-s42            OK",
+        "  stranger                     FAIL (1)",
+        "      - нет run_manifest.json — прогон без манифеста не является доказательством (AD-2)",
+        "FAIL: нарушений AD-2 — 1"
+      ]
+    },
+    {
+      "id": "A11 (контроль)",
+      "what": "фикстурный посторонний каталог убран",
+      "command": "bash -c rmdir '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/stranger'",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A11 (контроль)",
+      "what": "без постороннего каталога тот же вызов снова зелёный: красное было его, а не выставки",
+      "command": "python3 /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_run_manifest.py --runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "каталог: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs  прогонов: 4",
+        "  qwen25-05b-base              OK",
+        "  qwen25-05b-rl-s1337          OK",
+        "  qwen25-05b-rl-s2024          OK",
+        "  qwen25-05b-rl-s42            OK",
+        "RUN MANIFESTS OK"
+      ]
+    },
+    {
+      "id": "A11",
+      "what": "гигиена симлинков C-011 принимает плоский регистр (цели внутри объявленного --shared)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/check_symlink_hygiene.sh /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs --shared /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "СИМЛИНКИ (4):",
+        "  /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s42 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s42 (каталог)",
+        "  /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s1337 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s1337 (каталог)",
+        "  /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base (каталог)",
+        "  /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s2024 -> /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-rl-s2024 (каталог)",
+        "SYMLINK HYGIENE OK: копий данных в дереве кейса нет"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "имя единицы занято ссылкой другой серии — код 2, чужая цель не перезаписана",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b --poll 1 --link-into-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T08:01:19+03:00]   строка запуска: bash -c 'mkdir -p /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/qwen25-05b-base/var /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/qwen25-05b-base/logs; bash /tmp/laguna-n7-delta3-selftest-bn9yuue8/tools/check_resource_owner.sh --stage cpt --exp-name qwen25-05b-base >/dev/null; printf \"done\\n\" > /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/qwen25-05b-base/var/chain.status; printf \"{\\\"dataset_sha256\\\": \\\"abababababababababababababababababababababababababababababababab\\\", \\\"base_model_id\\\": \\\"Qwen/Qwen2.5-0.5B\\\", \\\"pipeline_version\\\": \\\"стаб единицы серии (акт дельты 3)\\\", \\\"image\\\": \\\"stub\\\", \\\"seed\\\": 42, \\\"stages\\\": [{\\\"name\\\": \\\"cpt\\\", \\\"status\\\": \\\"done\\\"}], \\\"pipeline_complete\\\": true}\" > /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/qwen25-05b-base/run_manifest.json'",
+        "[2026-09-23T08:01:19+03:00]   qwen25-05b-base: объектов checkpoint* в каталоге 0 (вход руки — тоже), последний шаг траектории —",
+        "[2026-09-23T08:01:20+03:00] ИТОГ единицы qwen25-05b-base: done за 1 с",
+        "[2026-09-23T08:01:20+03:00] ОТКАЗ: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base уже указывает на другой путь (/tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base) ≠ /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/qwen25-05b-base — чужое утверждение о пути не перезаписываю",
+        "[2026-09-23T08:01:20+03:00] серия остановлена: единица qwen25-05b-base отработала, но не выставлена в /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs (финализация, ADR-057 п.1)",
+        "[2026-09-23T08:01:20+03:00] == серия завершена: not_verified =="
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "цель коллизии не изменилась: ссылка ведёт в каталог единицы серии A",
+      "command": "bash -c readlink -f '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base'",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "/tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "снятие на чужой ссылке — отказ кодом 2, чужое не удаляется",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b --unlink-from-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "план годен: /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b/fork_plan.json; единиц 1 (баз 1, рук 0), k=3, входы: qwen25-05b=не объявлен",
+        "[2026-09-23T08:01:20+03:00] == снятие регистра ссылок серии ser-b: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs (единиц в плане: 1) ==",
+        "[2026-09-23T08:01:20+03:00] ОТКАЗ: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base ведёт не внутрь каталога серии (/tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base ∉ /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-b) — чужая цель не удаляется (коллизия имён разбирается человеком)",
+        "[2026-09-23T08:01:20+03:00] итог снятия: снято 0, отсутствовало 0, отказов 1 (единиц в плане: 1)",
+        "[2026-09-23T08:01:20+03:00] NOT-VERIFIED: регистр снят не полностью (см. отказы выше) — чужие цели не тронуты"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "после отказа чужая ссылка цела (отказ не удаляет)",
+      "command": "bash -c test \"$(readlink -f '/tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base')\" = \"$(readlink -f '/tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/qwen25-05b-base')\"",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A12",
+      "what": "снятие регистра своей серии — код 0, снят состав (четыре ссылки), серия не тронута",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a --unlink-from-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T08:01:20+03:00] == снятие регистра ссылок серии ser-a: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs (единиц в плане: 4) ==",
+        "[2026-09-23T08:01:20+03:00] снята своя ссылка: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-base → ",
+        "[2026-09-23T08:01:20+03:00] снята своя ссылка: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s42 → ",
+        "[2026-09-23T08:01:20+03:00] снята своя ссылка: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s1337 → ",
+        "[2026-09-23T08:01:20+03:00] снята своя ссылка: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs/qwen25-05b-rl-s2024 → ",
+        "[2026-09-23T08:01:20+03:00] итог снятия: снято 4, отсутствовало 0, отказов 0 (единиц в плане: 4)"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "повторное снятие идемпотентно — код 0 («ссылки нет — снимать нечего»)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a --unlink-from-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "[2026-09-23T08:01:20+03:00] == снятие регистра ссылок серии ser-a: /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs (единиц в плане: 4) ==",
+        "[2026-09-23T08:01:20+03:00]    qwen25-05b-base: ссылки нет — снимать нечего (идемпотентно)",
+        "[2026-09-23T08:01:20+03:00]    qwen25-05b-rl-s42: ссылки нет — снимать нечего (идемпотентно)",
+        "[2026-09-23T08:01:20+03:00]    qwen25-05b-rl-s1337: ссылки нет — снимать нечего (идемпотентно)",
+        "[2026-09-23T08:01:20+03:00]    qwen25-05b-rl-s2024: ссылки нет — снимать нечего (идемпотентно)",
+        "[2026-09-23T08:01:20+03:00] итог снятия: снято 0, отсутствовало 4, отказов 0 (единиц в плане: 4)"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "нет каталога регистра — отказ кодом 2 (молчаливого успеха по опечатке нет)",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a --unlink-from-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/no-such-register",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "план годен: /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a/fork_plan.json; единиц 4 (баз 1, рук 3), k=3, входы: qwen25-05b=d2ed0f35fe5e…",
+        "NOT-VERIFIED: нет каталога регистра: /tmp/laguna-n7-delta3-selftest-bn9yuue8/no-such-register (--unlink-from-runs) — снимать негде; каталог драйвер не создаёт"
+      ]
+    },
+    {
+      "id": "A12",
+      "what": "выставление и снятие в одном вызове — отказ: разные шаги, «последний победил» запрещён",
+      "command": "bash /home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/laguna-fork-runner/кейсы/laguna-compact/tools/fork_series_chain.sh --series-dir /tmp/laguna-n7-delta3-selftest-bn9yuue8/shared/ser-a --link-into-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs --unlink-from-runs /tmp/laguna-n7-delta3-selftest-bn9yuue8/runs",
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "status": "pass",
+      "output_tail": [
+        "NOT-VERIFIED: --link-into-runs и --unlink-from-runs — разные шаги (выставление и снятие); назови один"
+      ]
+    },
+    {
+      "id": "A11 (механика)",
+      "what": "синтаксис драйвера после правки дельты 3",
+      "command": "bash -c bash -n tools/fork_series_chain.sh",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": []
+    },
+    {
+      "id": "A7",
+      "what": "гейт C-012 на реальном корне кейса: НОВЫХ находок дельта не добавила",
+      "command": "python3 tools/check_run_manifest.py --runs runs/",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  - pilot-compact-s42-20260914-1626: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - replay50-collapse-20260916: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - s3am-standard-mode-20260918: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: ['probe'])",
+        "  - sft-20260916-2246: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "  - sft-resume-20260917-1215: pipeline_complete=false — прогон помечен частичным, гейт по нему не закрывается (завершено стадий: нет)",
+        "RUN MANIFESTS OK"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "гигиена симлинков на реальном дереве кейса: дельта не создала ни одной ссылки",
+      "command": "bash tools/check_symlink_hygiene.sh .",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  ./data/tok                                   -> /home/user/gb10-shared/datasets/tok (каталог)",
+        "  ./domain_eval_v2.txt                         -> /home/user/gb10-shared/datasets/domain_eval_v2.txt (628KB)",
+        "  ./datasets                                   -> /home/user/gb10-shared/datasets (каталог)",
+        "  ./laguna_pipeline_v8.py                      -> /home/user/gb10-shared/laguna_pipeline_v8.py (115KB)",
+        "  ./general_eval_v2.txt                        -> /home/user/gb10-shared/datasets/general_eval_v2.txt (202KB)",
+        "SYMLINK HYGIENE OK: копий данных в дереве кейса нет"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "«Доказательство исполнения» новых ADR (C-031): ADR-057 в списке проверенных",
+      "command": "python3 tools/check_execution_proof.py",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "  ok ADR-053: носитель — путь артефакта: «tools/check_gpu_sleep_guard.py», поле-носитель: «`CONSTRAINTS.yaml`»; потребитель — «дошло»",
+        "  ok ADR-054: носитель — путь артефакта: «`RL-POOL-QUESTION.md`», поле-носитель: «`rl_tasks_revpool_v1.jsonl`»; потребитель — «дошло»",
+        "  ok ADR-055: носитель — путь артефакта: «evidence/ladder-axis-arithmetic.json»; потребитель — «Потребитель»",
+        "  ok ADR-056: носитель — путь артефакта: «docs/specs/LADDER-FULL-PLAN.md»; потребитель — «Потребитель»",
+        "  ok ADR-057: носитель — путь артефакта: «tools/build_fork_plan.py», поле-носитель: «`fork_plan.json`»; потребитель — «Потребитель»",
+        "доказательство исполнения предъявлено: раздел есть, носитель и потребитель названы (7 ADR после 2026-09-21; исторических не проверялось: 50)"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "fitness-контроль кейса (CONSTRAINTS.yaml): красное УНАСЛЕДОВАННОЕ — живой сенсор памяти AD-9/C-018 (стенд отдаёт 32.0 ГБ против порога 35); дельта его не добавляет и не касается: правило исполняет не тронутый дельтой tools/check_resource_owner.sh",
+      "command": "mcp__spine__fitness_check path=<корень кейса> (CLI-эквивалент: arch-be control check . --constraints .arch-handoff/CONSTRAINTS.yaml)",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "[FAIL] память    32.0 ГБ против порога 35",
+        "ВЕРДИКТ: СТАРТОВАТЬ НЕЛЬЗЯ — причина:",
+        "  · память: доступно 32.0 ГБ < порога 35 ГБ (ADR-008/ADR-011)",
+        "Правил: 30, нарушений: 1 (error: 1, warn: 0)"
+      ]
+    },
+    {
+      "id": "A11/A12 (механика)",
+      "what": "тесты носителя: секции 48/49 (дельты 1–2) и 50 (дельта 3) — строка «итого» без FAIL",
+      "command": "bash tools/tests/run_tool_tests.sh",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "status": "pass",
+      "output_tail": [
+        "итого: PASS=1294 FAIL=0 SKIP=0"
+      ]
+    },
+    {
+      "id": "A7",
+      "what": "архитектурный гейт кейса `arch-be gate --route auto` (исполнен хуком завершения харнесса): красное ОДНО и то же унаследованное — живой сенсор памяти AD-9/C-018; составляющие, относящиеся к дельте, зелёные: delta_guard PASS (изменённых файлов 0 — работа закоммичена), spine_lint PASS, trace_check PASS, model_validate PASS. Дельта не касается входов правила: оно исполняет не тронутый дельтой tools/check_resource_owner.sh и читает состояние стенда",
+      "command": "arch-be gate --route auto",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "status": "pass",
+      "output_tail": [
+        "Маршрут: Fast (auto: score 0 (триггеров нет))",
+        "  [FAIL] fitness * — Правил: 30, нарушений: 1 (error: 1, warn: 0)",
+        "      ↳ [error] AD-9: ... [FAIL] память    32.5 ГБ против порога 35; нагрузки: 1",
+        "  [PASS] delta_guard — изменённых файлов: 0, защищённых среди них: 0",
+        "  [PASS] spine_lint * — находок: 0 (error: 0)",
+        "  [PASS] trace_check — сущностей: 36, звеньев: 7, error: 0",
+        "  [PASS] model_validate — сущностей: 36, находок: 0 (error: 0)",
+        "Итог: FAIL — провалено составляющих: 1 (exit 1)"
+      ]
+    }
+  ],
+  "summary": {
+    "pass": 62,
+    "fail": 0,
+    "not_verified": 0,
+    "gates": 62,
+    "note": "дельта 1 — 20 записей, дельта 2 — 18, дельта 3 — 24 (A11/A12 + гейты кейса)"
+  },
+  "open_questions": [
+    "Наборы данных по умолчанию (SFT v12, RL revpool_v2, CPT v12r) взяты из умолчаний tools/pilot_chain.sh: для волны с v13_fixed их объявляет оператор флагами --sft-data/--rl-data. Планировщик наборы не выбирает (и не проверяет их наличие) — это решение владельца данных (AD-7), а не шаг носителя.",
+    "Рецепт шагов берётся из stages.tsv пилота 0,5B; для других семейств он не калиброван, и планировщик это печатает примечанием, а не молчит.",
+    "Каталог серии обязан лежать внутри --shared (или контейнерный путь объявлен флагами --shared-ctr/--ctr-series-dir): иначе записанная строка неисполнима (нет --ctr-run-dir). Сухой прогон с --shared <свой корень> стенда не требует.",
+    "Потребитель манифестов рук: ADR-057 называет им гейт C-012, а он принимает ОДИН корень (check_run_manifest.py --runs runs/). Если серия живёт на сетевом диске (как идут волны), её манифесты гейтом по умолчанию не читаются. Это решение архитектора, а не шаг носителя: либо серия планируется внутри runs/, либо гейт вызывается вторым корнем.",
+    "Живой прогон серии не выполнялся (стенд не занимается): носитель проверен на имитированных единицах. Проверка I2/I3 «в железе» — первый прогон волны В-4, он же сигнал отката по спеке §5.",
+    "Объявление общего входа в манифесте руки идёт полем hyperparameters (--extra-hyperparam sft_shared_checkpoint / sft_shared_checkpoint_sha256 → write_run_manifest.py), то есть manifest руки пишет сама цепочка во время прогона. Механизм проверен чтением tools/pilot_chain.sh (write_manifest) и тестами записи плана; живой манифест руки этой дельтой не получен (стенда нет).",
+    "Дельта 2, вопрос 1 (граница решения с гейтом). Единица выставлена на уровень глубже каталога серии: runs/<series-id>/<единица> (формулировка ADR-057 п.1). Гейт C-012 читает ОДИН уровень (tools/check_run_manifest.py:187 — runs.iterdir()), поэтому вызов гейта корнем кейса (`--runs runs/`, как в правиле) видит каталог серии без манифеста — exit 1, а не единицу (запись A10 в этом акте). На каталоге серии (`--runs runs/<series-id>`) гейт единицу видит и зелен (записи A9). Выставленность достигнута, «гейт кейса по умолчанию видит единицу» — нет. Правка CONSTRAINTS.yaml дельте запрещена: выбор за архитектором — (а) направить C-012 на <link-root>/<series-id>; (б) выставлять единицы плоско (runs/<единица>), тогда корень кейса видит их сам; (в) принять границу и проверять серию вторым вызовом гейта. ",
+    "Дельта 3, ответ на вопрос дельты 2 (граница решения с гейтом). Решение принято архитектором: ADR-057 «Поправки и решения» поправка 5 + спека §2.5 — выставка ПЛОСКАЯ (runs/<имя единицы>), связь с серией живёт в плане. Прежняя граница (гейт корнем кейса видел каталог серии без манифеста) закрыта: гейт C-012 читает единицу на корне регистра (записи A11). Прежняя запись этого вопроса сохранена выше как история, а не переписана (ADR-023 п.9). Открытым остаётся названное границей: первый живой симлинк и гигиена ссылок на реальном дереве — чек-пойнт первой единицы волны В-4."
+  ],
+  "delta2": {
+    "date": "2026-09-23",
+    "decision": "ADR-057 «Поправки и решения» п.1 + спека LADDER-FORK-CARRIER.md §2.5: серия остаётся на $SHARED, отработавшая единица выставляется в runs/ симлинком",
+    "added": "16 записей A9/A10 (фикстура вне дерева кейса) + синтаксис драйвера + прогон тестов",
+    "fixture": "TMPDIR (laguna-n7-delta2-selftest-*): сетевой диск и runs/ кейса не трогались",
+    "not_touched": "CONSTRAINTS.yaml, стражи tools/check_*, планировщик, ARCHITECTURE-SPINE.md, docs/adr/**"
+  },
+  "delta3": {
+    "date": "2026-09-23",
+    "decision": "ADR-057 «Поправки и решения» поправка 5 + спека LADDER-FORK-CARRIER.md §2.5: выставка единиц плоская (runs/<имя единицы>); шаг --unlink-from-runs снимает регистр серии (только свои ссылки) перед её переносом или удалением",
+    "added": "23 записей A11/A12 (фикстура вне дерева кейса) + синтаксис драйвера + гейты кейса",
+    "fixture": "TMPDIR (laguna-n7-delta3-selftest-bn9yuue8): сетевой диск и runs/ кейса не трогались",
+    "inherited_reds": "fitness-контроль кейса красный УНАСЛЕДОВАННО и дельта его не добавляет: правило C-018/AD-9 исполняет не тронутый дельтой tools/check_resource_owner.sh и читает СОСТОЯНИЕ стенда — свободная unified-память 32.0 → 32.5 ГБ между двумя прогонами при пороге 35 ГБ (живая величина, а не свойство дерева) и одна тренировочная нагрузка (живой прогон sft-v13-2e6-20260921-2054). Тот же красный даёт единый гейт `arch-be gate --route auto`, где составляющие дельты зелёные: delta_guard PASS, spine_lint PASS, trace_check PASS, model_validate PASS. Ни CONSTRAINTS.yaml, ни .arch-handoff/CONSTRAINTS.yaml дельтой не правились (правка правила ради зелёного — ослабление, а не починка); оба красных записаны в акте с ожидаемым кодом, а не выданы за зелёное",
+    "not_touched": "CONSTRAINTS.yaml, стражи tools/check_*, tools/build_fork_plan.py, tools/pilot_chain.sh, ARCHITECTURE-SPINE.md, docs/adr/**, runs/** существующих прогонов"
+  }
+}

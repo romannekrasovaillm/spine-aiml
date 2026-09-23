@@ -2784,8 +2784,9 @@ async fn cmd_run(
                         AgentEvent::TurnDone => {
                             let _ = writeln!(std::io::stdout().lock());
                         }
-                        // Телеметрия индикатора контекста — только для TUI.
-                        AgentEvent::ContextUsage(_) => {}
+                        // Телеметрия индикатора контекста и usage последнего
+                        // ответа (сегмент кэша) — только для TUI.
+                        AgentEvent::ContextUsage(_) | AgentEvent::Usage(_) => {}
                     }
                 }
             });

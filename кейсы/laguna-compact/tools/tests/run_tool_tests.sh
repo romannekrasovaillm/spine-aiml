@@ -15171,6 +15171,761 @@ PYS3BI
 expect_exit 0 "вердикт в носителе принимает только supported/unsupported: «not-run» записать нечем" \
   bash -c 'grep -vE "^\s*#" tools/qwen35_gate.sh | grep -q "verdict=\"unsupported\""'
 
+echo
+echo "== 48. Н-7: носитель форк-семантики сида — план серии и серийный драйвер (ADR-057) =="
+# Предмет: `tools/build_fork_plan.py` (планировщик) и `tools/fork_series_chain.sh` (драйвер).
+# Проверяются инварианты I1–I7 спеки `docs/specs/LADDER-FORK-CARRIER.md`; стенд не нужен —
+# ни одна команда секции не обращается к нему (серия имитируется стабами, страж — стабом
+# с тем же именем: AD-057 п.4 требует, чтобы имя стража было названо в записи).
+N7="$TMP/laguna-n7-fork"
+N7SHARED="$N7/shared"
+N7TOOLS="$N7/tools"
+N7RUNS="$N7/runs"          #: каталог выставления фикстуры (дельта 2): в runs/ кейса серия не пишет
+PLANNER="$CASE_ROOT/tools/build_fork_plan.py"
+DRIVER="$CASE_ROOT/tools/fork_series_chain.sh"
+mkdir -p "$N7SHARED" "$N7TOOLS" "$N7RUNS"
+
+#: Стаб стража AD-9: имя файла сохранено (проверка «страж назван в записи» остаётся
+#: осмысленной), поведение управляется файлом-маркером.
+cat > "$N7TOOLS/check_resource_owner.sh" <<SHGUARD
+#!/usr/bin/env bash
+printf 'вызов стража AD-9\n' >> "$N7/guard.calls"
+[ -f "$N7/guard.refuse" ] && { echo "ОТКАЗ СТРАЖА (стаб AD-9)"; exit 1; }
+exit 0
+SHGUARD
+
+#: Перезапись записанных строк единиц серии на стабы: серия проверяется без стенда.
+#: Стаб переписывает И запись, И объявленный в плане sha256 — план остаётся единственным
+#: носителем того, что исполняется (I6), а не «драйвер помнит».
+cat > "$N7/retarget.py" <<'PYN7'
+"""Заменяет записанные строки единиц плана на стабы (стенд не нужен).
+
+Режимы: ok | fail-first-arm | blocked-first-arm | naked-base | slow-base | done-no-manifest.
+
+Единица со статусом `done` пишет ещё и `run_manifest.json` — как цепочка живого прогона
+(`tools/write_run_manifest.py`). Это не украшение фикстуры: с дельты 2 драйвер выставляет
+отработавшую единицу в `runs/` симлинком и требует манифест (каталог без манифеста гейт
+AD-2 честно пометит находкой). Стаб без манифеста — отдельный режим `done-no-manifest`.
+"""
+import hashlib, json, pathlib, sys
+
+plan_path, mode, guard, marker = (pathlib.Path(sys.argv[1]), sys.argv[2],
+                                  sys.argv[3], pathlib.Path(sys.argv[4]))
+plan = json.loads(plan_path.read_text(encoding="utf-8"))
+series = pathlib.Path(plan["series_dir"])
+
+#: Манифест стаба — конформный AD-2 (те же поля, что требует гейт C-012); пути в нём не
+#: объявляются, чтобы «относительность путей» не превращалась в предмет проверки стаба.
+MANIFEST = json.dumps({
+    "dataset_sha256": "ab" * 32,
+    "base_model_id": "Qwen/Qwen2.5-0.5B",
+    "pipeline_version": "стаб единицы серии (tools/tests/run_tool_tests.sh, секции 48/49)",
+    "image": "nvcr.io/nvidia/pytorch:stub",
+    "seed": 42,
+    "stages": [{"name": "cpt", "status": "done"}],
+    "pipeline_complete": True,
+}, ensure_ascii=False)
+MANIFEST_ESC = MANIFEST.replace('"', '\\"')
+
+
+def stub(d, status, guard_name, tail="", manifest=True):
+    extra = f"bash {guard_name} --stage rl --exp-name {d.name} >/dev/null; " if guard_name else ""
+    #: Манифест пишется ВНУТРИ `bash -c '…'`: кавычки JSON экранируются (`\"`) — тогда уровень
+    #: цитирования внутри строки видит кавычки СИНТАКСИСА printf, а не часть значения.
+    man = (f'printf "{MANIFEST_ESC}" > {d}/run_manifest.json; '
+           if (manifest and status == "done") else "")
+    return ("bash -c 'mkdir -p {d}/var {d}/logs; {extra}{tail}printf \"{status}\\n\" > {d}/var/chain.status; "
+            "{man}printf \"{name}\\n\" >> {marker}'".format(d=d, extra=extra, tail=tail, status=status,
+                                                           man=man, name=d.name, marker=marker))
+
+
+def blocked_stub(d, guard_name):
+    extra = f"bash {guard_name} --stage rl --exp-name {d.name} >/dev/null; " if guard_name else ""
+    return ("bash -c 'mkdir -p {d}/var {d}/logs; {extra}mkdir -p {d}/var/status; "
+            "printf \"blocked\\n\" > {d}/var/status/rl; printf \"precondition_failed\\n\" > {d}/var/chain.status; "
+            "printf \"{name}\\n\" >> {marker}'".format(d=d, extra=extra, name=d.name, marker=marker))
+
+
+first_arm = plan["arms"][0]["dir"] if plan["arms"] else None
+for model in plan["models"]:
+    d = series / model["base_dir"]
+    if mode == "naked-base":
+        cmd = stub(d, "done", "")
+    elif mode == "slow-base":
+        cmd = stub(d, "done", guard, tail="sleep 5; ")
+    elif mode == "done-no-manifest":
+        cmd = stub(d, "done", guard, manifest=False)
+    else:
+        cmd = stub(d, "done", guard)
+    (d / "chain_command.txt").write_text(cmd + "\n", encoding="utf-8")
+    model["chain_command"], model["chain_command_sha256"] = cmd, hashlib.sha256((cmd + "\n").encode()).hexdigest()
+for arm in plan["arms"]:
+    d = series / arm["dir"]
+    if mode == "fail-first-arm" and arm["dir"] == first_arm:
+        cmd = stub(d, "failed", guard)
+    elif mode == "blocked-first-arm" and arm["dir"] == first_arm:
+        cmd = blocked_stub(d, guard)
+    else:
+        cmd = stub(d, "done", guard)
+    (d / "chain_command.txt").write_text(cmd + "\n", encoding="utf-8")
+    arm["chain_command"], arm["chain_command_sha256"] = cmd, hashlib.sha256((cmd + "\n").encode()).hexdigest()
+plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PYN7
+
+#: Проверки фактов плана — по одному вопросу на вызов (читается в строке теста).
+cat > "$N7/check.py" <<'PYN7'
+"""Проверки фактов плана серии: arms-count | shared-equal | artifacts-distinct | no-stand-cmd."""
+import json, pathlib, sys
+
+mode, plan_path = sys.argv[1], pathlib.Path(sys.argv[2])
+plan = json.loads(plan_path.read_text(encoding="utf-8"))
+arms = plan.get("arms") or []
+if mode == "k":
+    want = int(sys.argv[3])
+    assert plan["k"] == want, f"k={plan['k']}, ожидалось {want}"
+    print(f"k = {plan['k']}")
+elif mode == "arms-count":
+    want = int(sys.argv[3])
+    have = sum(1 for _ in arms)
+    assert have == want, f"рук {have}, ожидалось {want}"
+    print(f"рук {have} = k×моделей ({plan['k']}×{len(plan['models'])})")
+elif mode == "shared-equal":
+    shas = {a["shared_sft"]["sha256"] for a in arms}
+    paths = {a["shared_sft"]["path"] for a in arms}
+    assert len(shas) == 1 and len(paths) == 1 and None not in shas, f"I2 нарушен: {shas} {paths}"
+    print(f"все {len(arms)} рук объявляют один вход {list(shas)[0][:12]}…")
+elif mode == "artifacts-distinct":
+    seen = {}
+    for a in arms:
+        for rel in a["expected_artifacts"]:
+            assert rel not in seen, f"I3: {rel} у {seen[rel]} и {a['name']}"
+            seen[rel] = a["name"]
+    print(f"артефактов {len(seen)}, повторов нет")
+elif mode == "no-stand-cmd":
+    banned = ("ssh", "docker")
+    for unit in list(plan["models"]) + arms:
+        cmd = unit.get("chain_command") or ""
+        for word in banned:
+            assert word not in cmd, f"в записанной строке есть {word!r}: {cmd[:80]}"
+    print("в записанных строках нет ssh и docker")
+else:
+    raise SystemExit(f"неизвестный режим: {mode}")
+PYN7
+
+n7_plan() {  # n7_plan <каталог серии> [флаги…]
+  local ser="$1"; shift
+  python3 "$PLANNER" --model-short qwen25-05b --series-dir "$ser" \
+    --shared "$N7SHARED" --shared-ctr /workspace/shared "$@"
+}
+#: Каталог выставления серии (дельта 2) фикстура называет явно: по умолчанию драйвер
+#: выставляет единицы в `runs/` КЕЙСА, и тест, оставивший там симлинк, писал бы в дерево
+#: кейса (проверка «ни одного файла вне фикстуры» — секция 49, там же и разбор).
+n7_driver() { bash "$DRIVER" --series-dir "$1" --poll 1 --link-into-runs "$N7RUNS" "${@:2}"; }
+n7_run_plan() { n7_plan "$N7SHARED/run-series" --seeds 42,1337 "$@"; }
+
+# ── 48а. A1/I8: сухой прогон печатает состав серии и стенда не требует ────────
+# 2 модели × 3 сида: у каждой модели свой базовый каталог и k=3 каталогов рук.
+n7_plan "$N7SHARED/dry-series" --model-short qwen3-06b > "$N7/dry-plan.txt" 2>&1
+expect_exit 0 "A1: механических прогонов не требует: --print-plan печатает и завершается 0" \
+  n7_plan "$N7SHARED/dry-series" --model-short qwen3-06b
+expect_contains "k = 3" "A1: число рук напечатано" cat "$N7/dry-plan.txt"
+expect_contains "базовые стадии cpt → sft → eval_base → eval_sft" "A1: базовые стадии напечатаны" \
+  cat "$N7/dry-plan.txt"
+expect_contains "qwen25-05b-rl-s1337" "A1: имена рук напечатаны" cat "$N7/dry-plan.txt"
+expect_contains "ожидаемые артефакты" "A1: ожидаемые артефакты напечатаны" cat "$N7/dry-plan.txt"
+expect_contains "общий SFT-вход рук" "A1: общий вход рук напечатан" cat "$N7/dry-plan.txt"
+expect_absent "ssh" "A1: в выводе плана нет ssh (стенд не нужен)" cat "$N7/dry-plan.txt"
+expect_absent "docker" "A1: в выводе плана нет docker (стенд не нужен)" cat "$N7/dry-plan.txt"
+expect_exit 0 "A1: сухой прогон НЕ создаёт каталог серии (план — печать, не запись)" \
+  bash -c "test ! -e '$N7SHARED/dry-series'"
+#: Структура форка видна и в машиночитаемом плане: k×моделей рук, один общий вход и
+#: непересекающиеся артефакты; в записанных строках нет обращений к стенду.
+n7_plan "$N7SHARED/dry-series" --model-short qwen3-06b --json > "$N7/dry-plan.json" 2>/dev/null
+expect_exit 0 "I1: число рук = k × моделей (3 × 2)" python3 "$N7/check.py" arms-count "$N7/dry-plan.json" 6
+expect_exit 0 "I3: пути артефактов рук не пересекаются" python3 "$N7/check.py" artifacts-distinct "$N7/dry-plan.json"
+expect_exit 0 "I8: в записанных строках нет ssh и docker" python3 "$N7/check.py" no-stand-cmd "$N7/dry-plan.json"
+#: k — параметр со значением по умолчанию 3 (ADR-056 п.2): без --k и без --seeds он равен 3.
+n7_plan "$N7SHARED/dry-k3" --json > "$N7/dry-k3.json" 2>/dev/null
+expect_exit 0 "I1: k по умолчанию равен 3" python3 "$N7/check.py" k "$N7/dry-k3.json" 3
+expect_exit 0 "I1: три сида дают три каталога рук" python3 "$N7/check.py" arms-count "$N7/dry-k3.json" 3
+
+# ── 48б. I3/A2: коллизия артефактов названа поимённо ──────────────────────────
+expect_exit 2 "I3: повтор сида — отказ (две руки в одном каталоге)" \
+  n7_run_plan --seeds 42,42
+expect_contains "I3: сид повторяется" "I3: причина отказа названа (повтор сида)" \
+  n7_run_plan --seeds 42,42
+expect_exit 2 "I3: повтор модели — отказ (две базовые единицы в одном каталоге)" \
+  python3 "$PLANNER" --model-short qwen25-05b --model-short qwen25-05b --seeds 42,1337 \
+    --series-dir "$N7SHARED/run-series" --shared "$N7SHARED" --shared-ctr /workspace/shared --write
+expect_exit 2 "I1: k не согласован с числом сидов — отказ" n7_run_plan --k 3 --write
+expect_exit 2 "неизвестная модель — отказ (реестр моделей закрыт)" \
+  n7_plan "$N7SHARED/run-series" --model-short qwen99-nope
+
+# ── 48в. I2/A3: рука без объявленного общего входа — отказ ────────────────────
+expect_exit 2 "A3/I2: серию рук нельзя собрать без объявленного SFT-входа" n7_run_plan --write --units arms
+expect_contains "I2: нет объявленного SFT-входа" "A3: отказ называет инвариант I2" \
+  n7_run_plan --write --units arms
+expect_exit 0 "I2: план базовых стадий собирается, пока входа ещё нет (две фазы)" \
+  n7_run_plan --write --units base
+expect_contains "план несёт только базовые стадии" "I2: фаза плана названа" n7_run_plan --write --units base
+expect_exit 0 "I2: план без рук проходит проверку (руки планируются после замера входа)" \
+  python3 "$PLANNER" --check-plan "$N7SHARED/run-series/fork_plan.json"
+
+#: вход измерен базой (в имитации — файл-заглушка): sha256 берётся с файла, а не выдумывается
+mkdir -p "$N7SHARED/run-series/qwen25-05b-base/checkpoints"
+printf 'стаб общего SFT-чекпойнта\n' > "$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt"
+expect_exit 0 "I2: руки планируются после того, как вход измерен" n7_run_plan --write --units arms --force
+expect_exit 0 "I2: все руки объявляют один и тот же вход" \
+  python3 "$N7/check.py" shared-equal "$N7SHARED/run-series/fork_plan.json"
+expect_exit 0 "I1: число каталогов рук равно k (в этой серии k = 2 — по числу сидов)" \
+  python3 "$N7/check.py" arms-count "$N7SHARED/run-series/fork_plan.json" 2
+expect_exit 0 "I2: sha256 в плане — замер файла, а не объявление" bash -c \
+  "test \"\$(python3 -c \"import json,sys,hashlib;d=json.load(open('$N7SHARED/run-series/fork_plan.json'));print(d['shared_inputs'][0]['sha256'])\")\" = \"\$(sha256sum '$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt' | cut -d' ' -f1)\""
+
+#: Рука без ОБЪЯВЛЕННОГО входа (плана с пустым shared_sft): валидатор обязан отказать —
+#: именно его вызывает драйвер до старта серии.
+python3 - "$N7SHARED/run-series/fork_plan.json" "$N7/plan-no-input.json" <<'PYN7'
+import json, pathlib, sys
+plan = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+plan["arms"][0]["shared_sft"] = {}
+pathlib.Path(sys.argv[2]).write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+PYN7
+expect_exit 2 "A3: рука без объявленного SFT-входа — отказ валидатора" \
+  python3 "$PLANNER" --check-plan "$N7/plan-no-input.json"
+expect_contains "нет объявленного SFT-входа" "A3: находка называет руку и причину" \
+  python3 "$PLANNER" --check-plan "$N7/plan-no-input.json"
+
+#: Руки одной модели объявили РАЗНЫЕ входы — форк сломан (сид множит RL, а не CPT/SFT).
+python3 - "$N7SHARED/run-series/fork_plan.json" "$N7/plan-split-input.json" <<'PYN7'
+import json, pathlib, sys
+plan = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+plan["arms"][1]["shared_sft"]["sha256"] = "0" * 64
+pathlib.Path(sys.argv[2]).write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+PYN7
+expect_exit 2 "I2: у рук одной модели разные входы — отказ" \
+  python3 "$PLANNER" --check-plan "$N7/plan-split-input.json"
+
+#: Две руки в одном каталоге (руками правленый план): конфликт обязан быть поимённым.
+python3 - "$N7SHARED/run-series/fork_plan.json" "$N7/plan-collision.json" <<'PYN7'
+import json, pathlib, sys
+plan = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+plan["arms"][1]["dir"] = plan["arms"][0]["dir"]
+plan["arms"][1]["expected_artifacts"] = list(plan["arms"][0]["expected_artifacts"])
+pathlib.Path(sys.argv[2]).write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+PYN7
+expect_exit 2 "A2/I3: две руки с одним путём артефакта — отказ" \
+  python3 "$PLANNER" --check-plan "$N7/plan-collision.json"
+expect_contains "I3: коллизия артефактов" "A2: конфликт назван поимённо" \
+  python3 "$PLANNER" --check-plan "$N7/plan-collision.json"
+expect_contains "I3: единицы" "A2: совпадение каталогов названо отдельной находкой" \
+  python3 "$PLANNER" --check-plan "$N7/plan-collision.json"
+
+# ── 48г. A5: идемпотентность записи ──────────────────────────────────────────
+N7I="$N7SHARED/idem-series"
+expect_exit 0 "A5: первый --write собирает план" n7_plan "$N7I" --write --units base
+N7MT="$(stat -c '%Y.%s' "$N7I/fork_plan.json")"
+sleep 1.1
+expect_contains "план уже собран и не переписан" "A5: повторный --write не переписывает план" \
+  n7_plan "$N7I" --write --units base
+expect_exit 0 "A5: файл плана не тронут (mtime и размер те же)" \
+  bash -c "test \"\$(stat -c '%Y.%s' '$N7I/fork_plan.json')\" = '$N7MT'"
+expect_exit 2 "A5: расхождение с существующим планом без --force — отказ" \
+  n7_plan "$N7I" --seeds 42,777 --write --units base
+expect_contains "расходится с собранным" "A5: отказ называет причину (расхождение входов)" \
+  n7_plan "$N7I" --seeds 42,777 --write --units base
+expect_exit 0 "A5: --force пересобирает план осознанно" \
+  n7_plan "$N7I" --seeds 42,777 --write --units base --force
+
+# ── 48д. A4/I7: отказ руки не размножается на остальные ──────────────────────
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" fail-first-arm \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+expect_exit 1 "A4/I7: рука не done → драйвер возвращает 1" n7_driver "$N7SHARED/run-series"
+expect_contains "серия остановлена на единице qwen25-05b-rl-s42" "A4: остановка названа (какая рука)" \
+  cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "A4: следующая рука НЕ стартовала (в маркере нет s1337)" \
+  bash -c "! grep -q 'rl-s1337' '$N7SHARED/run-series/stub_marker.txt'"
+expect_exit 0 "A4: база и первая рука при этом стартовали (отказ не «ничего не запускалось»)" \
+  bash -c "grep -q 'qwen25-05b-base' '$N7SHARED/run-series/stub_marker.txt' && grep -q 'rl-s42' '$N7SHARED/run-series/stub_marker.txt'"
+expect_exit 0 "A4: в status.tsv есть строка failed про первую руку" \
+  bash -c "grep -qP 'qwen25-05b-rl-s42\tfailed' '$N7SHARED/run-series/status.tsv'"
+expect_exit 0 "A4: в status.tsv НЕТ строки start у следующей руки" \
+  bash -c "! grep -qP 'qwen25-05b-rl-s1337\tstart' '$N7SHARED/run-series/status.tsv'"
+expect_contains "записи сходятся с планом" "I6: сверка записи с планом идёт ДО старта нагрузки" \
+  cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "A4: итог серии записан словом failed" bash -c "grep -qx failed '$N7SHARED/run-series/status'"
+
+#: Все единицы done — серия проходит целиком, база идёт первой (порядок виден в маркере).
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" ok \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+expect_exit 0 "I1/I4: все единицы done → код 0 (база, затем руки)" n7_driver "$N7SHARED/run-series"
+expect_exit 0 "I4: единицы шли последовательно: база первой, руки после неё" bash -c \
+  "test \"\$(head -1 '$N7SHARED/run-series/stub_marker.txt')\" = qwen25-05b-base && test \$(wc -l < '$N7SHARED/run-series/stub_marker.txt') -eq 3"
+expect_exit 0 "I4: в залоге серии не осталось живого замка (снят на выходе)" \
+  bash -c "test ! -e '$N7SHARED/run-series/var/series.pid'"
+
+#: I2/AD-4: вход руки — СИМЛИНК на общий чекпойнт базы, а не копия весов.
+expect_exit 0 "I2: в каталоге руки вход — симлинк (копия весов запрещена, AD-4)" bash -c \
+  "test -L '$N7SHARED/run-series/qwen25-05b-rl-s42/checkpoints/sft_checkpoint_final.pt'"
+expect_exit 0 "I2: симлинк ведёт на объявленный общий чекпойнт базы" bash -c \
+  "test \"\$(readlink -f '$N7SHARED/run-series/qwen25-05b-rl-s42/checkpoints/sft_checkpoint_final.pt')\" = \
+        \"\$(readlink -f '$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt')\""
+
+# ── 48е. I6: исполняется записанное; подмена записи останавливает серию ───────
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" ok \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+printf '# подмена записи\n' >> "$N7SHARED/run-series/qwen25-05b-base/chain_command.txt"
+expect_exit 2 "I6: подмена chain_command.txt → код 2" n7_driver "$N7SHARED/run-series"
+expect_contains "расходится с планом" "I6: расхождение записи и плана названо" \
+  cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "I6: серия не начата — ни одна единица не запускалась" \
+  bash -c "test ! -e '$N7SHARED/run-series/stub_marker.txt'"
+
+#: Строка без имени стража: план не годен (I5) — обход стража ради серийности запрещён.
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" naked-base \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+expect_exit 2 "I5: страж AD-9 не назван в записи — отказ" n7_driver "$N7SHARED/run-series"
+expect_contains "страж AD-9 не назван" "I5: находка называет инвариант стража" \
+  bash "$DRIVER" --series-dir "$N7SHARED/run-series" --poll 1 --print-plan
+
+# ── 48ж. I5: отказ стража → единица blocked, следующая не стартует ────────────
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" blocked-first-arm \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv" \
+      "$N7SHARED/run-series/series.log" "$N7/guard.calls"
+touch "$N7/guard.refuse"
+expect_exit 1 "I5: отказ стража перед рукой → код 1" \
+  n7_driver "$N7SHARED/run-series" --arms qwen25-05b-rl-s42,qwen25-05b-rl-s1337 --guard "$N7TOOLS/check_resource_owner.sh"
+expect_contains "помечена blocked" "I5: отказ стража помечен словом blocked" \
+  cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "I5: после отказа стража не стартовала НИ ОДНА рука" \
+  bash -c "test ! -e '$N7SHARED/run-series/stub_marker.txt'"
+expect_exit 0 "I5: страж AD-9 вызван драйвером перед рукой (один вызов — одна запись маркера)" \
+  bash -c "test \"\$(wc -l < '$N7/guard.calls')\" -eq 1"
+expect_exit 0 "I5: строка blocked записана в status.tsv" \
+  bash -c "grep -qP 'qwen25-05b-rl-s42\tblocked' '$N7SHARED/run-series/status.tsv'"
+rm -f "$N7/guard.refuse" "$N7/guard.calls"
+#: Страж проходит — руки идут (страж не «декорация»: он реально вызывается драйвером).
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" ok \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv" \
+      "$N7SHARED/run-series/series.log" "$N7/guard.calls"
+expect_exit 0 "I5: тот же вызов со снятым отказом стража проходит (страж вызывается, а не обойдён)" \
+  n7_driver "$N7SHARED/run-series" --arms qwen25-05b-rl-s42,qwen25-05b-rl-s1337 --guard "$N7TOOLS/check_resource_owner.sh"
+expect_exit 0 "I5: страж вызван перед каждой рукой (две руки — две записи в маркере драйвера)" \
+  bash -c "test \"\$(grep -c 'страж AD-9 перед единицей' '$N7SHARED/run-series/series.log')\" -eq 2"
+expect_exit 0 "I5: руки после снятия отказа дошли до конца" \
+  bash -c "test \"\$(wc -l < '$N7SHARED/run-series/stub_marker.txt')\" -eq 2"
+
+#: Отказ стража, записанный ЦЕПОЧКОЙ (`chain.status=precondition_failed` + стадия blocked) —
+#: драйвер обязан назвать это «blocked», а не «failed»: разные события, разные действия.
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" blocked-first-arm \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+expect_exit 1 "I5: страж отказал внутри цепочки → рука blocked, серия остановлена" n7_driver "$N7SHARED/run-series"
+expect_exit 0 "I5: в status.tsv рука помечена blocked (а не failed)" \
+  bash -c "grep -qP 'qwen25-05b-rl-s42\tblocked' '$N7SHARED/run-series/status.tsv'"
+expect_exit 0 "I5: следующая рука не стартовала (I7)" \
+  bash -c "! grep -q 'rl-s1337' '$N7SHARED/run-series/stub_marker.txt'"
+
+# ── 48з. I2 в прогоне: не тот общий вход останавливает серию ──────────────────
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" ok \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/stub_marker.txt" "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+cp "$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt" "$N7/keep-sft.pt"
+printf 'подменённые веса\n' > "$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt"
+expect_exit 2 "I2: общий вход изменился после объявления → код 2" n7_driver "$N7SHARED/run-series"
+expect_contains "объявленный SFT-вход изменился" "I2: отказ называет причину (факт ≠ объявление)" \
+  cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "I2: рука не стартовала на подменённом входе" \
+  bash -c "! grep -q 'rl-s42' '$N7SHARED/run-series/stub_marker.txt'"
+expect_exit 0 "I2: база при этом отработала (она вход не читает, а создаёт)" \
+  bash -c "grep -q 'qwen25-05b-base' '$N7SHARED/run-series/stub_marker.txt'"
+cp "$N7/keep-sft.pt" "$N7SHARED/run-series/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt"
+
+# ── 48и. I4: вторая серия при живой первой — отказ, а не «вторая очередь» ─────
+rm -f "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+sleep 60 & N7PID=$!
+mkdir -p "$N7SHARED/run-series/var"
+printf '%s\n' "$N7PID" > "$N7SHARED/run-series/var/series.pid"
+expect_exit 2 "I4: живой замок серии → вторая серия не стартует (AD-5)" n7_driver "$N7SHARED/run-series"
+expect_contains "серия уже идёт" "I4: отказ называет владельца замка" \
+  n7_driver "$N7SHARED/run-series"
+expect_exit 0 "I4: отказ по занятости не тронул прогресс чужой серии" \
+  bash -c "test ! -e '$N7SHARED/run-series/status.tsv'"
+kill "$N7PID" 2>/dev/null; rm -f "$N7SHARED/run-series/var/series.pid"
+#: Мёртвый замок (процесса нет) — не «серия идёт»: драйвер снимает его и идёт дальше.
+printf '999999\n' > "$N7SHARED/run-series/var/series.pid"
+expect_exit 0 "I4: замок мёртвого процесса не блокирует серию (снят с записью в лог)" \
+  n7_driver "$N7SHARED/run-series" --arms qwen25-05b-rl-s42
+expect_contains "снят замок мёртвого процесса" "I4: снятие мёртвого замка названо" \
+  cat "$N7SHARED/run-series/series.log"
+
+# ── 48к. Таймаут единицы: серия останавливается, контейнер называет владелец ───
+python3 "$N7/retarget.py" "$N7SHARED/run-series/fork_plan.json" slow-base \
+  "$N7TOOLS/check_resource_owner.sh" "$N7SHARED/run-series/stub_marker.txt"
+rm -f "$N7SHARED/run-series/status" "$N7SHARED/run-series/status.tsv"
+expect_exit 1 "таймаут единицы → код 1 (успехом не считается)" \
+  n7_driver "$N7SHARED/run-series" --arm-timeout 2
+expect_contains "ТАЙМАУТ единицы" "таймаут назван в логе серии" cat "$N7SHARED/run-series/series.log"
+expect_exit 0 "таймаут честно называет границу: контейнер закрывает владелец" \
+  bash -c "grep -q 'владелец' '$N7SHARED/run-series/series.log'"
+expect_exit 0 "в status.tsv строка timeout, а не «none»" \
+  bash -c "grep -qP 'qwen25-05b-base\ttimeout' '$N7SHARED/run-series/status.tsv'"
+
+# ── 48л. Драйвер без плана и с чужими руками — NOT-VERIFIED ───────────────────
+expect_exit 2 "нет плана — код 2 (NOT-VERIFIED)" n7_driver "$N7SHARED/nosuch-series"
+expect_exit 2 "руки нет в плане — код 2" n7_driver "$N7SHARED/run-series" --arms nosuch-arm
+expect_exit 0 "«--print-plan» печатает единицы и не пишет прогресс" bash -c \
+  "rm -f '$N7SHARED/run-series/status.tsv'; bash '$DRIVER' --series-dir '$N7SHARED/run-series' --print-plan >/dev/null && test ! -e '$N7SHARED/run-series/status.tsv'"
+
+echo
+echo "== 49. Н-7 дельта 2: выставление отработавших единиц в runs/ симлинком (ADR-057 поправка 5) =="
+# Предмет: шаг финализации драйвера (`--link-into-runs`). Гейт AD-2 читает ОДИН корень и
+# ОДИН уровень (`--runs runs/`), а серия живёт на сетевом диске: отработавшая единица в runs/
+# не переезжает, а выставляется симлинком внутрь $SHARED — **плоско** (`<корень>/<единица>`),
+# после того, как дошла до `done` и её `run_manifest.json` существует. Копий артефактов нет
+# (AD-4), чужой симлинк не перезаписывается, повторный вызов идемпотентен.
+# Дельта 3 изменила только форму выставки (вложенность `runs/<series-id>/<единица>` снята
+# решением ADR-057 поправка 5): правила «после done и манифеста», идемпотентность и отказы
+# сохранены, а единица теперь лежит там, где её читает гейт кейса. Снятие регистра
+# (`--unlink-from-runs`) — предмет секции 50.
+#
+# Фикстуры — в каталоге с префиксом дельты (`laguna-n7-delta2`), серия собирается
+# планировщиком в фикстурный `--shared`, единицы исполняются стабом (стенда нет).
+L9="$TMP/laguna-n7-delta2"
+L9SHARED="$L9/shared"
+L9RUNS="$L9/runs"
+mkdir -p "$L9SHARED" "$L9RUNS"
+
+#: Серия базовых стадий + стаб её единственной единицы. Режим стаба — из `$N7/retarget.py`
+#: (одинаковая форма записи у обеих секций: один носитель формата, ADR-023 п.10).
+l9_prep() {  # l9_prep <имя серии> <режим стаба>
+  python3 "$PLANNER" --model-short qwen25-05b --series-dir "$L9SHARED/$1" --shared "$L9SHARED" \
+    --shared-ctr /workspace/shared --write --units base > "$L9/$1.prep.log" 2>&1
+  python3 "$N7/retarget.py" "$L9SHARED/$1/fork_plan.json" "$2" \
+    "$N7TOOLS/check_resource_owner.sh" "$L9/$1.marker" >> "$L9/$1.prep.log" 2>&1
+}
+l9_unit() { printf '%s' "$L9SHARED/$1/qwen25-05b-base"; }
+
+l9_prep link-a ok
+l9_prep link-b done-no-manifest
+l9_prep link-c ok
+l9_prep link-d ok
+
+#: Снимок дерева кейса ДО прогонов: выставление единиц фикстуры обязано не оставить в дереве
+#: кейса ни одного файла и ни одного симлинка (каталог выставления по умолчанию — `runs/`
+#: кейса, и перепутать фикстуру с деревом здесь дешевле, чем на волне В-4).
+find "$CASE_ROOT" -name .git -prune -o -type l -print 2>/dev/null | sort > "$L9/case-links.before"
+find "$CASE_ROOT/runs" -mindepth 1 -maxdepth 2 -print 2>/dev/null | sort > "$L9/case-runs.before"
+
+# ── 49а. A9/A11: единица done + манифест → симлинк в runs/, гейт AD-2 видит единицу ──
+# С дельты 3 выставка ПЛОСКАЯ (`<link-root>/<имя единицы>`): единица лежит ровно на один
+# уровень ниже корня выставления, промежуточного каталога серии нет. Полное доказательство
+# этого свойства (и правило «выставка не маскирует нарушение C-012») — секция 50 (A11/A12).
+expect_exit 0 "A9: серия отработала и выставила единицу (код 0)" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-a" --link-into-runs "$L9RUNS" --poll 1
+expect_exit 0 "A11: в каталоге выставления появился СИМЛИНК на единицу серии" \
+  bash -c "test -L '$L9RUNS/qwen25-05b-base'"
+expect_exit 0 "A11: промежуточного каталога серии в выставке не заведено (плоско, дельта 3)" \
+  bash -c "test ! -e '$L9RUNS/link-a'"
+expect_contains "единица выставлена плоско" "A11: выставление названо в логе серии" cat "$L9SHARED/link-a/series.log"
+#: Цель — каталог единицы ПОД объявленным сетевым диском (не копия, не «где-то рядом»): AD-4.
+expect_exit 0 "A9: цель симлинка — каталог единицы под фикстурным --shared" bash -c \
+  "test \"\$(readlink -f '$L9RUNS/qwen25-05b-base')\" = \"\$(readlink -f '$(l9_unit link-a)')\""
+expect_exit 0 "A9: цель лежит внутри объявленного сетевого диска (AD-4/C-011 п.б)" bash -c \
+  "case \"\$(readlink '$L9RUNS/qwen25-05b-base')\" in '$L9SHARED'/*) exit 0 ;; *) exit 1 ;; esac"
+#: Копий нет: в каталоге выставления лежат ТОЛЬКО симлинки. Проверка именно такая, а не
+#: `test ! -d <путь>`: `-d` разрешает симлинк и на каталог отвечает «да» — на этом различии
+#: проверка «копии нет» и должна стоять (AD-4 — ссылка, не копия).
+expect_exit 0 "A9: копий артефактов не создано — в каталоге выставления одни симлинки" \
+  bash -c "test \"\$(find '$L9RUNS' -mindepth 1 -maxdepth 1 ! -type l | wc -l)\" -eq 0"
+#: Это и есть доказательство, что решение работает, а не что «симлинк создан»: гейт AD-2
+#: читает манифест ЧЕРЕЗ симлинк — единица перечислена, находок нет. Корень выставления —
+#: тот же, из какого гейт читает манифесты по правилу C-012 (`--runs runs/`).
+expect_exit 0 "A9: гейт AD-2 на корне выставления — exit 0 (манифест читается через симлинк)" \
+  python3 "$CASE_ROOT/tools/check_run_manifest.py" --runs "$L9RUNS"
+expect_contains "qwen25-05b-base" "A9: гейт называет выставленную единицу поимённо" \
+  python3 "$CASE_ROOT/tools/check_run_manifest.py" --runs "$L9RUNS"
+expect_contains "RUN MANIFESTS OK" "A9: вердикт гейта на единице серии — RUN MANIFESTS OK" \
+  python3 "$CASE_ROOT/tools/check_run_manifest.py" --runs "$L9RUNS"
+#: Прежняя граница дельты 2 («гейт корнем видит каталог серии без манифеста») закрыта
+#: решением ADR-057 поправка 5 и закреплена секцией 50: там находка на постороннем каталоге
+#: остаётся (правило не ослаблено), а на единице серии её больше нет — вложенности нет.
+#: Умолчание флага — `runs/` КЕЙСА (а не фикстуры): печать плана называет именно этот путь.
+expect_contains "--unlink-from-runs $CASE_ROOT/runs" "умолчание каталога выставления и регистра — runs/ кейса" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-d" --print-plan
+#: Гигиена симлинков (C-011/AD-4, п.б) на фикстурном дереве: выставленный симлинк ведёт внутрь
+#: объявленного сетевого диска — проверка зелёная. На дереве КЕЙСА дельта не создаёт ничего
+#: (см. 49е), поэтому «не краснее от дельты» — это отсутствие новых ссылок, а не исключение.
+expect_exit 0 "A10: гигиена симлинков (C-011) принимает выставленную единицу (цель в --shared)" \
+  bash "$CASE_ROOT/tools/check_symlink_hygiene.sh" "$L9RUNS" --shared "$L9SHARED"
+expect_contains "qwen25-05b-base" "A10: гигиена печатает выставленный симлинк поимённо" \
+  bash "$CASE_ROOT/tools/check_symlink_hygiene.sh" "$L9RUNS" --shared "$L9SHARED"
+#: Обратная сторона того же правила — симлинк наружу сетевого диска краснеет. Нужна как
+#: контроль: без неё зелёное выше читалось бы как «проверка ничего не проверяет».
+mkdir -p "$L9/outside"
+ln -sfn /tmp "$L9/outside/bad"
+expect_exit 1 "A10 (контроль): симлинк наружу сетевого диска краснеет — проверка не «декорация»" \
+  bash "$CASE_ROOT/tools/check_symlink_hygiene.sh" "$L9/outside" --shared "$L9SHARED"
+
+# ── 49б. A9: повторный вызов на уже выставленной единице идемпотентен ──────────
+L9MT="$(stat -c '%Y' "$L9RUNS/qwen25-05b-base")"
+L9TGT="$(readlink "$L9RUNS/qwen25-05b-base")"
+sleep 1.1
+expect_exit 0 "A9: повторный вызов на выставленной единице — код 0" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-a" --link-into-runs "$L9RUNS" --poll 1
+expect_contains "уже выставлена" "A9: повтор назван в логе («уже выставлена», без правки)" \
+  cat "$L9SHARED/link-a/series.log"
+expect_exit 0 "A9: цель симлинка та же" \
+  bash -c "test \"\$(readlink '$L9RUNS/qwen25-05b-base')\" = '$L9TGT'"
+expect_exit 0 "A9: симлинк не переставлен (mtime не изменился — правки не было)" \
+  bash -c "test \"\$(stat -c '%Y' '$L9RUNS/qwen25-05b-base')\" = '$L9MT'"
+
+# ── 49в. A10: существующий симлинк на ДРУГОЙ путь — отказ, цель не меняется ────
+mkdir -p "$L9SHARED/elsewhere"
+ln -sfn "$L9SHARED/elsewhere" "$L9RUNS/qwen25-05b-base"
+expect_exit 2 "A10: симлинк уже указывает на другой путь — код 2 (NOT-VERIFIED)" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-a" --link-into-runs "$L9RUNS" --poll 1
+expect_contains "уже указывает на другой путь" "A10: отказ называет причину и оба пути" \
+  cat "$L9SHARED/link-a/series.log"
+expect_exit 0 "A10: чужая цель НЕ перезаписана (симлинк ведёт куда вёл)" \
+  bash -c "test \"\$(readlink '$L9RUNS/qwen25-05b-base')\" = '$L9SHARED/elsewhere'"
+expect_exit 0 "A10: отказ выставления записан в status.tsv строкой not_exhibited" \
+  bash -c "grep -qP 'qwen25-05b-base\tnot_exhibited' '$L9SHARED/link-a/status.tsv'"
+#: Подменённая симлинком цель — фикстура этого теста, а не часть выставки: дальше по секции
+#: она не нужна и читалась бы как «ссылка серии», поэтому убирается здесь же.
+rm -f "$L9RUNS/qwen25-05b-base"
+
+# ── 49г. A10: единица done без манифеста — отказ, симлинка нет ────────────────
+expect_exit 2 "A10: единица done без манифеста — код 2" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-b" --link-into-runs "$L9RUNS" --poll 1
+expect_contains "но её манифеста нет" "A10: отказ называет причину (манифеста нет)" \
+  cat "$L9SHARED/link-b/series.log"
+expect_exit 0 "A10: симлинка нет вовсе (выставлять нечего)" \
+  bash -c "test ! -e '$L9RUNS/qwen25-05b-base'"
+expect_exit 0 "A10: и каталог серии в местах выставления не заведён" \
+  bash -c "test ! -e '$L9RUNS/link-b'"
+expect_exit 0 "A10: статус серии записан словом not_verified (а не failed)" \
+  bash -c "grep -qx not_verified '$L9SHARED/link-b/status'"
+
+# ── 49д. A10: выставлять некуда и как назван series-id ────────────────────────
+expect_exit 2 "A10: каталога выставления нет — код 2 (создавать его драйвер не вправе)" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-c" --link-into-runs "$L9/no-such-runs" --poll 1
+expect_contains "нет каталога выставления" "A10: отказ называет путь выставления" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-c" --link-into-runs "$L9/no-such-runs"
+expect_exit 0 "A10: отказ по каталогу выставления снят ДО нагрузки — единица не запускалась" \
+  bash -c "test ! -e '$L9/link-c.marker' && test ! -e '$L9SHARED/link-c/status.tsv'"
+expect_exit 2 "флаг --link-into-runs назван без каталога — код 2" \
+  bash "$DRIVER" --series-dir "$L9SHARED/link-c" --link-into-runs ""
+#: Тот же случай, но флагом ПОСЛЕДНИМ словом: разбор обязан отказать, а не сдвигаться
+#: «в никуда» и крутиться на месте (таймаут в тесте — чтобы зависание было ВИДНО, а не тихо).
+expect_exit 2 "флаг --link-into-runs последним словом (без значения) — код 2, без зависания" \
+  timeout 5 bash "$DRIVER" --series-dir "$L9SHARED/link-c" --link-into-runs
+#: `series-id` читается ИЗ ПЛАНА (имя каталога серии), а не угадывается по имени флага:
+#: план с пустым именем каталога обязан быть назван, а не привести к выставлению «в /».
+python3 - "$L9SHARED/link-d/fork_plan.json" "$L9/plan-no-id.json" <<'PYL9'
+import json, pathlib, sys
+plan = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+plan["series_dir"] = "/"
+pathlib.Path(sys.argv[2]).write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n",
+                                     encoding="utf-8")
+PYL9
+expect_exit 2 "A10: series-id не читается из плана — код 2" \
+  bash "$DRIVER" --plan "$L9/plan-no-id.json" --link-into-runs "$L9RUNS"
+expect_contains "series-id не читается из плана" "A10: отказ называет тождество серии" \
+  bash "$DRIVER" --plan "$L9/plan-no-id.json" --link-into-runs "$L9RUNS"
+expect_exit 0 "A10: и по этому плану ничего не запускалось (отказ до нагрузки)" \
+  bash -c "test ! -e '$L9SHARED/link-d/status.tsv'"
+
+# ── 49е. A10: ни одного файла и симлинка вне фикстуры ─────────────────────────
+expect_exit 0 "ни одного симлинка вне фикстуры: состав симлинков дерева кейса не изменился" \
+  bash -c "find '$CASE_ROOT' -name .git -prune -o -type l -print 2>/dev/null | sort | diff -q - '$L9/case-links.before'"
+expect_exit 0 "ни одного файла вне фикстуры: состав runs/ кейса не изменился" \
+  bash -c "find '$CASE_ROOT/runs' -mindepth 1 -maxdepth 2 -print 2>/dev/null | sort | diff -q - '$L9/case-runs.before'"
+expect_exit 0 "серии фикстуры в runs/ кейса не выставлены (каталог выставления назван явно)" \
+  bash -c "test ! -e '$CASE_ROOT/runs/qwen25-05b-base' && test ! -e '$CASE_ROOT/runs/link-a' && test ! -e '$CASE_ROOT/runs/run-series'"
+
+echo
+echo "== 50. Н-7 дельта 3: плоская выставка и снятие регистра ссылок (ADR-057 поправка 5 / §2.5) =="
+# Предмет: (а) форма выставки — единица лежит РОВНО на один уровень ниже корня регистра
+# (`runs/<имя единицы>`), поэтому гейт C-012, читающий один уровень
+# (`tools/check_run_manifest.py:187` — `runs.iterdir()`), видит манифест единицы через
+# симлинк, а промежуточный каталог серии (он дал бы находку «каталог серии без манифеста»)
+# не заводится; (б) шаг снятия регистра `--unlink-from-runs`: снимается только СВОЯ ссылка
+# (указывающая внутрь каталога серии), чужая цель названа отказом и не удаляется, повтор
+# идемпотентен. Связь единицы с серией живёт в плане, а не в пути.
+#
+# Фикстуры — в каталоге с префиксом дельты (`laguna-n7-delta3`), серия собирается
+# планировщиком в фикстурный `--shared`, единицы исполняются стабом (стенда нет).
+L10="$TMP/laguna-n7-delta3"
+L10SHARED="$L10/shared"
+L10RUNS="$L10/runs"
+mkdir -p "$L10SHARED" "$L10RUNS"
+
+l10_plan() {  # l10_plan <имя серии> <фаза: base|arms>
+  local units=base
+  [ "$2" = "arms" ] && units=arms
+  python3 "$PLANNER" --model-short qwen25-05b --series-dir "$L10SHARED/$1" --shared "$L10SHARED" \
+    --shared-ctr /workspace/shared --write --units "$units" ${3:-} > "$L10/$1.prep.log" 2>&1
+}
+l10_stub() {  # l10_stub <имя серии> <режим стаба>
+  python3 "$N7/retarget.py" "$L10SHARED/$1/fork_plan.json" "$2" \
+    "$N7TOOLS/check_resource_owner.sh" "$L10/$1.marker" >> "$L10/$1.prep.log" 2>&1
+}
+l10_run() { bash "$DRIVER" --series-dir "$L10SHARED/$1" --poll 1 --link-into-runs "$L10RUNS" "${@:2}"; }
+l10_unlink() { bash "$DRIVER" --series-dir "$L10SHARED/$1" --unlink-from-runs "$L10RUNS" "${@:2}"; }
+#: Вывод шага снятия — в файл: он не идемпотентен по СМЫСЛУ сообщений («снято» против
+#: «снимать нечего»), поэтому повторный вызов команды в expect_* читал бы уже другую картину.
+l10_unlink_log() { bash "$DRIVER" --series-dir "$L10SHARED/$1" --unlink-from-runs "$L10RUNS" \
+  > "$L10/$1.unlink.log" 2>&1; }
+l10_gate() { python3 "$CASE_ROOT/tools/check_run_manifest.py" --runs "$L10RUNS" "$@"; }
+
+#: Серия A — ЧЕТЫРЕ единицы (база + k=3 руки, сиды по умолчанию 42,1337,2024): на четырёх
+#: видно, что снятие регистра снимает СОСТАВ серии, а не одну ссылку. Вход рук — стаб-чекпойнт
+#: базы (фаза `base` → `arms`).
+l10_plan ser-a base
+mkdir -p "$L10SHARED/ser-a/qwen25-05b-base/checkpoints"
+printf 'стаб общего SFT-чекпойнта (дельта 3)\n' > "$L10SHARED/ser-a/qwen25-05b-base/checkpoints/sft_checkpoint_final.pt"
+l10_plan ser-a arms --force
+l10_stub ser-a ok
+#: Серия B — та же модель: имена её единиц совпадают с именами единиц A (коллизия имён в
+#: плоском регистре — то, ради чего решение требует отказа, а не перезаписи).
+l10_plan ser-b base
+l10_stub ser-b ok
+#: Серия C — планируется, но не исполняется: на ней проверяется идемпотентное снятие
+#: «ссылок нет» и то, что шаг снятия не пишет прогресс серии (он не нагрузка).
+l10_plan ser-c base
+
+#: Снимок дерева кейса ДО: дельта 3 не оставляет в дереве кейса ни файла, ни симлинка.
+find "$CASE_ROOT" -name .git -prune -o -type l -print 2>/dev/null | sort > "$L10/case-links.before"
+find "$CASE_ROOT/runs" -mindepth 1 -maxdepth 2 -print 2>/dev/null | sort > "$L10/case-runs.before"
+
+# ── 50а. A11: плоская выставка — единица на один уровень ниже корня, гейт её видит ──
+expect_exit 0 "A11: серия из четырёх единиц отработала и выставила их (код 0)" l10_run ser-a
+expect_exit 0 "A11: ссылки всех четырёх единиц лежат в корне регистра" bash -c \
+  "test -L '$L10RUNS/qwen25-05b-base' && test -L '$L10RUNS/qwen25-05b-rl-s42' \
+   && test -L '$L10RUNS/qwen25-05b-rl-s1337' && test -L '$L10RUNS/qwen25-05b-rl-s2024'"
+#: Форма пути: промежуточного каталога серии нет — именно он давал находку гейту.
+expect_exit 0 "A11: промежуточного каталога серии в регистре не заведено (плоско)" \
+  bash -c "test ! -e '$L10RUNS/ser-a'"
+expect_exit 0 "A11: глубже одного уровня под корнем регистра нет ни одной записи" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 2 -print | wc -l)\" -eq 0"
+expect_exit 0 "A11: в регистре ровно столько ссылок, сколько единиц в плане (четыре)" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 -maxdepth 1 -type l | wc -l)\" -eq 4"
+expect_exit 0 "A11: копий артефактов не создано — в регистре одни симлинки" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 -maxdepth 1 ! -type l | wc -l)\" -eq 0"
+#: Главный тест дельты: гейт кейса (правило C-012 — `--runs runs/`) на корне выставки
+#: читает манифест единицы ЧЕРЕЗ симлинк: единица перечислена, находок нет.
+expect_exit 0 "A11: гейт AD-2 на корне регистра — exit 0 (манифест читается через симлинк)" l10_gate
+expect_contains "qwen25-05b-base" "A11: гейт перечисляет выставленную единицу базы поимённо" l10_gate
+expect_contains "qwen25-05b-rl-s1337" "A11: и руку серии — поимённо" l10_gate
+expect_contains "прогонов: 4" "A11: гейт видит все четыре единицы на корне регистра" l10_gate
+expect_contains "RUN MANIFESTS OK" "A11: вердикт гейта на выставке — RUN MANIFESTS OK" l10_gate
+expect_exit 0 "A11: цель ссылки — каталог единицы под --shared (AD-4), а не копия" bash -c \
+  "test \"\$(readlink -f '$L10RUNS/qwen25-05b-rl-s42')\" = \"\$(readlink -f '$L10SHARED/ser-a/qwen25-05b-rl-s42')\""
+expect_exit 0 "A11: гигиена симлинков (C-011) принимает плоский регистр (цели в --shared)" \
+  bash "$CASE_ROOT/tools/check_symlink_hygiene.sh" "$L10RUNS" --shared "$L10SHARED"
+expect_contains "qwen25-05b-base" "A11: гигиена печатает выставленную ссылку поимённо" \
+  bash "$CASE_ROOT/tools/check_symlink_hygiene.sh" "$L10RUNS" --shared "$L10SHARED"
+
+# ── 50б. A11 (контроль): правило C-012 не ослаблено выставкой ─────────────────
+#: Посторонний каталог без манифеста на том же корне обязан краснеть: иначе «гейт зелёный»
+#: читалось бы как «выставка маскирует нарушение», а не как «единица несёт манифест».
+mkdir -p "$L10RUNS/stranger"
+expect_exit 1 "A11 (контроль): посторонний каталог без манифеста — гейт краснеет" l10_gate
+expect_contains "stranger" "A11 (контроль): находка называет посторонний каталог поимённо" l10_gate
+expect_contains "нет run_manifest.json" "A11 (контроль): причина названа (AD-2 не ослаблен)" l10_gate
+expect_contains "нарушений AD-2 — 1" "A11 (контроль): нарушение ровно одно — постороннее" l10_gate
+rmdir "$L10RUNS/stranger"
+expect_exit 0 "A11 (контроль): без постороннего каталога тот же вызов снова зелёный" l10_gate
+
+# ── 50в. A12: коллизия имени единицы между сериями — отказ, цель не изменена ──
+expect_exit 2 "A12: имя единицы занято ссылкой другой серии — код 2" l10_run ser-b
+expect_contains "уже указывает на другой путь" "A12: отказ называет причину и оба пути" \
+  cat "$L10SHARED/ser-b/series.log"
+expect_exit 0 "A12: цель коллизии не изменена (ссылка ведёт в серию A)" bash -c \
+  "test \"\$(readlink -f '$L10RUNS/qwen25-05b-base')\" = \"\$(readlink -f '$L10SHARED/ser-a/qwen25-05b-base')\""
+expect_exit 0 "A12: отказ выставления записан в status.tsv серии B строкой not_exhibited" \
+  bash -c "grep -qP 'qwen25-05b-base\tnot_exhibited' '$L10SHARED/ser-b/status.tsv'"
+
+# ── 50г. A12: чужая ссылка под именем своей единицы — отказ, не удаление ──────
+#: Серия B видит под своим именем единицы ссылку серии A: снять её значило бы снять чужое
+#: утверждение о пути. Отказ называется причиной, ссылка остаётся на месте.
+expect_exit 2 "A12: снятие регистра на чужой ссылке — код 2 (NOT-VERIFIED)" l10_unlink ser-b
+expect_contains "ведёт не внутрь каталога серии" "A12: отказ называет чужую цель" l10_unlink ser-b
+expect_exit 0 "A12: чужая ссылка цела (не удалена)" bash -c \
+  "test \"\$(readlink -f '$L10RUNS/qwen25-05b-base')\" = \"\$(readlink -f '$L10SHARED/ser-a/qwen25-05b-base')\""
+expect_exit 0 "A12: отказ снятия не тронул остальные ссылки серии A" bash -c \
+  "test -L '$L10RUNS/qwen25-05b-rl-s42' && test -L '$L10RUNS/qwen25-05b-rl-s1337'"
+expect_exit 0 "A12: и вердикт гейта после отказа прежний (регистр не пострадал)" l10_gate
+
+# ── 50д. A12: снятие своих ссылок — состав серии, идемпотентность ─────────────
+expect_exit 0 "A12: снятие регистра своей серии — код 0" l10_unlink_log ser-a
+expect_contains "снята своя ссылка" "A12: снятие названо в выводе шага" cat "$L10/ser-a.unlink.log"
+expect_contains "снято 4" "A12: снятие называет состав (снято четыре ссылки серии)" cat "$L10/ser-a.unlink.log"
+expect_exit 0 "A12: сняты ВСЕ ссылки серии (четыре), а не одна" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 -maxdepth 1 -type l | wc -l)\" -eq 0"
+expect_exit 0 "A12: и ни одного постороннего файла регистр не получил" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 | wc -l)\" -eq 0"
+#: Снятие не оставило за собой серию: она на месте, ссылки ушли — то, что нужно перед
+#: переносом/удалением каталога серии (регистр снимается ПЕРВЫМ, ADR-057 §2.5).
+expect_exit 0 "A12: каталог серии при снятии не тронут (снятие — не удаление серии)" \
+  bash -c "test -f '$L10SHARED/ser-a/fork_plan.json'"
+expect_contains "no runs yet" "A12: пустой регистр для гейта — «прогонов нет», а не «зелено по умолчанию»" l10_gate
+expect_exit 0 "A12: повторное снятие идемпотентно — код 0" l10_unlink ser-a
+expect_contains "ссылки нет — снимать нечего" "A12: повтор назван (снимать нечего), а не молчание" l10_unlink ser-a
+expect_exit 0 "A12: серия без единого прогона тоже снимается без ссылок (код 0)" l10_unlink ser-c
+expect_exit 0 "A12: шаг снятия не пишет прогресс серии (он не нагрузка)" bash -c \
+  "test ! -e '$L10SHARED/ser-c/status.tsv' && test ! -e '$L10SHARED/ser-c/var/series.pid'"
+
+#: Снятие — по ВСЕМ единицам плана, а не по подмножеству `--arms`: иначе добор одной руки
+#: оставил бы висячие ссылки остальных. Выставка восстанавливается повторным прогоном
+#: серии (стабы, стенда нет) и снимается с названным `--arms`.
+expect_exit 0 "A12: выставка восстанавливается повторным прогоном серии" l10_run ser-a
+expect_exit 0 "A12: ссылки выставлены снова (четыре)" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 -maxdepth 1 -type l | wc -l)\" -eq 4"
+expect_exit 0 "A12: снятие с --arms снимает регистр ЦЕЛИКОМ (подмножество не оставляет висячих)" \
+  l10_unlink ser-a --arms qwen25-05b-rl-s42
+expect_exit 0 "A12: ссылок в регистре не осталось (ни одной из четырёх)" bash -c \
+  "test \"\$(find '$L10RUNS' -mindepth 1 | wc -l)\" -eq 0"
+
+# ── 50е. A12: границы шага снятия — отказы до действия ────────────────────────
+expect_exit 2 "A12: каталога регистра нет — код 2 (молчаливого успеха нет)" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --unlink-from-runs "$L10/no-such-register"
+expect_contains "нет каталога регистра" "A12: отказ называет путь регистра" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --unlink-from-runs "$L10/no-such-register"
+expect_exit 2 "A12: флаг --unlink-from-runs назван без каталога — код 2" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --unlink-from-runs ""
+#: Тот же случай флагом ПОСЛЕДНИМ словом: разбор обязан отказать, а не сдвинуться «в никуда»
+#: (таймаут — чтобы зависание было ВИДНО, а не тихо). Шаг снятия — не выставление: ошибка
+#: разбора здесь удаляла бы ссылки по чужому пути.
+expect_exit 2 "A12: флаг --unlink-from-runs последним словом — код 2, без зависания" \
+  timeout 5 bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --unlink-from-runs
+expect_exit 2 "A12: выставление и снятие в одном вызове — отказ (разные шаги)" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --link-into-runs "$L10RUNS" --unlink-from-runs "$L10RUNS"
+expect_contains "разные шаги" "A12: отказ называет причину (два шага в одном вызове)" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --link-into-runs "$L10RUNS" --unlink-from-runs "$L10RUNS"
+expect_exit 2 "A12: --print-plan и --unlink-from-runs вместе — отказ, а не «напечатал и снял»" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-a" --print-plan --unlink-from-runs "$L10RUNS"
+expect_exit 2 "A12: нет плана — снятие не начинается (код 2)" \
+  bash "$DRIVER" --series-dir "$L10SHARED/nosuch-series" --unlink-from-runs "$L10RUNS"
+#: Умолчание каталога регистра — `runs/` КЕЙСА, и печать плана называет именно этот путь.
+expect_contains "--unlink-from-runs $CASE_ROOT/runs" "A12: умолчание каталога регистра — runs/ кейса" \
+  bash "$DRIVER" --series-dir "$L10SHARED/ser-c" --print-plan
+expect_exit 0 "A12: печать плана называет снятие, а не только выставление" \
+  bash -c "bash '$DRIVER' --series-dir '$L10SHARED/ser-c' --print-plan | grep -q 'снятие регистра'"
+
+# ── 50ж. A11/A12: ни одного файла и симлинка вне фикстуры ─────────────────────
+expect_exit 0 "A11/A12: ни одного симлинка вне фикстуры (состав дерева кейса не изменился)" \
+  bash -c "find '$CASE_ROOT' -name .git -prune -o -type l -print 2>/dev/null | sort | diff -q - '$L10/case-links.before'"
+expect_exit 0 "A11/A12: ни одного файла вне фикстуры (состав runs/ кейса не изменился)" \
+  bash -c "find '$CASE_ROOT/runs' -mindepth 1 -maxdepth 2 -print 2>/dev/null | sort | diff -q - '$L10/case-runs.before'"
+expect_exit 0 "A11/A12: единицы серий фикстуры в runs/ кейса не выставлены" \
+  bash -c "test ! -e '$CASE_ROOT/runs/qwen25-05b-base' && test ! -e '$CASE_ROOT/runs/ser-a'"
+
 echo "──────────────────────────────────────────────"
 echo "итого: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
 if [ "$FAIL" -gt 0 ]; then

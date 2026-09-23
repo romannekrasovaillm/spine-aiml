@@ -136,7 +136,8 @@ The full tour (RU + EN, mechanism by mechanism) lives in
 - **Executor fleets**: background sub-agents, ralph loops, a worktree
   factory, pattern-based orchestration (ADR-042) with mechanical node gates.
 - **Governance**: R0–R5 autonomy levels, Evidence Bundle as a release gate,
-  metrics (incl. an approval-theater detector), OpenSpec delta-specs.
+  metrics (incl. an approval-theater detector and KV-cache hit-rate by model
+  and session), OpenSpec delta-specs.
 - **LLM-free architecture control**: `control check` (fitness),
   `control score` (significance routing with git-diff anti-bypass),
   `trace check`, `nfr budget/availability/capacity/cost`, an ArchUnit bridge
@@ -144,13 +145,16 @@ The full tour (RU + EN, mechanism by mechanism) lives in
 - **Architecture model**: typed entities (CAP/SYS/CMP/INT/NFR/ADR…),
   referential integrity, export to Structurizr/PlantUML/drawio, ArchiMate.
 - **Handoff to coding harnesses**: `.arch-handoff/` package with a result
-  contract, smart timeouts, rollback rehearsal at gate A4, auto-commit.
+  contract, smart timeouts, rollback rehearsal at gate A4, auto-commit;
+  process or ACP (Agent Client Protocol, ADR-049) transport with live
+  tool/plan/usage projection and session pinning by alias.
 - **MCP server** `arch-ml mcp serve`: 34 architecture-control tools exposed
   to coding agents — a verdict at code-writing time.
 - **SDKs**: thin Python/Rust/Java clients over the headless CLI
   (`sdk/CONTRACT.md`).
 - **TUI**: Tokyo Night, mermaid art on a side tab, mouse selection with
-  auto-copy, message queue, turn interrupt, Word/Excel export.
+  auto-copy, message queue, turn interrupt, Word/Excel export, a "· cache NN%"
+  hit-rate segment in the status bar and the build version on the start splash.
 
 ## CLI
 

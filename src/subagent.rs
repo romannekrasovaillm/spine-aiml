@@ -350,7 +350,16 @@ impl SubagentRegistry {
                 tool_ctx.clone(),
                 system,
             );
-            let result = session.send(&user, None).await;
+            // Внутренний канал событий с дренажем: потребителя у субагента
+            // нет, но по стрим-пути (agent.stream=true) так доезжают usage
+            // провайдера (иначе сессия идёт не-стрим `complete` и токены,
+            // включая hit-rate кэша, теряются). Без дренажа форвардер
+            // остановится на первом же событии и usage не дойдёт.
+            let (ev_tx, mut ev_rx) = tokio::sync::mpsc::channel::<crate::agent::AgentEvent>(64);
+            let drain = tokio::spawn(async move { while ev_rx.recv().await.is_some() {} });
+            let result = session.send(&user, Some(ev_tx)).await;
+            let _ = drain.await;
+            let usage = session.session_usage();
             let (status, report) = match result {
                 Ok(text) => (TaskStatus::Done, text),
                 Err(e) => (
@@ -366,14 +375,34 @@ impl SubagentRegistry {
             if let Some(t) = registry.get(&task_id) {
                 let dir = tool_ctx.config.paths.reports_dir.join("subagents");
                 let path = dir.join(format!("{task_id}.md"));
+                // Сводка токенов — только если провайдер присылал usage;
+                // hit-rate кэша — когда API отдал cached_tokens (DeepSeek
+                // всегда, OpenAI — prompt_tokens_details).
+                let usage_line = if usage.prompt_tokens + usage.completion_tokens > 0 {
+                    let cache = usage.cached_tokens.map_or_else(String::new, |c| {
+                        let pct = if usage.prompt_tokens > 0 {
+                            100.0 * c as f64 / usage.prompt_tokens as f64
+                        } else {
+                            0.0
+                        };
+                        format!(", кэш {c} ({pct:.0}% hit)")
+                    });
+                    format!(
+                        "- токены: prompt {}, completion {}{}\n",
+                        usage.prompt_tokens, usage.completion_tokens, cache
+                    )
+                } else {
+                    String::new()
+                };
                 let body = format!(
-                    "# Субагент {} ({})\n\n- задача: {}\n- старт: {}\n- финиш: {}\n- статус: {}\n\n{}\n",
+                    "# Субагент {} ({})\n\n- задача: {}\n- старт: {}\n- финиш: {}\n- статус: {}\n{}\n{}\n",
                     t.id,
                     t.agent,
                     t.task,
                     t.started_at,
                     t.finished_at.as_deref().unwrap_or(""),
                     status.as_str(),
+                    usage_line,
                     report
                 );
                 if let Err(e) =
@@ -742,6 +771,42 @@ mod tests {
         }
     }
 
+    /// Провайдер со стрим-usage и полем кэша (как `openai_compat` со
+    /// `stream_options.include_usage` + `prompt_cache_hit_tokens` `DeepSeek`).
+    #[derive(Debug)]
+    struct CachedLlm;
+
+    #[async_trait]
+    impl LlmProvider for CachedLlm {
+        fn name(&self) -> &'static str {
+            "cached"
+        }
+        fn model(&self) -> &'static str {
+            "cached-1"
+        }
+        async fn complete(&self, _req: ChatRequest) -> Result<ChatMessage> {
+            Ok(ChatMessage::assistant("ОТЧЁТ: готово", Vec::new()))
+        }
+        async fn stream(
+            &self,
+            req: ChatRequest,
+            tx: tokio::sync::mpsc::Sender<crate::llm::LlmEvent>,
+        ) -> Result<ChatMessage> {
+            let msg = self.complete(req).await?;
+            let _ = tx
+                .send(crate::llm::LlmEvent::Delta(msg.content.clone()))
+                .await;
+            let _ = tx
+                .send(crate::llm::LlmEvent::Done(crate::llm::Usage {
+                    prompt_tokens: 1000,
+                    completion_tokens: 20,
+                    cached_tokens: Some(800),
+                }))
+                .await;
+            Ok(msg)
+        }
+    }
+
     /// Провайдер, который «думает» бесконечно (для теста лимита слотов).
     #[derive(Debug)]
     struct SlowLlm;
@@ -892,6 +957,38 @@ mod tests {
         // Отчёт продублирован файлом.
         let file = tmp.path().join(format!("reports/subagents/{id}.md"));
         assert!(file.is_file(), "нет файла отчёта: {}", file.display());
+        // FakeLlm usage не отдаёт — строки токенов в отчёте нет.
+        let body = std::fs::read_to_string(&file).expect("чтение отчёта");
+        assert!(!body.contains("- токены:"), "{body}");
+    }
+
+    #[tokio::test]
+    async fn report_file_carries_usage_and_cache_hit_rate() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let registry = SubagentRegistry::new();
+        let ctx = test_ctx(tmp.path()).with_subagents(registry.clone());
+        let id = registry
+            .launch(&general_spec(), "проверь", None, Arc::new(CachedLlm), ctx)
+            .expect("launch");
+        // Дожидаемся завершения фоновой задачи.
+        let mut done = false;
+        for _ in 0..100 {
+            if registry
+                .get(&id)
+                .is_some_and(|t| t.status != TaskStatus::Running)
+            {
+                done = true;
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert!(done, "задача завершилась");
+        let file = tmp.path().join(format!("reports/subagents/{id}.md"));
+        let body = std::fs::read_to_string(&file).expect("чтение отчёта");
+        assert!(
+            body.contains("- токены: prompt 1000, completion 20, кэш 800 (80% hit)"),
+            "{body}"
+        );
     }
 
     #[tokio::test]

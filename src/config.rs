@@ -618,6 +618,33 @@ pub struct CodingHarnessConfig {
     /// и мусора вида `__pycache__/`). Работа исполнителя всегда оказывается
     /// в git — это точка интеграции параллельных прогонов.
     pub auto_commit: bool,
+    /// Транспорт прогона: отсутствует — процессный (задача через argv/stdin,
+    /// ответ — stdout по итогу); `"acp"` — Agent Client Protocol v1 (ndjson
+    /// JSON-RPC поверх stdio, ADR-049): живые `session/update` (видимость
+    /// хода в логе), `session/resume` (контекст между прогонами), структурные
+    /// разрешения и `usage_update`. В ACP-режиме `prompt_mode` не применяется:
+    /// задача уходит через `session/prompt`, аргументы запуска — `args` как
+    /// есть (например `binary="kimi"`, `args=["acp"]`).
+    #[serde(default)]
+    pub transport: Option<String>,
+    /// ACP: алиас закреплённой сессии — политика «возобновить-или-создать»
+    /// (ADR-049). None (дефолт) — каждый прогон открывает СВЕЖУЮ сессию
+    /// (`session/new`): продолжение контекста — всегда осознанный выбор по
+    /// имени. С алиасом: первый прогон открывает новую сессию и запоминает
+    /// её за алиасом (карта `state/acp-sessions.json` в домашнем каталоге
+    /// arch-ml), следующие продолжают контекст (`session/resume`);
+    /// недоступная сессия или агент без `sessionCapabilities.resume` — не
+    /// ошибка, а новая сессия с пометкой в логе прогона. Ключ карты —
+    /// `харнесс/алиас`: одинаковые алиасы у разных харнессов не пересекаются.
+    #[serde(default)]
+    pub acp_session: Option<String>,
+    /// ACP: политика ответов на `session/request_permission` (агент спрашивает
+    /// разрешение на tool-вызов; без ответа он ждёт вечно):
+    /// `"readonly_auto"` (дефолт) — `read`/`search`/`think`/`fetch`
+    /// разрешаются автоматически, остальное отклоняется; `"deny"` — всё
+    /// отклонять; `"allow_all"` — всё разрешать.
+    #[serde(default)]
+    pub acp_permission: Option<String>,
 }
 
 impl Default for CodingHarnessConfig {
@@ -631,6 +658,9 @@ impl Default for CodingHarnessConfig {
             timeout_secs: 1800,
             idle_timeout_secs: 600,
             auto_commit: true,
+            transport: None,
+            acp_session: None,
+            acp_permission: None,
         }
     }
 }

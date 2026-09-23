@@ -1005,6 +1005,20 @@ struct StreamUsage {
     prompt_tokens: u64,
     #[serde(default)]
     completion_tokens: u64,
+    /// Попадание промпта в кэш провайдера (форма `DeepSeek`).
+    #[serde(default)]
+    prompt_cache_hit_tokens: Option<u64>,
+    /// Детализация токенов промпта (OpenAI-форма, внутри — `cached_tokens`).
+    #[serde(default)]
+    prompt_tokens_details: Option<PromptTokensDetails>,
+}
+
+/// Детализация токенов промпта в OpenAI-форме (`prompt_tokens_details`).
+#[derive(Debug, Deserialize)]
+struct PromptTokensDetails {
+    /// Токены, прочитанные из кэша провайдера.
+    #[serde(default)]
+    cached_tokens: Option<u64>,
 }
 
 /// Накопленные части одного вызова инструмента из стрима.
@@ -1103,6 +1117,12 @@ impl StreamAcc {
             self.usage = Usage {
                 prompt_tokens: usage.prompt_tokens,
                 completion_tokens: usage.completion_tokens,
+                // Кэш: форма DeepSeek (`prompt_cache_hit_tokens`) приоритетнее
+                // OpenAI-формы (`prompt_tokens_details.cached_tokens`).
+                cached_tokens: usage.prompt_cache_hit_tokens.or(usage
+                    .prompt_tokens_details
+                    .as_ref()
+                    .and_then(|d| d.cached_tokens)),
             };
         }
         if text.is_empty() && reasoning.is_empty() {
@@ -1728,12 +1748,53 @@ data: [DONE]\n\n";
             .collect();
         assert_eq!(text, "Hello");
         assert!(
-            matches!(events.last(), Some(LlmEvent::Done(u)) if *u == Usage { prompt_tokens: 12, completion_tokens: 2 }),
+            matches!(events.last(), Some(LlmEvent::Done(u)) if *u == Usage { prompt_tokens: 12, completion_tokens: 2, cached_tokens: None }),
             "events: {events:?}"
         );
         let msg = acc.finish();
         assert_eq!(msg.content, "Hello");
         assert!(msg.tool_calls.is_empty());
+    }
+
+    /// Прогон одного SSE-потока через декодер; возвращает usage из `Done`.
+    fn decode_done_usage(raw: &str) -> Usage {
+        let mut decoder = SseDecoder::default();
+        let mut acc = StreamAcc::default();
+        let events = decoder.feed(raw.as_bytes(), &mut acc).expect("feed");
+        events
+            .into_iter()
+            .find_map(|e| match e {
+                LlmEvent::Done(u) => Some(u),
+                LlmEvent::Delta(_) | LlmEvent::ReasoningDelta(_) | LlmEvent::Note(_) => None,
+            })
+            .expect("событие Done")
+    }
+
+    #[test]
+    fn sse_decoder_maps_deepseek_cache_hit_tokens() {
+        // Форма DeepSeek: `prompt_cache_hit_tokens` / `prompt_cache_miss_tokens`
+        // в финальном usage-чанке.
+        let raw = "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":5,\"prompt_cache_hit_tokens\":80,\"prompt_cache_miss_tokens\":20}}\n\ndata: [DONE]\n\n";
+        let usage = decode_done_usage(raw);
+        assert_eq!(usage.cached_tokens, Some(80));
+        assert_eq!(usage.prompt_tokens, 100);
+        assert_eq!(usage.completion_tokens, 5);
+    }
+
+    #[test]
+    fn sse_decoder_maps_openai_prompt_tokens_details() {
+        // Форма OpenAI: вложенный объект `prompt_tokens_details.cached_tokens`.
+        let raw = "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":5,\"prompt_tokens_details\":{\"cached_tokens\":42}}}\n\ndata: [DONE]\n\n";
+        let usage = decode_done_usage(raw);
+        assert_eq!(usage.cached_tokens, Some(42));
+    }
+
+    #[test]
+    fn sse_decoder_without_cache_fields_yields_none() {
+        // Провайдер не отдал ни одной из форм — кэш неизвестен (None).
+        let raw = "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":5}}\n\ndata: [DONE]\n\n";
+        let usage = decode_done_usage(raw);
+        assert_eq!(usage.cached_tokens, None);
     }
 
     #[test]
@@ -1969,7 +2030,7 @@ data: [DONE]\n\n";
         assert!(matches!(&events[0], LlmEvent::Delta(t) if t == "При"));
         assert!(matches!(&events[1], LlmEvent::Delta(t) if t == "вет"));
         assert!(
-            matches!(&events[2], LlmEvent::Done(u) if *u == Usage { prompt_tokens: 7, completion_tokens: 3 })
+            matches!(&events[2], LlmEvent::Done(u) if *u == Usage { prompt_tokens: 7, completion_tokens: 3, cached_tokens: None })
         );
     }
 

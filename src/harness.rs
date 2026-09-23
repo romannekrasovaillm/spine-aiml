@@ -23,6 +23,7 @@
 //!   сразу (задача `hr-*` в общем реестре фоновых задач), агент остаётся
 //!   доступным пользователю, результат — через `subagent_result`.
 
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::io::ErrorKind;
@@ -1235,6 +1236,12 @@ async fn run_harness_inner(
         })
     }
 
+    // ACP-транспорт (ADR-049): протокольная сессия вместо процессного
+    // «запустил — жди stdout» (живые обновления, resume контекста).
+    if cfg.transport.as_deref() == Some("acp") {
+        return run_acp_turn(name, cfg, repo, task, on_activity, control, output_tail).await;
+    }
+
     let (argv, stdin_data) = build_argv(cfg, task);
     let mut cmd = Command::new(&cfg.binary);
     cmd.args(&argv).current_dir(repo);
@@ -1417,6 +1424,622 @@ async fn run_harness_inner(
         harness: name.into(),
         exit_code: child.try_wait().ok().flatten().and_then(|s| s.code()),
         stdout,
+        stderr,
+        duration_secs: started.elapsed().as_secs_f64(),
+        termination,
+        auto_commit,
+        contract,
+    })
+}
+
+/// Таймаут handshake-вызовов ACP (initialize, session/new, session/resume):
+/// запуск харнесса занимает секунды; минута — щедрый потолок на холодный
+/// старт агента.
+const ACP_CALL_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Грейс после `session/cancel`: агент завершает текущий tool-вызов и
+/// отвечает `stopReason="cancelled"`, затем процессная группа убивается.
+const ACP_CANCEL_GRACE: Duration = Duration::from_secs(5);
+
+/// Живой хвост для TUI-прогресса (ошибка блокировки осознанно теряет кусок:
+/// хвост — диагностика, не данные).
+fn acp_tail_push(tail: &Option<Arc<Mutex<TailBuffer>>>, text: &str) {
+    if let Some(t) = tail {
+        if let Ok(mut g) = t.lock() {
+            g.push(text.as_bytes());
+        }
+    }
+}
+
+/// Состояние проекции `session/update`: склейка потокенных «мыслей» в одну
+/// строку и дедупликация `tool_call_update` (агенты шлют частичные
+/// обновления — только со статусом, без заголовка/вида).
+#[derive(Default)]
+struct AcpProjection {
+    /// Накопленные куски «мыслей», ещё не записанные в лог (агент стримит
+    /// их потокенно — строка на токен превращала лог в шум).
+    thought_buf: String,
+    /// Последнее залогированное состояние tool-вызова: id → (title, kind,
+    /// status); пустой id — общий ключ (частичные обновления без id
+    /// схлопываются в одну запись).
+    tool_seen: HashMap<String, (String, String, String)>,
+}
+
+impl AcpProjection {
+    /// Сбрасывает накопленные «мысли» одной усечённой строкой в лог.
+    fn flush_thoughts(&mut self, log: &mut String) {
+        if self.thought_buf.trim().is_empty() {
+            return;
+        }
+        let flat = self
+            .thought_buf
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        let short: String = flat.chars().take(160).collect();
+        let ellipsis = if flat.chars().count() > 160 {
+            "…"
+        } else {
+            ""
+        };
+        let _ = writeln!(log, "[acp] мысль: {short}{ellipsis}");
+        self.thought_buf.clear();
+    }
+}
+
+/// Применяет проекцию `session/update` к буферам прогона: видимый текст — в
+/// Последнее известное usage ACP-хода: (used, size, cost, `cached_tokens`).
+type AcpUsageSeen = (Option<u64>, Option<u64>, Option<String>, Option<u64>);
+
+/// `stdout` (там его найдёт разбор контракта результата), служебные строки —
+/// в лог (stderr-канал [`HarnessRun`], per-agent лог флота).
+fn acp_apply_update(
+    update: crate::acp::AcpUpdate,
+    proj: &mut AcpProjection,
+    stdout: &mut String,
+    log: &mut String,
+    tail: &Option<Arc<Mutex<TailBuffer>>>,
+    last_usage: &mut Option<AcpUsageSeen>,
+) {
+    use crate::acp::AcpUpdate;
+    match update {
+        AcpUpdate::Text(t) => {
+            proj.flush_thoughts(log);
+            stdout.push_str(&t);
+            acp_tail_push(tail, &t);
+        }
+        AcpUpdate::Thought(t) => {
+            proj.thought_buf.push_str(&t);
+        }
+        AcpUpdate::ToolCall {
+            id,
+            title,
+            kind,
+            status,
+        } => {
+            proj.flush_thoughts(log);
+            // Частичное обновление: достраиваем известным заголовком/видом,
+            // логируем только изменения (иначе поток tool_call_update с
+            // одним статусом зашумляет лог).
+            let seen = proj.tool_seen.entry(id).or_default();
+            let mut title = title;
+            let mut kind = kind;
+            let mut changed = false;
+            if title.is_empty() {
+                title = seen.0.clone();
+            } else if seen.0 != title {
+                seen.0.clone_from(&title);
+                changed = true;
+            }
+            if kind.is_empty() {
+                kind = seen.1.clone();
+            } else if seen.1 != kind {
+                seen.1.clone_from(&kind);
+                changed = true;
+            }
+            let status = if status.is_empty() {
+                "in_progress".to_string()
+            } else {
+                status
+            };
+            if seen.2 != status {
+                seen.2.clone_from(&status);
+                changed = true;
+            }
+            if !changed {
+                return;
+            }
+            // Совсем пустое (ни заголовка, ни вида) интересно только в
+            // терминальном статусе.
+            if title.is_empty()
+                && kind.is_empty()
+                && !matches!(status.as_str(), "completed" | "failed")
+            {
+                return;
+            }
+            let line = format!(
+                "[acp] tool {} {} — {}",
+                if kind.is_empty() { "other" } else { &kind },
+                title,
+                status
+            );
+            acp_tail_push(tail, &line);
+            let _ = writeln!(log, "{line}");
+        }
+        AcpUpdate::Plan(entries) => {
+            proj.flush_thoughts(log);
+            let _ = writeln!(log, "[acp] план ({} пунктов):", entries.len());
+            for entry in entries {
+                let _ = writeln!(log, "[acp]   - {entry}");
+            }
+        }
+        AcpUpdate::Usage {
+            used,
+            size,
+            cost,
+            cached,
+        } => {
+            proj.flush_thoughts(log);
+            *last_usage = Some((used, size, cost.clone(), cached));
+            let mut line = format!(
+                "[acp] usage: used {} / size {}",
+                used.map_or("?".into(), |v| v.to_string()),
+                size.map_or("?".into(), |v| v.to_string())
+            );
+            if let Some(cached_tokens) = cached {
+                match used {
+                    Some(u) if u > 0 => {
+                        let pct = 100.0 * cached_tokens as f64 / u as f64;
+                        let _ = write!(line, ", кэш {cached_tokens} ({pct:.0}% hit)");
+                    }
+                    _ => {
+                        let _ = write!(line, ", кэш {cached_tokens}");
+                    }
+                }
+            }
+            if let Some(c) = cost {
+                let _ = write!(line, ", cost {c}");
+            }
+            let _ = writeln!(log, "{line}");
+        }
+        // Прочие варианты — только факт активности (учтён вызывающим).
+        AcpUpdate::Other(_) => {}
+    }
+}
+
+/// Отмена ACP-хода: `session/cancel`, грейс на корректную остановку агента
+/// (до [`ACP_CANCEL_GRACE`], выход раньше, если процесс завершился), затем
+/// уничтожение процессной группы. Отправка cancel — best effort: транспорт
+/// мог уже умереть.
+async fn acp_cancel_and_kill(agent: &mut crate::acp::AcpAgent, session_id: &str) {
+    let _ = agent.conn.session_cancel(session_id).await;
+    let deadline = Instant::now() + ACP_CANCEL_GRACE;
+    while Instant::now() < deadline {
+        if agent.child.try_wait().ok().flatten().is_some() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    kill_process_group(agent.pid, &mut agent.child).await;
+}
+
+/// Исход открытия ACP-сессии: что логируем и что пишем в карту
+/// закреплённых сессий (политика контекста ADR-049).
+enum SessionStart {
+    /// Свежая сессия без алиаса (дефолт).
+    Fresh(String),
+    /// Новая сессия, закреплённая за алиасом (первый прогон с алиасом).
+    PinnedNew {
+        /// sessionId от `session/new`.
+        id: String,
+        /// Номер прогона в контексте (всегда 1).
+        runs: u64,
+    },
+    /// Возобновлённая по алиасу сессия.
+    Resumed {
+        /// sessionId из карты.
+        id: String,
+        /// Номер прогона в контексте (прошлые + 1).
+        runs: u64,
+    },
+    /// Закреплённая сессия недоступна (мёртвая/агент без resume): открыта
+    /// новая и перезакреплена; причина — в `note`.
+    Recreated {
+        /// sessionId от `session/new`.
+        id: String,
+        /// Номер прогона в контексте (всегда 1).
+        runs: u64,
+        /// Причина пересоздания (для лога).
+        note: String,
+    },
+}
+
+impl SessionStart {
+    /// sessionId открытой сессии.
+    fn session_id(&self) -> &str {
+        match self {
+            Self::Fresh(id)
+            | Self::PinnedNew { id, .. }
+            | Self::Resumed { id, .. }
+            | Self::Recreated { id, .. } => id,
+        }
+    }
+
+    /// Номер прогона для записи в карту; None у `Fresh` (без алиаса карта
+    /// не ведётся).
+    fn runs(&self) -> Option<u64> {
+        match self {
+            Self::Fresh(_) => None,
+            Self::PinnedNew { runs, .. }
+            | Self::Resumed { runs, .. }
+            | Self::Recreated { runs, .. } => Some(*runs),
+        }
+    }
+}
+
+/// ACP-прогон харнесса (`transport = "acp"`, ADR-049): `initialize` →
+/// `session/new`|`session/resume` → `session/prompt` с живыми
+/// `session/update`. Харнесс при этом — долгоживущий сервер: «прогон» здесь
+/// — один ХОД сессии, по завершении которого сессия закрывается (если агент
+/// умеет `session/close`), а процесс гасится (код возврата проецируется из
+/// исхода хода, а не из статуса убитого сервера).
+///
+/// Политика контекста: без `acp_session` каждый прогон открывает СВЕЖУЮ
+/// сессию; с алиасом — «возобновить-или-создать» (карта алиас→sessionId в
+/// `state/acp-sessions.json`, недоступная сессия заменяется свежей с
+/// пометкой в логе). Факт выбора виден строкой `[acp] session: …`.
+///
+/// Текст ответа собирается в `stdout` прогона — разбор контракта результата,
+/// отчёты и авто-коммит работают без изменений. Проекция
+/// `tool_call`/`plan`/`usage` и служебные строки идут в `stderr` прогона:
+/// per-agent лог флота складывается из stdout+stderr, а stdout остаётся
+/// чистым для контракта.
+///
+/// Таймауты зеркалят процессный режим: абсолютный потолок `timeout_secs`,
+/// тишина `idle_timeout_secs` (активность = любой входящий ACP-кадр ИЛИ свежие
+/// mtime файлов репозитория). По прерыванию агенту шлётся `session/cancel`,
+/// после грейса убивается процессная группа — осиротевших процессов нет.
+#[allow(clippy::too_many_lines)]
+async fn run_acp_turn(
+    name: &str,
+    cfg: &CodingHarnessConfig,
+    repo: &Path,
+    task: &str,
+    on_activity: Option<std::sync::Arc<dyn Fn() + Send + Sync>>,
+    control: Option<std::sync::Arc<HarnessControl>>,
+    output_tail: Option<Arc<Mutex<TailBuffer>>>,
+) -> Result<HarnessRun> {
+    use crate::acp::{
+        AcpAgent, AcpSessionPlan, AcpSessionStore, PermissionPolicy, plan_session_start,
+    };
+    use tokio::sync::oneshot::error::TryRecvError;
+
+    let policy = PermissionPolicy::parse(cfg.acp_permission.as_deref())?;
+    let (updates_tx, mut updates_rx) = tokio::sync::mpsc::unbounded_channel();
+
+    // Запуск: args идут как есть (промпт уходит протоколом, не argv/stdin);
+    // изоляция окружения — те же правила, что у процессного транспорта.
+    let mut cmd = Command::new(&cfg.binary);
+    cmd.args(&cfg.args).current_dir(repo);
+    if !cfg.env_allow.is_empty() {
+        cmd.env_clear();
+        for var in &cfg.env_allow {
+            if let Ok(v) = std::env::var(var) {
+                cmd.env(var, v);
+            }
+        }
+    }
+    cmd.envs(&cfg.env);
+    if !cfg.env.contains_key(RUSTC_WRAPPER_ENV) {
+        let _ = apply_rustc_wrapper(&mut cmd, std::env::var_os(RUSTC_WRAPPER_ENV).as_deref());
+    }
+    let mut agent = AcpAgent::spawn(cmd, &cfg.binary, name, updates_tx, policy)?;
+
+    let started = Instant::now();
+    let mut log = String::new();
+    let mut stdout_text = String::new();
+    let mut proj = AcpProjection::default();
+    let mut last_usage: Option<AcpUsageSeen> = None;
+
+    // Handshake: initialize → способности; сессия — по политике контекста
+    // (ADR-049): без acp_session всегда СВЕЖАЯ (session/new); с алиасом —
+    // «возобновить-или-создать» из карты закреплённых сессий: мёртвая
+    // сессия или агент без resume — не отказ прогона, а новая сессия с
+    // пометкой в логе. Провал handshake — прогон не состоялся: Err (как
+    // сбой запуска процессного транспорта), процесс добиваем.
+    let cwd = repo.to_string_lossy().into_owned();
+    let alias = cfg.acp_session.as_deref();
+    let mut store = alias.map(|_| AcpSessionStore::load(&AcpSessionStore::default_path()));
+    let handshake = async {
+        let caps = agent.conn.initialize(ACP_CALL_TIMEOUT).await?;
+        let pinned = alias.and_then(|a| store.as_ref().and_then(|s| s.get(name, a).cloned()));
+        let start = match plan_session_start(alias, pinned.as_ref(), caps.resume) {
+            AcpSessionPlan::Fresh => {
+                SessionStart::Fresh(agent.conn.session_new(&cwd, ACP_CALL_TIMEOUT).await?)
+            }
+            AcpSessionPlan::PinNew => SessionStart::PinnedNew {
+                id: agent.conn.session_new(&cwd, ACP_CALL_TIMEOUT).await?,
+                runs: 1,
+            },
+            AcpSessionPlan::Resume(pinned_id) => {
+                match agent
+                    .conn
+                    .session_resume(&pinned_id, &cwd, ACP_CALL_TIMEOUT)
+                    .await
+                {
+                    Ok(()) => SessionStart::Resumed {
+                        runs: pinned.as_ref().map_or(1, |e| e.runs) + 1,
+                        id: pinned_id,
+                    },
+                    Err(e) => SessionStart::Recreated {
+                        id: agent.conn.session_new(&cwd, ACP_CALL_TIMEOUT).await?,
+                        runs: 1,
+                        note: format!("session/resume: {e}"),
+                    },
+                }
+            }
+            AcpSessionPlan::NewWithoutResume => SessionStart::Recreated {
+                id: agent.conn.session_new(&cwd, ACP_CALL_TIMEOUT).await?,
+                runs: 1,
+                note: format!(
+                    "агент '{name}' не поддерживает session/resume (sessionCapabilities.resume=false)"
+                ),
+            },
+        };
+        Ok::<_, HarnessError>((caps, start))
+    };
+    let (caps, start) = match handshake.await {
+        Ok(v) => v,
+        Err(e) => {
+            kill_process_group(agent.pid, &mut agent.child).await;
+            return Err(e);
+        }
+    };
+
+    // Закрепление в карте (best effort: сбой карты не роняет прогон) и
+    // строка лога — политика контекста видима в каждом прогоне.
+    let session_id = start.session_id().to_string();
+    let session_note = match &start {
+        SessionStart::Fresh(_) => format!(
+            "свежая; продолжение контекста — acp_session = \"<алиас>\" в [harnesses.{name}]"
+        ),
+        SessionStart::PinnedNew { .. } => format!(
+            "новая, закреплена за алиасом '{}' — следующие прогоны продолжат этот контекст",
+            alias.unwrap_or_default()
+        ),
+        SessionStart::Resumed { runs, .. } => format!(
+            "алиас '{}': возобновлена, прогон #{runs} в этом контексте",
+            alias.unwrap_or_default()
+        ),
+        SessionStart::Recreated { note, .. } => format!(
+            "новая вместо закреплённой за алиасом '{}' ({note}); алиас перезакреплён",
+            alias.unwrap_or_default()
+        ),
+    };
+    if let (Some(store), Some(a), Some(runs)) = (store.as_mut(), alias, start.runs()) {
+        store.record(name, a, &session_id, runs);
+        if let Err(e) = store.save() {
+            let _ = writeln!(log, "[acp] не удалось сохранить карту сессий: {e}");
+        }
+    }
+    let session_line = format!("[acp] session: {session_id} ({session_note})");
+    acp_tail_push(&output_tail, &session_line);
+    let _ = writeln!(log, "{session_line}");
+
+    // Старт хода; ответ опрашиваем в цикле таймаутов (try_recv).
+    let mut prompt_rx = match agent.conn.prompt_start(&session_id, task).await {
+        Ok(rx) => rx,
+        Err(e) => {
+            kill_process_group(agent.pid, &mut agent.child).await;
+            return Err(e);
+        }
+    };
+
+    let abs_limit = Duration::from_secs(cfg.timeout_secs.max(1));
+    let idle_limit =
+        (cfg.idle_timeout_secs > 0).then(|| Duration::from_secs(cfg.idle_timeout_secs));
+    // Те же параметры файлового heartbeat, что у процессного режима.
+    let scan_interval = idle_limit.map_or(Duration::from_secs(15), |i| {
+        (i / 4).clamp(Duration::from_secs(1), Duration::from_secs(15))
+    });
+    let mut last_scan = std::time::SystemTime::now();
+    let mut scan_due = Instant::now();
+    let mut activity = Instant::now();
+    let last_frame = agent.conn.last_frame();
+    let mut stopped = false;
+    // Исход разрешённого хода: Ok(stopReason) | Err(текст ошибки); None —
+    // ход не завершился (прерван нами).
+    let mut outcome: Option<std::result::Result<String, String>> = None;
+
+    let termination = loop {
+        // Ответ на prompt пришёл?
+        match prompt_rx.try_recv() {
+            Ok(response) => {
+                outcome = Some(if let Some(error) = response.get("error") {
+                    let msg = error
+                        .get("message")
+                        .and_then(Value::as_str)
+                        .unwrap_or("без сообщения");
+                    Err(format!("session/prompt отклонён агентом: {msg}"))
+                } else {
+                    Ok(response
+                        .pointer("/result/stopReason")
+                        .and_then(Value::as_str)
+                        .unwrap_or("end_turn")
+                        .to_string())
+                });
+                break Termination::Completed;
+            }
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Closed) => {
+                outcome = Some(Err(
+                    "acp: соединение с агентом закрылось до ответа на session/prompt".into(),
+                ));
+                break Termination::Completed;
+            }
+        }
+        // Слив проекций обновлений (активность + heartbeat для флота).
+        while let Ok(update) = updates_rx.try_recv() {
+            activity = Instant::now();
+            if let Some(cb) = &on_activity {
+                cb();
+            }
+            acp_apply_update(
+                update,
+                &mut proj,
+                &mut stdout_text,
+                &mut log,
+                &output_tail,
+                &mut last_usage,
+            );
+        }
+        // Процесс жив? (завершение до ответа на prompt — аварийный исход).
+        match agent.child.try_wait() {
+            Ok(Some(status)) => {
+                outcome = Some(Err(format!(
+                    "acp: агент завершился (код {:?}) до ответа на session/prompt",
+                    status.code()
+                )));
+                break Termination::Completed;
+            }
+            Ok(None) => {}
+            Err(e) => {
+                kill_process_group(agent.pid, &mut agent.child).await;
+                return Err(HarnessError::Harness(format!(
+                    "сбой ожидания '{}': {e}",
+                    cfg.binary
+                )));
+            }
+        }
+        // Сигнал отмены (control-канал флота): Kill.
+        if control
+            .as_ref()
+            .is_some_and(|c| c.cancel.load(Ordering::Relaxed))
+        {
+            acp_cancel_and_kill(&mut agent, &session_id).await;
+            break Termination::Canceled;
+        }
+        // Пауза (Pause/Resume): SIGSTOP при включении, SIGCONT при снятии.
+        let want_pause = control
+            .as_ref()
+            .is_some_and(|c| c.paused.load(Ordering::Relaxed));
+        if want_pause != stopped {
+            signal_process_group(agent.pid, if want_pause { "-STOP" } else { "-CONT" });
+            stopped = want_pause;
+        }
+        // Абсолютный потолок.
+        if started.elapsed() >= abs_limit {
+            acp_cancel_and_kill(&mut agent, &session_id).await;
+            break Termination::AbsoluteTimeout;
+        }
+        // Таймаут тишины: нет ни кадров ACP, ни файловой активности репо.
+        if let Some(idle) = idle_limit {
+            if Instant::now() >= scan_due {
+                scan_due = Instant::now() + scan_interval;
+                let scan_start = std::time::SystemTime::now();
+                if repo_changed_since(repo, last_scan) {
+                    activity = Instant::now();
+                    if let Some(cb) = &on_activity {
+                        cb();
+                    }
+                }
+                last_scan = scan_start;
+            }
+            let frame_at = *last_frame
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if frame_at > activity {
+                activity = frame_at;
+            }
+            if activity.elapsed() >= idle {
+                acp_cancel_and_kill(&mut agent, &session_id).await;
+                break Termination::IdleTimeout;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    };
+
+    // Добираем обновления, пришедшие вслед за финальным ответом.
+    while let Ok(update) = updates_rx.try_recv() {
+        acp_apply_update(
+            update,
+            &mut proj,
+            &mut stdout_text,
+            &mut log,
+            &output_tail,
+            &mut last_usage,
+        );
+    }
+    proj.flush_thoughts(&mut log);
+
+    // Агент — сервер: после хода сессию закрываем (если умеет), процесс гасим.
+    if termination == Termination::Completed {
+        if caps.close {
+            let _ = agent
+                .conn
+                .session_close(&session_id, ACP_CALL_TIMEOUT)
+                .await;
+        }
+        kill_process_group(agent.pid, &mut agent.child).await;
+    }
+    if let Some((used, size, cost, cached)) = &last_usage {
+        let mut line = format!(
+            "[acp] usage (итог): used {} / size {}",
+            used.map_or("?".into(), |v| v.to_string()),
+            size.map_or("?".into(), |v| v.to_string())
+        );
+        if let Some(cached_tokens) = cached {
+            match used {
+                Some(u) if *u > 0 => {
+                    let pct = 100.0 * *cached_tokens as f64 / *u as f64;
+                    let _ = write!(line, ", кэш {cached_tokens} ({pct:.0}% hit)");
+                }
+                _ => {
+                    let _ = write!(line, ", кэш {cached_tokens}");
+                }
+            }
+        }
+        if let Some(c) = cost {
+            let _ = write!(line, ", cost {c}");
+        }
+        let _ = writeln!(log, "{line}");
+    }
+    if let Some(Err(msg)) = &outcome {
+        let _ = writeln!(log, "[acp] ошибка хода: {msg}");
+    }
+
+    // Код возврата проецируется из исхода хода: процесс-сервер всегда
+    // завершается нами (его реальный код — «убит», он ничего не значит).
+    let exit_code = match (termination, &outcome) {
+        (Termination::Completed, Some(Ok(stop))) => {
+            if matches!(
+                stop.as_str(),
+                "end_turn" | "max_tokens" | "stop_sequence" | "max_turn_requests" | "refusal"
+            ) {
+                Some(0)
+            } else {
+                Some(1)
+            }
+        }
+        (Termination::Completed, _) => Some(1),
+        _ => None,
+    };
+    // Страховка финализации — как у процессного режима.
+    let auto_commit = if termination == Termination::Completed && cfg.auto_commit {
+        auto_commit_leftovers(repo, name, task)
+    } else {
+        None
+    };
+    let agent_stderr = agent.stderr_text();
+    let mut stderr = log;
+    if !agent_stderr.trim().is_empty() {
+        let _ = writeln!(stderr, "--- stderr агента ---\n{}", agent_stderr.trim_end());
+    }
+    let contract = parse_result_contract(&stdout_text);
+    Ok(HarnessRun {
+        harness: name.into(),
+        exit_code,
+        stdout: stdout_text,
         stderr,
         duration_secs: started.elapsed().as_secs_f64(),
         termination,
@@ -3675,6 +4298,9 @@ mod tests {
             env: [("EXTRA".to_string(), "yes".to_string())]
                 .into_iter()
                 .collect(),
+            transport: None,
+            acp_session: None,
+            acp_permission: None,
         };
         // Наследование по умолчанию: HOME и PATH видны, EXTRA из env — тоже.
         let run = run_harness("probe", &probe(vec![]), &repo, "задача")
@@ -3779,6 +4405,9 @@ mod tests {
             auto_commit: false,
             env_allow: vec!["PATH".into()],
             env: std::collections::BTreeMap::new(),
+            transport: None,
+            acp_session: None,
+            acp_permission: None,
         };
         let run = run_harness("cache-probe", &cfg, &repo, "задача")
             .await

@@ -390,6 +390,15 @@ timeout_secs = 120                  # потолок одного вызова C
 # фиксируются коммитом харнесса (кроме .arch-handoff/ и мусора __pycache__/
 # *.pyc/.pytest_cache/) — контракт TASK.md требует финального коммита от
 # исполнителя, а это страховка: результат всегда оказывается в git.
+#
+# Транспорт ACP (ADR-049, docs/harness_integrations.md): для харнессов с
+# поддержкой Agent Client Protocol v1 (проверено: `kimi acp`) —
+# transport = "acp" (prompt_mode не применяется, задача уходит протоколом):
+# живой ход прогона в логе (tool-вызовы, план, usage), детерминированные
+# ответы на разрешения (acp_permission: readonly_auto (дефолт) | deny |
+# allow_all), продолжение контекста между прогонами — по имени-алиасу
+# acp_session (без него каждый прогон открывает СВЕЖУЮ сессию; алиас —
+# «возобновить-или-создать», карта state/acp-sessions.json).
 # -----------------------------------------------------------------------------
 [harnesses.claude-code]
 binary = "claude"
@@ -469,6 +478,18 @@ prompt_mode = "flag"
 timeout_secs = 1800
 idle_timeout_secs = 600
 auto_commit = true
+
+# ACP-вариант kimi (ADR-049): живой ход прогона в логе (tool/plan/usage),
+# продолжение контекста по алиасу. Раскомментируйте при необходимости.
+# [harnesses.kimi-acp]
+# binary = "kimi"
+# args = ["acp"]
+# transport = "acp"
+# # acp_session = "reviewer"     # без алиаса — каждый прогон свежая сессия
+# # acp_permission = "readonly_auto"
+# timeout_secs = 1800
+# idle_timeout_secs = 600
+# auto_commit = true
 
 # -----------------------------------------------------------------------------
 # MCP: файл серверов в формате Claude Code (см. examples/mcp.example.json).

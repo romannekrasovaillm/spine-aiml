@@ -13,6 +13,7 @@
 | MAE судьи golden-set + история прогонов | `bench run --golden --record` + `bench golden-history` (M-2) | механизм; первые данные — при live-прогонах |
 | Length bias судьи (ρ балла к длине) | golden-отчёт (J-2) | механизм |
 | Стоимость сессии/судьи в токенах | usage API в журнале, `metrics --cost-report` (C-1/C-2) | механизм |
+| Hit-rate prompt-кэша (по модели/сессии/итог) | поле `cached_tokens` записей `usage` (DeepSeek `prompt_cache_hit_tokens`, OpenAI `prompt_tokens_details.cached_tokens`), колонка «Кэш hit %» в `metrics --cost-report` и строка в `metrics` (2026-09-23) | механизм |
 | Диск worktree флота | размер/возраст в `fleet audit` (C-2) | механизм |
 
 ## 2. Ложные срабатывания правил (FP)

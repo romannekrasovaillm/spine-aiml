@@ -739,6 +739,9 @@ pub(crate) struct App {
     history_tokens: usize,
     /// Эффективный бюджет контекста активной модели (0 — неизвестен).
     context_budget: usize,
+    /// Usage последнего ответа модели — для сегмента кэша в статус-баре;
+    /// None — провайдер usage не отдал (или хода ещё не было).
+    last_usage: Option<crate::llm::Usage>,
     /// Область кнопки «▼ — к свежему ответу» (ставит рендер; None — у дна).
     pub(crate) jump_btn: Option<ratatui::layout::Rect>,
     /// Выделение мышью в окне диалога: якорь и текущий конец (экранные
@@ -887,6 +890,7 @@ impl App {
             model_name: "—".into(),
             history_tokens: 0,
             context_budget,
+            last_usage: None,
             jump_btn: None,
             selection: None,
             dialog_inner: None,
@@ -1100,6 +1104,11 @@ impl App {
     /// Эффективный бюджет контекста активной модели (0 — неизвестен).
     pub(crate) fn context_budget(&self) -> usize {
         self.context_budget
+    }
+
+    /// Usage последнего ответа модели (для сегмента кэша в статус-баре).
+    pub(crate) fn last_usage(&self) -> Option<crate::llm::Usage> {
+        self.last_usage
     }
 
     /// Доп. сообщение статус-бара (ошибки MCP и т.п.).
@@ -2056,6 +2065,11 @@ impl App {
             .and_then(|r| r.get(&notice.id))
             .map(|t| t.report)
             .unwrap_or_default();
+        // Отчёт — сырой вывод дочерних харнессов (ANSI-цвета theseus и др.):
+        // снимаем ESC-последовательности до отправки в контекст модели и в
+        // диалог — иначе терминал исполняет их при записи кадра (мусор
+        // цветных блоков, инцидент 2026-09-23) и модель получает шум.
+        let report = text::sanitized(&report);
         self.push_block(ChatBlock::System {
             command: "фон".into(),
             text: format!(
@@ -2363,6 +2377,8 @@ impl App {
             AgentEvent::TurnDone => self.assistant_open = false,
             // Живое обновление индикатора контекста по ходу длинного хода.
             AgentEvent::ContextUsage(used) => self.history_tokens = used,
+            // Usage последнего ответа модели — сегмент кэша в статус-баре.
+            AgentEvent::Usage(u) => self.last_usage = Some(u),
         }
         if self.stick {
             self.scroll = 0;
@@ -2844,6 +2860,15 @@ pub(crate) mod testing {
     pub(crate) fn set_context_usage(app: &mut App, used: usize, budget: usize) {
         app.history_tokens = used;
         app.context_budget = budget;
+    }
+
+    /// Подменяет последний usage модели для тестов статус-бара.
+    pub(crate) fn set_last_usage(app: &mut App, prompt: u64, cached: Option<u64>) {
+        app.last_usage = Some(crate::llm::Usage {
+            prompt_tokens: prompt,
+            completion_tokens: 0,
+            cached_tokens: cached,
+        });
     }
 
     /// Подменяет флаг «модель думает» для тестов очереди ввода.
@@ -3395,6 +3420,23 @@ mod tests {
         );
         app.handle_message(AppMessage::AgentEvent(AgentEvent::ContextUsage(20_000)));
         assert_eq!(app.history_tokens(), 20_000);
+    }
+
+    #[test]
+    fn usage_event_sets_last_usage_for_cache_segment() {
+        let mut app = test_app();
+        assert!(app.last_usage().is_none(), "до первого хода usage нет");
+        app.handle_message(AppMessage::AgentEvent(AgentEvent::Usage(
+            crate::llm::Usage {
+                prompt_tokens: 1000,
+                completion_tokens: 50,
+                cached_tokens: Some(870),
+            },
+        )));
+        let u = app.last_usage().expect("usage последнего ответа сохранён");
+        assert_eq!(u.prompt_tokens, 1000);
+        assert_eq!(u.completion_tokens, 50);
+        assert_eq!(u.cached_tokens, Some(870));
     }
 
     #[test]

@@ -81,6 +81,10 @@ pub enum AgentEvent {
     /// Текущая оценка токенов истории — живое обновление индикатора
     /// контекста в UI по ходу длинного хода (не дожидаясь `TurnFinished`).
     ContextUsage(usize),
+    /// Реальная статистика токенов последнего ответа модели (usage из
+    /// финального чанка стрима): TUI показывает коэффициент попадания
+    /// в prompt-кэш — ранний сигнал взлёта стоимости при сломе кэша.
+    Usage(Usage),
     /// Ход завершён.
     TurnDone,
 }
@@ -128,6 +132,11 @@ pub struct AgentSession {
     /// assistant-сообщения в журнал. None — провайдер usage не отдал
     /// (нестриминговый `complete` или API без `usage`).
     last_usage: Option<Usage>,
+    /// Накопленная статистика токенов за всю сессию (сумма записей `usage`;
+    /// `cached_tokens` — Some, если хоть один ответ принёс поле кэша).
+    /// Источник сводки для отчётов субагентов (свой журнал сессии при этом
+    /// пишется независимо).
+    total_usage: Usage,
     /// Цель goal-режима (контроль-петля автопродолжения, спека
     /// `aiml/notes/goal-mode.md`). None — цель не поставлена (обычный режим).
     /// Переживает `/resume` через запись `{"event":"goal"}` в журнале.
@@ -186,6 +195,7 @@ impl AgentSession {
             thinking: None,
             cancel: None,
             last_usage: None,
+            total_usage: Usage::default(),
             goal: None,
         };
         let prompt = session.system_prompt.clone();
@@ -1385,6 +1395,11 @@ impl AgentSession {
                             if let Ok(mut guard) = usage_sink.lock() {
                                 *guard = Some(usage);
                             }
+                            // Проброс usage в TUI (сегмент кэша в статус-баре).
+                            // try_send: телеметрия необязательна и не должна
+                            // блокировать ход при занятом канале — та же
+                            // причина, что у `emit_context_usage`.
+                            let _ = ftx.try_send(AgentEvent::Usage(usage));
                         }
                         continue;
                     }
@@ -1413,14 +1428,35 @@ impl AgentSession {
         let Some(usage) = self.last_usage.take() else {
             return;
         };
-        self.log_event(
-            "usage",
-            serde_json::json!({
-                "model": self.provider.model(),
-                "prompt_tokens": usage.prompt_tokens,
-                "completion_tokens": usage.completion_tokens,
-            }),
+        self.total_usage.prompt_tokens += usage.prompt_tokens;
+        self.total_usage.completion_tokens += usage.completion_tokens;
+        if let Some(cached) = usage.cached_tokens {
+            *self.total_usage.cached_tokens.get_or_insert(0) += cached;
+        }
+        // `cached_tokens` — только когда провайдер его прислал: Option
+        // сериализовал бы поле как null, а журнал держим без null-полей.
+        // Читатели журнала неизвестные поля игнорируют, поэтому добавление
+        // обратно совместимо.
+        let mut extra = serde_json::Map::new();
+        extra.insert("model".into(), Value::from(self.provider.model()));
+        extra.insert("prompt_tokens".into(), Value::from(usage.prompt_tokens));
+        extra.insert(
+            "completion_tokens".into(),
+            Value::from(usage.completion_tokens),
         );
+        if let Some(cached) = usage.cached_tokens {
+            extra.insert("cached_tokens".into(), Value::from(cached));
+        }
+        self.log_event("usage", Value::Object(extra));
+    }
+
+    /// Накопленный за сессию usage (сумма по всем ответам LLM с полем
+    /// usage). Нули — провайдер статистику не возвращал. Для сводки
+    /// субагента (`subagent`) и диагностики; журнальная запись остаётся
+    /// первичным источником аудита.
+    #[must_use]
+    pub fn session_usage(&self) -> Usage {
+        self.total_usage
     }
 
     /// Эффективный бюджет контекста: min(`agent.context_budget_tokens`,
@@ -2487,8 +2523,11 @@ mod tests {
 
     /// Провайдер, чей стрим отдаёт реальный usage в `LlmEvent::Done`
     /// (как `openai_compat` со `stream_options.include_usage`).
+    /// `cached` — значение `cached_tokens` (None — провайдер кэш не отдал).
     #[derive(Debug)]
-    struct UsageLlm;
+    struct UsageLlm {
+        cached: Option<u64>,
+    }
 
     #[async_trait::async_trait]
     impl LlmProvider for UsageLlm {
@@ -2512,6 +2551,7 @@ mod tests {
                 .send(LlmEvent::Done(Usage {
                     prompt_tokens: 120,
                     completion_tokens: 30,
+                    cached_tokens: self.cached,
                 }))
                 .await;
             Ok(msg)
@@ -2531,7 +2571,7 @@ mod tests {
     #[tokio::test]
     async fn streamed_usage_is_logged_to_journal() {
         let tmp = tempfile::tempdir().expect("tempdir");
-        let mut s = make_session(tmp.path(), Arc::new(UsageLlm), |cfg| {
+        let mut s = make_session(tmp.path(), Arc::new(UsageLlm { cached: None }), |cfg| {
             cfg.agent.stream = true;
         });
         let (tx, _rx) = mpsc::channel(16);
@@ -2546,11 +2586,35 @@ mod tests {
         assert_eq!(v["model"], "usage-1");
         assert_eq!(v["prompt_tokens"], 120);
         assert_eq!(v["completion_tokens"], 30);
+        // Провайдер кэш не отдал (None) — поля `cached_tokens` в записи нет
+        // вовсе (null-поля в журнале не держим).
+        assert!(
+            v.get("cached_tokens").is_none(),
+            "None не сериализуется: {usage_line}"
+        );
         // usage — после assistant-записи (обратная совместимость: старые
         // читатели неизвестный kind пропускают).
         let assistant_pos = journal.find("\"kind\":\"assistant\"").expect("assistant");
         let usage_pos = journal.find("\"kind\":\"usage\"").expect("usage");
         assert!(usage_pos > assistant_pos, "журнал: {journal}");
+    }
+
+    #[tokio::test]
+    async fn cached_usage_is_logged_to_journal() {
+        // Провайдер отдал попадание в кэш — оно попадает в запись usage.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut s = make_session(tmp.path(), Arc::new(UsageLlm { cached: Some(96) }), |cfg| {
+            cfg.agent.stream = true;
+        });
+        let (tx, _rx) = mpsc::channel(16);
+        s.send("ход", Some(tx)).await.expect("send");
+        let journal = read_journal(tmp.path());
+        let usage_line = journal
+            .lines()
+            .find(|l| l.contains("\"kind\":\"usage\""))
+            .expect("запись usage в журнале");
+        let v: Value = serde_json::from_str(usage_line).expect("json");
+        assert_eq!(v["cached_tokens"], 96, "поле кэша в журнале: {usage_line}");
     }
 
     #[tokio::test]

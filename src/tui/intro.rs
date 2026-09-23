@@ -324,10 +324,11 @@ fn draw_splash(f: &mut Frame, area: Rect, theme: &Theme, ticks: u32) {
         .collect();
     if ticks >= SPLASH_TICKS.saturating_sub(2) {
         lines.push(Line::default());
-        lines.push(Line::from(Span::styled(
-            "A I / M L   E D I T I O N".to_string(),
-            theme.accent(),
-        )));
+        lines.push(Line::from(vec![
+            Span::styled("A I / M L   E D I T I O N".to_string(), theme.accent()),
+            // Версия из Cargo.toml на стартовом экране — без ручной синхронизации.
+            Span::styled(format!("   v{}", env!("CARGO_PKG_VERSION")), theme.muted()),
+        ]));
     }
     if ticks >= SPLASH_TICKS {
         lines.push(Line::from(Span::styled(
@@ -602,6 +603,21 @@ mod tests {
             app.tick();
         }
         assert!(app.intro.is_none(), "после сценария интро снято");
+    }
+
+    #[test]
+    fn splash_shows_package_version() {
+        // Версия из Cargo.toml — на строке редакции сплэша (после каскада).
+        let mut app = test_app();
+        app.start_intro();
+        for _ in 0..SPLASH_TICKS {
+            app.tick();
+        }
+        let mut terminal = Terminal::new(TestBackend::new(140, 44)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw splash");
+        let text = buffer_text(&terminal);
+        let want = format!("v{}", env!("CARGO_PKG_VERSION"));
+        assert!(text.contains(&want), "сплэш без версии {want}:\n{text}");
     }
 
     #[test]

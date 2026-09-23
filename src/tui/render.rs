@@ -19,7 +19,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 use crate::assets;
 
 use super::app::{App, ChatBlock, Panels, RightTab, Screen, ToastLevel, ToolLive, ToolState};
-use super::text::{markdown_lines, wrap_line};
+use super::text::{markdown_lines, sanitized, wrap_line};
 use super::theme::Theme;
 
 /// Базовая ширина правой колонки (вкладки). 42 = внутренние 40 ячеек: чат —
@@ -228,7 +228,7 @@ fn draw_too_small(f: &mut Frame, area: Rect, app: &App, theme: &Theme) {
 /// градиента: градиент — декор, который спорит с содержанием и хуже
 /// переносится между терминалами (принцип сдержанности, AP10).
 fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
-    assets::BANNER
+    let mut lines: Vec<Line<'static>> = assets::BANNER
         .lines()
         .filter(|l| !l.trim().is_empty())
         .map(|l| {
@@ -245,7 +245,13 @@ fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
                 Line::from(Span::styled(l.to_string(), theme.muted()))
             }
         })
-        .collect()
+        .collect();
+    // Версия из Cargo.toml — под подписью, приглушённо.
+    lines.push(Line::from(Span::styled(
+        format!("v{}", env!("CARGO_PKG_VERSION")),
+        theme.muted(),
+    )));
+    lines
 }
 
 /// Экран фатальной ошибки инициализации (модель/конфиг).
@@ -461,7 +467,8 @@ fn draw_viewer(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     let tab = app.right_tab();
     let inner_w = usize::from(area.width.saturating_sub(2)).max(1);
     let view_h = usize::from(area.height.saturating_sub(2)).max(1);
-    let content = app.panels.content(tab).to_string();
+    // Контент вкладок — внешний (вывод инструментов, отчёты): ANSI снимаем.
+    let content = sanitized(app.panels.content(tab));
 
     let mut lines: Vec<Line<'static>> = Vec::new();
     if content.is_empty() {
@@ -595,12 +602,14 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     let Some(ask) = &app.ask else {
         return;
     };
+    // Вопрос формирует модель: ANSI/управляющие снимаем (см. text::sanitized).
+    let question = sanitized(&ask.question);
     let width = area.width.saturating_sub(6).clamp(40, 76).min(area.width);
     let inner_w = usize::from(width.saturating_sub(4)).max(1);
     // Высота: вопрос (с переносом) + варианты (по 2 строки: label + описание)
     // + разделители/подсказка + рамка.
     let question_h = wrap_line(
-        &Line::from(Span::styled(ask.question.clone(), theme.base())),
+        &Line::from(Span::styled(question.to_string(), theme.base())),
         inner_w,
     )
     .len();
@@ -645,7 +654,7 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
 
     let question_lines = wrap_line(
         &Line::from(Span::styled(
-            ask.question.clone(),
+            question.to_string(),
             Style::default()
                 .fg(theme.fg)
                 .bg(theme.bg)
@@ -710,7 +719,12 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
             0
         };
         let label_budget = inner_w.saturating_sub(2 + num_w + 2).saturating_sub(star_w);
-        let label = fit_label_cells(&opt.label, label_budget, theme.glyphs.ellipsis());
+        // Метки/описания формирует модель: ANSI снимаем (см. text::sanitized).
+        let label = fit_label_cells(
+            &sanitized(&opt.label),
+            label_budget,
+            theme.glyphs.ellipsis(),
+        );
         opt_lines.push(Line::from(vec![
             Span::styled(mark, row_style),
             Span::styled(format!("{:>num_w$}. ", i + 1), num_style),
@@ -720,7 +734,7 @@ fn draw_ask(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
         if !opt.description.is_empty() {
             for extra in wrap_line(
                 &Line::from(Span::styled(
-                    format!("    {}", opt.description),
+                    format!("    {}", sanitized(&opt.description)),
                     theme.muted(),
                 )),
                 inner_w,
@@ -1201,6 +1215,11 @@ fn tool_item_line(
     running_secs: Option<u64>,
     theme: &Theme,
 ) -> Line<'static> {
+    // Имя/действие — из внешних источников (аргументы tool-вызова модели,
+    // вывод процессов): снимаем ANSI/управляющие, чтобы не исполнились
+    // терминалом при записи кадра (см. text::sanitized).
+    let name = sanitized(name);
+    let action = sanitized(action);
     let (mark, color) = match state {
         ToolState::Running => (theme.glyphs.running(), theme.orange),
         ToolState::Ok => (theme.glyphs.ok(), theme.green),
@@ -1238,7 +1257,7 @@ fn tool_run_lines(
 ) -> Vec<Line<'static>> {
     /// Строка итога одного вызова (последняя строка summary, приглушённо).
     fn summary_line(summary: &str, theme: &Theme) -> Option<Line<'static>> {
-        summary
+        sanitized(summary)
             .lines()
             .last()
             .map(|l| Line::from(Span::styled(format!("  {}", l.trim_end()), theme.muted())))
@@ -1290,6 +1309,9 @@ fn tool_run_lines(
                 if !l.tail.is_empty() {
                     let tail: Vec<&str> = l.tail.lines().collect();
                     for t in &tail[tail.len().saturating_sub(TOOL_TAIL_LINES)..] {
+                        // Хвост — сырой вывод процесса: ANSI снимаем
+                        // (см. text::sanitized).
+                        let t = sanitized(t);
                         out.push(Line::from(Span::styled(
                             format!("  {}", truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)),
                             theme.muted().add_modifier(Modifier::ITALIC),
@@ -1316,6 +1338,9 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
     match block {
         ChatBlock::Logo => logo_lines(theme),
         ChatBlock::User(text) => {
+            // Текст пользователя может нести отчёты фоновых задач с ANSI —
+            // снимаем (см. text::sanitized).
+            let text = sanitized(text);
             let mut out = vec![Line::from(vec![
                 Span::styled(format!("{} ", theme.glyphs.role_user()), theme.heading()),
                 Span::styled("вы", theme.heading()),
@@ -1331,6 +1356,7 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
         ChatBlock::Thinking(text) => {
             // «Мысли» — компактно и приглушённо: максимум
             // MAX_THINKING_LINES строк, хвост — счётчиком.
+            let text = sanitized(text);
             let mut out = vec![Line::from(vec![
                 Span::styled(format!("{} ", theme.glyphs.note()), theme.muted()),
                 Span::styled("мысли", theme.muted().add_modifier(Modifier::ITALIC)),
@@ -1372,6 +1398,7 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
             action,
             summary,
         } => {
+            let summary = sanitized(summary);
             let mut out = vec![tool_item_line(name, action, *state, None, theme)];
             if !matches!(state, ToolState::Running) && !summary.is_empty() {
                 // Одна последняя строка итога, приглушённо (не раздуваем диалог).
@@ -1385,9 +1412,14 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
             out
         }
         ChatBlock::System { command, text } => {
+            let command = sanitized(command);
+            let text = sanitized(text);
             let mut out = vec![Line::from(vec![
                 Span::styled(format!("{} ", theme.glyphs.note()), theme.purple()),
-                Span::styled(command.clone(), theme.purple().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    command.into_owned(),
+                    theme.purple().add_modifier(Modifier::BOLD),
+                ),
             ])];
             for l in text.lines() {
                 out.push(Line::from(Span::styled(l.to_string(), theme.base())));
@@ -1395,6 +1427,7 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
             out
         }
         ChatBlock::Error(text) => {
+            let text = sanitized(text);
             let mut out = vec![Line::from(Span::styled(
                 format!("{} ошибка", theme.glyphs.err()),
                 theme.error().add_modifier(Modifier::BOLD),
@@ -1517,7 +1550,8 @@ fn draw_right(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     };
 
     let tab = active;
-    let content = app.panels.content(tab).to_string();
+    // Контент вкладок — внешний (вывод инструментов, отчёты): ANSI снимаем.
+    let content = sanitized(app.panels.content(tab));
     let mut lines: Vec<Line<'static>> = Vec::new();
     if content.is_empty() {
         lines.extend(wrap_line(
@@ -2189,6 +2223,10 @@ fn clip_display_width(s: &str, max: usize) -> String {
 /// Индикатор заполнения контекста: «◈ 12.3k/1.0M ▰▰▱▱▱▱▱▱ 1%».
 /// Цвет шкалы — по порогам компактификации из конфига: зелёный до L1,
 /// оранжевый до L3, дальше красный (авто-компактификация уже близко/идёт).
+/// Следом — сегмент «· кэш N%»: доля промпта последнего ответа, попавшая в
+/// prompt-кэш провайдера (зелёный ≥ 70 %, оранжевый 30–69 %, красный < 30 %) —
+/// ранний сигнал взлёта стоимости при сломе кэша; показывается, только когда
+/// провайдер прислал `cached_tokens` в usage.
 fn context_spans(app: &App, theme: &Theme) -> Vec<Span<'static>> {
     const WIDTH: usize = 8;
     let used = app.history_tokens();
@@ -2214,7 +2252,7 @@ fn context_spans(app: &App, theme: &Theme) -> Vec<Span<'static>> {
         theme.glyphs.gauge_full().repeat(filled),
         theme.glyphs.gauge_empty().repeat(WIDTH - filled)
     );
-    vec![
+    let mut spans = vec![
         Span::styled(
             format!(
                 " {} {}/{} ",
@@ -2228,7 +2266,31 @@ fn context_spans(app: &App, theme: &Theme) -> Vec<Span<'static>> {
             format!("{bar} {pct}%"),
             Style::default().fg(color).bg(theme.bg),
         ),
-    ]
+    ];
+    // Сегмент кэша: только при известном usage последнего ответа с ненулевым
+    // промптом и присланным `cached_tokens`. ASCII-текст без иконки (редкие
+    // глифы запрещены после инцидента 07.09 с fontconfig).
+    let cache_hit = app
+        .last_usage()
+        .and_then(|u| match (u.prompt_tokens, u.cached_tokens) {
+            (prompt, Some(cached)) if prompt > 0 => Some((prompt, cached)),
+            _ => None,
+        });
+    if let Some((prompt, cached)) = cache_hit {
+        let pct = cached.saturating_mul(100) / prompt;
+        let color = if pct >= 70 {
+            theme.green
+        } else if pct >= 30 {
+            theme.orange
+        } else {
+            theme.red
+        };
+        spans.push(Span::styled(
+            format!(" · кэш {pct}%"),
+            Style::default().fg(color).bg(theme.bg),
+        ));
+    }
+    spans
 }
 
 /// Человекочитаемый размер токенов: 999 → «999», `12_345` → «12.3k»,
@@ -3232,6 +3294,120 @@ mod tests {
             gauge_color(&terminal),
             Some(ratatui::style::Color::Rgb(0xff, 0x9e, 0x64)),
             "между L1 и L3 шкала оранжевая"
+        );
+    }
+
+    /// Цвет сегмента «кэш» в статус-баре: fg ячейки «к» слова «кэш»
+    /// (None — сегмента нет). Сканируется только последняя строка (статус).
+    fn cache_segment_color(term: &Terminal<TestBackend>) -> Option<ratatui::style::Color> {
+        let buf = term.backend().buffer();
+        let area = buf.area;
+        let y = area.height.saturating_sub(1);
+        for x in 0..area.width.saturating_sub(1) {
+            if buf[(x, y)].symbol() == "к" && buf[(x + 1, y)].symbol() == "э" {
+                return Some(buf[(x, y)].fg);
+            }
+        }
+        None
+    }
+
+    /// Текст статус-бара (последняя строка буфера).
+    fn status_row_text(term: &Terminal<TestBackend>) -> String {
+        buffer_rows(term)
+            .last()
+            .cloned()
+            .unwrap_or_default()
+            .join("")
+    }
+
+    #[test]
+    fn status_bar_shows_cache_hit_segment() {
+        use crate::tui::app::testing::set_last_usage;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        // 87% промпта прочитано из кэша провайдера — сегмент зелёный.
+        set_last_usage(&mut app, 1000, Some(870));
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        assert!(
+            text.contains("кэш 87%"),
+            "сегмент кэша в статус-баре:\n{text}"
+        );
+        assert_eq!(
+            cache_segment_color(&terminal),
+            Some(ratatui::style::Color::Rgb(0x9e, 0xce, 0x6a)),
+            "≥70% — сегмент зелёный"
+        );
+    }
+
+    #[test]
+    fn status_bar_cache_segment_red_below_30_percent() {
+        use crate::tui::app::testing::set_last_usage;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        // 10% попадания — кэш почти не работает, сегмент красный.
+        set_last_usage(&mut app, 1000, Some(100));
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        assert!(
+            text.contains("кэш 10%"),
+            "сегмент кэша в статус-баре:\n{text}"
+        );
+        assert_eq!(
+            cache_segment_color(&terminal),
+            Some(ratatui::style::Color::Rgb(0xf7, 0x76, 0x8e)),
+            "<30% — сегмент красный"
+        );
+    }
+
+    #[test]
+    fn status_bar_cache_segment_orange_between_30_and_70() {
+        use crate::tui::app::testing::set_last_usage;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        set_last_usage(&mut app, 1000, Some(500));
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let text = buffer_text(&terminal);
+        assert!(
+            text.contains("кэш 50%"),
+            "сегмент кэша в статус-баре:\n{text}"
+        );
+        assert_eq!(
+            cache_segment_color(&terminal),
+            Some(ratatui::style::Color::Rgb(0xff, 0x9e, 0x64)),
+            "30–69% — сегмент оранжевый"
+        );
+    }
+
+    #[test]
+    fn status_bar_without_usage_has_no_cache_segment() {
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let status = status_row_text(&terminal);
+        assert!(
+            !status.contains("кэш"),
+            "без usage сегмента кэша быть не должно:\n{status}"
+        );
+    }
+
+    #[test]
+    fn status_bar_usage_without_cache_field_has_no_segment() {
+        use crate::tui::app::testing::set_last_usage;
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        // Провайдер отдал usage, но без `cached_tokens` — сегмента нет.
+        set_last_usage(&mut app, 1000, None);
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let status = status_row_text(&terminal);
+        assert!(
+            !status.contains("кэш"),
+            "cached_tokens=None — сегмент не рисуется:\n{status}"
         );
     }
 
