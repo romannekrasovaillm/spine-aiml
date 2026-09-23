@@ -605,8 +605,8 @@ fn render_task_md(task: &str, rollback: &str, acceptance: Option<&str>) -> Strin
     );
     s.push_str("- Работа без коммита считается невыполненной: оркестратор увидит её только через git log.\n");
     s.push_str("\n## Контракт результата\n\n");
-    s.push_str("Финальный ответ обязан завершаться JSON-объектом (после него — ни символа):\n\n");
-    s.push_str("```json\n{\"status\": \"complete|partial|blocked\", \"assumptions\": [], \"open_questions\": [], \"conflicts_with_prior_decisions\": []}\n```\n\n");
+    s.push_str("Финальный ответ обязан завершаться JSON-объектом (после него — ни символа); тот же JSON запиши файлом `.arch-handoff/result.json` (файл переживает обрыв вывода):\n\n");
+    s.push_str("Схема объекта: `{\"status\": \"complete|partial|blocked\", \"assumptions\": [], \"open_questions\": [], \"conflicts_with_prior_decisions\": []}`\n\n");
     s.push_str("- `status`: `complete` — выполнено полностью; `partial` — частично; `blocked` — заблокировано.\n");
     s.push_str("- `assumptions`: допущения, принятые при реализации.\n");
     s.push_str("- `open_questions`: вопросы к архитектору.\n");
@@ -979,6 +979,31 @@ pub struct HarnessRun {
     /// Механически разобранный JSON-контракт результата из stdout
     /// (валидация схемы — [`parse_result_contract`]).
     pub contract: ContractParse,
+    /// Откуда взят контракт (аудит в логе прогона).
+    pub contract_origin: ContractOrigin,
+}
+
+/// Откуда взят контракт результата (каналы приёмки по приоритету).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContractOrigin {
+    /// stdout исполнителя (fenced-блок json / голый объект в хвосте).
+    Stdout,
+    /// Файл `.arch-handoff/result.json` (устойчив к обрыву стрима).
+    File,
+    /// Дозапрос-ремонт после Missing/Invalid основного прогона.
+    Repair,
+}
+
+impl ContractOrigin {
+    /// Пометка для строки лога («» — у stdout, канал по умолчанию).
+    #[must_use]
+    pub fn note(&self) -> &'static str {
+        match self {
+            Self::Stdout => "",
+            Self::File => " (из .arch-handoff/result.json)",
+            Self::Repair => " (восстановлен дозапросом)",
+        }
+    }
 }
 
 /// Итог авто-коммита оставшихся после исполнителя правок.
@@ -1050,6 +1075,58 @@ fn build_argv(cfg: &CodingHarnessConfig, task: &str) -> (Vec<String>, Option<Str
 /// Максимум удерживаемого вывода каждого потока (stdout/stderr), байт —
 /// при превышении хранится хвост (начало важно редко, диагностика в конце).
 const OUTPUT_CAP: usize = 256 * 1024;
+
+/// Процессный дозапрос-ремонт контракта: минимальный запуск того же
+/// харнесса с промптом-напоминанием (без читателей/heartbeat — короткий
+/// bounded раунд; изоляция окружения — как у основного прогона).
+/// Ошибка запуска/таймаута — None: ремонт опционален, прогон не роняем.
+async fn repair_contract_process(
+    cfg: &CodingHarnessConfig,
+    repo: &Path,
+    prompt: &str,
+) -> Option<String> {
+    let (argv, stdin_data) = build_argv(cfg, prompt);
+    let mut cmd = Command::new(&cfg.binary);
+    cmd.args(&argv).current_dir(repo);
+    if !cfg.env_allow.is_empty() {
+        cmd.env_clear();
+        for name in &cfg.env_allow {
+            if let Ok(v) = std::env::var(name) {
+                cmd.env(name, v);
+            }
+        }
+    }
+    cmd.envs(&cfg.env)
+        .process_group(0)
+        .kill_on_drop(true)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    if stdin_data.is_some() {
+        cmd.stdin(Stdio::piped());
+    } else {
+        cmd.stdin(Stdio::null());
+    }
+    let mut child = cmd.spawn().ok()?;
+    let pid = child.id().unwrap_or(0);
+    if let Some(data) = stdin_data {
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            let _ = stdin.write_all(data.as_bytes()).await;
+            // drop(stdin) закрывает пайп — процесс видит EOF промпта.
+        }
+    }
+    match tokio::time::timeout(REPAIR_TIMEOUT, child.wait_with_output()).await {
+        Ok(Ok(o)) if o.status.success() => Some(String::from_utf8_lossy(&o.stdout).into_owned()),
+        Ok(_) => None,
+        Err(_) => {
+            // Таймаут: группу добиваем явно — у одноходового ответа внезапно
+            // могут быть внучатые процессы (исполнитель решил походить по
+            // инструментам вопреки «ровно один блок»).
+            signal_process_group(pid, "-KILL");
+            None
+        }
+    }
+}
 
 /// Управление живым прогоном харнесса (control-канал флота).
 ///
@@ -1236,6 +1313,13 @@ async fn run_harness_inner(
         })
     }
 
+    // Канонический футер контракта — на КАЖДЫЙ прогон (ad-hoc задачи не
+    // несут TASK.md; recency-позиция в конце промпта борется с потерей
+    // контракта — 32% прогонов 09.2026).
+    let task = &with_contract_footer(task);
+    // Сталое result.json от прошлого прогона не должно читаться как свежее.
+    let _ = std::fs::remove_file(repo.join(RESULT_JSON_REL));
+
     // ACP-транспорт (ADR-049): протокольная сессия вместо процессного
     // «запустил — жди stdout» (живые обновления, resume контекста).
     if cfg.transport.as_deref() == Some("acp") {
@@ -1416,10 +1500,38 @@ async fn run_harness_inner(
         None
     };
     let stdout = take(&stdout_buf);
-    let stderr = take(&stderr_buf);
+    let mut stderr = take(&stderr_buf);
     // Контракт разбирается один раз на стороне запуска — механически,
-    // а не эвристикой у потребителей.
-    let contract = parse_result_contract(&stdout);
+    // а не эвристикой у потребителей. Каналы по приоритету: файл
+    // `.arch-handoff/result.json` (устойчив к обрыву стрима), затем stdout.
+    let (mut contract, mut contract_origin) = resolve_contract(repo, &stdout);
+    // Дозапрос-ремонт: прогон завершён нормально, а контракта нет или он
+    // битый — один bounded раунд вместо ручной интеграции (медиана таких
+    // прогонов 09.2026 — 22 минуты содержательной работы).
+    if !matches!(contract, ContractParse::Valid(_))
+        && termination == Termination::Completed
+        && !stdout.trim().is_empty()
+    {
+        let prompt = repair_prompt(&contract, &stdout);
+        match repair_contract_process(cfg, repo, &prompt).await {
+            Some(repaired) => {
+                let cleaned = crate::ansi::strip(&repaired);
+                if let ContractParse::Valid(c) = parse_result_contract(&cleaned) {
+                    contract = ContractParse::Valid(c);
+                    contract_origin = ContractOrigin::Repair;
+                    let _ = writeln!(stderr, "[контракт] восстановлен дозапросом-ремонтом");
+                } else {
+                    let _ = writeln!(stderr, "[контракт] дозапрос-ремонт не восстановил схему");
+                }
+            }
+            None => {
+                let _ = writeln!(
+                    stderr,
+                    "[контракт] дозапрос-ремонт не удался (запуск/таймаут/код выхода)"
+                );
+            }
+        }
+    }
     Ok(HarnessRun {
         harness: name.into(),
         exit_code: child.try_wait().ok().flatten().and_then(|s| s.code()),
@@ -1429,6 +1541,7 @@ async fn run_harness_inner(
         termination,
         auto_commit,
         contract,
+        contract_origin,
     })
 }
 
@@ -2030,12 +2143,59 @@ async fn run_acp_turn(
     } else {
         None
     };
+    // Каналы приёмки контракта: файл `.arch-handoff/result.json`, затем
+    // stdout (см. resolve_contract).
+    let (mut contract, mut contract_origin) = resolve_contract(repo, &stdout_text);
+    // Дозапрос-ремонт по живой сессии (агент помнит контекст — пересказать
+    // итог в схему для него дёшево): один bounded раунд.
+    if !matches!(contract, ContractParse::Valid(_))
+        && termination == Termination::Completed
+        && matches!(&outcome, Some(Ok(_)))
+    {
+        let prompt = repair_prompt(&contract, &stdout_text);
+        let _ = writeln!(log, "[acp] контракт: дозапрос-ремонт");
+        match agent.conn.prompt_start(&session_id, &prompt).await {
+            Ok(mut rx) => {
+                let deadline = Instant::now() + REPAIR_TIMEOUT;
+                loop {
+                    match rx.try_recv() {
+                        Ok(_) | Err(TryRecvError::Closed) => break,
+                        Err(TryRecvError::Empty) => {}
+                    }
+                    while let Ok(update) = updates_rx.try_recv() {
+                        acp_apply_update(
+                            update,
+                            &mut proj,
+                            &mut stdout_text,
+                            &mut log,
+                            &output_tail,
+                            &mut last_usage,
+                        );
+                    }
+                    if Instant::now() >= deadline {
+                        let _ = writeln!(log, "[acp] дозапрос-ремонт: таймаут");
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(120)).await;
+                }
+            }
+            Err(e) => {
+                let _ = writeln!(log, "[acp] дозапрос-ремонт не стартовал: {e}");
+            }
+        }
+        if let ContractParse::Valid(c) = parse_result_contract(&stdout_text) {
+            contract = ContractParse::Valid(c);
+            contract_origin = ContractOrigin::Repair;
+            let _ = writeln!(log, "[acp] контракт восстановлен дозапросом");
+        } else {
+            let _ = writeln!(log, "[acp] дозапрос-ремонт не восстановил контракт");
+        }
+    }
     let agent_stderr = agent.stderr_text();
     let mut stderr = log;
     if !agent_stderr.trim().is_empty() {
         let _ = writeln!(stderr, "--- stderr агента ---\n{}", agent_stderr.trim_end());
     }
-    let contract = parse_result_contract(&stdout_text);
     Ok(HarnessRun {
         harness: name.into(),
         exit_code,
@@ -2045,6 +2205,7 @@ async fn run_acp_turn(
         termination,
         auto_commit,
         contract,
+        contract_origin,
     })
 }
 
@@ -2426,6 +2587,14 @@ pub fn parse_result_contract(stdout: &str) -> ContractParse {
     let mut rest = stdout;
     while let Some(start) = rest.find("```json") {
         let after = &rest[start + "```json".len()..];
+        // Тег fence валиден только перед переводом строки — иначе это
+        // упоминание в прозе («fenced ```json-блоком» из инструкции), а не
+        // блок: прозаическое вхождение раньше съедало настоящий fence
+        // дальше по тексту, и контракт терялся (эхо-тест на cat).
+        if !after.starts_with('\n') && !after.starts_with('\r') {
+            rest = after;
+            continue;
+        }
         match after.find("```") {
             Some(end) => {
                 blocks.push(after[..end].trim());
@@ -2475,6 +2644,97 @@ pub fn parse_result_contract(stdout: &str) -> ContractParse {
         Some(e) => ContractParse::Invalid(e),
         None => ContractParse::Missing,
     }
+}
+
+/// Относительный путь файлового канала контракта (устойчив к обрыву стрима
+/// и потере fence — в отличие от stdout).
+const RESULT_JSON_REL: &str = ".arch-handoff/result.json";
+
+/// Канонический футер контракта результата, добавляемый к задаче КАЖДОГО
+/// прогона (ad-hoc и handoff): поле «контракта нет» (32% прогонов 09.2026)
+/// чинится тем, что требование всегда стоит в позиции recency, а не только
+/// в TASK.md, который ad-hoc-задачи не несут.
+const CONTRACT_FOOTER: &str = "\n\n## Контракт результата (обязательно, приёмка механическая)\n\n\
+Финальный ответ заверши fenced-блоком с тегом json (после него — ни символа) И тот же JSON запиши \
+файлом `.arch-handoff/result.json`. Схема объекта:\n\
+`{\"status\": \"complete|partial|blocked\", \"assumptions\": [], \"open_questions\": [], \
+\"conflicts_with_prior_decisions\": []}`\n\
+`status` — строго одно из: `complete` (выполнено полностью), `partial` (частично), \
+`blocked` (заблокировано). Списки могут быть пустыми. Если задача выше задаёт свой формат \
+JSON-ответа — объедини: его поля добавь в тот же объект, обязательные поля контракта сохрани.\n";
+
+/// `task` + канонический футер контракта (идемпотентно: футер уже есть —
+/// не дублируем; задачи из handoff-пакета несут контракт в TASK.md, но не
+/// футер — recency-позиция в конце промпта работает против его потери).
+fn with_contract_footer(task: &str) -> String {
+    if task.contains("## Контракт результата (обязательно") {
+        task.to_string()
+    } else {
+        format!("{task}{CONTRACT_FOOTER}")
+    }
+}
+
+/// Резолв контракта по каналам приёмки: сначала `.arch-handoff/result.json`
+/// (файл переживает обрывы стрима), затем stdout. Файл есть, но битый —
+/// пробуем stdout; валидный stdout перевешивает битый файл, иначе —
+/// ошибка файла важнее Missing (факт записи файла — уже попытка контракта).
+fn resolve_contract(repo: &Path, stdout: &str) -> (ContractParse, ContractOrigin) {
+    let file = std::fs::read_to_string(repo.join(RESULT_JSON_REL)).ok();
+    // None — файла нет; Some(Err) — файл есть, но битый JSON или вне схемы
+    // (факт записи файла — уже попытка контракта, его ошибку не прячем).
+    let from_file = file.as_deref().map(|text| {
+        serde_json::from_str::<Value>(text.trim())
+            .map_err(|e| format!("{RESULT_JSON_REL}: невалидный JSON: {e}"))
+            .and_then(|v| validate_contract(&v).map_err(|e| format!("{RESULT_JSON_REL}: {e}")))
+    });
+    if let Some(Ok(c)) = from_file {
+        return (ContractParse::Valid(c), ContractOrigin::File);
+    }
+    // stdout процессных харнессов несёт ANSI-цвета (theseus и др.) — ESC
+    // внутри JSON-строк ломает serde; парсим очищенную копию (сырой stdout
+    // в логе не трогаем — аудит).
+    let clean = crate::ansi::strip(stdout);
+    match parse_result_contract(&clean) {
+        ContractParse::Valid(c) => (ContractParse::Valid(c), ContractOrigin::Stdout),
+        other => match from_file {
+            Some(Err(e)) => (ContractParse::Invalid(e), ContractOrigin::File),
+            _ => (other, ContractOrigin::Stdout),
+        },
+    }
+}
+
+/// Потолок дозапроса-ремонта контракта (один bounded раунд: модель лишь
+/// пересказывает итог в схему — 5 минут с запасом на холодную очередь API).
+const REPAIR_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// Промпт дозапроса-ремонта контракта: точная причина отказа + хвост
+/// собственного вывода исполнителя (он знает, что сделал — пересказать
+/// итог в схему дешевле, чем ручная интеграция 22-минутного прогона).
+fn repair_prompt(parse: &ContractParse, stdout_tail: &str) -> String {
+    let reason = match parse {
+        ContractParse::Missing => "контракт не найден в выводе".to_string(),
+        ContractParse::Invalid(e) => format!("контракт невалиден по схеме: {e}"),
+        ContractParse::Valid(_) => unreachable!("ремонт только при Missing/Invalid"),
+    };
+    let tail: String = stdout_tail
+        .chars()
+        .rev()
+        .take(3000)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
+    format!(
+        "Ты завершил задачу кодового харнесса, но обязательный JSON-контракт результата \
+         не прошёл приёмку: {reason}.\n\n\
+         Хвост твоего вывода (для памяти о том, что сделано):\n---\n{tail}\n---\n\n\
+         Теперь выдай РОВНО ОДИН fenced-блок с тегом json по схеме ниже и больше НИЧЕГО \
+         (ни слова до или после). Схема объекта:\n\
+         `{{\"status\": \"complete|partial|blocked\", \"assumptions\": [], \
+         \"open_questions\": [], \"conflicts_with_prior_decisions\": []}}`\n\
+         `status` — строго одно из: `complete` (выполнено полностью), `partial` (частично), \
+         `blocked` (заблокировано, интеграция невозможна). Списки строк могут быть пустыми."
+    )
 }
 
 /// Инструмент `harness_run`: прогон handoff-пакета (или явной задачи)
@@ -2949,8 +3209,9 @@ async fn execute_run(
                 ContractParse::Valid(c) => {
                     let _ = writeln!(
                         content,
-                        "Контракт результата: status={}; assumptions: {}; \
+                        "Контракт результата{}: status={}; assumptions: {}; \
                              open_questions: {}; conflicts: {}.",
+                        run.contract_origin.note(),
                         c.status.as_str(),
                         c.assumptions.len(),
                         c.open_questions.len(),
@@ -2981,15 +3242,18 @@ async fn execute_run(
                     let _ = writeln!(
                         content,
                         "ВНИМАНИЕ: JSON-контракт найден, но НЕВАЛИДЕН по схеме: {reason}. \
-                             Машинная приёмка невозможна — перезапустите с напоминанием \
-                             о схеме контракта (status из complete|partial|blocked, списки — массивы)."
+                             Машинная приёмка невозможна. Автоматический дозапрос-ремонт \
+                             выполнялся (см. stderr/лог); разберитесь по логу или перезапустите \
+                             с напоминанием о схеме (status из complete|partial|blocked, \
+                             списки — массивы)."
                     );
                 }
                 ContractParse::Missing => {
                     content.push_str(
-                        "ВНИМАНИЕ: JSON-контракт результата (```json с полем status) \
-                             в stdout не найден — ответ может быть неполным; при необходимости \
-                             перезапустите с напоминанием о контракте.\n",
+                        "ВНИМАНИЕ: JSON-контракт результата (```json с полем status или файл \
+                             .arch-handoff/result.json) не найден — ответ может быть неполным. \
+                             Автоматический дозапрос-ремонт выполнялся для нормально \
+                             завершённых прогонов (см. stderr/лог).\n",
                     );
                 }
             }
@@ -3976,8 +4240,22 @@ mod tests {
             .expect("run");
         assert_eq!(run.harness, "test-cat");
         assert_eq!(run.exit_code, Some(0));
-        assert_eq!(run.stdout, "привет, харнесс");
-        assert!(run.stderr.is_empty());
+        // Задаче предшествует канонический футер контракта (см.
+        // with_contract_footer) — echo-харнесс возвращает задачу целиком.
+        assert!(
+            run.stdout
+                .starts_with("привет, харнесс\n\n## Контракт результата"),
+            "{}",
+            run.stdout
+        );
+        // Эхо без контракта — Missing; дозапрос-ремонт на echo-харнессе
+        // бесполезен, но выполняется и виден в stderr.
+        assert!(
+            matches!(run.contract, ContractParse::Missing),
+            "{:?}",
+            run.contract
+        );
+        assert!(run.stderr.contains("[контракт] дозапрос"), "{}", run.stderr);
         assert!(run.duration_secs >= 0.0);
         assert_eq!(run.termination, Termination::Completed);
     }
@@ -4549,6 +4827,129 @@ mod tests {
             panic!("последний блок валиден");
         };
         assert_eq!(c.status, ContractStatus::Complete);
+    }
+
+    #[test]
+    fn parse_result_contract_skips_prose_fence_mentions() {
+        // Упоминание "```json" в прозе (цитата инструкции «ответь fenced
+        // ```json-блоком») не должно съедать настоящий fenced-блок дальше
+        // по тексту — раньше парсер резал от прозаического вхождения и
+        // контракт терялся (поймано эхо-тестом на cat).
+        let stdout = "инструкция: ответь fenced ```json-блоком\nитог работы\n```json\n{\"status\": \"complete\"}\n```";
+        let ContractParse::Valid(c) = parse_result_contract(stdout) else {
+            panic!("блок после прозаического упоминания находится");
+        };
+        assert_eq!(c.status, ContractStatus::Complete);
+    }
+
+    #[test]
+    fn parse_result_contract_golden_real_logs() {
+        // Регрессия инцидента 09.2026 (61/189 прогонов «без контракта»):
+        // реальные хвосты stdout из reports/harness тех прогонов — текущий
+        // парсер обязан их находить (тогдашний бинарь отвечал Missing).
+        for file in [
+            "stdout_two_blocks.txt",
+            "stdout_pretty_block.txt",
+            "stdout_cut_line.txt",
+        ] {
+            let path = format!(
+                "{}/tests/fixtures/harness_contract/{file}",
+                env!("CARGO_MANIFEST_DIR")
+            );
+            let stdout = std::fs::read_to_string(&path).expect("golden fixture");
+            let ContractParse::Valid(c) = parse_result_contract(&stdout) else {
+                panic!("golden {file}: контракт не найден");
+            };
+            assert_eq!(c.status, ContractStatus::Complete, "{file}");
+        }
+    }
+
+    #[test]
+    fn contract_footer_appended_once() {
+        let with = with_contract_footer("сделай фичу");
+        assert!(with.starts_with("сделай фичу"));
+        assert!(with.contains("## Контракт результата (обязательно"));
+        assert!(with.contains(RESULT_JSON_REL));
+        // Идемпотентность: повторная обёртка не дублирует.
+        let twice = with_contract_footer(&with);
+        assert_eq!(
+            twice.matches("## Контракт результата (обязательно").count(),
+            1
+        );
+    }
+
+    #[test]
+    fn resolve_contract_prefers_file_channel() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dir = tmp.path().join(".arch-handoff");
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        std::fs::write(
+            dir.join("result.json"),
+            "{\"status\": \"partial\", \"assumptions\": [\"из файла\"]}",
+        )
+        .expect("write result.json");
+        // stdout несёт ДРУГОЙ (тоже валидный) контракт — файл важнее:
+        // он переживает обрыв стрима и пишется осознанно.
+        let stdout = "```json\n{\"status\": \"complete\"}\n```";
+        let (parse, origin) = resolve_contract(tmp.path(), stdout);
+        let ContractParse::Valid(c) = parse else {
+            panic!("файловый контракт валиден");
+        };
+        assert_eq!(c.status, ContractStatus::Partial);
+        assert_eq!(origin, ContractOrigin::File);
+    }
+
+    #[test]
+    fn resolve_contract_falls_back_to_stdout_when_file_broken() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dir = tmp.path().join(".arch-handoff");
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        std::fs::write(dir.join("result.json"), "{битый json").expect("write");
+        let stdout = "```json\n{\"status\": \"blocked\"}\n```";
+        let (parse, origin) = resolve_contract(tmp.path(), stdout);
+        assert_eq!(origin, ContractOrigin::Stdout);
+        assert!(matches!(
+            parse,
+            ContractParse::Valid(c) if c.status == ContractStatus::Blocked
+        ));
+        // Битый файл + пустой stdout — ошибка файла важнее Missing.
+        let (parse, origin) = resolve_contract(tmp.path(), "проза без контракта");
+        assert_eq!(origin, ContractOrigin::File);
+        assert!(matches!(parse, ContractParse::Invalid(e) if e.contains(RESULT_JSON_REL)));
+    }
+
+    #[test]
+    fn resolve_contract_strips_ansi_before_parse() {
+        // stdout процессных харнессов (theseus) несёт ESC-цвета вокруг блока.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let stdout = "\u{1b}[32mтекст\u{1b}[0m\n```json\n{\"status\": \"complete\"}\n```\n";
+        let (parse, origin) = resolve_contract(tmp.path(), stdout);
+        assert_eq!(origin, ContractOrigin::Stdout);
+        assert!(matches!(parse, ContractParse::Valid(_)));
+    }
+
+    #[test]
+    fn repair_prompt_carries_reason_and_schema() {
+        let p = repair_prompt(&ContractParse::Missing, "хвост вывода");
+        assert!(p.contains("не найден"), "{p}");
+        assert!(p.contains("complete|partial|blocked"), "{p}");
+        assert!(p.contains("хвост вывода"), "{p}");
+        let p = repair_prompt(
+            &ContractParse::Invalid("status='done' вне перечисления".into()),
+            "",
+        );
+        assert!(p.contains("status='done'"), "{p}");
+        // Хвост ограничен (не раздуваем ремонтный промпт).
+        let long = "x".repeat(10_000);
+        let p = repair_prompt(&ContractParse::Missing, &long);
+        assert!(p.len() < 10_000, "хвост обрезан");
+    }
+
+    #[test]
+    fn contract_origin_notes_for_log() {
+        assert_eq!(ContractOrigin::Stdout.note(), "");
+        assert!(ContractOrigin::File.note().contains("result.json"));
+        assert!(ContractOrigin::Repair.note().contains("дозапрос"));
     }
 
     #[tokio::test]

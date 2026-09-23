@@ -1,0 +1,84 @@
+All six steps are done. Final state: tree clean, `main` = `7de0182`, branch intact at `d7c8378`, protected branches untouched, nothing pushed.
+
+## JSON-контракт
+
+```json
+{
+  "status": "complete",
+  "merge": {
+    "branch": "arch/laguna-control-arms",
+    "method": "fast-forward",
+    "merge_commit": "d7c837860434050d09072fa3fa66fa04add0581b",
+    "merge_commit_note": "FF — нового коммита слияния нет; main передвинут на вершину ветви. Ветвь (d7c8378) не тронута, не удалена, push не делался",
+    "main_before": "72b5124f7d763cbb33c890429f5847c128a654f7",
+    "main_after": "7de0182412e5a847d6a1a40ca94c510f2601ff48",
+    "acceptance_act_commit": "7de0182412e5a847d6a1a40ca94c510f2601ff48",
+    "acceptance_act_file": "кейсы/laguna-compact/evidence/acceptance-2026-09-21.json",
+    "commits": 16, "files": 76, "insertions": 41491, "deletions": 292,
+    "file_kinds": {"added": 50, "modified": 26, "deleted": 0},
+    "tree_identity": "main tree == branch tree == 67d684aa7a190361de8a68d6b2d97aae7a0bdd96"
+  },
+  "checks_before_merge": {
+    "run_tool_tests": "PASS=786 FAIL=0 SKIP=0",
+    "case_gate": "FAIL — 1 составляющая (fitness), единственная находка унаследованная C-014/AD-1",
+    "historical_evidence_audit": "исторические evidence не переписаны; удалённых файлов 0; 2 конфликта слияния разрешены без потери работы main"
+  },
+  "checks_after_merge": {
+    "run_tool_tests": "PASS=786 FAIL=0 SKIP=0 (измерено заново на слитом main)",
+    "repo_wide_gate": "PASS (exit 0) — 82 правила рабочего пространства, 4 warn, spine_lint PASS",
+    "case_gate": "FAIL — 1 составляющая (fitness), та же единственная находка C-014/AD-1",
+    "spine_lint": "PASS (0 находок)",
+    "trace_check": "PASS (34 сущности, 7 звеньев, error 0; ADR→CMP 10/10)",
+    "model_validate": "PASS (34 сущности, 0 находок)",
+    "delta_guard": "PASS (77 изменённых, 0 защищённых, 0 нарушений)",
+    "rule_weakened": "PASS относительно 72b5124 — правила не ослаблены",
+    "AD-9/C-018": "PASS — стенд свободен: 62.1 ГБ из 121.7 (порог 35), тренировочных нагрузок 0",
+    "merge_induced_findings": 0
+  },
+  "reds_resolved_by_merge": [
+    "model_validate: FAIL 11 error (bad-link-target в affects у AD-1…AD-10) → PASS 0 находок",
+    "trace_check ADR→CMP: 9/9 → 10/10 (появилась связь ADR-049)",
+    "AD-9: красное на приёмке 20.09 → зелёное (SFT-стадия остановлена, стенд свободен)"
+  ],
+  "still_red": [
+    {"id": "C-014/AD-1", "why": "glob evidence/result-report-*.json пуст — правилу нечего проверять; артефакт будущего гейта A5. На main до слияния тот же единственный finding — унаследованная, не порождена мержем", "action": "не чинилась ослаблением правила (rule_weakened PASS)"},
+    {"id": "warn-4 + 4 пропущенных правила", "why": "реестр рабочего пространства (.arch-handoff), к кейсу не относится; гейт прошёл"}
+  ],
+  "not_verified": [
+    "Цена холодного старта образов sidecar'а — объявлена not_measured самим evidence/grounded-portability.json; на хосте приёмки образы прогреты (alpine:3.20, python:3.12-alpine лежат локально), поэтому C-028 и проходит за секунды",
+    "Переносимость чисел между стендами (граница stand-not-interchangeable)",
+    "Диагностика «только штраф за повторы» в S3aq не гонялась — 0 упоминаний в артефактах S3aq",
+    "Полоса трудности p* (только на реальных rollout)",
+    "Утрата точек v13@500/5000/9000 ретенцией (PROBE_KEEP_LAST=24) — таблица «состояние × бюджет» неполна",
+    "Вердикт независимого ревьювера не найден",
+    "ADR-049 входит в канон как Proposed, не Accepted",
+    "Ветви sft-loop-origin, sft-decode-diagnosis, sft-length-policy, rl-env-probe приёмкой не покрыты"
+  ],
+  "forbidden_actions_respected": {
+    "gb10-fast_stand": "не занимался (только чтение стражем AD-9)",
+    "local_rtx_4080": "не занималась",
+    "training_launched": false,
+    "other_branches_worktrees": "не трогались",
+    "wide_pkill": false,
+    "historical_evidence_rewritten": false,
+    "rule_numbers_changed": false,
+    "push": false
+  }
+}
+```
+
+## Главное по вашим вопросам
+
+**Исторические evidence не переписаны.** Пересчёт самого слияния (`git merge-tree 1445892 72b5124`) дал ровно **2 конфликта** — `CONSTRAINTS.yaml` и `tools/README.md`; все остальные 200+ файлов, менявшихся с обеих сторон, git слил автоматически, то есть сторона `main` сохранена по построению. Удалённых файлов в net-диффе **0**.
+
+Поимённо расхождения, где удаления могли бы читаться как перезапись:
+- **`run_state.json`** (+145/−99) — main в этом файле после точки ветвления **вообще не менялся**. Это переход `measurement_incomplete → rules_applicable` по тому же прогону (добор завершён); файл производный, его пишет `report_s3aq_run_state.py`. Неполный снимок остаётся в истории git на `72b5124`.
+- **`evidence/instrument-hash-audit.json`** (+353/−5) — снимок регенерирован: `delta` переименован, добавлено поле `frozen_numbers`, обновлён список ветвей (ушла `arch/fleet-followup-instr`).
+- **Артефакты оборванного S3aq — побайтно идентичны**: `format_wide_8192.aborted.log` (d7b39420bb9e), `chain.log` (683fe7f056c0), `identity_core_cfinal.log` (48a4a7a0382c).
+- **Артефакты остановленного SFT-прогона не тронуты вовсе** — ни одного файла из `runs/sft-20260916-2246`, `sft-ppl-20260916-2246`, `sft-resume-20260917-1215` нет в net-диффе (ADR-023 п.9 соблюдён).
+
+**Редакция правил.** Коллизии номеров нет: main занят до `C-025`, ветвь добавляет `C-026/C-027/C-028`, удалений нет. Из `C-001…C-025` **22 побайтно идентичны**, отличается один — **`C-025`**: изменена **только строка `evidence`** (550→700 символов, добавлен прибор `grounded_runner.py G-1…G-5` и носители замороженных чисел). Причина — правило создано самим main для стража реестра приборов, а ветвь приносит новый прибор, регистрация которого расширяет вход того же стража. Ослабления нет: гейт **`rule_weakened` PASS относительно `72b5124`**. Кстати, `ADR-049` был заранее **зарезервирован каноном** — ADR-050 в main несёт оговорку о резерве номера и `depends_on: ADR-049`.
+
+**Что осталось красным — только унаследованное `C-014/AD-1`** (`evidence/result-report-*.json` не создан, артефакт будущего гейта A5). Оно не порождено мержем: baseline-прогон гейта на правилах main даёт тот же единственный finding. `AD-9` красным **не является** — стенд свободен. Ничего не «чинил» ослаблением правил.
+
+Одна честная деталь: в акт я сначала вписал пост-мерж-итог тестов по побайтному равенству деревьев, а не по замеру, — затем прогнал сьют на слитом main заново, получил измеренные `PASS=786 FAIL=0 SKIP=0` и переписал формулировку в акте так, чтобы это было видно.

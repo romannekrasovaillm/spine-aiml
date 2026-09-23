@@ -609,3 +609,47 @@ constraints:
     severity: critical
     owner: "solution-архитектор AI/ML"
     expiry: "2027-09-13"
+
+  # --- AD-12/ADR-050: канон исполнителя, контракт результата и периметр -------
+  # 1) Permission-правило с wildcard в СЕРЕДИНЕ означает, что команда
+  #    авто-одобряется с любыми вставленными в эту позицию опциями без запроса
+  #    (предупреждение самого Claude Code; факт 172/189 логов). Допустим только
+  #    завершающий префиксный wildcard (`Bash(python3 *)`). Проверяются оба
+  #    конфига периметра — пользовательский и локальный.
+  - id: C-37
+    name: no_mid_wildcard_permission_rules
+    type: command_succeeds
+    command: >-
+      python3 -c "import json,pathlib,sys;fs=[pathlib.Path.home()/'.claude/settings.json',pathlib.Path.home()/'.claude/settings.local.json'];bad=[(str(f),r) for f in fs if f.exists() for r in json.load(f.open()).get('permissions',{}).get('allow',[]) if '*' in r and not r.endswith('*)')];print('mid-wildcard permission rules:',bad);sys.exit(1 if bad else 0)"
+    timeout_secs: 60
+    severity: critical
+    owner: "solution-архитектор AI/ML"
+    expiry: "2027-09-23"
+
+  # 2) Регрессионный страж шаблона: сгенерированный TASK.md обязан требовать
+  #    JSON-контракт результата со `status`. Сам дефект (41 % прогонов без
+  #    контракта) лечит автоматический повтор при `status`-missing — код
+  #    src/harness.rs, OP-2 ADR-050; это правило ловит лишь выпадение
+  #    требования из шаблона.
+  - id: C-38
+    name: contract_required_in_task_template
+    type: must_contain
+    glob: "src/harness.rs"
+    pattern: "status.*complete\\|partial\\|blocked"
+    severity: critical
+    owner: "solution-архитектор AI/ML"
+    expiry: "2027-09-23"
+
+  # 3) Дрейф приёмки (A5): доля прогонов канона без JSON-контракта среди
+  #    последних 20 логов не выше 20 % (замер 23.09.2026: 41 %). До реализации
+  #    OP-2 правило намеренно warn, а не error: цель — измеримый след, а не
+  #    красный гейт на исторических данных.
+  - id: C-39
+    name: harness_contract_drift_below_threshold
+    type: command_succeeds
+    command: >-
+      python3 -c "import glob,pathlib,sys;fs=sorted(glob.glob(str(pathlib.Path.home()/'.arch-ml/reports/harness/*.log')))[-20:];nc=[f for f in fs if ('JSON-контракт результата' in open(f,errors='ignore').read() and 'не найден' in open(f,errors='ignore').read())];share=(len(nc)/len(fs)) if fs else 0.0;print('runs=%d no_contract=%d share=%.2f'%(len(fs),len(nc),share));sys.exit(1 if share>0.2 else 0)"
+    timeout_secs: 120
+    severity: medium
+    owner: "solution-архитектор AI/ML"
+    expiry: "2027-03-23"

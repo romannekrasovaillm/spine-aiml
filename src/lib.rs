@@ -21,6 +21,7 @@ pub mod acp;
 pub mod adr_registry;
 pub mod agent;
 pub mod agentsmd;
+pub mod ansi;
 pub mod archify;
 pub mod archunit;
 pub mod ariadna;

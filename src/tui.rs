@@ -43,7 +43,7 @@ mod keymap;
 mod render;
 #[cfg(test)]
 pub(crate) mod shot;
-mod text;
+pub(crate) mod text;
 mod theme;
 
 use app::{App, AppMessage};
