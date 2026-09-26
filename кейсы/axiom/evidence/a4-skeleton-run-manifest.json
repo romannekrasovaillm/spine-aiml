@@ -1,0 +1,82 @@
+{
+  "schema": "a4-skeleton-run-manifest/v2",
+  "stage_set_version": "v1",
+  "model_weights_sha256": "c14ac8eb16e1b3ea4e7a927ffd922d5024f7da3f3e20dde6ec89f00a72588c69",
+  "dataset_sha256": "3298145700f4d199970a250d0e6964eb817cce742e6c905d6a2ebaa6738df45c",
+  "environment_version": "v1.1",
+  "harness_version": "0.1.4",
+  "git_commit": "152fd274db55f3dd1f625d948f39488f46705fef",
+  "run_date": "2026-09-13",
+  "run_ref": "кейсы/axiom/evidence/a4-run-wire/run-journal.json",
+  "backend": {
+    "platform": "linux",
+    "device_kind": "unknown (jax не установлен; backend заполнен по sys.platform=linux)",
+    "jax_version": "unavailable (jax не установлен; backend заполнен по sys.platform=linux)",
+    "matmul_precision": "unknown (jax не установлен; backend заполнен по sys.platform=linux)"
+  },
+  "stages": [
+    {
+      "name": "pretrain_checkpoint",
+      "status": "executed",
+      "evidence": [
+        "checkpoint=кейсы/axiom/evidence/a4-run-wire/checkpoints/pretrain",
+        "tree_hash=c14ac8eb16e1b3ea4e7a927ffd922d5024f7da3f3e20dde6ec89f00a72588c69",
+        "steps=1"
+      ]
+    },
+    {
+      "name": "spark_inference",
+      "status": "skipped",
+      "evidence": [
+        "причина: инференс исполнен локально на CPU JAX, а не на стенде gb10/DGX Spark",
+        "подмена стенда запрещена (ADR-010). Локальный журнал: кейсы/axiom/evidence/a4-run-wire/inference/journal.json"
+      ]
+    },
+    {
+      "name": "rl_environment",
+      "status": "executed",
+      "evidence": [
+        "run_manifest=кейсы/axiom/evidence/a4-run-wire/env/summary.json",
+        "tasks=10",
+        "pass=0"
+      ]
+    },
+    {
+      "name": "sft",
+      "status": "executed",
+      "evidence": [
+        "run_journal=кейсы/axiom/evidence/a4-run-wire/sft/stage-journal.json",
+        "scale=smoke steps=200 tokens=1638200",
+        "loss_first=7.66353 loss_last=2.212952",
+        "seed=1337 qat_weights=on",
+        "dataset=кейсы/axiom/data/datasets/sft_train_v12.jsonl sha256=39f616f1e47b1c50490bb9e01167271bac5191c71e4bff727e4940094d6d49a6",
+        "tokenizer_hash=9f8d03091c4a44fa8e7c08f57f7d9f4f97b69e8fde622bb9f6ab613da3565857",
+        "checkpoint=кейсы/axiom/evidence/a4-run-wire/sft/checkpoint",
+        "tree_hash=afcae895a0906b4eca01492c1338084b3dd8fae7e560282311f753f9ccfa0bb9",
+        "wall_clock_s=477.162 gpu_hours=0.132545"
+      ]
+    },
+    {
+      "name": "rl_base_scheme",
+      "status": "executed",
+      "evidence": [
+        "run_journal=кейсы/axiom/evidence/a4-run-wire/rl/stage-journal.json",
+        "scale=smoke steps=2 rollouts=4",
+        "tasks_used=corruption-l0-00,real-l0-00",
+        "verdict_mix=passed:0,failed:4",
+        "reward_mean_first=0.0 reward_mean_last=0.0",
+        "holdout_before=0.0 holdout_after=0.0 stop_rule=stop",
+        "scheme=log-ratio/mirror-descent (ADR-005 п.2) tau_log=0.2 beta=0.001 K=2",
+        "optimizer=net/optimizer.py (MuonClip)",
+        "qat_weights=on seed=1337 mix_share=0.5",
+        "checkpoint=кейсы/axiom/evidence/a4-run-wire/rl/checkpoint",
+        "tree_hash=e27ee72cc7aef93a24f985bf897310af3f2401043c5b079d89ae3b970d2fc4a6",
+        "tree_hash_before=afcae895a0906b4eca01492c1338084b3dd8fae7e560282311f753f9ccfa0bb9",
+        "wall_clock_s=322.308 gpu_hours=0.08953",
+        "findings=2 (kda-chunk-padding-nan-backward, nonfinite-gradient-guard)"
+      ]
+    }
+  ],
+  "pipeline_complete": false,
+  "generated_by": "tools/a4_manifest.py"
+}

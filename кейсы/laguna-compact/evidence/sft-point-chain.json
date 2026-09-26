@@ -1,0 +1,495 @@
+{
+  "tool": "assemble_sft_point_chain.py",
+  "stage": "SFT-POINT-CHAIN",
+  "title": "Приборная цепочка завершённой SFT-стадии: ось, язык, домен, агентность, формат",
+  "adr": [
+    "ADR-033 п.2",
+    "ADR-041 п.3",
+    "ADR-042 п.5",
+    "ADR-044",
+    "ADR-045 п.4",
+    "ADR-051",
+    "ADR-058 (бронь предмета)"
+  ],
+  "spec": "docs/specs/SFT-POINT-CHAIN.md",
+  "date": "2026-09-25T14:49:24+00:00",
+  "status": "complete",
+  "subject": {
+    "receipt": {
+      "artifact": "sft_checkpoint_final.pt",
+      "booking": "SFT-POINT-CHAIN §2/§3#1 — предмет бронируется до первого замера",
+      "method": "hardlink",
+      "method_note": "SFT-POINT-CHAIN §2 допускает «копию или хардлинк»; выбран хардлинк: AD-4 запрещает копии весов (C-011), хардлинк не дублирует байты и переживает unlink исходного имени (ретенция трейнера). Перезапись исходного inode ссылку не спасёт — отличие от копии названо, а не умолчано. reflink недоступен (ФС без reflink), ln под protected_hardlinks=1 требует прав на файл — ссылка поставлена sudo (на стенде sudo -n).",
+      "source": "/home/user/gb10-shared/sft-v13-2e6-20260921-2054/checkpoints/sft_checkpoint_final.pt",
+      "copy": "/home/user/gb10-shared/sft-point-chain-20260925-1000/ckpt/sft_checkpoint_final.pt",
+      "secondary_link": "/home/user/gb10-shared/sft-point-chain-20260925-1000/checkpoints/sft_checkpoint_final.pt",
+      "secondary_link_note": "предусловие pilot_chain.sh для стадии eval_sft (RUN_DIR/checkpoints/sft_checkpoint_final.pt); тот же inode",
+      "sha256": "b1681dcb1b999e37a8fe6cc255c16eb1941f5c2e039d85dd92b913d20f42139d",
+      "sha256_taken_from": "copy",
+      "size_bytes": 2963145797,
+      "inode": 6816362,
+      "link_count": 3,
+      "mtime_epoch": 1790299066,
+      "booked_at": "2026-09-25T10:12:51+03:00",
+      "booked_from_host": "local (case tools/build_sft_point_chain.py) via ssh gb10-fast",
+      "run": "sft-v13-2e6-20260921-2054",
+      "model": "Qwen/Qwen2.5-0.5B",
+      "verdict": "ok",
+      "aux_subjects": [
+        {
+          "name": "cpt_checkpoint_final.pt",
+          "role": "входной CPT-чекпойнт (прежний вход SFT)",
+          "run": "full-cpt-20260916-2149",
+          "source": "/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+          "copy": "/home/user/gb10-shared/sft-point-chain-20260925-1000/ckpt/cpt_checkpoint_final.pt",
+          "sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+          "size_bytes": 2963141069,
+          "inode": 33423487,
+          "link_count": 2,
+          "method": "hardlink"
+        }
+      ],
+      "aux_subjects_note": "ссылки на входной CPT-чекпойнт — для сравнительных состояний приборов (формат: прежний вход; агентность: переснятие базы ADR-041 п.3). Не второй предмет стадии: вердикты ADR-033 п.2 выносятся по SFT-финалу",
+      "stop_condition_check": "SFT-POINT-CHAIN §6: бронь указывает на тот же inode, что источник — предмет брендирован"
+    },
+    "chain_dir": "/home/user/gb10-shared/sft-point-chain-20260925-1000",
+    "case_mirror": "/home/user/spine-aiml/кейсы/laguna-compact/runs/sft-point-chain-20260925-1000"
+  },
+  "thresholds": {
+    "k1": {
+      "base": 7.504686,
+      "ceiling": 15.009373
+    },
+    "k2": {
+      "base": 6.159936,
+      "ceiling": 12.319871
+    },
+    "domain_v3": {
+      "base": 13.559193,
+      "learned_below": 1.0
+    },
+    "agentic_legacy_base": {
+      "n": 350,
+      "n_tool_call": 158,
+      "share": 0.4514,
+      "n_pass": 53,
+      "pass_rate": 0.1514,
+      "source": "evidence/s3aa-agentic-cpt.json (legacy, ADR-041 п.3)"
+    },
+    "format_noise_2sigma_n104": 0.1,
+    "declared_before_measurement": true
+  },
+  "criteria": {
+    "eval_axis_sft": {
+      "verdict": "measured",
+      "rule": "осевой eval от судьи GLM-API (S4-PROTOCOL §1)",
+      "artifact": "/home/user/gb10-shared/sft-point-chain-20260925-1000/logs/eval_results_sft.json",
+      "judge": "GLM-API",
+      "judge_mean": 0.11351562500000001,
+      "slug_accuracy": 0.3385416666666667,
+      "total": 192,
+      "note": "направление оси AD-1 (judge_mean RL > judge_mean SFT) читается только после RL-стадии; здесь снимается SFT-половина оси"
+    },
+    "eval_base": {
+      "verdict": "measured",
+      "rule": "осевой eval от судьи GLM-API (S4-PROTOCOL §1)",
+      "artifact": "/home/user/gb10-shared/sft-point-chain-20260925-1000/logs/eval_results_base.json",
+      "judge": "GLM-API",
+      "judge_mean": 0.0,
+      "slug_accuracy": 0.0,
+      "total": 192,
+      "note": "направление оси AD-1 (judge_mean RL > judge_mean SFT) читается только после RL-стадии; здесь снимается SFT-половина оси"
+    },
+    "language": {
+      "verdict": "pass",
+      "rule": "конъюнкция: K1 ≤ 2× базы И K2 ≤ 2× базы (ADR-027 п.1/п.2)",
+      "k1": {
+        "ppl": 7.3912377373036895,
+        "base": 7.504686,
+        "ceiling": 15.009373,
+        "base_in_run": 7.50468637420902,
+        "passed": true
+      },
+      "k2": {
+        "ppl": 6.588035834452246,
+        "base": 6.159936,
+        "ceiling": 12.319871,
+        "base_in_run": 6.1599356842437585,
+        "passed": true
+      },
+      "conjunction": true,
+      "instrument_identity": "base_vs_s3h=ok",
+      "instrument_identity_ok": true,
+      "source": "/home/user/spine-aiml/кейсы/laguna-compact/runs/sft-point-chain-20260925-1000/ppl-sft.json"
+    },
+    "domain": {
+      "verdict": "pass",
+      "rule": "решающий набор v3: отношение к базе < 1 = домен выучен (ADR-044 п.1/п.6)",
+      "ppl": 10.214309679165147,
+      "base": 13.559193,
+      "relation": 0.7533125075485796,
+      "learned": true,
+      "calibration_scale_note": "калибровочная шкала монитора стадии (домен v2, ×0.348) решающей не является: она снята с решающей роли ADR-044 п.1 — вердикт только по v3"
+    },
+    "agentic": {
+      "verdict": "fail",
+      "rule": "ADR-033 п.2в: (в1) доля самостоятельных вызовов не падает, (в2) pass-rate растёт — против базы, переснятой в том же режиме",
+      "checks": [
+        {
+          "rule": "в1: доля самостоятельных вызовов не падает",
+          "unit": "v1",
+          "value": 0.46,
+          "base": 0.4133,
+          "delta": 0.0467,
+          "n": 150,
+          "passed": true,
+          "reading": "69/150 = 0.4600 против базы 62/150 = 0.4133"
+        },
+        {
+          "rule": "в2: pass-rate растёт",
+          "unit": "v1",
+          "value": 0.04,
+          "base": 0.0533,
+          "delta": -0.0133,
+          "n": 150,
+          "passed": false,
+          "reading": "6/150 = 0.0400 против базы 8/150 = 0.0533"
+        },
+        {
+          "rule": "в1: доля самостоятельных вызовов не падает",
+          "unit": "v2",
+          "value": 0.45,
+          "base": 0.305,
+          "delta": 0.145,
+          "n": 200,
+          "passed": true,
+          "reading": "90/200 = 0.4500 против базы 61/200 = 0.3050"
+        },
+        {
+          "rule": "в2: pass-rate растёт",
+          "unit": "v2",
+          "value": 0.05,
+          "base": 0.055,
+          "delta": -0.005,
+          "n": 200,
+          "passed": false,
+          "reading": "10/200 = 0.0500 против базы 11/200 = 0.0550"
+        },
+        {
+          "rule": "в1: доля самостоятельных вызовов не падает",
+          "unit": "combined",
+          "value": 0.4543,
+          "base": 0.3514,
+          "delta": 0.1029,
+          "n": 350,
+          "passed": true,
+          "reading": "159/350 = 0.4543 против базы 123/350 = 0.3514"
+        },
+        {
+          "rule": "в2: pass-rate растёт",
+          "unit": "combined",
+          "value": 0.0457,
+          "base": 0.0543,
+          "delta": -0.0086,
+          "n": 350,
+          "passed": false,
+          "reading": "16/350 = 0.0457 против базы 19/350 = 0.0543"
+        }
+      ],
+      "n_min": 150,
+      "small_n_warning": null,
+      "guard": null,
+      "legacy_base": {
+        "n": 350,
+        "n_tool_call": 158,
+        "share": 0.4514,
+        "n_pass": 53,
+        "pass_rate": 0.1514,
+        "source": "evidence/s3aa-agentic-cpt.json (legacy, ADR-041 п.3)"
+      },
+      "sft_checkpoint_sha256": "b1681dcb1b999e37a8fe6cc255c16eb1941f5c2e039d85dd92b913d20f42139d",
+      "sft_decoding": "sample_T1_topk20_nogram4",
+      "sft_standard_mode": true,
+      "sft_toolcall_force": false,
+      "sft_prefill": "<think>\\n",
+      "sft_note": "штатный режим: запрет повторов 4-грамм — умолчание прибора; --no-toolcall-force --no-hint обязательны (ADR-033 п.2)",
+      "sft_units": {
+        "v1": {
+          "n": 150,
+          "share": 0.46,
+          "n_pass": 6,
+          "pass_rate": 0.04,
+          "pool_sha256": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3"
+        },
+        "v2": {
+          "n": 200,
+          "share": 0.45,
+          "n_pass": 10,
+          "pass_rate": 0.05,
+          "pool_sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+        },
+        "combined": {
+          "n": 350,
+          "share": 0.4543,
+          "n_pass": 16,
+          "pass_rate": 0.0457,
+          "pool_sha256": null,
+          "sample": [
+            "v1",
+            "v2"
+          ]
+        }
+      },
+      "base_decoding": "sample_T1_topk20_nogram4",
+      "base_standard_mode": true,
+      "base_checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "base_units": {
+        "v1": {
+          "n": 150,
+          "share": 0.4133,
+          "n_pass": 8,
+          "pass_rate": 0.0533,
+          "pool_sha256": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3"
+        },
+        "v2": {
+          "n": 200,
+          "share": 0.305,
+          "n_pass": 11,
+          "pass_rate": 0.055,
+          "pool_sha256": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da"
+        },
+        "combined": {
+          "n": 350,
+          "share": 0.3514,
+          "n_pass": 19,
+          "pass_rate": 0.0543,
+          "pool_sha256": null,
+          "sample": [
+            "v1",
+            "v2"
+          ]
+        }
+      }
+    },
+    "format": {
+      "verdict": "fail",
+      "rule": "ADR-042 п.5: покрытие ответа и его составляющие против **прежнего входа** (CPT-финал), порог различимости 0.1 (2σ при n = 104)",
+      "comparisons": {
+        "answer_coverage": {
+          "sft": 0.7981,
+          "prev_input": 0.8365,
+          "delta": -0.0384,
+          "better": false,
+          "significant": false,
+          "rule": "ADR-042 п.5(в): покрытие ответа не падает"
+        },
+        "truncated_share": {
+          "sft": 0.1442,
+          "prev_input": 0.0192,
+          "delta": 0.125,
+          "better": false
+        },
+        "unclosed_think_share": {
+          "sft": 0.2019,
+          "prev_input": 0.3269,
+          "delta": -0.125,
+          "better": true
+        },
+        "tool_call_share": {
+          "sft": 0.5192,
+          "prev_input": 0.7308,
+          "delta": -0.2116,
+          "better": false
+        }
+      },
+      "noise_threshold": 0.1,
+      "n_min_warning": null,
+      "protocol": {
+        "prompts_set": "wide",
+        "max_new_tokens": 8192,
+        "stop_at_turn_end": true,
+        "decoding": "greedy_nogram4",
+        "standard": true,
+        "no_repeat_ngram": 4
+      },
+      "sft": {
+        "n": 104,
+        "answer_coverage": 0.7981,
+        "answer_defined": 83,
+        "unclosed_think_share": 0.2019,
+        "tool_call_share": 0.5192,
+        "truncated_share": 0.1442,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0577,
+          "limit_in_think": 0.0481,
+          "limit_in_tool_call": 0.0192,
+          "limit_in_tool_response": 0.0192,
+          "turn_end": 0.8558
+        },
+        "natural_stop_share": 0.8558,
+        "median_len": 685,
+        "checkpoint_sha256": "b1681dcb1b999e37a8fe6cc255c16eb1941f5c2e039d85dd92b913d20f42139d",
+        "checkpoint": "/home/user/gb10-shared/sft-point-chain-20260925-1000/ckpt/sft_checkpoint_final.pt"
+      },
+      "cfinal": {
+        "n": 104,
+        "answer_coverage": 0.8365,
+        "answer_defined": 87,
+        "unclosed_think_share": 0.3269,
+        "tool_call_share": 0.7308,
+        "truncated_share": 0.0192,
+        "stop_reasons_share": {
+          "limit_in_think": 0.0096,
+          "limit_in_tool_response": 0.0096,
+          "turn_end": 0.9808
+        },
+        "natural_stop_share": 0.9808,
+        "median_len": 1164,
+        "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+        "checkpoint": "/home/user/gb10-shared/sft-point-chain-20260925-1000/ckpt/cpt_checkpoint_final.pt"
+      },
+      "base": {
+        "n": 104,
+        "answer_coverage": 1.0,
+        "answer_defined": 104,
+        "unclosed_think_share": 0.0,
+        "tool_call_share": 0.0,
+        "truncated_share": 0.0096,
+        "stop_reasons_share": {
+          "limit_in_answer": 0.0096,
+          "turn_end": 0.9904
+        },
+        "natural_stop_share": 0.9904,
+        "median_len": 172,
+        "checkpoint_sha256": null,
+        "checkpoint": null
+      }
+    }
+  },
+  "operational": {
+    "chain_dir": "/home/user/gb10-shared/sft-point-chain-20260925-1000",
+    "ctr_dir": "/workspace/shared/sft-point-chain-20260925-1000",
+    "case_mirror": "/home/user/spine-aiml/кейсы/laguna-compact/runs/sft-point-chain-20260925-1000",
+    "tmux": "ssh gb10-fast 'tmux ls' → сессия `sft-point-chain-20260925-1000`",
+    "artifacts": {
+      "ckpt/RECEIPT.json (бронь предмета)": "есть (2903 Б)",
+      "evidence/s3aa-agentic-sft.json": "есть (93390 Б)",
+      "evidence/s3aa-agentic-cpt-nogram4.json": "есть (84773 Б)",
+      "runs/.../ppl-sft.json (язык + домен)": "есть (13267 Б)",
+      "runs/.../format-wide-8192.json": "есть (2252507 Б)",
+      "logs/eval_results_sft.json (стенд)": "есть (283981 Б)",
+      "logs/eval_results_base.json (стенд)": "есть (282804 Б)"
+    },
+    "resume": [
+      "# стенд: цепочка eval (tmux-сессия sft-point-chain-20260925-1000); повтор той же строки —",
+      "# снимок валится на месте, цепочка продолжает с первой неготовой стадии",
+      "ssh gb10-fast 'tmux ls; cat /home/user/gb10-shared/sft-point-chain-20260925-1000/var/chain.status'",
+      "bash /home/user/gb10-shared/sft-point-chain-20260925-1000/chain_sleep_guard.sh bash /home/user/gb10-shared/sft-point-chain-20260925-1000/pilot_chain.sh \\",
+      "    --run-dir /home/user/gb10-shared/sft-point-chain-20260925-1000 --ctr-run-dir /workspace/shared/sft-point-chain-20260925-1000 \\",
+      "    --stages-file /home/user/gb10-shared/sft-point-chain-20260925-1000/stages.tsv --exp-base sft-point-chain-20260925-1000 \\",
+      "    --ctr-prefix laguna-sft-point-chain-20260925-1000   # + остальные флаги: /home/user/gb10-shared/sft-point-chain-20260925-1000/chain_command.txt",
+      "# карта 4080: агентная проба (sft, затем cpt) и форматная — очередь их сериализует",
+      "setsid nohup bash tools/point_local_probe_chain.sh --ts 20260925-1000 \\",
+      "    >> runs/sft-point-chain-20260925-1000/local-chain.log 2>&1 < /dev/null &",
+      "# сводка и отчёт — из уже снятых артефактов, GPU не занимает",
+      "python3 tools/build_sft_point_chain.py --ts 20260925-1000 --do mirror",
+      "python3 tools/assemble_sft_point_chain.py --ts 20260925-1000 --report"
+    ],
+    "running_probe_processes": {
+      "point_local_probe_chain": "не запущен",
+      "point_agentic_probe": "не запущен",
+      "passrate_probe": "не запущен",
+      "probe_language_split": "не запущен"
+    }
+  },
+  "constants_carriers": {
+    "k1": {
+      "value": "7.504686 / 15.009373",
+      "carrier": "evidence/s3q-baseline-v3.json",
+      "set": "datasets/general_eval_v3.txt",
+      "docs": 200,
+      "set_sha256": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "set_sha256_in_this_measurement": "6fa8e00fc268b10e337995273f4763a8b465101584989068bc638e83d69b2f8e",
+      "same_set_bytes": true
+    },
+    "k2": {
+      "value": "6.159936 / 12.319871",
+      "carrier": "evidence/s3t-baseline-k2.json",
+      "set": "datasets/general_eval_k2.txt",
+      "docs": 200,
+      "set_sha256": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "set_sha256_in_this_measurement": "723daeaf163c072f3d746730759dc4c0fe71415330fb094ca84ffa765200b983",
+      "same_set_bytes": true
+    },
+    "domain_v3": {
+      "value": "13.559193",
+      "carrier": "runs/s3ao-domain-v3-20260919/ + evidence/s3ao-domain-v3.json",
+      "set": "datasets/domain_eval_v3.txt",
+      "docs": 200,
+      "set_sha256": "a0b35f3f10142a2f2bbf962c6262bfb4444b88d22f8a99ad6b27a3a717dd3f60",
+      "set_sha256_in_this_measurement": "a0b35f3f10142a2f2bbf962c6262bfb4444b88d22f8a99ad6b27a3a717dd3f60",
+      "same_set_bytes": true
+    }
+  },
+  "agentic_base_collision": {
+    "question": "45.1 % самостоятельных вызовов против «0 из 700» — одно и то же?",
+    "answer": "нет: разные чекпойнты и разные конфигурации прибора",
+    "number_a": {
+      "value": "45.1 % (158/350; v1 86/150 = 57.3 %, v2 72/200 = 36.0 %)",
+      "artifact": "evidence/s3aa-agentic-cpt.json",
+      "run": "runs/passrate-agentic-cpt-20260917-0153",
+      "checkpoint": "full-cpt-20260916-2149/checkpoints/checkpoint_final.pt",
+      "checkpoint_sha256": "080c3ab6523f44378c87f443e4d10fb84e060f5c4ae3825e721aad066b54e086",
+      "instrument": "tools/passrate_probe.py --no-toolcall-force --no-hint",
+      "decoding": "legacy (в отчёте нет protocol.decoding; запрет повторов 4-грамм не действовал)",
+      "device": "local-rtx4080s",
+      "role": "измеряет ВХОДНОЙ CPT-чекпойнт SFT-стадии (не SFT)",
+      "verdict": "историческое число: ADR-041 п.3 объявляет базу переснятию подлежащей и запрещает выносить вердикт по agentic-доле до переснятия",
+      "label_defect": "в артефакте поле protocol.weights_kind='sft_checkpoint' при пути и sha256 CPT-финала — сама эта наклейка и питает коллизию"
+    },
+    "number_b": {
+      "value": "0 самостоятельных вызовов на 700 задач",
+      "artifact": "docs/specs/POOL-DEAD-TYPES.md (+ evidence/pool-dead-types.json)",
+      "run": "runs/passrate-sft-20260916-1200",
+      "checkpoint": "sft_checkpoint_final.pt sha 5bc15f708111 (историческая SFT-стадия sft-20260916-2246)",
+      "instrument": "tools/passrate_probe.py С toolcall_force (форсированный первый вызов)",
+      "decoding": "legacy",
+      "role": "измеряет исторический SFT-чекпойнт, а не CPT; самовызов там не измерим по построению",
+      "verdict": "к CPT-финалу неприменимо (ADR-033 п.2, вставка 17.09.2026: «прежнее „0 на 700“ получено на SFT-чекпойнте и с toolcall_force, где первый вызов вкладывает харнесс, — измерить самовызов там нельзя»)"
+    },
+    "what_is_comparable_now": {
+      "legacy_base_a": "НЕ сопоставима: другой режим декодирования (ADR-041 п.3/п.5)",
+      "number_b": "НЕ сопоставима: toolcall_force=true — самостоятельность не измерена",
+      "required": "база обязана быть переснята тем же прибором, с теми же флагами, в том же режиме и на входном CPT-чекпойнте — тогда сравнение «SFT против входа» отвечает на вопрос ADR-033 п.2в1/в2, а не на вопрос «какой режим»"
+    },
+    "caveat_about_the_guard": "tools/check_sft_agentic_share.py (ADR-059) проверяет СОПОСТАВИМОСТЬ базы и отчёта: штатный режим protocol.decoding у обоих (ADR-041 п.4), флаги без форсирования, разные предметы (вход и выход стадии) со сверкой с распиской брони, совпадающие sha256 пулов и n; legacy-отчёт он отвергает. Условия (в1)/(в2) страж печатает как данные, но решающего голоса по (в) у него нет: вердикт («доля не падает» ∧ «pass-rate растёт») выносит сводка — эта функция, — читая ту же пару отчётов. Так страж не краснеет на правильном переснятом замере (прежний дефект: сверка числа с legacy-цитатой ADR-033)"
+  },
+  "verdicts": {
+    "eval_axis_sft": "measured",
+    "eval_base": "measured",
+    "language": "pass",
+    "domain": "pass",
+    "agentic": "fail",
+    "format": "fail"
+  },
+  "not_measured": {},
+  "failed": [
+    "agentic",
+    "format"
+  ],
+  "n_by_measurement": {
+    "eval_sft": 192,
+    "eval_base": 192,
+    "language_domain_docs": 200,
+    "agentic_tasks": 350,
+    "format_probes": 104
+  },
+  "limits": [
+    "протокол узкий (AD-1): один сид, одна попытка на задачу — pass@k не экстраполируется",
+    "направление оси AD-1 не выносится: RL не запускался, точки решения нет",
+    "evidence/result-report.json не создавался (C-014: точка решения не пройдена)",
+    "числа PPL сняты локальной 4080 (ADR-031/ADR-044); стенд GB10 в PPL-замерах не участвовал",
+    "адресация носителя (S4-PROTOCOL §1/§5а, введена 25.09.2026): eval-артефакты этой стадии даёт приборная цепочка runs/sft-point-chain-<ts>/logs/ (прогон-носитель стадии — sft-v13-2e6-20260921-2054); носители базовых констант — поле constants_carriers этой сводки; схема result-report не расширялась",
+    "переснятие агентной базы (входной CPT): прибор читал живой путь `/home/user/gb10-shared/full-cpt-20260916-2149/checkpoints/checkpoint_final.pt`, а не бронь `/home/user/gb10-shared/sft-point-chain-20260925-1000/ckpt/cpt_checkpoint_final.pt` — бронь хардлинком на тот же inode 33423487 и sha 080c3ab6523f…, предмет сверен в начале пробы, поэтому измерено то же состояние; но буквальная форма ADR-058 п.1 («все приборы читают копию») здесь не выполнена — названо, а не умолчано"
+  ]
+}

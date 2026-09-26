@@ -16,7 +16,7 @@ spec_files: []
 ## Context
 
 Каталог `tools/` в этом кейсе **не был выбран** — он унаследован из кейса-образца
-`kimi-killer`, где используется та же структура (`tools/check_gb10_single_load.py`,
+`axiom`, где используется та же структура (`tools/check_gb10_single_load.py`,
 `tools/check_reward_isolation.py`, `tools/a4_manifest.py`, `tools/pool_cost_probe.py`).
 Формат скопирован осознанно (совместимость с живым кейсом), но **решения о
 наименовании и внутренней организации не принималось** — то есть это подражание,
@@ -100,7 +100,7 @@ CONSTRAINTS ссылается на стража по пути — значит 
 
 ## References
 
-- `кейсы/kimi-killer/tools/` — образец, из которого скопирована структура
+- `кейсы/axiom/tools/` — образец, из которого скопирована структура
 - `CONSTRAINTS.yaml` — 7 правил со ссылками на `tools/check_*`
 - `tools/run_pilot.py` (список `SHIPPED` — доставка файлов на стенд по именам), `tools/pilot_chain.sh`
 - `ARCHITECTURE-SPINE.md` AD-10 — граница стража и раннера; `CONSTRAINTS.yaml` C-019 — её страж

@@ -96,7 +96,7 @@ conventions: [`кейсы/AGENTS.md`](кейсы/AGENTS.md).
 | Case | Model | What it shows |
 |------|-------|----------------|
 | [laguna-compact](кейсы/laguna-compact/) | Qwen2.5 (GB10) | The CPT→SFT→RL ladder on a single GPU: resource guards, corpus revisions, single-seed pilot |
-| [kimi-killer](кейсы/kimi-killer/) | — (pretrain) | A bake-off of long-context architectures: one run contract, mechanical verdict, private corpus never leaves the perimeter |
+| [axiom](кейсы/axiom/) | — (pretrain) | A bake-off of long-context architectures: one run contract, mechanical verdict, private corpus never leaves the perimeter |
 | [drift-control](кейсы/drift-control/) | Claude Code (A/B) | Bare task → gate FAIL 2/6; same task + handoff package → PASS 6/6 |
 | [parallel-epics](кейсы/parallel-epics/) | Claude Code ×3 | Parallel worktree fleet: seams converged on the first build (15/15 tests) |
 | [fleet-of-ten](кейсы/fleet-of-ten/) | Claude Code ×10 | Ten epics in ~3.2 min wall clock: 10/10 complete, the fleet committed its own work |
@@ -155,6 +155,10 @@ The full tour (RU + EN, mechanism by mechanism) lives in
 - **TUI**: Tokyo Night, mermaid art on a side tab, mouse selection with
   auto-copy, message queue, turn interrupt, Word/Excel export, a "· cache NN%"
   hit-rate segment in the status bar and the build version on the start splash.
+  Answers are typeset to a **reading measure** — never wider than 100 columns
+  (`MAX_READING_WIDTH`), the block body runs under a `▎` gutter, and wrapped
+  list items keep a hanging indent, so a continuation never reads as a new
+  paragraph. In-dialog reasoning is one line plus a hidden-lines counter.
 
 ## CLI
 

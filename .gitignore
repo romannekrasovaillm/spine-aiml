@@ -38,5 +38,5 @@ deploy-kit/arch-be
 benchmarks/platformv-arch-bench/runs/
 
 # Сырые evidence прогонов кейсов живут в релизных архивах, не в дереве
-# (ревью 2026-09-22): кейс kimi-killer — см. кейсы/kimi-killer/evidence/README.md
-кейсы/kimi-killer/evidence/a4-run-wire/
+# (ревью 2026-09-22): кейс axiom — см. кейсы/axiom/evidence/README.md
+кейсы/axiom/evidence/a4-run-wire/

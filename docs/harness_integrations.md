@@ -152,6 +152,14 @@ auto_commit = true                # до-коммитить незакоммич
 - `stdin` — задача пишется в stdin (писатель — отдельной задачей, без
   дедлока на pipe-буфере), argv = `binary args...`.
 
+Во всех режимах (и в ACP-транспорте) плейсхолдер `{repo}` в `args` заменяется
+абсолютным путём репозитория прогона — для харнессов, которым рабочий каталог
+надо передать явным флагом (например, hermes `--in {repo}`). Дополнительно
+задача каждого прогона несёт якорь «Рабочий каталог прогона: `<repo>`…»
+(см. `with_contract_footer`) — исполнители с собственным cwd (терминал hermes
+стартует в домашнем каталоге, агент openclaw — в своём workspace) пишут
+артефакты в репозиторий явно.
+
 ## Транспорт ACP (`transport = "acp"`, ADR-049)
 
 Процессный транспорт видит харнесс чёрным ящиком (ответ — stdout по итогу,
@@ -221,10 +229,10 @@ headless», поэтому неинтерактивность подтвержд
 | Харнесс | binary | args | prompt_mode | Объявленный неинтерактивный вызов (цитата справки CLI) |
 |---|---|---|---|---|
 | claude-code | `claude` | `["-p", "--dangerously-skip-permissions"]` | stdin | «use -p/--print for non-interactive output» |
-| qwen-code | `qwen` | `["-p", "{prompt}"]` | flag | «Launch an interactive CLI, use -p/--prompt for non-interactive mode»; без флагов — интерактивная дефолтная подкоманда |
-| openclaw | `openclaw` | `["agent", "--agent", "main", "--message", "{prompt}"]` | flag | `agent` — «Run an agent turn via the Gateway (use --local for embedded)»; на этой машине Gateway запущен (порт 18789), поэтому `--local` не нужен — на контуре без Gateway его надо добавить |
-| hermes | `hermes` | `["-z", "{prompt}"]` | flag | «One-shot mode: send a single prompt and print ONLY the final response text to stdout» |
-| theseus | `theseus` | `["-p", "{prompt}"]` | flag | «`-p, --prompt TEXT` — headless-режим без TUI» |
+| qwen-code | `qwen` | `["-p", "{prompt}", "--approval-mode", "yolo"]` | flag | «Launch an interactive CLI, use -p/--prompt for non-interactive mode»; без флагов — интерактивная дефолтная подкоманда. Без `yolo` в headless инструменты записи/shell выпадают из набора (некому аппрувить) — прогон честно завершается `status=blocked` |
+| openclaw | `openclaw` | `["agent", "--agent", "main", "--message", "{prompt}"]` | flag | `agent` — «Run an agent turn via the Gateway (use --local for embedded)»; на этой машине Gateway запущен (порт 18789), поэтому `--local` не нужен — на контуре без Gateway его надо добавить. CLI должен быть актуальной версии: старый пакет под прежним node валится на новых конфиге/БД («config invalid», «schema N vs 1»). Собственный cwd агента — workspace openclaw; якорь каталога в футере задачи направляет артефакты в репозиторий прогона |
+| hermes | `hermes` | `["-z", "{prompt}", "--in", "{repo}", "--no-restore-cwd"]` | flag | «One-shot mode: send a single prompt and print ONLY the final response text to stdout». Без `--in` hermes восстанавливает cwd прошлой сессии и пишет артефакты мимо репозитория прогона |
+| theseus | `theseus` | `["-p", "{prompt}", "--max-turns", "160", "--yolo"]` | flag | «`-p, --prompt TEXT` — headless-режим без TUI». Дефолтный лимит 40 ходов мал для флотовых задач (обрыв exit 3 посреди работы); в headless продления лимита нет |
 | codewhale | `codewhale` | `["exec", "--auto", "{prompt}"]` | flag | `exec` — «Run a non-interactive prompt», `--auto` — «Enable tool-backed agent mode with auto-approvals» |
 | kimi-code | `kimi` | `["-p", "{prompt}"]` | flag | «Run one prompt non-interactively and print the response» |
 

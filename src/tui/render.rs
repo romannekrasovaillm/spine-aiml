@@ -47,14 +47,38 @@ const STATUS_HINTS_MIN: usize = 48;
 /// Сколько клеток статус-бара обязано остаться под модель и контекст при
 /// сколь угодно длинных подсказках.
 const STATUS_LEFT_MIN: usize = 12;
-/// Максимум строк блока «мысли» в диалоге (компактность; хвост — счётчиком).
-const MAX_THINKING_LINES: usize = 6;
+/// Сколько строк блока «мысли» остаётся в диалоге (остальное — счётчиком).
+/// Одна: полное рассуждение — это черновик модели, а не ответ. В диалоге оно
+/// конкурирует за внимание с ответом, а приглушённый цвет (`muted` к фону
+/// ≈3,3:1) читается хуже самого ответа. Тесей показывает вместо текста один
+/// счётчик `(мышление: N символов)`; здесь оставлена последняя реплика —
+/// по ней видно, на чём модель стоит прямо сейчас.
+const MAX_THINKING_LINES: usize = 1;
 /// Замедление пульса «модель думает»: кадр раз в N тиков тикера (120 мс).
 const PULSE_TICK_DIVISOR: usize = 4;
-/// Хвост живого вывода в блоке инструмента: строк максимум.
-const TOOL_TAIL_LINES: usize = 3;
+/// Хвост живого вывода в блоке инструмента: строк максимум. Одна: трейс
+/// инструмента — не отчёт; полный вывод живёт на вкладке правой панели.
+const TOOL_TAIL_LINES: usize = 1;
 /// Хвост живого вывода: символов в строке максимум (дальше — «…»).
-const TOOL_TAIL_LINE_CHARS: usize = 110;
+const TOOL_TAIL_LINE_CHARS: usize = 80;
+/// Ширина желобка тела блока (`▎ `) в колонках: он вычитается из меры чтения,
+/// чтобы строка вместе с желобком не выходила за [`MAX_READING_WIDTH`].
+const PROSE_GUTTER_WIDTH: usize = 2;
+/// Мера чтения прозы в диалоге: максимум колонок текста, независимо от ширины
+/// терминала. Абзац в 130–150 колонок глазом не удерживается — возврат к
+/// началу следующей строки теряется, и ответ читается как простыня. 100 —
+/// та же мера, что у Тесея (`markdown::render(&t, 100)`).
+///
+/// Побочная выгода: текстовая колонка перестаёт зависеть от открытия правой
+/// панели — история больше не переверстывается при `Tab`.
+const MAX_READING_WIDTH: usize = 100;
+
+/// Ширина колонки текста в диалоге: внутренняя ширина панели, но не шире
+/// [`MAX_READING_WIDTH`]. Арт (mermaid, ASCII-схемы) мерой не ограничен —
+/// он не проза и переносу не подлежит (см. `line_is_art`).
+fn reading_width(inner_w: usize) -> usize {
+    inner_w.clamp(1, MAX_READING_WIDTH)
+}
 
 /// Длительность как `M:SS` (до часа) или `H:MM:SS` — для живых таймеров
 /// («модель думает · 1:23», «выполняется: bash · 0:42»).
@@ -994,6 +1018,9 @@ fn ask_hint_line(
 /// Арт-строки (mermaid) не переносятся — клипаются.
 fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
     let inner_w = usize::from(area.width.saturating_sub(2)).max(1);
+    // Проза верстается в меру чтения, а не во всю ширину панели (см.
+    // MAX_READING_WIDTH). Арт проходит мимо переноса целиком.
+    let prose_w = reading_width(inner_w);
     let mut lines: Vec<Line<'static>> = Vec::new();
     // Лог пуст, если в нём нет ничего, кроме логотипа: подсказка «что делать»
     // обязана быть видна на первом кадре (A4). Считаем её здесь, а ставим
@@ -1010,17 +1037,17 @@ fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
                 end += 1;
             }
             for line in tool_run_lines(&app.blocks[idx..end], idx, &app.tool_live, theme) {
-                lines.extend(wrap_line(&line, inner_w));
+                lines.extend(wrap_line(&line, prose_w));
             }
             lines.push(Line::default());
             idx = end;
             continue;
         }
-        for line in block_lines(block, theme, inner_w) {
+        for line in block_lines(block, theme, prose_w) {
             if line_is_art(&line) {
                 lines.push(line);
             } else {
-                lines.extend(wrap_line(&line, inner_w));
+                lines.extend(wrap_line(&line, prose_w));
             }
         }
         lines.push(Line::default());
@@ -1034,7 +1061,7 @@ fn draw_dialog(f: &mut Frame, area: Rect, app: &mut App, theme: &Theme) {
                 "Пусто. Напишите сообщение — или ? — список клавиш, /help — команды.",
                 theme.muted(),
             )),
-            inner_w,
+            prose_w,
         ));
         lines.push(Line::default());
     }
@@ -1257,10 +1284,12 @@ fn tool_run_lines(
 ) -> Vec<Line<'static>> {
     /// Строка итога одного вызова (последняя строка summary, приглушённо).
     fn summary_line(summary: &str, theme: &Theme) -> Option<Line<'static>> {
-        sanitized(summary)
-            .lines()
-            .last()
-            .map(|l| Line::from(Span::styled(format!("  {}", l.trim_end()), theme.muted())))
+        sanitized(summary).lines().last().map(|l| {
+            Line::from(Span::styled(
+                format!("{} {}", theme.glyphs.sub(), l.trim_end()),
+                theme.muted(),
+            ))
+        })
     }
     let items: Vec<(&str, &str, &ToolState, &str)> = run
         .iter()
@@ -1313,7 +1342,11 @@ fn tool_run_lines(
                         // (см. text::sanitized).
                         let t = sanitized(t);
                         out.push(Line::from(Span::styled(
-                            format!("  {}", truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)),
+                            format!(
+                                "{} {}",
+                                theme.glyphs.sub(),
+                                truncate_chars(t.trim_end(), TOOL_TAIL_LINE_CHARS)
+                            ),
                             theme.muted().add_modifier(Modifier::ITALIC),
                         )));
                     }
@@ -1331,10 +1364,12 @@ fn tool_run_lines(
 }
 
 /// Блок чата → стилизованные строки (до переноса по ширине).
-/// `width` нужен таблицам: они переносятся внутри ячеек уже здесь,
-/// т.к. их разделитель │ ловится детектором арта и общий перенос их
-/// пропускает (иначе широкие таблицы обрезались справа).
-fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'static>> {
+/// `prose_w` — мера чтения прозы (см. [`MAX_READING_WIDTH`]): markdown-текст
+/// ответа верстается в неё (перенос с висячим отступом — `text::markdown_lines`),
+/// таблицы переносятся внутри ячеек уже здесь, т.к. их разделитель │ ловится
+/// детектором арта и общий перенос их пропускает (иначе широкие таблицы
+/// обрезались справа).
+fn block_lines(block: &ChatBlock, theme: &Theme, prose_w: usize) -> Vec<Line<'static>> {
     match block {
         ChatBlock::Logo => logo_lines(theme),
         ChatBlock::User(text) => {
@@ -1354,29 +1389,31 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
             out
         }
         ChatBlock::Thinking(text) => {
-            // «Мысли» — компактно и приглушённо: максимум
-            // MAX_THINKING_LINES строк, хвост — счётчиком.
+            // «Мысли» — компактно и приглушённо: [`MAX_THINKING_LINES`] строк,
+            // хвост — счётчиком В ШАПКЕ блока (отдельная строка-счётчик
+            // стоила бы столько же, сколько сама мысль).
             let text = sanitized(text);
-            let mut out = vec![Line::from(vec![
-                Span::styled(format!("{} ", theme.glyphs.note()), theme.muted()),
-                Span::styled("мысли", theme.muted().add_modifier(Modifier::ITALIC)),
-            ])];
             let lines: Vec<&str> = text.lines().collect();
             let show = lines.len().min(MAX_THINKING_LINES);
-            for l in &lines[..show] {
-                out.push(Line::from(Span::styled(
-                    format!("  {l}"),
-                    theme.muted().add_modifier(Modifier::ITALIC),
-                )));
-            }
+            let mut header = vec![
+                Span::styled(format!("{} ", theme.glyphs.note()), theme.muted()),
+                Span::styled("мысли", theme.muted().add_modifier(Modifier::ITALIC)),
+            ];
             if lines.len() > show {
-                out.push(Line::from(Span::styled(
+                header.push(Span::styled(
                     format!(
-                        "  {} (+{} строк)",
+                        " {} (+{} строк)",
                         theme.glyphs.ellipsis(),
                         lines.len() - show
                     ),
                     theme.muted(),
+                ));
+            }
+            let mut out = vec![Line::from(header)];
+            for l in &lines[..show] {
+                out.push(Line::from(Span::styled(
+                    format!("  {l}"),
+                    theme.muted().add_modifier(Modifier::ITALIC),
                 )));
             }
             out
@@ -1389,7 +1426,20 @@ fn block_lines(block: &ChatBlock, theme: &Theme, width: usize) -> Vec<Line<'stat
                 ),
                 Span::styled("арх", theme.purple().add_modifier(Modifier::BOLD)),
             ])];
-            out.extend(markdown_lines(text, theme, width));
+            // Тело блока — под желобком: продолжение абзаца читается как
+            // продолжение, а не как новый абзац (в слое отрисовки от маркера
+            // не остаётся ничего, и блок рассыпался в простыню). Желобок
+            // занимает колонки из меры чтения — верстаем markdown в остаток,
+            // чтобы строка вместе с ним не вышла за MAX_READING_WIDTH.
+            let body_w = prose_w.saturating_sub(PROSE_GUTTER_WIDTH).max(1);
+            for line in markdown_lines(text, theme, body_w) {
+                let mut spans = vec![Span::styled(
+                    format!("{} ", theme.glyphs.gutter()),
+                    theme.muted(),
+                )];
+                spans.extend(line.spans);
+                out.push(Line::from(spans));
+            }
             out
         }
         ChatBlock::Tool {
@@ -2654,10 +2704,75 @@ mod tests {
     }
 
     #[test]
-    fn thinking_block_renders_compact_and_dimmed() {
-        // Блок «мысли»: компактно (кап строк + счётчик хвоста).
+    fn assistant_prose_is_capped_by_reading_measure() {
+        // Мера чтения: на широком терминале текст ответа не растягивается на
+        // всю панель — колонка прозы ограничена MAX_READING_WIDTH, справа
+        // остаётся пустое поле. Иначе строка в 150 колонок не удерживается
+        // глазом при возврате к началу следующей.
         let mut app = test_app();
         app.screen = Screen::Chat;
+        app.blocks.clear();
+        let para = (1..=40)
+            .map(|i| format!("слово{i:04}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        app.push_block(ChatBlock::Assistant(para));
+        let mut terminal = Terminal::new(TestBackend::new(160, 30)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let rows = buffer_rows(&terminal);
+        let dw = dialog_width(&terminal);
+        let mut prose_rows = 0;
+        for row in rows.iter().skip(1) {
+            if row.first().map(String::as_str) != Some("│") {
+                break;
+            }
+            let inner = &row[1..dw.saturating_sub(1)];
+            let Some(last) = inner.iter().rposition(|c| c != " ") else {
+                continue;
+            };
+            assert!(
+                last < MAX_READING_WIDTH,
+                "строка вышла за меру чтения ({} > {}): {:?}",
+                last + 1,
+                MAX_READING_WIDTH,
+                row.concat()
+            );
+            prose_rows += 1;
+        }
+        assert!(prose_rows >= 3, "абзац не отрисован: {prose_rows} строк");
+    }
+
+    #[test]
+    fn assistant_body_lines_share_one_gutter() {
+        // Тело ответа — под желобком: и первая, и все строки-продолжения
+        // начинаются с `▎` в одной колонке, поэтому перенос абзаца читается
+        // как продолжение, а не как новый абзац.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.blocks.clear();
+        let para = format!("{}\n\nвторой абзац", "слово ".repeat(30).trim_end());
+        app.push_block(ChatBlock::Assistant(para));
+        let mut terminal = Terminal::new(TestBackend::new(120, 20)).expect("terminal");
+        terminal.draw(|f| app.render(f)).expect("draw");
+        let rows = buffer_rows(&terminal);
+        let mut body = 0;
+        for row in rows.iter().skip(1) {
+            if row.first().map(String::as_str) != Some("│") {
+                break;
+            }
+            if row.get(1).map(String::as_str) == Some("▎") {
+                body += 1;
+            }
+        }
+        assert!(body >= 3, "тело ответа не под желобком: {body} строк");
+    }
+
+    #[test]
+    fn thinking_block_renders_compact_and_dimmed() {
+        // Блок «мысли»: одна строка + счётчик хвоста в шапке блока.
+        let mut app = test_app();
+        app.screen = Screen::Chat;
+        app.blocks.clear();
         let long = (1..=20)
             .map(|i| format!("шаг рассуждения {i}"))
             .collect::<Vec<_>>()
@@ -2668,8 +2783,17 @@ mod tests {
         let text = buffer_text(&terminal);
         assert!(text.contains("мысли"), "заголовок блока:\n{text}");
         assert!(text.contains("шаг рассуждения 1"), "{text}");
+        assert!(
+            !text.contains("шаг рассуждения 2"),
+            "в диалоге остаётся ровно MAX_THINKING_LINES строк:\n{text}"
+        );
         assert!(!text.contains("шаг рассуждения 20"), "хвост скрыт:\n{text}");
-        assert!(text.contains("… (+"), "счётчик хвоста:\n{text}");
+        // Счётчик скрытого — в шапке блока, отдельной строки под него нет.
+        let head = text
+            .lines()
+            .find(|l| l.contains("мысли"))
+            .expect("шапка блока мыслей");
+        assert!(head.contains("… (+19 строк)"), "счётчик в шапке: {head:?}");
     }
 
     #[test]
@@ -4537,19 +4661,18 @@ mod tests {
             "живой таймер: {text}"
         );
         assert!(
-            text.contains("test fitness_rules ... ok"),
-            "хвост вывода виден: {text}"
+            text.contains("↳ compiling arch"),
+            "последняя строка хвоста видна под вызовом: {text}"
         );
         assert!(
-            text.contains("compiling arch"),
-            "последняя строка хвоста видна: {text}"
+            !text.contains("test fitness_rules ... ok"),
+            "хвост ограничен TOOL_TAIL_LINES строками: {text}"
         );
         assert!(
             !text.contains("running 900 tests"),
             "старые строки хвоста уходят за предел TOOL_TAIL_LINES: {text}"
         );
     }
-
     #[test]
     fn tool_run_without_live_entry_renders_as_before() {
         // Обратная совместимость: Running-блок без live-записи (снимки,

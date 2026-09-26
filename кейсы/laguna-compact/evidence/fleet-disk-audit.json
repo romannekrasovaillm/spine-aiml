@@ -150,9 +150,9 @@
         "severity": "high",
         "class": "датасет — реальные копии + попадание в git-индекс",
         "files": [
-          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/real-l0-00/data/datasets/sft_train_v12.jsonl",
-          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l0-00/data/datasets/sft_train_v12.jsonl",
-          "кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l1-00/data/datasets/sft_train_v12.jsonl"
+          "кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/real-l0-00/data/datasets/sft_train_v12.jsonl",
+          "кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/corruption-l0-00/data/datasets/sft_train_v12.jsonl",
+          "кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/corruption-l1-00/data/datasets/sft_train_v12.jsonl"
         ],
         "worktree": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace",
         "size_each": 486352008,
@@ -164,7 +164,7 @@
         "proof_git_tracked": "git ls-files --error-unmatch — успех для всех трёх; git check-ignore — пусто (не игнорируются); git status --porcelain по каталогу — пусто (закоммичены и чисты)",
         "blob_in_history": {"object": "2700788ba6af4a5d8e214cd6f581a2f549b883dd", "raw_bytes": 486352008, "packed_bytes": 142973472, "content_head": "{\"messages\": [{\"role\": \"system\", \"content\": \"Ты — эксперт по ML/AI с доступом к библиотеке концептов..."},
         "matches_known_incident": "AD-4 ПРЕДУПРЕЖДАЕТ ровно это: 'повтор инцидента попадания копий sft_train_v12.jsonl (486 МБ ×3) в git-индекс (коммит f7deadc)'. Сейчас в контуре существует активная ветка arch/gate-scope-workspace с тем же нарушением.",
-        "contrast": "В main-дереве тот же путь — КОРРЕКТНЫЙ симлинк: spine-aiml/кейсы/kimi-killer/data/datasets/sft_train_v12.jsonl -> /home/user/gb10-shared/datasets/sft_train_v12.jsonl. Нарушение живёт только в evidence-подкаталоге a4-run-wire.",
+        "contrast": "В main-дереве тот же путь — КОРРЕКТНЫЙ симлинк: spine-aiml/кейсы/axiom/data/datasets/sft_train_v12.jsonl -> /home/user/gb10-shared/datasets/sft_train_v12.jsonl. Нарушение живёт только в evidence-подкаталоге a4-run-wire.",
         "fix": "заменить на симлинки на /home/user/gb10-shared/datasets/sft_train_v12.jsonl; для освобождения байтов объектов нужна перезапись истории ветки (git filter-repo), иначе блобы останутся в .git"
       },
       {
@@ -199,7 +199,7 @@
       "verdict": "утверждение УСТАРЕЛО — чекпойнты с локального / с тех пор убраны. Правило AD-4 по этому пункту соблюдено."
     },
     "large_files_outside_gb10_shared_inside_worktrees": [
-      {"path": "gate-scope-workspace/кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/{real-l0-00,corruption-l0-00,corruption-l1-00}/data/datasets/sft_train_v12.jsonl", "size": "486M ×3", "tree": "gate-scope-workspace", "verdict": "НАРУШЕНИЕ AD-4 (AD4-V1)"},
+      {"path": "gate-scope-workspace/кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/{real-l0-00,corruption-l0-00,corruption-l1-00}/data/datasets/sft_train_v12.jsonl", "size": "486M ×3", "tree": "gate-scope-workspace", "verdict": "НАРУШЕНИЕ AD-4 (AD4-V1)"},
       {"path": "sanitize-ad7/target/debug/incremental/.../dep-graph.bin", "size": "151M", "tree": "sanitize-ad7", "verdict": "не данные — артефакт сборки Rust; AD-4 не нарушает, но 1.9 ГБ суммарно регенерируемы"},
       {"path": "sanitize-ad7/target/debug/libarch_harness.rlib", "size": "142M", "tree": "sanitize-ad7", "verdict": "артефакт сборки"},
       {"path": "sanitize-ad7/target/debug/deps/{libarch_harness-*.rlib,arch_ml-*,arch-ml}", "size": "142M/123M/123M", "tree": "sanitize-ad7", "verdict": "артефакт сборки"},
@@ -209,9 +209,9 @@
       {"path": "spine-aiml/.git/objects/1a/3de70e8d...", "size": "88M", "tree": "main (.git)", "verdict": "НАРУШЕНИЕ AD-4 в истории (AD4-V2 blob)"}
     ],
     "symlinks_verified_ok": [
-      "main: кейсы/kimi-killer/data/datasets/sft_train_v12.jsonl -> gb10-shared/datasets/sft_train_v12.jsonl",
+      "main: кейсы/axiom/data/datasets/sft_train_v12.jsonl -> gb10-shared/datasets/sft_train_v12.jsonl",
       "main: кейсы/laguna-compact/{datasets,data/tok,cpt_corpus_v12r.txt,domain_eval_v2.txt,general_eval_v2.txt,laguna_pipeline_v8.py} -> gb10-shared/...",
-      "main: кейсы/kimi-killer/evidence/a4-run-wire/{sft,rl}/checkpoint -> gb10-shared/checkpoints/{sft,rl}-smoke",
+      "main: кейсы/axiom/evidence/a4-run-wire/{sft,rl}/checkpoint -> gb10-shared/checkpoints/{sft,rl}-smoke",
       "laguna-control-arms: runs/replay50-collapse-20260916/{corpus/tok/*.npy,model/Qwen2.5-0.5B/model.safetensors} -> gb10-shared/...",
       "sanitize-ad7, gate-scope-workspace: те же симлинки на месте"
     ]
@@ -281,7 +281,7 @@
       "verdict": "в основном безопасно, но выборочно",
       "risk": "каталог эфемерный by design, НО машина поднята 3 дня 16 ч, и часть каталогов — рабочие данные незавершённых прогонов.",
       "subitems": [
-        {"path": "/tmp/kk-calib-tasks", "size": "9.1G", "content": "holdout, public", "verdict": "рискованно", "risk": "фикстуры задач kimi-killer для калибровки. Если calib-харнесс ссылается на них в текущем/следующем прогоне — удаление сломает калибровку. Сначала подтвердить, что источник этих фикстур есть в репозитории."},
+        {"path": "/tmp/kk-calib-tasks", "size": "9.1G", "content": "holdout, public", "verdict": "рискованно", "risk": "фикстуры задач axiom для калибровки. Если calib-харнесс ссылается на них в текущем/следующем прогоне — удаление сломает калибровку. Сначала подтвердить, что источник этих фикстур есть в репозитории."},
         {"path": "/tmp/probe-h7fbq4nq", "size": "4.1G", "verdict": "вероятно безопасно", "risk": "временный каталог прогона-пробника; проверить, не держит ли его живой процесс"},
         {"path": "/tmp/spine-private-fix", "size": "3.8G", "verdict": "вероятно безопасно", "risk": "рабочая копия; если это клон репозитория — восстановимо"},
         {"path": "/tmp/tmpot39_9da", "size": "1.4G", "verdict": "безопасно", "risk": "безымянный tmp"},
@@ -289,7 +289,7 @@
         {"path": "/tmp/probe2-9lzekdix", "size": "931M", "verdict": "вероятно безопасно"},
         {"path": "/tmp/proftest", "size": "920M", "verdict": "вероятно безопасно"},
         {"path": "/tmp/rl-smoke-rollouts-rcn4yqau", "size": "466M", "verdict": "рискованно", "risk": "роллауты RL-смоука; могут быть доказательной базой гейта"},
-        {"path": "/tmp/kk-diag-c1jjurh1", "size": "466M", "verdict": "рискованно", "risk": "диагностика kimi-killer"},
+        {"path": "/tmp/kk-diag-c1jjurh1", "size": "466M", "verdict": "рискованно", "risk": "диагностика axiom"},
         {"path": "прочее (mmv, mmcheck, spine-aiml-pub, laguna-*, ...)", "size": "~2.9G", "verdict": "выборочно"}
       ],
       "note": "Перезагрузка очистила бы /tmp, но убьёт 3 дня аптайма и живые процессы — не рекомендую как способ освобождения."

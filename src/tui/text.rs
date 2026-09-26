@@ -15,8 +15,17 @@ use super::theme::Theme;
 pub(crate) use crate::ansi::strip as sanitized;
 
 /// Разбирает текст в markdown-lite линии: заголовки `#`..`####`, код-блоки
-/// `` ``` ``, буллеты `- `/`* `, инлайн `**жирный**`, таблицы `|…|`.
-/// `width` — целевая ширина строки: таблицы, не влезающие в неё,
+/// `` ``` ``, буллеты `- `/`* `, нумерованные пункты `1. `, инлайн
+/// `**жирный**`, таблицы `|…|`. Здесь же строки переносятся по `width` —
+/// с ВИСЯЧИМ ОТСТУПОМ: продолжение пункта, цитаты или строки кода
+/// выравнивается под их текстом, а не падает в нулевую колонку.
+///
+/// Перенос обязан жить именно здесь: только на этом шаге известен маркер
+/// строки. В слое отрисовки (`wrap_line` по спанам) от маркера остался один
+/// префикс, и продолжение абзаца неотличимо от нового абзаца — блок
+/// рассыпается в простыню (образец решения — Тесей, `markdown.rs::push_wrapped`).
+///
+/// `width` — целевая ширина строки прозы; таблицы, не влезающие в неё,
 /// переносятся внутри ячеек (см. `table_lines`).
 pub(crate) fn markdown_lines(text: &str, theme: &Theme, width: usize) -> Vec<Line<'static>> {
     // Внешний текст (ответы модели, вывод инструментов) может нести
@@ -37,7 +46,13 @@ pub(crate) fn markdown_lines(text: &str, theme: &Theme, width: usize) -> Vec<Lin
             continue;
         }
         if in_code {
-            out.push(Line::from(Span::styled(format!(" {line}"), theme.code())));
+            // Строка кода — дословно; продолжение с отступом в один пробел и
+            // тем же стилем панели: перенос не превращает код в прозу.
+            out.extend(hanging(
+                Line::from(Span::styled(format!(" {line}"), theme.code())),
+                width,
+                Span::styled(" ".to_string(), theme.code()),
+            ));
             i += 1;
             continue;
         }
@@ -75,27 +90,58 @@ pub(crate) fn markdown_lines(text: &str, theme: &Theme, width: usize) -> Vec<Lin
         }
         let indent = &line[..line.len() - trimmed.len()];
         if let Some(heading) = strip_heading(trimmed) {
-            out.push(Line::from(Span::styled(
-                heading.to_string(),
-                theme.heading(),
-            )));
+            // Заголовок переносится без отступа: он не пункт списка.
+            out.extend(hanging(
+                Line::from(Span::styled(heading.to_string(), theme.heading())),
+                width,
+                Span::default(),
+            ));
         } else if let Some(rest) = trimmed
             .strip_prefix("- ")
             .or_else(|| trimmed.strip_prefix("* "))
         {
             let mut spans = vec![Span::styled(format!("{indent}• "), theme.purple())];
             spans.extend(inline_spans(rest, base));
-            out.push(Line::from(spans));
+            // Продолжение — под текстом пункта (два знака маркера `• `).
+            out.extend(hanging(
+                Line::from(spans),
+                width,
+                Span::styled(format!("{indent}  "), base),
+            ));
+        } else if let Some(marker) = numbered_marker(trimmed) {
+            // Нумерованный пункт: маркер сохраняем, продолжение — под текстом
+            // (столько же пробелов, сколько занял маркер).
+            let mut spans = vec![Span::styled(format!("{indent}{marker}"), base)];
+            spans.extend(inline_spans(&trimmed[marker.len()..], base));
+            out.extend(hanging(
+                Line::from(spans),
+                width,
+                Span::styled(
+                    format!("{indent}{}", " ".repeat(marker.chars().count())),
+                    base,
+                ),
+            ));
         } else if let Some(rest) = trimmed.strip_prefix("> ") {
-            // Цитата: фиолетовый гуттер + приглушённый курсив.
+            // Цитата: фиолетовый гуттер + приглушённый курсив. На строках-
+            // продолжениях гуттер повторяется — цитата читается единым блоком.
             let mut spans = vec![Span::styled(format!("{indent}▌ "), theme.purple())];
             spans.extend(inline_spans(
                 rest,
                 theme.muted().add_modifier(Modifier::ITALIC),
             ));
-            out.push(Line::from(spans));
+            out.extend(hanging(
+                Line::from(spans),
+                width,
+                Span::styled(format!("{indent}▌ "), theme.purple()),
+            ));
         } else {
-            out.push(Line::from(inline_spans(line, base)));
+            // Абзац: продолжение выравнивается по исходному отступу строки
+            // (обычно нулевому) — мера чтения уже держит длину строки.
+            out.extend(hanging(
+                Line::from(inline_spans(line, base)),
+                width,
+                Span::styled(indent.to_string(), base),
+            ));
         }
         i += 1;
     }
@@ -269,6 +315,17 @@ fn strip_heading(line: &str) -> Option<&str> {
     }
 }
 
+/// Маркер нумерованного пункта (`1. `, `12. `): до трёх цифр и точка с
+/// пробелом. Возвращает маркер целиком — он остаётся в тексте пункта.
+fn numbered_marker(line: &str) -> Option<&str> {
+    let digits = line.chars().take_while(char::is_ascii_digit).count();
+    if (1..=3).contains(&digits) && line[digits..].starts_with(". ") {
+        Some(&line[..digits + 2])
+    } else {
+        None
+    }
+}
+
 /// Инлайн-разбор `**жирный**` и `*курсив*` (простой парсер: чередование
 /// по маркерам; сначала режем по `**`, внутри сегментов — по `*`).
 fn inline_spans(text: &str, base: Style) -> Vec<Span<'static>> {
@@ -315,15 +372,37 @@ fn push_italic_spans(spans: &mut Vec<Span<'static>>, text: &str, base: Style, is
     }
 }
 
+/// Ширина стилизованной линии в колонках (unicode-width).
+fn line_width(line: &Line<'_>) -> usize {
+    line.spans
+        .iter()
+        .map(|s| UnicodeWidthStr::width(s.content.as_ref()))
+        .sum()
+}
+
+/// Логическая строка → физические строки: перенос по `width` с висячим
+/// отступом `cont` на строках-продолжениях. Влезающая строка возвращается
+/// КАК ЕСТЬ: спаны не дробятся, инлайн-разметка (`**жирный**`, `код`)
+/// сохраняет границы сегментов. Пустой `cont` — обычный перенос.
+fn hanging(line: Line<'static>, width: usize, cont: Span<'static>) -> Vec<Line<'static>> {
+    if line_width(&line) <= width {
+        return vec![line];
+    }
+    wrap_line_with(&line, width, cont)
+}
+
 /// Переносит стилизованную линию по ширине с разрывом на границах слов
 /// (ширины — по unicode-width; широкие символы CJK/эмодзи учитываются).
 /// Слово длиннее строки разрывается жёстко, по символам.
 pub(crate) fn wrap_line(line: &Line<'static>, width: usize) -> Vec<Line<'static>> {
-    let mut w = Wrapper {
-        lines: vec![Vec::new()],
-        width: width.max(1),
-        cur: 0,
-    };
+    wrap_line_with(line, width, Span::default())
+}
+
+/// То же, что [`wrap_line`], но каждая строка-продолжение начинается с
+/// префикса `cont` (висячий отступ). Так переносятся пункты списков,
+/// цитаты и строки кода — см. [`markdown_lines`].
+fn wrap_line_with(line: &Line<'static>, width: usize, cont: Span<'static>) -> Vec<Line<'static>> {
+    let mut w = Wrapper::new(width, cont);
     for span in &line.spans {
         for piece in span.content.split_inclusive(' ') {
             w.push_piece(piece, span.style);
@@ -340,13 +419,36 @@ struct Wrapper {
     width: usize,
     /// Текущая ширина последней строки.
     cur: usize,
+    /// Префикс строк-продолжений (висячий отступ); пустой — обычный перенос.
+    cont: Vec<Span<'static>>,
+    /// Ширина префикса: столько колонок уже занято в строке-продолжении.
+    cont_w: usize,
 }
 
 impl Wrapper {
+    fn new(width: usize, cont: Span<'static>) -> Self {
+        let cont: Vec<Span<'static>> = std::iter::once(cont)
+            .filter(|s| !s.content.is_empty())
+            .collect();
+        let cont_w = cont
+            .iter()
+            .map(|s| UnicodeWidthStr::width(s.content.as_ref()))
+            .sum::<usize>();
+        Self {
+            lines: vec![Vec::new()],
+            // Место под префикс продолжения зарезервировано всегда: иначе
+            // строка-продолжение оказалась бы шире запрошенной ширины.
+            width: width.max(1).max(cont_w + 1),
+            cur: 0,
+            cont,
+            cont_w,
+        }
+    }
+
     /// Начинает новую строку.
     fn new_line(&mut self) {
-        self.lines.push(Vec::new());
-        self.cur = 0;
+        self.lines.push(self.cont.clone());
+        self.cur = self.cont_w;
     }
 
     /// Добавляет кусок текста в текущую строку.
@@ -373,21 +475,23 @@ impl Wrapper {
                 return;
             }
         }
-        if pw <= self.width {
-            self.push_span(piece.to_string(), style);
-        } else {
+        // Слово, не влезающее в остаток строки (в том числе в остаток после
+        // префикса продолжения), рвём жёстко — иначе строка вылезла бы за меру.
+        if self.cur + pw > self.width {
             self.push_long(piece, style);
+        } else {
+            self.push_span(piece.to_string(), style);
         }
     }
 
-    /// Жёсткий разрыв слова длиннее строки (по символам с учётом ширины).
+    /// Жёсткий разрыв слова длиннее остатка строки (по символам с учётом
+    /// ширины). Учитывает уже занятые префиксом колонки.
     fn push_long(&mut self, piece: &str, style: Style) {
-        debug_assert_eq!(self.cur, 0, "длинное слово начинается с новой строки");
         let mut buf = String::new();
         let mut bw = 0usize;
         for ch in piece.chars() {
             let cw = UnicodeWidthChar::width(ch).unwrap_or(0);
-            if bw + cw > self.width && !buf.is_empty() {
+            if self.cur + bw + cw > self.width && !buf.is_empty() {
                 self.push_span(std::mem::take(&mut buf), style);
                 self.new_line();
                 bw = 0;
@@ -607,6 +711,112 @@ mod tests {
                 .any(|s| s.style.add_modifier.contains(Modifier::BOLD)
                     && s.style.add_modifier.contains(Modifier::ITALIC))
         );
+    }
+
+    #[test]
+    fn markdown_paragraph_wraps_to_measure() {
+        // Абзац длиннее меры: строки не выходят за неё, слова не теряются.
+        let theme = Theme::default();
+        let text = "слово ".repeat(30).trim_end().to_string();
+        let lines = markdown_lines(&text, &theme, 40);
+        assert!(lines.len() > 1, "{lines:?}");
+        for l in &lines {
+            let w = UnicodeWidthStr::width(line_text(l).trim_end());
+            assert!(w <= 40, "строка шире меры ({w}): {:?}", line_text(l));
+        }
+        let words: usize = lines
+            .iter()
+            .map(line_text)
+            .collect::<Vec<_>>()
+            .join(" ")
+            .split_whitespace()
+            .count();
+        assert_eq!(words, 30, "слова потеряны при переносе");
+    }
+
+    #[test]
+    fn markdown_bullet_continuation_is_hanging_indented() {
+        // Продолжение пункта выравнивается под текстом, а не падает в
+        // нулевую колонку (иначе пункт неотличим от нового абзаца).
+        let theme = Theme::default();
+        let item = format!("- {}", "пункт ".repeat(12).trim_end());
+        let lines = markdown_lines(&item, &theme, 30);
+        assert!(lines.len() > 1, "{lines:?}");
+        assert!(line_text(&lines[0]).starts_with("• "));
+        for cont in &lines[1..] {
+            let t = line_text(cont);
+            assert!(t.starts_with("  "), "продолжение без отступа: {t:?}");
+            assert!(!t.starts_with("• "), "маркер повторился: {t:?}");
+            assert!(
+                UnicodeWidthStr::width(t.trim_end()) <= 30,
+                "строка шире меры: {t:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn markdown_numbered_item_keeps_marker_and_hanging_indent() {
+        let theme = Theme::default();
+        let item = format!("12. {}", "пункт ".repeat(12).trim_end());
+        let lines = markdown_lines(&item, &theme, 30);
+        assert!(lines.len() > 1, "{lines:?}");
+        assert_eq!(lines[0].spans[0].content.as_ref(), "12. ");
+        for cont in &lines[1..] {
+            let t = line_text(cont);
+            // Отступ равен ширине маркера: текст пункта стоит в одной колонке.
+            assert!(t.starts_with("    "), "продолжение без отступа: {t:?}");
+        }
+    }
+
+    #[test]
+    fn markdown_quote_continuation_repeats_gutter() {
+        let theme = Theme::default();
+        let quote = format!("> {}", "мысль ".repeat(12).trim_end());
+        let lines = markdown_lines(&quote, &theme, 30);
+        assert!(lines.len() > 1, "{lines:?}");
+        for l in &lines {
+            assert!(line_text(l).starts_with("▌ "), "{:?}", line_text(l));
+        }
+    }
+
+    #[test]
+    fn markdown_long_code_line_wraps_inside_code_panel() {
+        // Строка кода переносится, оставаясь кодом: панель и стиль сохраняются.
+        let theme = Theme::default();
+        let code = format!("```\n{}\n```", "let x = 1; ".repeat(10).trim_end());
+        let lines = markdown_lines(&code, &theme, 40);
+        assert!(lines.len() > 1, "{lines:?}");
+        for l in &lines {
+            let w = UnicodeWidthStr::width(line_text(l).trim_end());
+            assert!(w <= 40, "код шире меры ({w}): {:?}", line_text(l));
+            assert_eq!(
+                l.spans[0].style.bg,
+                Some(Color::Rgb(0x24, 0x28, 0x3b)),
+                "код потерял панель: {:?}",
+                line_text(l)
+            );
+        }
+    }
+
+    #[test]
+    fn markdown_wrapped_paragraph_keeps_inline_styles() {
+        // Перенос не рассыпает инлайн-разметку: жирный сегмент переживает
+        // разрыв строки (стиль привязан к спану, а не к строке).
+        let theme = Theme::default();
+        let text = format!(
+            "**{}** и {}",
+            "жирно ".repeat(10).trim_end(),
+            "обычное слово ".repeat(8).trim_end()
+        );
+        let lines = markdown_lines(&text, &theme, 40);
+        let bold: String = lines
+            .iter()
+            .flat_map(|l| l.spans.iter())
+            .filter(|s| s.style.add_modifier.contains(Modifier::BOLD))
+            .map(|s| s.content.as_ref())
+            .collect::<Vec<_>>()
+            .join("");
+        assert!(bold.contains("жирно"), "жирный сегмент потерян: {bold:?}");
     }
 
     #[test]

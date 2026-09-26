@@ -162,7 +162,7 @@ arch-ml run -q --model glm-5.3-flash --timeout 240 --max-turns 1 \
 
 Ответ придёт одним списком в `answer.md` (exit 0). Зафиксированные живые
 прогоны с выводом — в кейсах `кейсы/` (например, evidence-файлы
-`laguna-compact` и `kimi-killer`).
+`laguna-compact` и `axiom`).
 
 Промпт можно подать и через stdin: `cat spec.md | arch-ml run -`.
 Полезные флаги: `--no-stream` (только финальный ответ),
@@ -276,4 +276,4 @@ python3 sdk/python/examples/ci_gate.py examples/ml-experiment \
 | Модели и провайдеры | `docs/models.md` |
 | SDK: контракт и клиенты (Python/Rust/Java) | `sdk/CONTRACT.md`, `sdk/README.md` |
 | Примеры в репозитории | `examples/`: `ml-experiment` (гейт ML-06/ML-09), `archify/` (JSON IR), `mermaid/`, `specs/`, `corp-spine/` |
-| Доменные кейсы AI/ML | `кейсы/laguna-compact/`, `кейсы/kimi-killer/` |
+| Доменные кейсы AI/ML | `кейсы/laguna-compact/`, `кейсы/axiom/` |

@@ -14,6 +14,85 @@
 #
 # Запуск: bash tools/tests/run_tool_tests.sh
 
+# ── Реестр разделов: «номер → набор» ─────────────────────────────────────────
+# Тело объявляет раздел строкой `echo "== N. <набор> =="`. Номера исторически
+# повторяются: разные стеки дельт свелись в одну ветвь, а перенумерация запрещена
+# (ADR-028 п.4 — переписывание истории). Поэтому повтор, НАЗВАННЫЙ здесь, — не
+# дефект, а запись реестра; повтор СВЕРХ реестра — находка. Согласованность этой
+# таблицы с телом проверяет страж `tools/check_test_section_numbers.py`
+# (раздел 52 тестов): он читает номера только у настоящих разделов (вне heredoc),
+# сверяет множества номеров, число записей на номер и заголовки.
+#
+# Формат строки: `#   | N | набор |`. Новый раздел обязан быть вписан сюда.
+#
+#   | 1 | check_special_tokens.py (C-008) |
+#   | 2 | check_eval_leakage.py (C-009) |
+#   | 3 | check_sft_rl_overlap.py (S1 / AD-7) |
+#   | 4 | check_symlink_hygiene.sh (C-011) |
+#   | 5 | check_judge_isolation.py (C-013) |
+#   | 6 | check_run_manifest.py (C-012) |
+#   | 7 | write_run_manifest.py (C-012) |
+#   | 8 | check_gb10_serialization.sh (AD-5) |
+#   | 9 | build_rev_pool.py (S2 / ADR-007 п.1) |
+#   | 10 | run_smoke.py / smoke_probe.py (S2: смоук CPT+SFT) |
+#   | 11 | data/corpus-card.json (C-010, C-016) |
+#   | 12 | run_rl_probe.py / rl_probe_hook.py (S3-pre: цена шага RL, ADR-010) |
+#   | 13 | check_resource_owner.sh (AD-9) + детерминизм-проба S3a (ADR-009) |
+#   | 14 | pilot_chain.sh / run_pilot.py (S3b: пилот ревизии, ADR-013) |
+#   | 15 | build_gen_eval_v2.py (ADR-018: наборы GEN-EVAL v2) |
+#   | 15 | validate_verifiers.py (S3i: валидация верификаторов сред, ADR-021 п.2) |
+#   | 15 | ppl_probe.py (S3h: PPL-проба наборов GEN-EVAL v1/v2) |
+#   | 16 | S3m: калибровка микса и пика LR (ADR-022 п.2) |
+#   | 16 | passrate_probe.py (S3j: baseline pass-rate пула v2) |
+#   | 16 | run_flex_check.py / flex_ppl_probe.py (S3k: диагностика flex-маски, ADR-022 п.1) |
+#   | 16 | check_eval_set_purity.py (S3q/ADR-025 п.1: гейт чистоты набора) |
+#   | 17 | S3o: контрольные руки CPT — чистый протокол и низкий LR |
+#   | 17 | s3n_ppl_curve.py (S3n: профиль обвала языка по точкам калибровки) |
+#   | 17 | build_general_eval_v3.py (S3q: сборка расширенного набора) |
+#   | 18 | S3u: полный CPT на замороженном миксе v12r (ADR-029) |
+#   | 18 | ppl_probe_v3.py (S3q: база на новом наборе и потолок) |
+#   | 19 | S3x: переключение CPT на LR×0.035 (ADR-031) и остановка LR×0.35 (ADR-016) |
+#   | 20 | S3aa: запуск SFT-стадии (ADR-032 → ADR-033) |
+#   | 21 | probe_language_split.py / launch_sft_stage --resume (S3ai: раздельные языки, ADR-039) |
+#   | 22 | probe_language_split: штатный режим декодирования (S3al) |
+#   | 23 | passrate_probe: штатный режим декодирования (S3am) |
+#   | 24 | normalize_sft_dataset.py + check_measurement_overlap.py (S3an, ADR-042) |
+#   | 26 | S3ap: свод монитора формата на точках SFT(v13) |
+#   | 27 | S3aq: различающий замер бюджета (усечение против деградации) |
+#   | 28 | S3aq: состояние прогона (что есть, чего нет, применимо ли правило) |
+#   | 29 | check_grounding.py (S4-pre: граундинг-аудит по ADR-049) |
+#   | 30 | grounded_runner.py + check_grounded_pool.py (S4-skeleton: заземление, ADR-049) |
+#   | 31 | Запись об унаследованных красных (S3aq: что осталось и почему) |
+#   | 19 | assemble_s3q_evidence.py (S3q: свод контракта) |
+#   | 19 | check_handoff_contract.py (C-021 proposal / AD-12 / ADR-023) |
+#   | 20 | build_general_eval_k2.py (S3t: компонента K2 — набор вне распределения) |
+#   | 21 | ppl_probe_k2.py (S3t: база и потолок K2 в одном прогоне с эталонами) |
+#   | 22 | assemble_s3t_evidence.py (S3t: свод двухкомпонентного контракта) |
+#   | 23 | assemble_s3v_evidence.py (S3v: PPL контрольных рук по обеим компонентам) |
+#   | 24 | assemble_s3w_evidence.py (S3w: домен-метрика по всем рукам) |
+#   | 31 | check_instrument_versions.py (реестр редакций приборов, ADR-023 п.10) |
+#   | 32 | check_env_contract.py (контракт среды заземлённой оси, ADR-049 п.1 G4) |
+#   | 33 | S3av: идентичность набора (вход стадии — параметр, факт — в манифесте) |
+#   | 34 | check_execution_proof.py («Доказательство исполнения» у новых ADR, ADR-051 / C-031) |
+#   | 35 | decode-diagnosis: разбор трёх режимов декодирования и свод (свойство весов против артефакта протокола) |
+#   | 36 | decode-diagnosis: условие отказа V3, страж CUDA-прогона и пригодность rollout'ов |
+#   | 37 | check_gpu_sleep_guard.py + guard_cuda_run.sh (C-029 / AD-9) |
+#   | 38 | analyze_loop_origin.py (S3ar: выученное против дегенерации) |
+#   | 39 | assemble_s3at_onset.py (S3at: кривая зарождения петель) |
+#   | 40 | rl_env_probe_gb10.py (ADR-049 п.10: предусловия RL на стенде) |
+#   | 41 | check_rule_numbers.py (уникальность номеров правил, ADR-046 п.8 / C-032) |
+#   | 42 | S3ay: ранний гейт полной стадии — память, полнота прибора, вердикт (S3ay-fix) |
+#   | 43 | C-014: фаза отчёта точки решения и полнота по схеме (S3be) |
+#   | 44 | S3bg: арифметика оси, карточки AD-2, инвентаризация весов (read-only) |
+#   | 45 | S3bh: ворота поддержки qwen3_5 — три состояния и отвязка от чужой лесенки |
+#   | 46 | S3bi: платформенный сервис — не нагрузка кейса (AD-5) |
+#   | 47 | S3bi: «not-run» — отсутствие носителя, а не файл-заглушка |
+#   | 48 | Н-7: носитель форк-семантики сида — план серии и серийный драйвер (ADR-057) |
+#   | 49 | Н-7 дельта 2: выставление отработавших единиц в runs/ симлинком (ADR-057 поправка 5) |
+#   | 50 | Н-7 дельта 3: плоская выставка и снятие регистра ссылок (ADR-057 поправка 5 / §2.5) |
+#   | 51 | check_sft_agentic_share.py (C-022 / ADR-059: сопоставимость базы и отчёта) |
+#   | 52 | C-022 с фазой: обёртка правила + реестр номеров разделов (ADR-059, ADR-053) |
+
 set -uo pipefail
 
 CASE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -5467,6 +5546,186 @@ tool = Path("tools/passrate_probe.py").read_text(encoding="utf-8")
 for bad in ("shutil.copy", "pool.write", "open(str(pool), \"w\""):
     assert bad not in tool, f"проба пишет в пул: {bad}"
 assert "gb10-shared" in tool and "models-store" in tool  # веса читаются по месту, не копируются
+sys.exit(0)
+PY
+
+# ── INSTRUMENT-SUCCESS-EXAMPLES: прибор сохраняет успешные траектории ─────────
+# (а) answers.jsonl несёт pass и coverage аддитивно, порядок прежних полей не тронут
+expect_exit 0 "answers.jsonl: pass/coverage аддитивно, порядок прежних полей не тронут" \
+  python3 - <<'PY'
+import importlib.util as u, json, pathlib, sys
+spec = u.spec_from_file_location("pr", pathlib.Path("tools/passrate_probe.py"))
+P = u.module_from_spec(spec); spec.loader.exec_module(P)
+task = {"prompt": "p" * 700}
+rec = {"task_index": 3, "task_type": "find_concept", "pass": 1, "coverage": 0.5,
+       "turns": 2, "tool_calls": 1, "diag_class": None}
+r = P.answer_record(task, rec, "answer")
+keys = list(r.keys())
+assert keys[:5] == ["task_index", "task_type", "prompt", "answer", "answer_truncated"], keys
+assert keys[5:] == ["pass", "coverage", "turns", "tool_calls", "diag_class"], keys
+assert r["pass"] == 1 and r["coverage"] == 0.5 and r["turns"] == 2 and r["tool_calls"] == 1
+assert r["diag_class"] is None
+assert r["prompt"] == "p" * 600 and r["answer"] == "answer"  # обрезка прежняя
+# «строк = задач» ломается не полем, а переводом строки внутри ответа: сериализация
+# обязана остаться однострочной и на многострочной генерации (иначе счёт строк врёт).
+ml = P.answer_record({"prompt": "a\nb"},
+                     {**rec, "pass": 0, "diag_class": "c_wrong_values"}, "x\ny\nz")
+line = json.dumps(ml, ensure_ascii=False)
+assert "\n" not in line, line
+assert json.loads(line)["pass"] == 0 and json.loads(line)["diag_class"] == "c_wrong_values"
+src = pathlib.Path("tools/passrate_probe.py").read_text(encoding="utf-8")
+assert "zip(tasks, records, answers)" in src  # одна строка answers.jsonl на задачу
+sys.exit(0)
+PY
+
+# (б) diagnosis.examples.pass: непуст при успехах, ≤3, типы не повторяются
+expect_exit 0 "diagnosis.examples.pass: непуст, ≤3 записей, типы не повторяются" \
+  python3 - <<'PY'
+import importlib.util as u, pathlib, sys, types
+spec = u.spec_from_file_location("pr", pathlib.Path("tools/passrate_probe.py"))
+P = u.module_from_spec(spec); spec.loader.exec_module(P)
+pipe = types.SimpleNamespace(_COMPARE_STOP=set())
+
+
+def build(types_of):  # types_of[i] — тип i-й задачи; pass=1 у первых len(...) успешных
+    records, tasks, answers = [], [], []
+    for i, tt in enumerate(types_of):
+        passed = 1 if tt else 0
+        t = tt or "find_concept"
+        records.append({"task_index": i, "task_type": t, "source_env": "E",
+                        "pass": passed, "answer_chars": 20, "turns": 1, "tool_calls": 1,
+                        "hit_timeout": False, "hit_context_guard": False,
+                        "coverage": 1.0, "reward": 1.0 if passed else 0.0,
+                        "diag_class": None if passed else "a_no_tool_call"})
+        tasks.append({"task_type": t, "prompt": f"p{i}", "expected_slugs": [f"s{i}"]})
+        answers.append("ans" + str(i))
+    return P.diagnose(records, answers, tasks, pipe, {}, lambda x: [], n_sample=2,
+                      seed=42)["examples"]["pass"]
+
+
+# три успеха ОДНОГО типа стоят первыми: «взять первые три успеха» дало бы повторы,
+# а «по одному на тип» обязано дойти до непокрытых типов и вернуть разные.
+pe = build(["find_concept", "find_concept", "find_concept",
+            "explain_relation", "chain_reasoning", None, None])
+assert len(pe) == 3, pe
+tts = [x["task_type"] for x in pe]
+assert len(tts) == len(set(tts)), tts  # тип не повторяется, пока есть непокрытые
+assert tts == ["find_concept", "explain_relation", "chain_reasoning"], tts
+assert [x["task_index"] for x in pe] == [0, 3, 4], pe  # берётся первый по типу
+# типов меньше трёх → столько записей, сколько типов: три копии одного не выдумываются
+one = build(["find_concept", "find_concept", "find_concept", None, None])
+assert [x["task_type"] for x in one] == ["find_concept"], one
+assert len(one) == 1, one
+# успехов нет вовсе → пусто (граница ветви рядом с (в), на другой фикстуре)
+assert build([None, None, None]) == []
+for x in pe:
+    assert set(x) >= {"task_index", "task_type", "source_env", "prompt", "required",
+                       "answer_excerpt"}, x.keys()
+sys.exit(0)
+PY
+
+# (в) фикстура «все провалены» → ветвь pass пустая, без ошибки и без выдуманных примеров
+expect_exit 0 "diagnosis.examples.pass: при нуле успешных — пустой список" \
+  python3 - <<'PY'
+import importlib.util as u, pathlib, sys, types
+spec = u.spec_from_file_location("pr", pathlib.Path("tools/passrate_probe.py"))
+P = u.module_from_spec(spec); spec.loader.exec_module(P)
+pipe = types.SimpleNamespace(_COMPARE_STOP=set())
+records, tasks, answers = [], [], []
+for i in range(4):
+    records.append({"task_index": i, "task_type": "find_concept", "source_env": "E",
+                    "pass": 0, "answer_chars": 5, "turns": 1, "tool_calls": 0,
+                    "hit_timeout": False, "hit_context_guard": False,
+                    "coverage": 0.0, "reward": 0.0, "diag_class": "a_no_tool_call"})
+    tasks.append({"task_type": "find_concept", "prompt": f"p{i}", "expected_slugs": [f"s{i}"]})
+    answers.append("")
+d = P.diagnose(records, answers, tasks, pipe, {}, lambda x: [], n_sample=4, seed=42)
+assert d["examples"]["pass"] == [], d["examples"]["pass"]
+sys.exit(0)
+PY
+
+# (г) регресс-контроль: метрики на фикстуре тождественны прежней редакции
+expect_exit 0 "регресс: pass_rate/tool_call_share/class_counts не поехали" \
+  python3 - <<'PY'
+import importlib.util as u, pathlib, sys, types
+spec = u.spec_from_file_location("pr", pathlib.Path("tools/passrate_probe.py"))
+P = u.module_from_spec(spec); spec.loader.exec_module(P)
+recs = []
+for i in range(10):
+    recs.append({"task_index": i, "task_type": "find_concept", "source_env": "E3_classify",
+                 "turns": 1 if i % 2 else 3, "tool_calls": i % 2,
+                 "tool_errors": 1 if i == 0 else 0, "tool_error": i == 0,
+                 "hit_timeout": False, "hit_context_guard": False,
+                 "answer_chars": 100 + i, "assistant_tokens": 50 + i,
+                 "pass": 1 if i < 5 else 0, "reward": 1.0 if i < 5 else 0.0,
+                 "gold_resolvable": True})
+for i in range(10):
+    recs.append({"task_index": 100 + i, "task_type": "explain_relation", "source_env": "E5_relate",
+                 "turns": 1, "tool_calls": 1, "tool_errors": 0,
+                 "tool_error": False, "hit_timeout": False, "hit_context_guard": False,
+                 "answer_chars": 900, "assistant_tokens": 400,
+                 "pass": 1 if i == 0 else 0, "reward": 1.0 if i == 0 else -0.05,
+                 "gold_resolvable": True})
+strata = {"find_concept": {"in_pool": 8298, "taken": 10, "seed": 42},
+          "explain_relation": {"in_pool": 394, "taken": 10, "seed": 42}}
+pool_meta = {"path": "x", "sha256": "ab" * 32, "lines": 8692}
+protocol = {"n_attempts": 1, "pass_at_k": False, "max_turns": 15, "temperature": 1.0,
+            "top_k": 20, "toolcall_force": True, "weights": "qwen2.5-0.5b-base"}
+probe = P.summarize(recs, strata, pool_meta, protocol)
+assert probe["overall"]["pass_rate"] == 0.3, probe["overall"]["pass_rate"]
+assert probe["overall"]["tool_call_share"] == 0.75, probe["overall"]["tool_call_share"]
+# class_counts — из diagnose() на фикстуре с известными классами отказа
+pipe = types.SimpleNamespace(_COMPARE_STOP=set())
+records, tasks, answers = [], [], []
+rows = [(0, "find_concept", 0, "a_no_tool_call"), (1, "find_concept", 0, "b_no_checkable_values"),
+        (2, "find_concept", 0, "c_wrong_values"), (3, "find_concept", 0, "d_cutoff"),
+        (4, "explain_relation", 0, "a_no_tool_call"), (5, "explain_relation", 0, "b_no_checkable_values"),
+        (6, "chain_reasoning", 0, "c_wrong_values"), (7, "chain_reasoning", 0, "d_cutoff"),
+        (8, "find_concept", 1, None), (9, "explain_relation", 1, None)]
+for idx, tt, passed, cls in rows:
+    records.append({"task_index": idx, "task_type": tt, "source_env": "E", "pass": passed,
+                    "answer_chars": 20, "turns": 1, "tool_calls": 1,
+                    "hit_timeout": False, "hit_context_guard": False,
+                    "coverage": 1.0, "reward": 1.0 if passed else 0.0, "diag_class": cls})
+    tasks.append({"task_type": tt, "prompt": f"p{idx}", "expected_slugs": [f"s{idx}"]})
+    answers.append("ans")
+d = P.diagnose(records, answers, tasks, pipe, {}, lambda x: [], n_sample=8, seed=42)
+assert d["class_counts"] == {"a_no_tool_call": 2, "d_cutoff": 2, "b_no_checkable_values": 2,
+                              "c_wrong_values": 2}, d["class_counts"]
+sys.exit(0)
+PY
+
+# (д) отчёт объявляет хеш прибора новой редакции. Проверка двухсторонняя: (1) объявление
+#     хеша стоит в самом вызове писателя манифеста (иначе «хеш есть в тексте, а в отчёте
+#     его нет»), (2) манифест, **записанный** этой редакцией, несёт именно хеш её файла —
+#     то есть носитель (run_version, ADR-023 п.10) обновляется вместе с правкой прибора.
+expect_exit 0 "отчёт объявляет хеш прибора (run_version) новой редакции" \
+  python3 - <<'PY'
+import hashlib, importlib.util as u, json, pathlib, shutil, sys, tempfile
+TOOL = pathlib.Path("tools/passrate_probe.py")
+spec = u.spec_from_file_location("pr", TOOL)
+P = u.module_from_spec(spec); spec.loader.exec_module(P)
+assert P.sha256_file(TOOL) == hashlib.sha256(TOOL.read_bytes()).hexdigest()  # хеш по факту
+# (1) объявление стоит в вызове писателя манифеста, а не только «где-то в тексте»
+src = TOOL.read_text(encoding="utf-8")
+assert 'run_version="tools/passrate_probe.py@" + sha256_file(Path(__file__))[:12]' in src
+declared = "tools/passrate_probe.py@" + P.sha256_file(TOOL)[:12]
+# (2) записанный манифест несёт этот же хеш — проверка вызовом, не чтением строки
+d = pathlib.Path(tempfile.mkdtemp(prefix="laguna-s3f-fix-2-mfhash-"))
+try:
+    (d / "pool.jsonl").write_text(
+        '{"task_type": "find_concept", "prompt": "p", "expected_slugs": ["a"]}\n',
+        encoding="utf-8")
+    out, msg = P.write_manifest(d / "run", datasets=[("pool", d / "pool.jsonl")],
+                                base_model_id="Qwen/Qwen2.5-0.5B", seed=1,
+                                run_version=declared, image="test-image",
+                                hyperparams={"n_attempts": 1})
+    assert out is not None, msg
+    mf = json.loads(pathlib.Path(out).read_text(encoding="utf-8"))
+    assert mf["run_version"] == declared, (mf.get("run_version"), declared)
+    print(mf["run_version"])
+finally:
+    shutil.rmtree(d, ignore_errors=True)
 sys.exit(0)
 PY
 
@@ -15925,6 +16184,349 @@ expect_exit 0 "A11/A12: ни одного файла вне фикстуры (с
   bash -c "find '$CASE_ROOT/runs' -mindepth 1 -maxdepth 2 -print 2>/dev/null | sort | diff -q - '$L10/case-runs.before'"
 expect_exit 0 "A11/A12: единицы серий фикстуры в runs/ кейса не выставлены" \
   bash -c "test ! -e '$CASE_ROOT/runs/qwen25-05b-base' && test ! -e '$CASE_ROOT/runs/ser-a'"
+
+echo "== 51. check_sft_agentic_share.py (C-022 / ADR-059: сопоставимость базы и отчёта) =="
+# Страж судит НЕ по числу против цитаты ADR-033, а по СОПОСТАВИМОСТИ базы и отчёта
+# (ADR-059 п.3): режим декодирования штатный у обоих (ADR-041 п.4), флаги без
+# форсирования, предметы (чекпойнты) разные — вход и выход стадии — и сверены с
+# распиской брони, состав пулов и n совпадают. Цитата ADR-033 — историческое число
+# legacy-замера: при сопоставимой базе расхождение с ней это примечание (warn), а не
+# отказ (ADR-059 п.4). Решающего голоса по (в1)/(в2) у стража нет — условия
+# печатаются как данные, вердикт по (в) выносит сводка (ADR-059 п.5).
+#
+# Номер раздела: в docs/specs/AGENTIC-GUARD.md этот набор назван «раздел 25» — так он
+# пронумерован на ветви, где возник; в этом дереве номер 25 занят build_domain_eval_v3
+# (S3ao), поэтому набор идёт следующим свободным номером. Проверки, закреплявшие
+# прежнее поведение (FAIL на расхождении базы с цитатой), переписаны под ADR-059 —
+# теперь расхождение с цитатой обязано давать примечание при зелёном гейте.
+AG="$TMP/agentic-base"
+mkdir -p "$AG"
+cat > "$AG/mk_report.py" <<'FIXTURE'
+import argparse, json, pathlib
+
+SHA = {"v2": "e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da",
+       "v1": "06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3"}
+#: (n, n_pass, share) — база повторяет переснятый в штатном режиме входной CPT
+#: (evidence/s3aa-agentic-cpt-nogram4.json), отчёт растёт по обеим компонентам.
+DEFAULT = {"base":   {"v2": (200, 11, 0.305), "v1": (150, 8, 0.4133)},
+           "report": {"v2": (200, 30, 0.45),  "v1": (150, 60, 0.46)}}
+
+ap = argparse.ArgumentParser()
+ap.add_argument("out")
+ap.add_argument("--role", choices=["base", "report"], default="report")
+ap.add_argument("--ckpt", default="c" * 64)
+ap.add_argument("--ckpt-path", default="")
+ap.add_argument("--v2-share", type=float); ap.add_argument("--v2-pass", type=int)
+ap.add_argument("--v1-share", type=float); ap.add_argument("--v1-pass", type=int)
+ap.add_argument("--n", action="append", default=[])         # NAME=INT
+ap.add_argument("--pool-sha", action="append", default=[])  # NAME=SHA
+ap.add_argument("--force", action="store_true")
+ap.add_argument("--hint", action="store_true")
+ap.add_argument("--no-decoding", action="store_true")
+ap.add_argument("--legacy-decoding", action="store_true")
+ap.add_argument("--only", default=None)
+ap.add_argument("--no-pools", action="store_true")
+ap.add_argument("--pool-force", default=None)
+ap.add_argument("--pool-ckpt", default=None)
+ap.add_argument("--receipt-sha", default=None)
+a = ap.parse_args()
+
+if a.no_decoding:
+    dec = None
+elif a.legacy_decoding:
+    dec = {"mode": "sample_T1_topk20_nogram0", "no_repeat_ngram": 0,
+           "temperature": 1.0, "top_k": 20, "standard": False,
+           "legacy_decoding": True, "allowed_for_conclusions": False}
+else:
+    dec = {"mode": "sample_T1_topk20_nogram4", "no_repeat_ngram": 4,
+           "temperature": 1.0, "top_k": 20, "standard": True,
+           "legacy_decoding": False, "allowed_for_conclusions": True}
+
+proto = {"prefill": "<think>\\n<tool_call>" if a.hint else "<think>\\n",
+         "toolcall_force": bool(a.force), "n_attempts": 1, "max_turns": 5,
+         "checkpoint_sha256": a.ckpt}
+if a.ckpt_path:
+    proto["checkpoint_path"] = a.ckpt_path
+if dec is not None:
+    proto["decoding"] = dec
+
+ns = {}
+for item in a.n:
+    k, _, v = item.partition("="); ns[k] = int(v)
+shas = {}
+for item in a.pool_sha:
+    k, _, v = item.partition("="); shas[k] = v
+
+rep = {"stage": "ADR-059-fixture", "protocol": proto, "pools": {}}
+for name in ("v1", "v2"):
+    if a.only and name != a.only:
+        continue
+    n0, np0, sh0 = DEFAULT[a.role][name]
+    n = ns.get(name, n0)
+    npass = (a.v2_pass if name == "v2" and a.v2_pass is not None
+             else a.v1_pass if name == "v1" and a.v1_pass is not None else np0)
+    share = (a.v2_share if name == "v2" and a.v2_share is not None
+             else a.v1_share if name == "v1" and a.v1_share is not None else sh0)
+    p = {"sha256": shas.get(name, SHA[name]),
+         "overall": {"n": n, "n_pass": npass, "pass_rate": round(npass / n, 4),
+                     "tool_call_share": share}}
+    if a.pool_force == name or a.pool_ckpt == name:
+        p["protocol"] = {"prefill": "<think>\\n", "toolcall_force": a.pool_force == name,
+                         "decoding": dec if dec is not None else {},
+                         "checkpoint_sha256": "d" * 64 if a.pool_ckpt == name else a.ckpt}
+    rep["pools"][name] = p
+if a.no_pools:
+    del rep["pools"]
+
+out = pathlib.Path(a.out)
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(rep, ensure_ascii=False), encoding="utf-8")
+
+if a.receipt_sha and a.ckpt_path:
+    d = pathlib.Path(a.ckpt_path).parent
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "RECEIPT.json").write_text(
+        json.dumps({"sha256": a.receipt_sha, "aux_subjects": []}, ensure_ascii=False),
+        encoding="utf-8")
+FIXTURE
+GUARD="python3 tools/check_sft_agentic_share.py"
+BCK="$(printf 'a%.0s' {1..64})"   # чекпойнт базы — вход стадии
+RCK="$(printf 'b%.0s' {1..64})"   # чекпойнт отчёта — выход стадии
+python3 "$AG/mk_report.py" "$AG/base.json" --role base --ckpt "$BCK"
+python3 "$AG/mk_report.py" "$AG/rep.json"  --role report --ckpt "$RCK"
+python3 "$AG/mk_report.py" "$AG/nopools.json" --ckpt "$RCK" --no-pools
+
+# ── 51а. Нет данных — «не смогли проверить», а не вердикт ────────────────────
+expect_exit 2 "нет отчёта — NOT-VERIFIED" \
+  $GUARD --report "$AG/none.json" --base-report "$AG/base.json"
+expect_exit 2 "отчёт без блока pools — NOT-VERIFIED" \
+  $GUARD --report "$AG/nopools.json" --base-report "$AG/base.json"
+expect_exit 2 "база не задана — NOT-VERIFIED (цитата ADR-033 базой не является)" \
+  $GUARD --report "$AG/rep.json"
+expect_contains "legacy-замера" "отказ без базы называет режим цитаты (ADR-059 п.2)" \
+  $GUARD --report "$AG/rep.json"
+
+# ── 51б. Сопоставимая пара — PASS, а расхождение с цитатой — примечание ──────
+expect_exit 0 "штатная переснятая база — замеры сопоставимы, PASS" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+expect_contains "сопоставимость" "вердикт стража — про сопоставимость, а не про (в)" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+expect_contains "warn" "расхождение с цитатой ADR-033 напечатано примечанием" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+expect_contains "legacy-режим" "примечание объясняет расхождение режимом цитаты" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+#: Главная перемена ADR-059: было FAIL (цитата не сошлась) — стало warn при зелёном.
+expect_absent "FAIL" "сопоставимая база не даёт FAIL из-за цитаты (ADR-059 п.4)" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+#: Условия (в1)/(в2) печатаются как данные (вердикт по ним выносит сводка, п.5).
+expect_contains "решает сводка" "условия (в1)/(в2) напечатаны с пометкой, что решает сводка" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json"
+
+# ── 51в. Несопоставимость по режиму и флагам — отказ (exit 1) ────────────────
+python3 "$AG/mk_report.py" "$AG/legacy-base.json" --role base --ckpt "$BCK" --no-decoding
+expect_exit 1 "legacy-база (нет protocol.decoding) — отказ считать метрику" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/legacy-base.json"
+expect_contains "режим не штатный" "отказ называет причину: режим не штатный" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/legacy-base.json"
+python3 "$AG/mk_report.py" "$AG/legacy-rep.json" --ckpt "$RCK" --legacy-decoding
+expect_exit 1 "legacy-отчёт (legacy_decoding=true) — отказ" \
+  $GUARD --report "$AG/legacy-rep.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/force.json" --ckpt "$RCK" --force
+expect_exit 1 "отчёт с toolcall_force=true — отказ, а не «нет данных»" \
+  $GUARD --report "$AG/force.json" --base-report "$AG/base.json"
+expect_contains "toolcall_force" "отказ называет причину несопоставимости" \
+  $GUARD --report "$AG/force.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/hint.json" --ckpt "$RCK" --hint
+expect_exit 1 "отчёт с подсказкой <tool_call> (--hint) — отказ" \
+  $GUARD --report "$AG/hint.json" --base-report "$AG/base.json"
+
+# ── 51г. Предмет: вход и выход стадии обязаны различаться (ADR-059 п.3) ──────
+python3 "$AG/mk_report.py" "$AG/same-ckpt.json" --ckpt "$BCK"
+expect_exit 1 "отчёт и база на одном чекпойнте — отказ (сравнивать нечего)" \
+  $GUARD --report "$AG/same-ckpt.json" --base-report "$AG/base.json"
+expect_contains "предметы совпадают" "отказ называет совпадение предметов" \
+  $GUARD --report "$AG/same-ckpt.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/nockpt.json" --ckpt "" ; python3 - "$AG/nockpt.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+del d["protocol"]["checkpoint_sha256"]; json.dump(d, open(p, "w"))
+PY
+expect_exit 2 "в отчёте нет checkpoint_sha256 — NOT-VERIFIED (предмет не доказан)" \
+  $GUARD --report "$AG/nockpt.json" --base-report "$AG/base.json"
+
+# ── 51д. Расписка брони (ADR-058): при наличии — предмет обязан ей соответствовать ──
+python3 "$AG/mk_report.py" "$AG/rec/rep.json" --ckpt "$RCK" \
+  --ckpt-path "$AG/rec/rep-ckpt/sft.pt" --receipt-sha "$RCK"
+python3 "$AG/mk_report.py" "$AG/rec/base.json" --role base --ckpt "$BCK" \
+  --ckpt-path "$AG/rec/base-ckpt/cpt.pt" --receipt-sha "$BCK"
+expect_exit 0 "оба предмета сверены с распиской брони — PASS" \
+  $GUARD --report "$AG/rec/rep.json" --base-report "$AG/rec/base.json"
+python3 "$AG/mk_report.py" "$AG/rec/bad.json" --role base --ckpt "$BCK" \
+  --ckpt-path "$AG/rec/bad-ckpt/cpt.pt" --receipt-sha "$(printf 'c%.0s' {1..64})"
+expect_exit 1 "чекпойнт не совпал с распиской брони — отказ" \
+  $GUARD --report "$AG/rec/rep.json" --base-report "$AG/rec/bad.json"
+expect_contains "расписк" "отказ называет расписку брони" \
+  $GUARD --report "$AG/rec/rep.json" --base-report "$AG/rec/bad.json"
+
+# ── 51е. Состав: пулы и n совпадают, иначе вердикт не выносится ──────────────
+python3 "$AG/mk_report.py" "$AG/only-v2.json" --ckpt "$RCK" --only v2
+expect_exit 1 "в отчёте один пул, в базе два — отказ (разные наборы)" \
+  $GUARD --report "$AG/only-v2.json" --base-report "$AG/base.json"
+expect_contains "состав пулов разошёлся" "отказ называет расхождение состава" \
+  $GUARD --report "$AG/only-v2.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/n-mismatch.json" --ckpt "$RCK" --n v1=151
+expect_exit 1 "n пула разошёлся с базой — отказ" \
+  $GUARD --report "$AG/n-mismatch.json" --base-report "$AG/base.json"
+expect_contains "n пула 'v1' разошёлся" "отказ называет пул и число задач" \
+  $GUARD --report "$AG/n-mismatch.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/sha-mismatch.json" --ckpt "$RCK" \
+  --pool-sha "v2=$(printf 'f%.0s' {1..64})"
+expect_exit 1 "sha256 пула разошёлся с базой — отказ" \
+  $GUARD --report "$AG/sha-mismatch.json" --base-report "$AG/base.json"
+expect_exit 1 "хеш пула не совпал с ожидаемым (--expect-pool-sha256) — отказ" \
+  $GUARD --report "$AG/rep.json" --base-report "$AG/base.json" \
+  --expect-pool-sha256 "v2=$(printf 'f%.0s' {1..64})"
+
+# ── 51ж. Подвыборки внутри отчёта: другой режим/конфигурация/чекпойнт пула ──
+python3 "$AG/mk_report.py" "$AG/pool-force.json" --ckpt "$RCK" --pool-force v1
+expect_exit 1 "пул снят с форсированием, остальные нет — отказ" \
+  $GUARD --report "$AG/pool-force.json" --base-report "$AG/base.json"
+python3 "$AG/mk_report.py" "$AG/pool-ckpt.json" --ckpt "$RCK" --pool-ckpt v1
+expect_exit 1 "пулы сняты на разных чекпойнтах — отказ (сравнение моделей)" \
+  $GUARD --report "$AG/pool-ckpt.json" --base-report "$AG/base.json"
+
+# ── 51з. JSON-контракт: вердикт, решающие проверки и нерешающие условия ──────
+$GUARD --report "$AG/rep.json" --base-report "$AG/base.json" --json "$AG/out.json" >/dev/null
+python3 - "$AG/out.json" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+assert r["verdict"] == "PASS", r["verdict"]
+for k in ("checks", "report", "base", "reason", "inconclusive", "tolerance_pp",
+          "criterion", "conditions", "warnings"):
+    assert k in r, f"нет поля JSON-контракта: {k}"
+# Решающий голос — у сопоставимости: все проверки checks пройдены и помечены decisive.
+assert r["checks"] and all(c["passed"] for c in r["checks"]), r["checks"]
+assert all(c.get("decisive") for c in r["checks"]), r["checks"]
+# Условия (в1)/(в2) — данные для сводки, не вердикт стража.
+units = {c["unit"] for c in r["conditions"]}
+assert units == {"v1", "v2", "combined"}, units
+assert all(c["decisive"] is False for c in r["conditions"]), r["conditions"]
+assert r["warnings"], "примечание про цитату ADR-033 обязано быть"
+sys.exit(0)
+PY
+expect_exit 0 "JSON-контракт: сопоставимость решает, условия (в1)/(в2) — данные" \
+  python3 - "$AG/out.json" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+sys.exit(0 if r["verdict"] == "PASS" and r["warnings"] else 1)
+PY
+
+# ── 51и. Реальная пара: переснятая база не краснеет, legacy-база — отказ ─────
+#: Главный инцидент (25.09.2026): страж краснел ровно на правильном замере. Здесь
+#: проверяется, что на боевых артефактах цепочки SFT-точки это больше не так.
+if [ -f evidence/s3aa-agentic-sft.json ] && [ -f evidence/s3aa-agentic-cpt-nogram4.json ]; then
+  expect_exit 0 "боевая пара (SFT + переснятая CPT-база) — сопоставимы, PASS" \
+    $GUARD --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt-nogram4.json
+  expect_contains "цитата" "боевая пара: расхождение с цитатой — примечание, не отказ" \
+    $GUARD --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt-nogram4.json
+else
+  echo "  skip боевая пара: нет evidence/s3aa-agentic-cpt-nogram4.json"
+  SKIP=$((SKIP + 1))
+fi
+if [ -f evidence/s3aa-agentic-cpt.json ] && [ -f evidence/s3aa-agentic-sft.json ]; then
+  expect_exit 1 "боевая legacy-база (s3aa-agentic-cpt.json) — отказ считать метрику" \
+    $GUARD --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt.json
+  expect_contains "режим не штатный" "боевой legacy-отказ называет причину" \
+    $GUARD --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt.json
+else
+  echo "  skip боевая legacy-база: нет evidence/s3aa-agentic-cpt.json"
+  SKIP=$((SKIP + 1))
+fi
+
+echo "== 52. C-022 с фазой: обёртка правила + реестр номеров разделов (ADR-059, ADR-053) =="
+# Спека: docs/specs/C-022-PHASED.md §2/§4. Правило C-022 в CONSTRAINTS.yaml зовёт
+# ОБЁРТКУ tools/check_agentic_criterion.py: она называет состояние предмета
+# (absent|partial|present) и пробрасывает код стража как есть. Прямой вызов стража
+# дал бы красное на любом дереве без артефактов — «красный по построению», который
+# запрещает ADR-053. Плюс механический страж номеров разделов: повтор, названный в
+# реестре шапки, — история ветвления (перенумерация запрещена, ADR-028 п.4), а
+# повтор сверх реестра — находка.
+C022="$TMP/c022"
+mkdir -p "$C022"
+WRAP="python3 tools/check_agentic_criterion.py"
+printf '{}' > "$C022/half.json"
+
+# ── 52а. Фаза: предмета нет → 2; предмет неполон → 1 (ADR-053) ───────────────
+expect_exit 2 "обёртка: нет ни отчёта, ни базы → exit 2 (фаза «ещё не может быть»)" \
+  $WRAP --report "$C022/none-report.json" --base-report "$C022/none-base.json"
+expect_contains "state: absent" "обёртка: состояние названо absent" \
+  $WRAP --report "$C022/none-report.json" --base-report "$C022/none-base.json"
+expect_exit 1 "обёртка: есть только отчёт → exit 1 (неполнота — нарушение)" \
+  $WRAP --report "$C022/half.json" --base-report "$C022/none-base.json"
+expect_contains "state: partial" "обёртка: состояние названо partial" \
+  $WRAP --report "$C022/half.json" --base-report "$C022/none-base.json"
+expect_exit 1 "обёртка: есть только база → exit 1 (неполнота)" \
+  $WRAP --report "$C022/none-report.json" --base-report "$C022/half.json"
+
+# ── 52б. Предмет есть: код стража проброшен как есть (боевая пара → 0) ───────
+expect_exit 0 "обёртка: боевая пара — код стража 0 проброшен, не подменён" \
+  $WRAP --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt-nogram4.json
+expect_contains "state: present" "обёртка: состояние названо present" \
+  $WRAP --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt-nogram4.json
+expect_contains "сопоставимость" "обёртка: вывод стража напечатан целиком" \
+  $WRAP --report evidence/s3aa-agentic-sft.json --base-report evidence/s3aa-agentic-cpt-nogram4.json
+
+# ── 52в. Вердикт не подменяется: фикстура с нарушением сопоставимости → 1 ────
+python3 - "$C022" <<'PY'
+import json, pathlib, sys
+d = pathlib.Path(sys.argv[1])
+base = json.loads(pathlib.Path("evidence/s3aa-agentic-cpt-nogram4.json").read_text(encoding="utf-8"))
+base["protocol"].pop("decoding", None)   # legacy: запрет повторов 4-грамм не действовал
+(d / "legacy-base.json").write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+PY
+expect_exit 1 "обёртка: база в legacy-режиме → код стража 1 проброшен" \
+  $WRAP --report evidence/s3aa-agentic-sft.json --base-report "$C022/legacy-base.json"
+expect_contains "режим не штатный" "обёртка: причину называет страж, а не обёртка" \
+  $WRAP --report evidence/s3aa-agentic-sft.json --base-report "$C022/legacy-base.json"
+$WRAP --report "$C022/half.json" --base-report "$C022/none-base.json" --json "$C022/out.json" >/dev/null
+expect_exit 0 "обёртка: JSON-контракт называет состояние, код и правило" \
+  python3 - "$C022/out.json" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+sys.exit(0 if r["state"] == "partial" and r["exit"] == 1 and r["criterion"] == "C-022"
+         and r["adr"] == "ADR-059" else 1)
+PY
+
+# ── 52г. Реестр номеров разделов: на текущем файле — зелёный (критерий 5/6) ──
+expect_exit 0 "реестр номеров разделов согласован с телом файла" \
+  python3 tools/check_test_section_numbers.py
+expect_contains "повторы номеров названы в реестре" "повтор в реестре — история, не находка" \
+  python3 tools/check_test_section_numbers.py
+
+# ── 52д. Подсунутый дубель сверх реестра — красное с поимённым списком ───────
+python3 - "$C022" <<'PY'
+import pathlib, sys
+d = pathlib.Path(sys.argv[1])
+src = pathlib.Path("tools/tests/run_tool_tests.sh").read_text(encoding="utf-8")
+src += '\necho "== 51. подсунутый дубель раздела (фикстура теста) =="\n'
+(d / "dup.sh").write_text(src, encoding="utf-8")
+PY
+expect_exit 1 "подсунутый дубель раздела — красное" \
+  python3 tools/check_test_section_numbers.py --file "$C022/dup.sh"
+expect_contains "дубель сверх реестра" "красное называет причину находки" \
+  python3 tools/check_test_section_numbers.py --file "$C022/dup.sh"
+expect_contains "подсунутый дубель раздела (фикстура теста)" "красное называет раздел поимённо" \
+  python3 tools/check_test_section_numbers.py --file "$C022/dup.sh"
+python3 - "$C022" <<'PY'
+import pathlib, sys
+d = pathlib.Path(sys.argv[1])
+src = pathlib.Path("tools/tests/run_tool_tests.sh").read_text(encoding="utf-8")
+assert "#   | 52 | " in src, "в шапке нет строки реестра раздела 52"
+(d / "registry-mismatch.sh").write_text(
+    src.replace("#   | 52 | ", "#   | 952 | ", 1), encoding="utf-8")
+PY
+expect_exit 1 "реестр разошёлся с телом (номер не вписан) — красное" \
+  python3 tools/check_test_section_numbers.py --file "$C022/registry-mismatch.sh"
 
 echo "──────────────────────────────────────────────"
 echo "итого: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"

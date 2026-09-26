@@ -86,22 +86,22 @@
    "why": "Кэш debug-сборки Rust. Git-игнор, 0 держателей, ни один симлинк PATH не ведёт в debug/. **`target/release` СОХРАНЁН** — именно там живёт `arch-be`, который исполняют 4 процесса и на который ведут 3 симлинка `~/.local/bin`. То есть удалена только та половина, что ни от кого не зависит."
   },
   {
-   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l0-00/data/datasets/sft_train_v12.jsonl",
+   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/corruption-l0-00/data/datasets/sft_train_v12.jsonl",
    "bytes": 486352008,
    "action": "заменено симлинком",
-   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/kimi-killer/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
+   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/axiom/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
   },
   {
-   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/corruption-l1-00/data/datasets/sft_train_v12.jsonl",
+   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/corruption-l1-00/data/datasets/sft_train_v12.jsonl",
    "bytes": 486352008,
    "action": "заменено симлинком",
-   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/kimi-killer/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
+   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/axiom/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
   },
   {
-   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/kimi-killer/evidence/a4-run-wire/rl/env/tasks/public/real-l0-00/data/datasets/sft_train_v12.jsonl",
+   "path": "/home/user/.arch-ml/worktrees/spine-aiml-a366f5f2a510b02d/gate-scope-workspace/кейсы/axiom/evidence/a4-run-wire/rl/env/tasks/public/real-l0-00/data/datasets/sft_train_v12.jsonl",
    "bytes": 486352008,
    "action": "заменено симлинком",
-   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/kimi-killer/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
+   "why": "Заменено абсолютным симлинком на `/home/user/gb10-shared/datasets/sft_train_v12.jsonl`. sha256 обеих версий совпал побайтово (39f616f1e47b…), поэтому читаемые данные не изменились — проверено чтением всех 44 949 строк после замены. Форма симлинка — как в каноне ADR-028 п.6-8 (абсолютный) и как в уже исправленном `кейсы/axiom/data/datasets/`. Это AD-4-V1: история git НЕ переписана, блобы 2700788b… остаются в объектах."
   },
   {
    "path": "/home/user/spine-aiml/target",
@@ -125,7 +125,7 @@
    "path": "/tmp/kk-calib-tasks",
    "bytes": 9100000000,
    "action": "пропущено",
-   "why": "Фикстуры задач kimi-killer для калибровки (holdout/public). Аудит: удалять только после подтверждения, что источник есть в репозитории; подтверждения нет."
+   "why": "Фикстуры задач axiom для калибровки (holdout/public). Аудит: удалять только после подтверждения, что источник есть в репозитории; подтверждения нет."
   },
   {
    "path": "/tmp/rl-smoke-rollouts-rcn4yqau",
@@ -137,7 +137,7 @@
    "path": "/tmp/kk-diag-c1jjurh1",
    "bytes": 466000000,
    "action": "пропущено",
-   "why": "Диагностика kimi-killer — аудит помечает «рискованно»."
+   "why": "Диагностика axiom — аудит помечает «рискованно»."
   },
   {
    "path": "/tmp/probe-h7fbq4nq",

@@ -43,7 +43,7 @@
 
 Доменные учебные кейсы: `laguna-compact` (RL-лесенка CPT → SFT → RL на одной
 GPU-карте: стражи ресурса, ревизии корпуса, пилот с одним сидом) и
-`kimi-killer` (состязание длинноконтекстных архитектур: единый контракт
+`axiom` (состязание длинноконтекстных архитектур: единый контракт
 прогона, механический вердикт, приватный корпус не покидает контур).
 
 ## Модели и ризонинг
@@ -287,7 +287,10 @@ CI-джобой `dogfood` (`arch-ml control spine` + `arch-ml control check .` +
 
 ## Прочее
 
-- **TUI** (ratatui, Tokyo Night): стриминг, markdown, mermaid-арт на боковой
+- **TUI** (ratatui, Tokyo Night): стриминг, markdown **в меру чтения** (проза
+  не шире 100 колонок независимо от ширины терминала; тело блока — под
+  желобком `▎`, перенос пункта сохраняет висячий отступ, «мысли» модели —
+  одна строка со счётчиком), mermaid-арт на боковой
   вкладке (панель сама расширяется под ширину схемы, до 60% экрана; рендер
   не усечается), мышь, скроллбар диалога и кнопка «▼» — прыжок к свежему ответу,
   **выделение текста мышью с автокопированием в буфер обмена** (драг по логам;
@@ -540,7 +543,7 @@ Four pillars:
 
 Domain training cases: `laguna-compact` (the CPT → SFT → RL ladder on a
 single GPU: resource guards, corpus revisions, single-seed pilot) and
-`kimi-killer` (a bake-off of long-context architectures: one run contract,
+`axiom` (a bake-off of long-context architectures: one run contract,
 mechanical verdict, the private corpus never leaves the perimeter).
 
 **Models & reasoning**

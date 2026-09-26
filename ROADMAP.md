@@ -26,7 +26,7 @@
 | AI/ML-адаптация идентичности: README/ROADMAP/getting_started/Cargo.toml говорят об AI/ML; CI-гвард не даёт вернуться терминам банковской редакции вне allowlist | done |
 | Быстрый старт в начале README (команды без API-ключа) + офлайн-демо `examples/ml-experiment/` (гейт ML-06/ML-09: FAIL → фикс → PASS) | done |
 | CI запускает все тесты репозитория: pytest (SDK Python, hypothesis-router), sdk-java (JDK 21), sdk-rust | done |
-| Тяжёлые evidence прогонов — в релизных архивах с SHA256, а не в дереве (`кейсы/kimi-killer/evidence/a4-run-wire` → релиз v0.2.0) | done |
+| Тяжёлые evidence прогонов — в релизных архивах с SHA256, а не в дереве (`кейсы/axiom/evidence/a4-run-wire` → релиз v0.2.0) | done |
 | CONTRIBUTING.md / CHANGELOG.md / шаблоны issue и PR | done |
 | Clippy-долг форка (84 срабатывания): механические классы зачищены, regex в `control.rs` вынесены в `LazyLock` | done |
 | Релизные бинарники: linux-x86_64 прикладывается к GitHub Release; далее — linux-aarch64 (актуально для GB10 из кейса laguna-compact) и macOS через cargo-dist | частично |
@@ -39,7 +39,7 @@
 - Лесенка обучения маленьких моделей (кейс `laguna-compact`): ось
   лесенки и пороги различимости объявлены до прогона (ADR-052, ADR-055),
   носители стадий, RL-стадия с наградой по состоянию среды (AD-13).
-- Состязание длинноконтекстных архитектур (кейс `kimi-killer`): гейт A5
+- Состязание длинноконтекстных архитектур (кейс `axiom`): гейт A5
   по единому контракту прогона, механический вердикт.
 - Роутинг гипотез по фактам проекта (ADR-047, плагин hypothesis-router):
   расширение доменных хуков, покрытие кейсами.

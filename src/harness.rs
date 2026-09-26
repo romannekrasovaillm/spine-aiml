@@ -1046,10 +1046,15 @@ impl std::fmt::Display for Termination {
 /// - Positional: `args + [task]`;
 /// - Flag: подстановка `{prompt}` в args, иначе `args + [task]`;
 /// - Stdin: `args`, задача уходит в stdin.
-fn build_argv(cfg: &CodingHarnessConfig, task: &str) -> (Vec<String>, Option<String>) {
+///
+/// Во всех режимах `{repo}` в args заменяется путём репозитория прогона —
+/// для харнессов, которым каталог надо передать явным флагом (hermes `--in`).
+fn build_argv(cfg: &CodingHarnessConfig, task: &str, repo: &Path) -> (Vec<String>, Option<String>) {
+    let repo_str = repo.display().to_string();
+    let expand = |a: &str| a.replace("{repo}", &repo_str);
     match cfg.prompt_mode {
         PromptMode::Positional => {
-            let mut argv = cfg.args.clone();
+            let mut argv: Vec<String> = cfg.args.iter().map(|a| expand(a)).collect();
             argv.push(task.into());
             (argv, None)
         }
@@ -1058,17 +1063,20 @@ fn build_argv(cfg: &CodingHarnessConfig, task: &str) -> (Vec<String>, Option<Str
                 (
                     cfg.args
                         .iter()
-                        .map(|a| a.replace("{prompt}", task))
+                        .map(|a| expand(a).replace("{prompt}", task))
                         .collect(),
                     None,
                 )
             } else {
-                let mut argv = cfg.args.clone();
+                let mut argv: Vec<String> = cfg.args.iter().map(|a| expand(a)).collect();
                 argv.push(task.into());
                 (argv, None)
             }
         }
-        PromptMode::Stdin => (cfg.args.clone(), Some(task.into())),
+        PromptMode::Stdin => (
+            cfg.args.iter().map(|a| expand(a)).collect(),
+            Some(task.into()),
+        ),
     }
 }
 
@@ -1085,7 +1093,7 @@ async fn repair_contract_process(
     repo: &Path,
     prompt: &str,
 ) -> Option<String> {
-    let (argv, stdin_data) = build_argv(cfg, prompt);
+    let (argv, stdin_data) = build_argv(cfg, prompt, repo);
     let mut cmd = Command::new(&cfg.binary);
     cmd.args(&argv).current_dir(repo);
     if !cfg.env_allow.is_empty() {
@@ -1316,7 +1324,7 @@ async fn run_harness_inner(
     // Канонический футер контракта — на КАЖДЫЙ прогон (ad-hoc задачи не
     // несут TASK.md; recency-позиция в конце промпта борется с потерей
     // контракта — 32% прогонов 09.2026).
-    let task = &with_contract_footer(task);
+    let task = &with_contract_footer(task, repo);
     // Сталое result.json от прошлого прогона не должно читаться как свежее.
     let _ = std::fs::remove_file(repo.join(RESULT_JSON_REL));
 
@@ -1326,7 +1334,7 @@ async fn run_harness_inner(
         return run_acp_turn(name, cfg, repo, task, on_activity, control, output_tail).await;
     }
 
-    let (argv, stdin_data) = build_argv(cfg, task);
+    let (argv, stdin_data) = build_argv(cfg, task, repo);
     let mut cmd = Command::new(&cfg.binary);
     cmd.args(&argv).current_dir(repo);
     // Whitelist окружения: чужие переменные хоста (модели, прокси, ключи)
@@ -1830,10 +1838,17 @@ async fn run_acp_turn(
     let policy = PermissionPolicy::parse(cfg.acp_permission.as_deref())?;
     let (updates_tx, mut updates_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    // Запуск: args идут как есть (промпт уходит протоколом, не argv/stdin);
+    // Запуск: промпт уходит протоколом, не argv/stdin; в args подставляем
+    // только {repo} (харнессу может понадобиться явный путь репозитория);
     // изоляция окружения — те же правила, что у процессного транспорта.
+    let repo_str = repo.display().to_string();
+    let argv: Vec<String> = cfg
+        .args
+        .iter()
+        .map(|a| a.replace("{repo}", &repo_str))
+        .collect();
     let mut cmd = Command::new(&cfg.binary);
-    cmd.args(&cfg.args).current_dir(repo);
+    cmd.args(&argv).current_dir(repo);
     if !cfg.env_allow.is_empty() {
         cmd.env_clear();
         for var in &cfg.env_allow {
@@ -2663,14 +2678,23 @@ const CONTRACT_FOOTER: &str = "\n\n## Контракт результата (о�
 `blocked` (заблокировано). Списки могут быть пустыми. Если задача выше задаёт свой формат \
 JSON-ответа — объедини: его поля добавь в тот же объект, обязательные поля контракта сохрани.\n";
 
-/// `task` + канонический футер контракта (идемпотентно: футер уже есть —
-/// не дублируем; задачи из handoff-пакета несут контракт в TASK.md, но не
-/// футер — recency-позиция в конце промпта работает против его потери).
-fn with_contract_footer(task: &str) -> String {
+/// `task` + якорь рабочего каталога + канонический футер контракта
+/// (идемпотентно: футер уже есть — не дублируем; задачи из handoff-пакета
+/// несут контракт в TASK.md, но не футер — recency-позиция в конце промпта
+/// работает против его потери). Якорь каталога — для исполнителей, чей
+/// собственный cwd отличается от репозитория прогона (hermes-терминал
+/// стартует в ~, openclaw-агент — в своём workspace; прогон 24.09:
+/// артефакты улетали в ~ мимо репо флота).
+fn with_contract_footer(task: &str, repo: &Path) -> String {
     if task.contains("## Контракт результата (обязательно") {
         task.to_string()
     } else {
-        format!("{task}{CONTRACT_FOOTER}")
+        format!(
+            "{task}\n\nРабочий каталог прогона: `{repo}` — все относительные пути \
+             (включая `.arch-handoff/result.json`) разрешай от него, даже если твой \
+             собственный cwd иной.{CONTRACT_FOOTER}",
+            repo = repo.display()
+        )
     }
 }
 
@@ -4203,7 +4227,11 @@ mod tests {
         };
 
         // Positional: задача — позиционный аргумент в конце.
-        let (argv, stdin) = build_argv(&cfg(&["-p"], PromptMode::Positional), "TASK");
+        let (argv, stdin) = build_argv(
+            &cfg(&["-p"], PromptMode::Positional),
+            "TASK",
+            Path::new("/repo"),
+        );
         assert_eq!(argv, ["-p", "TASK"]);
         assert!(stdin.is_none());
 
@@ -4211,18 +4239,39 @@ mod tests {
         let (argv, stdin) = build_argv(
             &cfg(&["agent", "--message", "{prompt}"], PromptMode::Flag),
             "TASK",
+            Path::new("/repo"),
         );
         assert_eq!(argv, ["agent", "--message", "TASK"]);
         assert!(stdin.is_none());
 
         // Flag без плейсхолдера: задача добавляется в конец.
-        let (argv, stdin) = build_argv(&cfg(&["run", "--task"], PromptMode::Flag), "TASK");
+        let (argv, stdin) = build_argv(
+            &cfg(&["run", "--task"], PromptMode::Flag),
+            "TASK",
+            Path::new("/repo"),
+        );
         assert_eq!(argv, ["run", "--task", "TASK"]);
         assert!(stdin.is_none());
 
         // Stdin: argv без задачи, задача — в stdin.
-        let (argv, stdin) = build_argv(&cfg(&["-p"], PromptMode::Stdin), "TASK");
+        let (argv, stdin) =
+            build_argv(&cfg(&["-p"], PromptMode::Stdin), "TASK", Path::new("/repo"));
         assert_eq!(argv, ["-p"]);
+        assert_eq!(stdin.as_deref(), Some("TASK"));
+
+        // Плейсхолдер {repo} раскрывается во всех режимах (hermes `--in`).
+        let (argv, _) = build_argv(
+            &cfg(&["-z", "{prompt}", "--in", "{repo}"], PromptMode::Flag),
+            "TASK",
+            Path::new("/repo"),
+        );
+        assert_eq!(argv, ["-z", "TASK", "--in", "/repo"]);
+        let (argv, stdin) = build_argv(
+            &cfg(&["--cwd", "{repo}"], PromptMode::Stdin),
+            "TASK",
+            Path::new("/repo"),
+        );
+        assert_eq!(argv, ["--cwd", "/repo"]);
         assert_eq!(stdin.as_deref(), Some("TASK"));
     }
 
@@ -4240,11 +4289,19 @@ mod tests {
             .expect("run");
         assert_eq!(run.harness, "test-cat");
         assert_eq!(run.exit_code, Some(0));
-        // Задаче предшествует канонический футер контракта (см.
-        // with_contract_footer) — echo-харнесс возвращает задачу целиком.
+        // Задаче предшествуют якорь рабочего каталога и канонический футер
+        // контракта (см. with_contract_footer) — echo-харнесс возвращает
+        // задачу целиком.
         assert!(
+            run.stdout.starts_with(&format!(
+                "привет, харнесс\n\nРабочий каталог прогона: `{}`",
+                tmp.path().display()
+            )),
+            "{}",
             run.stdout
-                .starts_with("привет, харнесс\n\n## Контракт результата"),
+        );
+        assert!(
+            run.stdout.contains("\n\n## Контракт результата"),
             "{}",
             run.stdout
         );
@@ -4866,12 +4923,14 @@ mod tests {
 
     #[test]
     fn contract_footer_appended_once() {
-        let with = with_contract_footer("сделай фичу");
+        let with = with_contract_footer("сделай фичу", Path::new("/repo"));
         assert!(with.starts_with("сделай фичу"));
         assert!(with.contains("## Контракт результата (обязательно"));
         assert!(with.contains(RESULT_JSON_REL));
+        // Якорь рабочего каталога — с путём репозитория прогона.
+        assert!(with.contains("Рабочий каталог прогона: `/repo`"));
         // Идемпотентность: повторная обёртка не дублирует.
-        let twice = with_contract_footer(&with);
+        let twice = with_contract_footer(&with, Path::new("/repo"));
         assert_eq!(
             twice.matches("## Контракт результата (обязательно").count(),
             1

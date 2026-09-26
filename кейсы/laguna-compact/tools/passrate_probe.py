@@ -927,6 +927,23 @@ def classify_failure(rec: dict, coverage: float) -> str:
     return "c_wrong_values"
 
 
+def answer_record(task: dict, rec: dict, ans: str) -> dict:
+    """Строка ``answers.jsonl``: исход и разборные поля успеха.
+
+    INSTRUMENT-SUCCESS-EXAMPLES §2.1: к прежним полям (``task_index``, ``task_type``,
+    ``prompt``, ``answer``, ``answer_truncated``) **аддитивно** добавляются ``pass``,
+    ``coverage``, ``turns``, ``tool_calls``, ``diag_class`` (null для успешных); порядок
+    прежних полей не меняется.
+    """
+    return {"task_index": rec["task_index"], "task_type": rec["task_type"],
+            "prompt": (task.get("prompt") or "")[:600],
+            "answer": ans[:ANSWER_CAP],
+            "answer_truncated": len(ans) > ANSWER_CAP,
+            "pass": rec["pass"], "coverage": rec.get("coverage"),
+            "turns": rec["turns"], "tool_calls": rec["tool_calls"],
+            "diag_class": rec.get("diag_class")}
+
+
 def run_probe(args, pipe, torch, tok, model, tasks: list[dict], def_index, sig_words,
               *, pool_name: str = "", progress_path: Path | None = None,
               ban_stats: dict | None = None) -> list[dict]:
@@ -1215,6 +1232,10 @@ def diagnose(records: list[dict], answers: list[str], tasks: list[dict], pipe, d
     часть артефакта) и берутся ``random.Random(seed).sample``. Класс каждой задачи
     посчитан в момент финализации (``classify_failure``) и лежит в сырых записях —
     значит пересборка сводки даёт те же числа без GPU.
+
+    INSTRUMENT-SUCCESS-EXAMPLES §2.2: кроме примеров отказов, ``examples`` несёт
+    ветвь ``pass`` — до 3 успешных траекторий по одной на тип задачи (носитель
+    «что сработало», а не только агрегат).
     """
     failed = [i for i, r in enumerate(records) if r["pass"] == 0]
     take = min(n_sample, len(failed))
@@ -1240,6 +1261,33 @@ def diagnose(records: list[dict], answers: list[str], tasks: list[dict], pipe, d
         })
 
     counts = {c: len(v) for c, v in by_class.items()}
+    # INSTRUMENT-SUCCESS-EXAMPLES §2.2: у успеха появляется носитель для разбора —
+    # до 3 траекторий, по одной на тип задачи (тип не повторяется, пока есть непокрытые),
+    # структура записи та же, что у примеров отказов. Отбор детерминирован (порядок задач).
+    pass_examples: list[dict] = []
+    seen_pass_types: set[str] = set()
+    for i, r in enumerate(records):
+        if r["pass"] != 1:
+            continue
+        tt = r["task_type"]
+        if tt in seen_pass_types:
+            continue
+        seen_pass_types.add(tt)
+        task = tasks[i]
+        pass_examples.append({
+            "task_index": r["task_index"],
+            "task_type": tt,
+            "source_env": r.get("source_env"),
+            "prompt": (task.get("prompt") or "")[:600],
+            "required": requirement_detail(task, answers[i], pipe, def_index, sig_words),
+            "answer_excerpt": answers[i][:ANSWER_CAP],
+            "answer_chars": r["answer_chars"],
+            "turns": r["turns"], "tool_calls": r["tool_calls"],
+            "hit_timeout": r["hit_timeout"], "hit_context_guard": r["hit_context_guard"],
+            "coverage": r.get("coverage"), "reward": r.get("reward"),
+        })
+        if len(pass_examples) >= 3:
+            break
     return {
         "sampled": len(picked),
         "n_failed": len(failed),
@@ -1252,7 +1300,7 @@ def diagnose(records: list[dict], answers: list[str], tasks: list[dict], pipe, d
         "precedence": ("порядок разбора: (а) нет вызова инструмента → (г) обрыв/лимит → "
                        "(б) нечего проверять (coverage=0) → (в) проверяемое есть, но не то; "
                        "класс считается по keyword_coverage из пайплайна, не своей арифметикой"),
-        "examples": {c: v[:3] for c, v in by_class.items()},
+        "examples": {**{c: v[:3] for c, v in by_class.items()}, "pass": pass_examples},
         "note": ("ответы хранятся обрезанными до %d символов; тексты примеров — из "
                  "answers.jsonl прогона, вердикт pass всегда из verify_task" % ANSWER_CAP),
     }
@@ -2159,11 +2207,7 @@ def main(argv=None) -> int:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         with open(pool_run_dir / "answers.jsonl", "w", encoding="utf-8") as f:
             for task, rec, ans in zip(tasks, records, answers):
-                f.write(json.dumps({"task_index": rec["task_index"], "task_type": rec["task_type"],
-                                    "prompt": (task.get("prompt") or "")[:600],
-                                    "answer": ans[:ANSWER_CAP],
-                                    "answer_truncated": len(ans) > ANSWER_CAP},
-                                   ensure_ascii=False) + "\n")
+                f.write(json.dumps(answer_record(task, rec, ans), ensure_ascii=False) + "\n")
 
         pool_meta = {"path": str(path), "sha256": one["sha256"], "lines": len(rows),
                      "by_task_type": {t: v["in_pool"] for t, v in sorted(one["strata"].items())},

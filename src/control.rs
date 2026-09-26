@@ -5625,8 +5625,8 @@ mod tests {
         assert!(!glob_matches("**/*.{yaml,yml,toml}", "a/b/c.json"));
         // Альтернативы каталогов и несколько групп (декартово).
         assert!(glob_matches(
-            "кейсы/kimi-killer/{net,env}/**/*.md",
-            "кейсы/kimi-killer/env/x/y.md"
+            "кейсы/axiom/{net,env}/**/*.md",
+            "кейсы/axiom/env/x/y.md"
         ));
         assert!(glob_matches(
             "**/{openapi,asyncapi}.{yaml,yml,json}",

@@ -402,6 +402,12 @@ impl Glyphs {
         if self.unicode { "▎" } else { "|" }
     }
 
+    /// Подвеска результата инструмента: строка итога/хвоста под строкой
+    /// вызова (вложенность без второго отступа).
+    pub(crate) fn sub(self) -> &'static str {
+        if self.unicode { "↳" } else { ">" }
+    }
+
     /// Имена стрелок в подсказках клавиш.
     pub(crate) fn up_down(self) -> &'static str {
         if self.unicode { "↑/↓" } else { "Up/Down" }
@@ -647,6 +653,7 @@ mod tests {
             g.role_assistant(),
             g.note(),
             g.gutter(),
+            g.sub(),
             g.up_down(),
             g.left_right(),
             g.cursor(),

@@ -1,81 +1,95 @@
 #!/usr/bin/env python3
-"""C-022 (предложено S3ab) — страж agentic-доли SFT-стадии (критерий ADR-033 п.2).
+"""C-022 (ADR-059) — страж **сопоставимости** агентной базы и отчёта SFT-стадии.
 
 Дыра, которую правило закрывает (G4 плана стадии). ADR-033 п.2 сделал (в)
-третьим компонентом критерия стадии — **agentic-поведение**, и назвал его
-двумя условиями. Но у критерия не было прибора-стража: долю самостоятельных
-вызовов инструмента мерили руками один раз (hr-68), и ничто не мешало сдать
-стадию, не измерив её вовсе либо измерив несопоставимо.
+третьим компонентом критерия стадии — **agentic-поведение** (доля самостоятельных
+вызовов инструмента и pass-rate). Критерий сравнивает два числа «против базы», и
+страж обязан отказать на **несопоставимом** замере: это отказ (exit 1), а не «нет
+данных».
 
-**Исправленная редакция (ADR-033 п.2, вставка 17.09.2026).** Посылка «на
-CPT-чекпойнте самостоятельных вызовов ноль» опровергнута замером: на входном
-чекпойнте SFT самостоятельный вызов делают **158 из 350 траекторий = 45.1 %**
-(v2 — 72/200 = 36.0 %, v1 — 86/150 = 57.3 %), без форсирования. Точка отсчёта —
-**45.1 %**, а не ноль; критерий читается как два условия:
+**Почему сверка с цитатой ADR-033 отменена (ADR-059).** База критерия была
+объявлена **замороженной цитатой** ADR-033 п.2 (45.1 % = 158/350, замер hr-68,
+`evidence/s3aa-agentic-cpt.json`). Но этот замер снят в **legacy-режиме
+декодирования** (в артефакте нет `protocol.decoding`; запрет повторов 4-грамм не
+действовал). ADR-041 п.3 объявил базу **переснятию подлежащей**: сравнивать можно
+только замеры одного прибора, одних флагов и **одного (штатного) режима**. Прежняя
+редакция стража сверяла число переснятой базы с legacy-цитатой и **краснела ровно
+на правильном замере** (инцидент 25.09.2026: `evidence/s3aa-agentic-cpt-nogram4.json`
+отвергнут как «расхождение с цитатой»). Это класс дефекта «правило отстало от
+контура, которое само же и создало».
 
-* **(в1)** доля самостоятельных вызовов **не падает** относительно 45.1 %
-  (регрессия агентного поведения запрещена);
-* **(в2)** **pass-rate на том же наборе растёт** относительно базы
-  (поведение становится результативнее, а не только сохраняется).
+**Что страж проверяет теперь (ADR-059 п.3) — сопоставимость, а не число:**
 
-**Что «самостоятельный вызов» значит здесь.** Только отчёт, снятый прибором
-``tools/passrate_probe.py`` в конфигурации ``--no-toolcall-force --no-hint``:
-при ``toolcall-force`` первый вызов вкладывает сам харнесс, при ``hint``
-подставляется открывающий тег ``<tool_call>``, и модель лишь дописывает JSON.
-В этих двух конфигурациях число описывает харнесс, а не модель — на смене флагов
-и споткнулась посылка ADR-033. Страж обязан отказать на несопоставимом отчёте:
-это **отказ** (exit 1), а не «нет данных».
+* **режим**: `protocol.decoding` штатный у обоих (ADR-041 п.4) — запрет повторов
+  `STANDARD_NO_REPEAT_NGRAM`-грамм; legacy-артефакт (нет блока `decoding` либо
+  `legacy_decoding = true`) → **отказ считать метрику**;
+* **флаги**: `toolcall_force = false` у обоих, подсказки/prefill вызывающего тега
+  нет (`--no-hint`) — иначе число описывает харнесс, а не модель;
+* **предмет**: `protocol.checkpoint_sha256` базы и отчёта **различаются** (вход и
+  выход стадии), и каждый совпадает с распиской брони (`RECEIPT.json`, ADR-058),
+  **если** расписка есть (путь расписки — `--receipt` либо `RECEIPT.json` рядом с
+  предметом);
+* **состав**: `sha256` пулов и `n` совпадают у базы и отчёта — иначе измерены
+  разные наборы и сравнение не выносится.
 
-**Почему сравниваются подвыборки, а не только сводка.** База снята на двух
-пулах; если после стадии измерен только один, сводные доли несопоставимы по
-построению (разный состав задач) — тогда сравнение идёт **по пулам**,
-у которых база есть, а сводное помечается несопоставимым. Молчаливое сравнение
-сводок разных подвыборок — тот же класс ошибки, что «поверили в коллинеарное
-сравнение» (ADR-026 п.2).
+**Расхождение с цитатой ADR-033 — примечание (`warn`), а не отказ** (ADR-059 п.4):
+цитата верна для своего замера (legacy-режим) и в вердикт не входит; сама цитата
+не переписывается (ADR-028 п.4). Она остаётся носителем факта и используется
+только для этого примечания.
 
-База берётся из замороженной цитаты ADR-033 п.2; если задан ``--base-report``,
-она **повторно выводится из артефакта** и сверяется с цитатой (расхождение —
-отказ). Иначе «база» поехала бы вместе с прибором, и критерий проверял бы сам себя.
+**Решающего голоса по (в1)/(в2) у стража нет** (ADR-059 п.5). Страж проверяет
+сопоставимость и **печатает условия** — числа (в1) «доля не падает» и (в2)
+«pass-rate растёт» с пометкой `decisive = false`. Вердикт по (в) выносит сводка
+(`tools/assemble_sft_point_chain.py::agentic_criterion`), читая ту же пару отчётов
+и держа правило строгим. Страж, присвоивший себе вердикт по (в), либо наказывал бы
+за исполнение ADR-041 (прежний дефект), либо скрывал бы несопоставимость.
 
 Коды возврата::
 
-    0 — PASS: критерий (в) в исправленной редакции выполнен (все сравнимые
-        единицы прошли и хотя бы одна сравнимая единица была)
-    1 — FAIL: регрессия доли, падение/отсутствие роста pass-rate либо
-        несопоставимый отчёт (формат отчёта, флаги прибора, подмена пула)
-    2 — NOT-VERIFIED: нет данных — отчёт отсутствует/нечитаем, в нём нет
-        ни одного пула, или нет ни одной сравнимой с базой единицы
+    0 — PASS: замеры **сопоставимы** (режим штатный у обоих, флаги без
+        форсирования, предметы разные/сверены с бронью, состав пулов и n сошлись);
+        условия (в1)/(в2) напечатаны как данные для сводки
+    1 — FAIL: отказ считать метрику — режим не штатный, смена флагов прибора,
+        предметы совпадают либо не доказаны, состав пулов или n разошёлся
+    2 — NOT-VERIFIED: нет данных — отчёт отсутствует/нечитаем, нет блока pools,
+        не задана переснятая база, нет протокола или хешей предмета
 
 Запуск::
 
     python3 tools/check_sft_agentic_share.py \\
         --report evidence/s3aa-agentic-sft.json \\
-        --base-report evidence/s3aa-agentic-cpt.json \\
+        --base-report evidence/s3aa-agentic-cpt-nogram4.json \\
+        --receipt runs/sft-point-chain-20260925-1000/ckpt/RECEIPT.json \\
         --expect-pool-sha256 "v2=e678eb680d5abba0825f81d3e84cda3f680a51850f683fa6f1a3aa22de91d4da,v1=06b95b2f3b62d2f8b24a458ca49ff13232b9fc7a00c5390e4354d6b2956a5eb3"
 
-    # агрегаты из сырых записей прибора (без GPU), затем страж по ним:
-    python3 tools/passrate_probe.py --summarize runs/passrate-agentic-sft-*/v2/tasks.jsonl \\
-        --evidence /tmp/after.json
-
-JSON-контракт (``--json``): ``{"verdict": "PASS|FAIL|NOT-VERIFIED", "checks": [...],
-"report": {...}, "base": {...}, "reason", "inconclusive", "tolerance_pp"}``.
+JSON-контракт (``--json``): ``{"verdict": "PASS|FAIL|NOT-VERIFIED",
+"criterion", "report", "base", "checks" (сопоставимость, решающие),
+"conditions" ((в1)/(в2), не решающие), "warnings" (примечания, в т.ч. про цитату),
+"reason", "notes", "inconclusive", "tolerance_pp"}``.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 EXIT_OK, EXIT_FAIL, EXIT_NOT_VERIFIED = 0, 1, 2
 
-CASE_ROOT = Path(__file__).resolve().parent.parent
+#: Штатный режим декодирования стадии (ADR-041 п.1): запрет повторов 4-грамм —
+#: умолчание прибора (`tools/passrate_probe.py:STANDARD_NO_REPEAT_NGRAM`).
+STANDARD_NO_REPEAT_NGRAM = 4
 
 #: Замороженная база ADR-033 п.2 (вставка 17.09.2026 по замеру hr-68): артефакт
 #: `evidence/s3aa-agentic-cpt.json`, прогон `runs/passrate-agentic-cpt-20260917-0153/`,
-#: прибор `tools/passrate_probe.py --no-toolcall-force --no-hint`. Числа — цитата
-#: решения, а не вычисление: страж сверяет с ними базу, выведенную из артефакта.
+#: прибор `tools/passrate_probe.py --no-toolcall-force --no-hint`. Числа — **цитата
+#: решения, а не вычисление**, и сняты они в **legacy-режиме** (в артефакте нет
+#: `protocol.decoding`). ADR-059 п.2: цитата становится **исторической** и в вердикт
+#: не входит (переписывать её запрещено, ADR-028 п.4). Здесь она живёт ради двух вещей:
+#: примечания «база расходится с цитатой — цитата снята в legacy-режиме» и совместимости
+#: со сводом S3am (`tools/assemble_s3am_evidence.py` импортирует этот блок).
 BASE_FROZEN = {
     "source": "ADR-033 п.2 (замер hr-68), evidence/s3aa-agentic-cpt.json",
     "pools": {
@@ -96,11 +110,20 @@ BASE_FROZEN = {
 #: вторую значило бы отказывать на верном отчёте из-за формы записи.
 REQUIRED_PREFILL = ("<think>\\n", "<think>\n")
 
-#: Допуск на расхождение доли, выведенной из артефакта базы, с цитатой ADR.
+#: Допуск примечания «переснятая база разошлась с цитатой ADR-033». Число берётся
+#: у стража сводом S3am (`assemble_s3am_evidence.LEGACY_TOL`), а не назначается там.
 BASE_REDERIVE_TOL = 0.01
 
 #: Сколько знаков печатать в долях.
 ND = 4
+
+#: Имя расписки брони предмета (ADR-058) — рядом с копией/хардлинком чекпойнта.
+CKPT_RECEIPT_NAME = "RECEIPT.json"
+
+#: Полные sha256 в расписке брони. Расписка хранит хеш и в поле `sha256`, и в списке
+#: `aux_subjects` (входные состояния приборов), поэтому берём ВСЕ 64-hex значения —
+#: так одна расписка покрывает оба предмета пары (SFT-финал и входной CPT).
+_HEX64 = re.compile(r"\b[0-9a-f]{64}\b")
 
 
 def note(msg: str) -> None:
@@ -126,18 +149,39 @@ class NotVerified(Exception):
 
 
 class Refuse(Exception):
-    """Вход пригоден, но несопоставим с базой (отказ, не «нет данных»)."""
+    """Вход пригоден, но несопоставим (отказ, не «нет данных»)."""
 
 
-def check_protocol(proto: dict | None, label: str, where: str) -> tuple:
+def standard_decoding(proto: dict | None) -> tuple:
+    """Штатный ли режим декодирования у отчёта (ADR-041 п.4).
+
+    Возвращает ``(штатный, имя_режима)``. Штатный — запрет повторов 4-грамм:
+    поле ``protocol.decoding.standard`` (или ``no_repeat_ngram == 4`` в старых
+    записях). Отсутствие блока ``decoding`` — тот самый legacy-артефакт, ради
+    которого правило введено, поэтому «нет блока» это отказ, а не «неизвестно».
+    """
+    dec = (proto or {}).get("decoding")
+    if not isinstance(dec, dict):
+        return False, None
+    if dec.get("legacy_decoding"):
+        return False, dec.get("mode")
+    standard = dec.get("standard")
+    if standard is None:
+        standard = dec.get("no_repeat_ngram") == STANDARD_NO_REPEAT_NGRAM
+    return bool(standard), dec.get("mode")
+
+
+def check_protocol(proto: dict | None, label: str, where: str) -> dict:
     """Конфигурация прибора: от неё зависит смысл числа.
 
-    Возвращает ключ сравнимости ``(toolcall_force, prefill, checkpoint_sha256)``.
+    Возвращает ключ сравнимости. Отказ (``Refuse``) — на смену флагов и на
+    нештатный режим декодирования: без этого числа базы и отчёта описывают
+    разные вещи (харнесс против модели, legacy-декодер против штатного).
     """
     if not proto:
         raise Refuse(f"{label}: в отчёте нет блока 'protocol' ({where}) — конфигурацию "
-                     f"прибора (toolcall_force/hint) проверить нечем, а от неё зависит "
-                     f"смысл числа (ADR-033 п.2, вставка 17.09.2026)")
+                     f"прибора (режим, toolcall_force, prefill) проверить нечем, а от неё "
+                     f"зависит смысл числа (ADR-041 п.4)")
     if proto.get("toolcall_force"):
         raise Refuse(f"{label}: отчёт снят с toolcall_force=true ({where}) — первый вызов "
                      f"вкладывает харнесс, самостоятельность вызова не измерена")
@@ -145,15 +189,23 @@ def check_protocol(proto: dict | None, label: str, where: str) -> tuple:
     if prefill not in REQUIRED_PREFILL:
         raise Refuse(f"{label}: prefill={prefill!r} вместо {REQUIRED_PREFILL[0]!r} ({where}) — "
                      f"подсказка открывающего тега (--hint) делает вызов "
-                     f"полуфорсированным, число несопоставимо с базой")
-    return (bool(proto.get("toolcall_force")), prefill, proto.get("checkpoint_sha256"))
+                     f"полуфорсированным, число не описывает модель")
+    standard, mode = standard_decoding(proto)
+    if not standard:
+        raise Refuse(f"{label}: режим не штатный ({where}): protocol.decoding"
+                     f"{'' if mode else ' отсутствует'} — запрет повторов "
+                     f"{STANDARD_NO_REPEAT_NGRAM}-грамм не действовал (ADR-041 п.4), "
+                     f"метрику по этому отчёту считать нельзя")
+    return {"toolcall_force": bool(proto.get("toolcall_force")), "prefill": prefill,
+            "decoding_mode": mode, "checkpoint_sha256": proto.get("checkpoint_sha256"),
+            "checkpoint_path": proto.get("checkpoint_path") or proto.get("weights")}
 
 
-def units_from_report(rep: dict, label: str,
-                      expect_sha: dict[str, str]) -> tuple[dict, dict, list[str]]:
+def units_from_report(rep: dict, label: str, expect_sha: dict) -> tuple:
     """Сравнимые единицы отчёта прибора: по пулам + сводная.
 
-    Единица — ``{"name", "n", "n_tool_call", "share", "n_pass", "pass_rate"}``.
+    Единица — ``{"name", "n", "n_tool_call", "share", "n_pass", "pass_rate",
+    "pool_sha256"}``.
     """
     pools = rep.get("pools")
     if not isinstance(pools, dict) or not pools:
@@ -180,15 +232,21 @@ def units_from_report(rep: dict, label: str,
                          f"{expect_sha[name]} — измерен другой пул, числа несопоставимы")
         if isinstance(p.get("protocol"), dict):
             pkey = check_protocol(p["protocol"], label, f"пул '{name}'")
-            if pkey[:2] != key[:2]:
-                raise Refuse(f"{label}: пул '{name}' снят в другой конфигурации прибора "
-                             f"(toolcall_force={pkey[0]}, prefill={pkey[1]!r}) против "
-                             f"остального отчёта (toolcall_force={key[0]}, prefill={key[1]!r}) — "
+            if pkey["decoding_mode"] != key["decoding_mode"]:
+                raise Refuse(f"{label}: пул '{name}' снят в другом режиме декодирования "
+                             f"({pkey['decoding_mode']!r} против {key['decoding_mode']!r}) — "
                              f"это разные измерения, а не подвыборки одного")
-            if pkey[2] and key[2] and pkey[2] != key[2]:
-                raise Refuse(f"{label}: пул '{name}' снят на чекпойнте {pkey[2]}, а отчёт — "
-                             f"на {key[2]} — сравнение моделей вместо сравнения подвыборок "
-                             f"(ошибка постановки, ADR-006/S3j-2)")
+            if (pkey["toolcall_force"], pkey["prefill"]) != (key["toolcall_force"], key["prefill"]):
+                raise Refuse(f"{label}: пул '{name}' снят в другой конфигурации прибора "
+                             f"(toolcall_force={pkey['toolcall_force']}, prefill={pkey['prefill']!r}) "
+                             f"против остального отчёта (toolcall_force={key['toolcall_force']}, "
+                             f"prefill={key['prefill']!r}) — это разные измерения, а не "
+                             f"подвыборки одного")
+            if (pkey["checkpoint_sha256"] and key["checkpoint_sha256"]
+                    and pkey["checkpoint_sha256"] != key["checkpoint_sha256"]):
+                raise Refuse(f"{label}: пул '{name}' снят на чекпойнте {pkey['checkpoint_sha256']}, "
+                             f"а отчёт — на {key['checkpoint_sha256']} — сравнение моделей "
+                             f"вместо сравнения подвыборок (ошибка постановки, ADR-006/S3j-2)")
         share = ov.get("tool_call_share")
         if share is None:
             notes.append(f"{label}: пул '{name}' без tool_call_share — пропущен")
@@ -202,8 +260,8 @@ def units_from_report(rep: dict, label: str,
     if not units:
         raise NotVerified(f"{label}: ни в одном пуле нет overall с n и tool_call_share")
 
-    #: Сводная единица — арифметика по измеренным пулам. Она сравнима с базой
-    #: только при ТОМ ЖЕ составе подвыборок: у другого набора задач своя доля.
+    #: Сводная единица — арифметика по измеренным пулам. Она сопоставима только при
+    #: ТОМ ЖЕ составе подвыборок: у другого набора задач своя доля.
     n = sum(u["n"] for u in units.values())
     k = sum(u["n_tool_call"] for u in units.values())
     npass = sum(u["n_pass"] or 0 for u in units.values())
@@ -215,51 +273,192 @@ def units_from_report(rep: dict, label: str,
         "pass_rate": round(npass / n, ND) if n else None,
         "pool_sha256": None,
     }
-    meta = {"pools": sample, "n": n,
+    meta = {"pools": sample, "n": n, "protocol": key,
             "note": "счёт вызовов выведен из доли отчёта (round(n*share), ±0.5 задачи)"}
     return units, meta, notes
 
 
-def base_units(base_report: str | None) -> tuple[dict, dict, list[str]]:
-    """База: замороженная цитата ADR-033 или повторно выведенная из артефакта."""
-    frozen = {k: dict(v) for k, v in BASE_FROZEN["pools"].items()}
-    frozen["combined"] = dict(BASE_FROZEN["combined"])
+def base_units(base_report: str | None) -> tuple:
+    """База критерия — **переснятая** в штатном режиме (ADR-059 п.1).
+
+    Замороженная цитата ADR-033 базой больше не является (п.2): она снята в
+    legacy-режиме и в вердикт не входит. Поэтому без ``--base-report`` судить
+    нечем — это NOT-VERIFIED «нет данных», а не сверка с цитатой.
+    """
     if not base_report:
-        return frozen, {"source": BASE_FROZEN["source"], "derived": False}, []
+        raise NotVerified(
+            "база не задана: замороженная цитата ADR-033 — историческое число "
+            "legacy-замера и в вердикт не входит (ADR-059 п.2); задайте "
+            "--base-report с базой, переснятой в штатном режиме")
 
     p = Path(base_report)
     if not p.is_file():
         raise NotVerified(f"базовый отчёт не найден: {p}")
-    units, _meta, notes = units_from_report(read_json(p), str(p), {})
-    derived, mismatches = {}, []
-    for name, fz in frozen.items():
-        if name not in units:
-            mismatches.append(f"{name}: в артефакте нет единицы")
+    units, meta, notes = units_from_report(read_json(p), str(p), {})
+    meta["path"] = str(p)
+    meta["source"] = f"переснятая база (штатный режим): {p}"
+    return units, meta, notes
+
+
+def _hex64_values(obj) -> list:
+    """Все полные sha256 в структуре расписки брони (поля + aux_subjects)."""
+    out: list[str] = []
+    if isinstance(obj, str):
+        out += _HEX64.findall(obj)
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            out += _hex64_values(value)
+    elif isinstance(obj, list):
+        for value in obj:
+            out += _hex64_values(value)
+    return out
+
+
+def receipt_shas(proto: dict, explicit: str | None) -> tuple:
+    """`(sha256 из расписки, путь расписки)` — или пусто, если расписки нет.
+
+    Расписка брони (ADR-058) лежит рядом с предметом (`ckpt/RECEIPT.json`) либо
+    задаётся явно (`--receipt`). Отсутствие расписки — не отказ: правило п.3
+    требует сверки «при наличии расписки».
+    """
+    candidates: list[Path] = []
+    if explicit:
+        candidates.append(Path(explicit))
+    path = proto.get("checkpoint_path")
+    if path:
+        d = Path(str(path)).parent
+        candidates += [d / CKPT_RECEIPT_NAME, d.parent / CKPT_RECEIPT_NAME]
+    for cand in candidates:
+        if not cand.is_file():
             continue
-        u = units[name]
-        derived[name] = {k: u[k] for k in ("n", "n_tool_call", "share", "pass_rate")}
+        try:
+            data = read_json(cand)
+        except (OSError, ValueError) as exc:
+            note(f"расписка брони {cand} нечитаема ({type(exc).__name__}: {exc}) — "
+                 f"сверка предмета с бронью пропущена")
+            continue
+        return sorted(set(_hex64_values(data))), str(cand)
+    return [], None
+
+
+def comparability(after_meta: dict, base_meta: dict,
+                  after_units: dict, base_units_: dict,
+                  explicit_receipt: str | None) -> tuple:
+    """Проверка сопоставимости базы и отчёта (ADR-059 п.3).
+
+    Возвращает ``(checks, notes, fail)``: список проверок (решающих), примечания и
+    причину отказа (``None``, если сопоставимы). Отсутствие данных — ``NotVerified``.
+    """
+    checks: list[dict] = []
+    notes: list[str] = []
+    fail: str | None = None
+
+    def add(rule: str, ok: bool, reading: str) -> None:
+        nonlocal fail
+        checks.append({"rule": rule, "passed": bool(ok), "decisive": True, "reading": reading})
+        if not ok and fail is None:
+            fail = f"{rule}: {reading}"
+
+    # 1. режим обоих штатный (иначе check_protocol уже отказал бы) — печатаем как факт.
+    for label, meta in (("отчёт", after_meta), ("база", base_meta)):
+        add(f"режим {label} — штатный (ADR-041 п.4)", True,
+            f"{meta['protocol']['decoding_mode']} (запрет повторов "
+            f"{STANDARD_NO_REPEAT_NGRAM}-грамм)")
+
+    # 2. флаги обоих без форсирования — тоже печатаем фактом.
+    for label, meta in (("отчёт", after_meta), ("база", base_meta)):
+        add(f"флаги {label} — без форсирования", True,
+            f"toolcall_force={meta['protocol']['toolcall_force']}, "
+            f"prefill={meta['protocol']['prefill']!r} (подсказки вызывающего тега нет)")
+
+    # 3. предмет: чекпойнты базы и отчёта — вход и выход стадии, значит РАЗНЫЕ.
+    a_ck = after_meta["protocol"]["checkpoint_sha256"]
+    b_ck = base_meta["protocol"]["checkpoint_sha256"]
+    if not a_ck or not b_ck:
+        raise NotVerified(
+            "предмет замера не доказан: нет protocol.checkpoint_sha256 "
+            f"({'отчёта' if not a_ck else 'базы'}) — чекпойнты не сверить")
+    add("предмет: чекпойнт отчёта и базы различаются (вход и выход стадии)",
+        a_ck != b_ck,
+        f"отчёт {a_ck[:12]}… против базы {b_ck[:12]}…")
+    if a_ck == b_ck:
+        raise Refuse(f"предметы совпадают: отчёт и база сняты на одном чекпойнте "
+                     f"({a_ck[:12]}…), а стадия — переход между входом и выходом; "
+                     f"сравнивать нечего")
+
+    # Расписка брони (ADR-058) — при наличии: оба предмета обязаны ей соответствовать.
+    for label, ck, proto in (("отчёт", a_ck, after_meta.get("protocol") or {}),
+                             ("база", b_ck, base_meta.get("protocol") or {})):
+        shas, rec_path = receipt_shas(proto, explicit_receipt)
+        if rec_path:
+            add(f"предмет {label}: чекпойнт совпал с распиской брони (ADR-058)",
+                ck in shas, f"{ck[:12]}… в {rec_path}")
+        else:
+            notes.append(f"предмет {label}: расписка брони ({CKPT_RECEIPT_NAME}) не найдена "
+                         f"— сверка с бронью не выполнялась (ADR-058: при наличии)")
+
+    # 4. состав: пулы и n обязаны совпасть — иначе измерены разные наборы.
+    a_pools = sorted(p for p in after_units if p != "combined")
+    b_pools = sorted(p for p in base_units_ if p != "combined")
+    add("состав: пулы базы и отчёта совпадают", a_pools == b_pools,
+        f"отчёт {', '.join(a_pools)} против базы {', '.join(b_pools)}")
+    if a_pools != b_pools:
+        raise Refuse(f"состав пулов разошёлся (отчёт: {', '.join(a_pools)}; "
+                     f"база: {', '.join(b_pools)}) — измерены разные наборы, "
+                     f"сравнение не выносится")
+    for name in a_pools:
+        au, bu = after_units[name], base_units_[name]
+        add(f"состав: n пула '{name}' совпадает", au["n"] == bu["n"],
+            f"{au['n']} против {bu['n']}")
+        add(f"состав: sha256 пула '{name}' совпадает",
+            au["pool_sha256"] is not None and au["pool_sha256"] == bu["pool_sha256"],
+            f"{au['pool_sha256']} против {bu['pool_sha256']}")
+        if au["n"] != bu["n"]:
+            raise Refuse(f"состав: n пула '{name}' разошёлся ({au['n']} против "
+                         f"{bu['n']}) — подвыборки не те, сравнение не выносится")
+        if au["pool_sha256"] is None or au["pool_sha256"] != bu["pool_sha256"]:
+            raise Refuse(f"состав: sha256 пула '{name}' разошёлся "
+                         f"({au['pool_sha256']} против {bu['pool_sha256']}) — измерены "
+                         f"разные наборы, сравнение не выносится")
+    return checks, notes, fail
+
+
+def citation_warnings(base_units_: dict) -> list:
+    """Примечание «база разошлась с цитатой ADR-033» (ADR-059 п.4).
+
+    Цитата снята в legacy-режиме, поэтому переснятая в штатном режиме база обязана
+    от неё отличаться — это **не отказ**, а объяснение режимом. Цитату не правим
+    (ADR-028 п.4), но и в вердикт не берём.
+    """
+    frozen = {**BASE_FROZEN["pools"], "combined": BASE_FROZEN["combined"]}
+    warns = []
+    for name, fz in frozen.items():
+        u = base_units_.get(name)
+        if not u:
+            continue
         if u["n"] != fz["n"] or abs(u["share"] - fz["share"]) > BASE_REDERIVE_TOL:
-            mismatches.append(
-                f"{name}: артефакт даёт {u['n_tool_call']}/{u['n']} = {u['share']}, "
-                f"цитата ADR-033 — {fz['n_tool_call']}/{fz['n']} = {fz['share']}")
-    if mismatches:
-        raise Refuse("база, выведенная из артефакта, разошлась с цитатой ADR-033: "
-                     + "; ".join(mismatches))
-    return units, {"source": f"{BASE_FROZEN['source']}; выведена из {p}",
-                   "derived": True, "checks": derived}, notes
+            warns.append(
+                f"цитата ADR-033 [{name}]: база даёт {u['n_tool_call']}/{u['n']} = "
+                f"{u['share']} против {fz['n_tool_call']}/{fz['n']} = {fz['share']} — "
+                f"расхождение объясняется режимом: цитата снята в legacy-режиме "
+                f"декодирования и в вердикт не входит (ADR-059 п.2/п.4)")
+    return warns
 
 
-def compare(after: dict, base: dict, *, tolerance_pp: float) -> list[dict]:
-    """Проверки (в1) и (в2) для одной сравнимой единицы."""
+def conditions(after: dict, base: dict, *, tolerance_pp: float) -> list:
+    """Условия (в1) и (в2) как ДАННЫЕ для сводки — не вердикт стража (ADR-059 п.5).
+
+    Каждое условие помечено ``decisive = false``: решающий голос по (в) у сводки
+    (`assemble_sft_point_chain.agentic_criterion`), а страж только печатает числа.
+    """
     tol = tolerance_pp / 100.0
-    checks = []
+    out = []
     d_share = after["share"] - base["share"]
-    checks.append({
+    out.append({
         "rule": "в1: доля самостоятельных вызовов не падает",
-        "unit": after["name"],
-        "value": after["share"], "threshold": round(base["share"] - tol, ND),
-        "delta": round(d_share, ND),
-        "passed": bool(after["share"] >= base["share"] - tol),
+        "unit": after["name"], "value": after["share"],
+        "threshold": round(base["share"] - tol, ND), "delta": round(d_share, ND),
+        "passed": bool(after["share"] >= base["share"] - tol), "decisive": False,
         "reading": (f"{after['n_tool_call']}/{after['n']} = {after['share']:.4f} "
                     f"против базы {base['n_tool_call']}/{base['n']} = {base['share']:.4f} "
                     f"(Δ {d_share:+.4f}"
@@ -267,27 +466,26 @@ def compare(after: dict, base: dict, *, tolerance_pp: float) -> list[dict]:
     })
     if after["pass_rate"] is not None and base.get("pass_rate") is not None:
         dp = after["pass_rate"] - base["pass_rate"]
-        checks.append({
-            "rule": "в2: pass-rate растёт",
-            "unit": after["name"],
+        out.append({
+            "rule": "в2: pass-rate растёт", "unit": after["name"],
             "value": after["pass_rate"], "threshold": base["pass_rate"],
             "delta": round(dp, ND),
-            "passed": bool(after["pass_rate"] > base["pass_rate"]),
+            "passed": bool(after["pass_rate"] > base["pass_rate"]), "decisive": False,
             "reading": (f"{after['n_pass']}/{after['n']} = {after['pass_rate']:.4f} "
                         f"против базы {base['n_pass']}/{base['n']} = {base['pass_rate']:.4f} "
                         f"(Δ {dp:+.4f})"),
         })
     else:
-        checks.append({
+        out.append({
             "rule": "в2: pass-rate растёт", "unit": after["name"],
             "value": after["pass_rate"], "threshold": base.get("pass_rate"),
-            "delta": None, "passed": False,
+            "delta": None, "passed": False, "decisive": False,
             "reading": "pass-rate отсутствует в отчёте или в базе — рост не доказан",
         })
-    return checks
+    return out
 
 
-def evaluate(args) -> tuple[dict, int]:
+def evaluate(args) -> tuple:
     rep_path = Path(args.report)
     if not rep_path.is_file():
         return {"verdict": "NOT-VERIFIED",
@@ -304,76 +502,73 @@ def evaluate(args) -> tuple[dict, int]:
             read_json(rep_path), str(rep_path), expect_sha)
         base, base_meta, base_notes = base_units(args.base_report)
         notes += base_notes
+        checks, comp_notes, fail = comparability(
+            after_meta, base_meta, after_units, base, args.receipt)
+        notes += comp_notes
+        warns = citation_warnings(base)
     except NotVerified as exc:
         return {"verdict": "NOT-VERIFIED", "reason": str(exc)}, EXIT_NOT_VERIFIED
     except Refuse as exc:
         return {"verdict": "FAIL", "reason": str(exc)}, EXIT_FAIL
 
-    # Сравнимые единицы: только те, у которых есть база. Сводная — лишь при
-    # совпадении состава подвыборок (иначе у неё другая доля по построению).
-    base_pools = sorted(p for p in base if p != "combined")
-    after_pools = after_meta["pools"]
-    checks: list[dict] = []
-    inconclusive: list[str] = []
-    for name in after_pools:
-        if name not in base:
-            inconclusive.append(f"пул '{name}': базы нет — сравнение не делается "
-                                f"(база снята на {', '.join(base_pools)})")
-            continue
-        checks += compare(after_units[name], base[name], tolerance_pp=args.tolerance_pp)
-    if after_pools == base_pools:
-        checks += compare(after_units["combined"], base["combined"],
-                          tolerance_pp=args.tolerance_pp)
-    else:
-        inconclusive.append(
-            "сводная: состав подвыборок другой (после: " + ", ".join(after_pools)
-            + "; база: " + ", ".join(base_pools) + ") — сводные доли несопоставимы "
-            "по построению, решение принимается по пулам")
-
-    if not checks:
-        return {"verdict": "NOT-VERIFIED",
-                "reason": "нет ни одной сравнимой с базой единицы",
-                "inconclusive": inconclusive}, EXIT_NOT_VERIFIED
-
-    failed = [c for c in checks if not c["passed"]]
     out = {
-        "verdict": "PASS" if not failed else "FAIL",
-        "criterion": "ADR-033 п.2 (в) в исправленной редакции 17.09.2026: "
-                     "база 45.1 % (158/350), (в1) доля не падает, (в2) pass-rate растёт",
-        "report": {"path": str(rep_path), "pools": after_pools,
+        "verdict": "PASS" if fail is None else "FAIL",
+        "criterion": ("ADR-059 п.3: сопоставимость базы и отчёта — штатный режим обоих "
+                      "(ADR-041 п.4), флаги без форсирования, разные предметы (вход и выход "
+                      "стадии) со сверкой с бронью, совпадающие состав пулов и n; вердикт "
+                      "по (в1)/(в2) — у сводки (ADR-059 п.5)"),
+        "report": {"path": str(rep_path), "pools": after_meta["pools"],
                    "n": after_meta["n"],
-                   "combined_share": after_units["combined"]["share"]},
-        "base": base_meta,
+                   "combined_share": after_units["combined"]["share"],
+                   "decoding": after_meta["protocol"]["decoding_mode"],
+                   "checkpoint_sha256": after_meta["protocol"]["checkpoint_sha256"]},
+        "base": {**base_meta, "path": base_meta.get("path")},
         "checks": checks,
-        "reason": ("|".join(f"[{c['unit']}] {c['rule']}: {c['reading']}"
-                            for c in failed) if failed else
-                   f"все {len(checks)} проверок выполнены"),
-        "inconclusive": inconclusive,
+        "warnings": warns,
+        "reason": (fail if fail else
+                   f"замеры сопоставимы ({len(checks)} условий); условия (в1)/(в2) "
+                   f"напечатаны, вердикт по (в) выносит сводка"),
+        "inconclusive": [],
         "tolerance_pp": args.tolerance_pp,
     }
+    if fail is None:
+        conds: list[dict] = []
+        for name in after_meta["pools"]:
+            conds += conditions(after_units[name], base[name], tolerance_pp=args.tolerance_pp)
+        conds += conditions(after_units["combined"], base["combined"],
+                            tolerance_pp=args.tolerance_pp)
+        out["conditions"] = conds
     if notes:
         out["notes"] = notes
-    return out, (EXIT_OK if not failed else EXIT_FAIL)
+    return out, (EXIT_OK if fail is None else EXIT_FAIL)
 
 
 def report_text(res: dict) -> str:
-    lines = [f"{res['verdict']}: критерий (в) ADR-033 п.2 (agentic-доля)"
-             + (f" — {res['criterion']}" if res.get("criterion") else "")]
+    lines = [f"{res['verdict']}: сопоставимость агентной базы и отчёта "
+             f"(ADR-059 п.3)"]
     if res.get("report"):
         r = res["report"]
         lines.append(f"  отчёт: {r['path']} | пулы: {', '.join(r['pools'])} | "
-                     f"задач: {r['n']} | сводная доля вызовов: {r['combined_share']}")
+                     f"задач: {r['n']} | сводная доля вызовов: {r['combined_share']} | "
+                     f"режим: {r['decoding']} | чекпойнт: {str(r['checkpoint_sha256'])[:12]}…")
     if res.get("base"):
         b = res["base"]
-        lines.append(f"  база: {b['source']}"
-                     + (" (выведена из артефакта и сверена с цитатой)"
-                        if b.get("derived") else " (замороженная цитата)"))
+        b_proto = b.get("protocol") or {}
+        lines.append(f"  база: {b.get('source', b.get('path'))} | "
+                     f"задач: {b.get('n')} | режим: {b_proto.get('decoding_mode')} | "
+                     f"чекпойнт: {str(b_proto.get('checkpoint_sha256'))[:12]}…")
     for c in res.get("checks", []):
-        lines.append(f"  [{'ok' if c['passed'] else 'FAIL'}] {c['unit']} | {c['rule']}: "
-                     f"{c['reading']}")
+        lines.append(f"  [{'ok' if c['passed'] else 'FAIL'}] {c['rule']}: {c['reading']}")
+    for w in res.get("warnings", []):
+        lines.append(f"  [warn] {w}")
+    for c in res.get("conditions", []):
+        lines.append(f"  [условие, решает сводка] {'ok' if c['passed'] else 'FAIL'} "
+                     f"{c['unit']} | {c['rule']}: {c['reading']}")
     for inc in res.get("inconclusive", []):
         lines.append(f"  [--] {inc}")
     lines.append(f"  причина: {res.get('reason', '')}")
+    for n in res.get("notes", []):
+        lines.append(f"  примечание: {n}")
     return "\n".join(lines)
 
 
@@ -381,15 +576,18 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--report", required=True,
                     help="отчёт прогона: evidence-JSON прибора tools/passrate_probe.py, "
-                         "снятый БЕЗ --toolcall-force и БЕЗ --hint")
+                         "снятый БЕЗ --toolcall-force и БЕЗ --hint, в штатном режиме "
+                         "декодирования (ADR-041 п.4)")
     ap.add_argument("--base-report", default=None,
-                    help="артефакт базового замера (умолчание — цитата ADR-033 п.2: "
-                         "evidence/s3aa-agentic-cpt.json). Если задан, база выводится "
-                         "из него и сверяется с цитатой; расхождение — отказ")
+                    help="артефакт базы, ПЕРЕСНЯТОЙ в штатном режиме на входном чекпойнте "
+                         "стадии (ADR-059 п.1). Замороженная цитата ADR-033 базой не "
+                         "является; без этого флага — NOT-VERIFIED")
+    ap.add_argument("--receipt", default=None,
+                    help=f"расписка брони предмета ({CKPT_RECEIPT_NAME}, ADR-058). Если не "
+                         f"задана, расписка ищется рядом с чекпойнтом (ckpt/{CKPT_RECEIPT_NAME})")
     ap.add_argument("--tolerance-pp", type=float, default=0.0,
-                    help="допуск на падение доли (в1), п.п. По умолчанию 0: ADR-033 "
-                         "говорит «не падает». Любое ненулевое значение — отступление "
-                         "от критерия, и оно печатается в отчёте")
+                    help="допуск на падение доли (в1), п.п. — только для ПЕЧАТИ условий; "
+                         "вердикт стража — сопоставимость, а вердикт по (в) выносит сводка")
     ap.add_argument("--expect-pool-sha256", default="",
                     help='ожидаемые хеши пулов, "v2=<sha>,v1=<sha>" — защита от подмены '
                          'набора между базовым замером и замером после стадии')

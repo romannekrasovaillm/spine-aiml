@@ -54,7 +54,7 @@ spec_files: [docs/specs/REVISION.delta.md]
 | `ncp-concept-supervision` | Появится собственный претрейн (у нас fine-tune открытой базы; aux-голова к чужому претрейну — другая задача) |
 | `latent-success-probe`, `progress-report-unreliable`, `locus-output-length-budget`, `contextpilot-proactive-context`, `self-improvement-loop-ornith` | Появление чекпойнта и метрик инференса (после S4) |
 | `dflash-drafter-gb10` | Чекпойнт принят по оси AD-1 (спекулятивный декодинг — про инференс, не про обучение) |
-| `kimi-killer-pretrain-gb10` | Уже в Deferred спайна: замер tok/s на GB10 |
+| `axiom-pretrain-gb10` | Уже в Deferred спайна: замер tok/s на GB10 |
 
 ### Отклонено сейчас (не предмет ревизии)
 
