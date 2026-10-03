@@ -987,7 +987,7 @@ mod tests {
         // Дата «из будущего» — возраст 0 дней (часы сбиты → не в минус).
         let (days, rel) = last_commit_age(&repo).expect("git-репозиторий");
         assert_eq!(days, 0);
-        assert!(!rel.is_empty());
+        assert_ne!(rel, "");
         let report = audit(&[repo], &[]).expect("audit");
         let text = render_text(&report);
         assert!(!text.contains("Рекомендация prune"), "{text}");

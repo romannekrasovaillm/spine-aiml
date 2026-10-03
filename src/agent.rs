@@ -3260,7 +3260,7 @@ mod tests {
             ]
         );
         // tool_calls не переносятся.
-        assert!(s.messages()[1].tool_calls.is_empty());
+        assert_eq!(s.messages()[1].tool_calls, [] as [crate::llm::ToolCall; 0]);
 
         let logs = list_session_logs(tmp.path());
         assert_eq!(logs.len(), 1, "только восстановленная: {logs:?}");

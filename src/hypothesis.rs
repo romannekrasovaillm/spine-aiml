@@ -298,7 +298,10 @@ mod tests {
             "hooks/other.sh",
             "#!/bin/sh\necho ok\n",
         );
-        assert!(domain_hooks(&[tmp.path().to_path_buf()]).is_empty());
+        assert_eq!(
+            domain_hooks(&[tmp.path().to_path_buf()]),
+            [] as [crate::hypothesis::DomainHook; 0]
+        );
     }
 
     #[test]
@@ -360,8 +363,11 @@ mod tests {
 
     #[test]
     fn empty_plugin_list_gives_empty_results() {
-        assert!(domain_hooks(&[]).is_empty());
-        assert!(run_event(&[], "intent", &[], Path::new(".")).is_empty());
+        assert_eq!(domain_hooks(&[]), [] as [crate::hypothesis::DomainHook; 0]);
+        assert_eq!(
+            run_event(&[], "intent", &[], Path::new(".")),
+            [] as [crate::hypothesis::DomainHookOutcome; 0]
+        );
     }
 
     #[test]
@@ -381,7 +387,10 @@ mod tests {
         assert_eq!(outcomes[0].code, 0);
         assert_eq!(outcomes[0].line, "pre-handoff ~/repo");
         // Событие без объявленных хуков — пусто, не ошибка.
-        assert!(run_event(&dirs, "post_accept", &[], Path::new(".")).is_empty());
+        assert_eq!(
+            run_event(&dirs, "post_accept", &[], Path::new(".")),
+            [] as [crate::hypothesis::DomainHookOutcome; 0]
+        );
     }
 
     #[test]
@@ -390,6 +399,9 @@ mod tests {
         let dir = tmp.path().join("plain");
         std::fs::create_dir_all(&dir).expect("mkdir");
         std::fs::write(dir.join("plugin.json"), r#"{"name":"plain"}"#).expect("manifest");
-        assert!(domain_hooks(&[tmp.path().to_path_buf()]).is_empty());
+        assert_eq!(
+            domain_hooks(&[tmp.path().to_path_buf()]),
+            [] as [crate::hypothesis::DomainHook; 0]
+        );
     }
 }

@@ -4189,7 +4189,7 @@ mod tests {
         assert_eq!((v.scroll_x, v.scroll_y), (8, 1), "→/↓ панорамируют");
         // Печать в просмотрщике не уходит в строку ввода.
         app.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
-        assert!(app.input.text().is_empty());
+        assert_eq!(app.input.text(), "");
         // Смена вкладки внутри просмотрщика сбрасывает скролл.
         app.handle_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE));
         let v = app.viewer.expect("открыт");

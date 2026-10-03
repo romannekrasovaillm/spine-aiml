@@ -554,8 +554,8 @@ mod tests {
         ];
         let dropped = strip_stale_images(&mut history, 1, MAX_REQUEST_IMAGE_BYTES);
         assert_eq!(dropped, 2, "сняты два старых кадра");
-        assert!(history[1].images.is_empty());
-        assert!(history[3].images.is_empty());
+        assert_eq!(history[1].images, [] as [std::string::String; 0]);
+        assert_eq!(history[3].images, [] as [std::string::String; 0]);
         assert_eq!(history[4].images.len(), 1, "свежий кадр остался");
         // Маркер есть только у снятых — модель не должна думать, что
         // изображение приложено.
@@ -597,8 +597,8 @@ mod tests {
         ];
         let dropped = strip_stale_images(&mut history, 3, 150);
         assert_eq!(dropped, 2);
-        assert!(history[0].images.is_empty());
-        assert!(history[1].images.is_empty());
+        assert_eq!(history[0].images, [] as [std::string::String; 0]);
+        assert_eq!(history[1].images, [] as [std::string::String; 0]);
         assert_eq!(history[2].images.len(), 1, "выживает самый свежий кадр");
     }
 

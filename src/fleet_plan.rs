@@ -2828,7 +2828,10 @@ depends_on = ["a"]
         );
         // Внеплановая зависимость — предупреждение, а не отказ: ребра в плане
         // нет (узла-цели тоже), и план остаётся исполнимым.
-        assert!(proposal.plan.nodes[0].depends_on.is_empty());
+        assert_eq!(
+            proposal.plan.nodes[0].depends_on,
+            [] as [std::string::String; 0]
+        );
         assert!(
             validate_plan(&proposal.plan)
                 .iter()

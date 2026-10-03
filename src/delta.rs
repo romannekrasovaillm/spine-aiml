@@ -496,7 +496,10 @@ mod tests {
         let report = guard(&repo, None, &[]).expect("guard");
         assert!(!report.passed);
         assert_eq!(report.violations, vec!["model/adr/ADR-003.md".to_string()]);
-        assert!(report.covered.is_empty());
+        assert_eq!(
+            report.covered,
+            [] as [(std::string::String, std::string::String); 0]
+        );
         let text = render_guard(&report);
         assert!(text.contains("arch-ml delta new"), "{text}");
         assert!(text.contains("FAIL"), "{text}");
@@ -550,7 +553,7 @@ mod tests {
         std::fs::write(repo.join("src/main.rs"), "fn main() { println!(\"x\"); }\n").expect("edit");
         let report = guard(&repo, None, &[]).expect("guard");
         assert!(report.passed, "{report:?}");
-        assert!(report.protected_changed.is_empty());
+        assert_eq!(report.protected_changed, [] as [std::string::String; 0]);
         assert!(render_guard(&report).contains("не затронуты"));
         // Явный --protect заменяет дефолт: теперь src/ под защитой → нарушение.
         let report = guard(&repo, None, &["src/".to_string()]).expect("guard override");

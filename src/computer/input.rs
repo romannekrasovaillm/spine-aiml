@@ -799,7 +799,7 @@ mod tests {
         assert_eq!(clamp_amount(9, 3), (3, true));
         assert_eq!(clamp_amount(9, 0), (1, true), "нулевой потолок — минимум 1");
         assert!(clamped_note(true, 3).contains("обрезано"));
-        assert!(clamped_note(false, 3).is_empty());
+        assert_eq!(clamped_note(false, 3), "");
     }
 
     /// Текущая позиция указателя (`xdotool getmouselocation --shell`).

@@ -433,5 +433,8 @@ fn rubric_run_live_with_key() {
     );
     let verdict = &result["structuredContent"];
     assert!(verdict["weighted_total"].as_f64().expect("балл") > 0.0);
-    assert!(!verdict["scores"].as_array().expect("оценки").is_empty());
+    assert_ne!(
+        verdict["scores"].as_array().expect("оценки").as_slice(),
+        [] as [serde_json::Value; 0]
+    );
 }

@@ -826,9 +826,9 @@ mod tests {
 
     #[test]
     fn completion_ignores_non_slash_and_args() {
-        assert!(completion_candidates("привет").is_empty());
-        assert!(completion_candidates("/rubric run").is_empty());
-        assert!(completion_candidates("").is_empty());
+        assert_eq!(completion_candidates("привет"), [] as [&str; 0]);
+        assert_eq!(completion_candidates("/rubric run"), [] as [&str; 0]);
+        assert_eq!(completion_candidates(""), [] as [&str; 0]);
     }
 
     #[test]

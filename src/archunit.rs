@@ -1513,7 +1513,7 @@ mod tests {
     #[test]
     fn parse_runner_output_pass_is_empty() {
         let v = parse_runner_output("SUMMARY|rules=2|violations=0\n");
-        assert!(v.is_empty());
+        assert_eq!(v, [] as [crate::archunit::GateViolation; 0]);
     }
 
     // --- Fail-closed пути (без живого java) -----------------------------------

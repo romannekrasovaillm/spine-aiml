@@ -536,7 +536,10 @@ mod tests {
         assert_eq!(gpus[1].total_mb, 24564);
         assert_eq!(gpus[1].util_pct, Some(91));
         // Строки с мусором/нулём пропускаются.
-        assert!(parse_nvidia_smi("bad line, 0, 0, 1, 2\n\n").is_empty());
+        assert_eq!(
+            parse_nvidia_smi("bad line, 0, 0, 1, 2\n\n"),
+            [] as [crate::gpu::DetectedGpu; 0]
+        );
     }
 
     #[test]

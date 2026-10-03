@@ -1614,7 +1614,10 @@ mod tests {
             evaluate_with_options(&sample_rubric(), "вариант б выбран", &llm, &one_sample())
                 .await
                 .expect("evaluate");
-        assert!(report.scores[0].flags.is_empty());
+        assert_eq!(
+            report.scores[0].flags,
+            [] as [crate::rubric::CriterionFlag; 0]
+        );
         // (1*1 + 2*3) / 4 = 1.75
         assert!((report.weighted_total - 1.75).abs() < 1e-9);
     }

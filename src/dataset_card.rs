@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn empty_yaml_is_empty_card() {
         let card = parse_card_yaml("").expect("пустой YAML");
-        assert!(card.dataset.is_empty());
+        assert_eq!(card.dataset, "");
         assert_eq!(validate(&card, None).missing.len(), REQUIRED_FIELDS.len());
     }
 

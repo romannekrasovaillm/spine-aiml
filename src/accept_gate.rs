@@ -550,8 +550,14 @@ mod tests {
             findings_from_text(pretty),
             vec!["гонка в кэше".to_string(), "второе".to_string()]
         );
-        assert!(findings_from_text("без блока находок").is_empty());
-        assert!(findings_from_text("{\"findings\": [не json}").is_empty());
+        assert_eq!(
+            findings_from_text("без блока находок"),
+            [] as [std::string::String; 0]
+        );
+        assert_eq!(
+            findings_from_text("{\"findings\": [не json}"),
+            [] as [std::string::String; 0]
+        );
     }
 
     #[test]

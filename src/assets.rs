@@ -900,7 +900,7 @@ mod tests {
     fn write_defaults_is_idempotent_and_never_overwrites() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let first = write_defaults(tmp.path()).expect("первый прогон");
-        assert!(!first.is_empty());
+        assert_ne!(first, [] as [std::path::PathBuf; 0]);
 
         // Метка: пользовательская правка не должна быть затёрта.
         let marker = tmp.path().join("assets/prompts/architect.md");

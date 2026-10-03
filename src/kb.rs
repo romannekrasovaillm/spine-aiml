@@ -2296,7 +2296,7 @@ mod tests {
         let hit: KbHit = serde_json::from_str(json).expect("десериализация без facets");
         assert!(hit.facets.is_none());
         assert!(!hit.fuzzy);
-        assert!(hit.breadcrumb.is_empty());
+        assert_eq!(hit.breadcrumb, "");
 
         let hit = KbHit {
             path: PathBuf::from("/tmp/x.md"),

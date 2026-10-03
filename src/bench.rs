@@ -1602,7 +1602,7 @@ tags:
         let humans = human_dirs(dir.path());
         let report = human_agreement(&golden, &humans).expect("agreement");
         assert_eq!(report.docs.len(), 2);
-        assert!(report.skipped.is_empty());
+        assert_eq!(report.skipped, [] as [std::string::String; 0]);
         // Медианы: bad — 1.5/1.5, good — 4.5/4.5.
         let bad = &report.docs[0];
         assert_eq!(bad.doc, "bad.md");

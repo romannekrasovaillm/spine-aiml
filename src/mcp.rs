@@ -1143,7 +1143,7 @@ mod tests {
         let manager = McpManager::connect(&[], 1)
             .await
             .expect("пустой список — ок");
-        assert!(manager.server_names().is_empty());
+        assert_eq!(manager.server_names(), [] as [std::string::String; 0]);
     }
 
     #[test]
@@ -1170,7 +1170,7 @@ mod tests {
             Some("/data")
         );
         assert_eq!(servers[1].name, "plain");
-        assert!(servers[1].args.is_empty());
+        assert_eq!(servers[1].args, [] as [std::string::String; 0]);
         assert!(servers[1].env.is_empty());
         // cwd каждого сервера — каталог объявившего манифеста, а не cwd процесса.
         assert_eq!(servers[0].cwd.as_deref(), Some(dir.path()));

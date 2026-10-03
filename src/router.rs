@@ -359,7 +359,7 @@ mod tests {
         ];
         let plan = r.assign(&items, &agents);
         assert_eq!(plan.assignments[0].agent_id, "a");
-        assert!(plan.unassigned.is_empty());
+        assert_eq!(plan.unassigned, [] as [std::string::String; 0]);
     }
 
     #[test]

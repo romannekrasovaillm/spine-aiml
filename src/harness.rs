@@ -4574,7 +4574,7 @@ mod tests {
             ac.message
                 .starts_with("harness(dirty): реализовать модуль amount")
         );
-        assert!(!ac.hash.is_empty());
+        assert_ne!(ac.hash, "");
         // В истории — baseline + авто-коммит с кодом; физически в дереве
         // остаются лишь некоммитимые служебные/мусорные каталоги.
         let status = git_out(&repo, &["status", "--porcelain"]).expect("status");

@@ -964,10 +964,9 @@ mod tests {
         let standard = RehearsalRequirement::AtLeast(Route::Standard);
         assert!(!gate_a4(Route::Standard, standard, None, None).passed);
         assert!(gate_a4(Route::Fast, standard, None, None).passed);
-        assert!(
-            !gate_a4(Route::Fast, RehearsalRequirement::Never, None, None)
-                .summary
-                .is_empty()
+        assert_ne!(
+            gate_a4(Route::Fast, RehearsalRequirement::Never, None, None).summary,
+            ""
         );
         assert!(gate_a4(Route::Critical, RehearsalRequirement::Never, None, None).passed);
 

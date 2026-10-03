@@ -6881,8 +6881,8 @@ mod tests {
         assert_eq!(report.fail, 0);
         assert_eq!(report.overrides.len(), 1);
         assert_eq!(report.overrides[0].status, "active");
-        assert!(report.expired_rules.is_empty());
-        assert!(report.version_mismatches.is_empty());
+        assert_eq!(report.expired_rules, [] as [std::string::String; 0]);
+        assert_eq!(report.version_mismatches, [] as [std::string::String; 0]);
         assert!(report.passed);
         // JSON-контракт: ключевые поля сериализуются.
         let json = serde_json::to_value(&report).unwrap();
@@ -7216,9 +7216,9 @@ mod address_trace_tests {
     #[test]
     fn resolves_and_reports_unresolved() {
         let index = idx(&["AD-3"], &[(14, "docs/adr/ADR-014.md")], &["ML-SKILL-1"]);
-        assert!(
-            address_trace_violations("ADR-014 [spine:AD-3] rule:ML-SKILL-1", &index, &[], None)
-                .is_empty()
+        assert_eq!(
+            address_trace_violations("ADR-014 [spine:AD-3] rule:ML-SKILL-1", &index, &[], None),
+            [] as [std::string::String; 0]
         );
         let v = address_trace_violations("ADR-014:rule-9", &index, &[], None);
         assert!(!v.is_empty(), "{v:?}");
@@ -7229,8 +7229,9 @@ mod address_trace_tests {
     #[test]
     fn require_checks_coverage() {
         let index = idx(&["AD-3"], &[], &[]);
-        assert!(
-            address_trace_violations("spine:AD-3", &index, &["AD-3".to_string()], None).is_empty()
+        assert_eq!(
+            address_trace_violations("spine:AD-3", &index, &["AD-3".to_string()], None),
+            [] as [std::string::String; 0]
         );
         let v = address_trace_violations("spine:AD-3", &index, &["AD-9".to_string()], None);
         assert!(v.iter().any(|s| s.contains("AD-9 не покрыт")), "{v:?}");
