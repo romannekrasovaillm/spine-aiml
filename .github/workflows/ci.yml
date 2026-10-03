@@ -120,8 +120,21 @@ jobs:
         # Ловим также ~/Загрузки|~/Downloads|~/Desktop и macOS /Users/.
         # Исключены: сам workflow (в нём записана команда) и CHANGELOG.md
         # (описывает правила скана в записях релизов).
+        # Две редакции — два объекта скана: публичная (romannekrasovaillm/
+        # spine-aiml) проверяет своё дерево (оно уже санитизировано экспортом);
+        # приватная несёт реальные пути стенда в evidence кейсов и в текстах
+        # правил (AD-4 кейса называет /home/user/gb10-shared), поэтому её
+        # гейт — проверка самого экспорта: сканируется санитизированный
+        # снапшот scripts/export-public.sh (у него и свои FAIL-проверки).
         run: |
-          leaks=$(git grep -nIE "/home/|~/(Загрузки|Downloads|Desktop)|/Users/" -- . ":(exclude).github/workflows/ci.yml" ":(exclude).github/workflows/sdk.yml" ":(exclude)CHANGELOG.md" | grep -vE "/home/(user\b|\.\.\.)" || true)
+          if [ "${{ github.repository }}" = "romannekrasovaillm/spine-aiml" ]; then
+            leaks=$(git grep -nIE "/home/|~/(Загрузки|Downloads|Desktop)|/Users/" -- . ":(exclude).github/workflows/ci.yml" ":(exclude).github/workflows/sdk.yml" ":(exclude)CHANGELOG.md" | grep -vE "/home/(user\b|\.\.\.)" || true)
+          else
+            snap=$(mktemp -d)
+            scripts/export-public.sh "$snap" HEAD >/dev/null
+            leaks=$(grep -rInIE "/home/|~/(Загрузки|Downloads|Desktop)|/Users/" "$snap" --exclude=ci.yml --exclude=sdk.yml --exclude=CHANGELOG.md | grep -vE "/home/(user\b|\.\.\.)" || true)
+            rm -rf "$snap"
+          fi
           if [ -n "$leaks" ]; then echo "$leaks"; exit 1; fi
           echo "personal paths: чисто"
       - name: identity guard (AI/ML Edition)
