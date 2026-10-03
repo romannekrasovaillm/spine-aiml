@@ -1610,7 +1610,7 @@ PY
 # часов: перепутанные границы шага или непропатченный generate.
 expect_exit 0 "rl_probe_hook: границы шага и фазы на синтетическом пайплайне" \
   python3 - <<'PY'
-import json, os, pathlib, sys, tempfile
+import json, math, os, pathlib, sys, tempfile
 sys.path.insert(0, "tools")
 import rl_probe_hook as H
 
@@ -1694,9 +1694,8 @@ assert all(s["t_generate"] >= 0.04 for s in closed), closed
 assert closed[0]["n_hotsync"] == 0 and closed[0]["t_ckpt"] == 0.0, closed[0]
 assert closed[1]["n_hotsync"] == 1 and closed[1]["t_resync"] >= 0.02, closed[1]
 assert closed[1]["t_ckpt"] >= 0.03 and closed[1]["t_gen_eval"] >= 0.01, closed[1]
-# dt закрытого блока не меньше суммы его внешних фаз
-assert closed[1]["dt"] >= (closed[1]["t_generate"] + closed[1]["t_ckpt"]
-                           + closed[1]["t_resync"] + closed[1]["t_gen_eval"]), closed[1]
+# dt закрытого блока не меньше суммы его внешних фаз — ОДНИМ вычислением и с
+# объявленным бюджетом записи (починка флейка, дельта S3bm; разбор ниже, у `fits`).
 inits = [r for r in rows if r["event"] == "engine_init"]
 assert len(inits) == 1 and inits[0]["kind"] == "initial", inits
 end = [r for r in rows if r["event"] == "end"][0]
@@ -1713,6 +1712,56 @@ assert parsed["startup_seconds"] is not None and parsed["startup_seconds"] >= 0,
 assert len(parsed["steps"]) == 3 and len(parsed["engine_inits"]) == 1, parsed
 ph = R.phase_summary(parsed["steps"])
 assert ph["steps_closed"] == 2 and ph["resync"]["hotsync_count"] == 1, ph
+
+# ── Флейк проверки «dt ≥ суммы фаз»: механизм и починка (дельта S3bm) ────────────
+# Механизм (не догадка): `rl_probe_hook._emit_step` пишет и `dt`, и каждую фазу
+# ОКРУГЛЁННЫМИ ПОРОЗНЬ до 3 знаков (`round(v, 3)`). Сумма четырёх округлённых вверх
+# фаз может превысить округлённый вниз `dt` на 5 × 0,0005 = 0,0025 — при том что
+# НЕокруглённые величины сходятся по построению (все фазы измерены внутри блока).
+# Воспроизведено: 2 падения на 200 изолированных прогонов секции 12, оба — на
+# равенстве 0,102 против 0,041 + 0,03 + 0,021 + 0,01 (округление плюс сложение
+# десятичных дробей в двоичном виде даёт 0,10200000000000001 > 0,102).
+# Починка — проверка СВОЙСТВА, а не подгонка допуска наугад: сумма считается одним
+# вычислением (`math.fsum`, без двоичного шума), а бюджет — объявленная цена записи,
+# а не «запас на всякий случай». Смысл сохранён: фаза, отнесённая не к тому блоку,
+# даёт разрыв 0,01–0,04, то есть на порядок больше бюджета.
+PHASE_KEYS = ("t_generate", "t_ckpt", "t_resync", "t_gen_eval")
+RECORD_HALF_STEP = 0.5 * 10 ** -3                   # половина шага записи round(x, 3)
+PHASE_BUDGET = (len(PHASE_KEYS) + 1) * RECORD_HALF_STEP   # четыре фазы + сам dt
+
+
+def phases_fit_in_dt(rec, budget=PHASE_BUDGET):
+    """Фазы блока не вышли за его границы: dt + бюджет записи ≥ их суммы."""
+    return rec["dt"] + budget >= math.fsum(rec[k] for k in PHASE_KEYS)
+
+
+assert phases_fit_in_dt(closed[1]), (closed[1], PHASE_BUDGET)
+# Негативная сторона обязательна: проверка, не падающая ни на одном нарушении, не
+# проверена. (а) блок короче своих фаз — фаза отнесена не к тому блоку; (б) фаза
+# выросла сверх бюджета записи.
+assert not phases_fit_in_dt({**closed[1], "dt": closed[1]["dt"] - 0.01}), closed[1]
+assert not phases_fit_in_dt({**closed[1], "t_ckpt": closed[1]["t_ckpt"] + 0.01}), closed[1]
+
+# 20 повторов сценария в одном процессе — цена 20 изолированных прогонов секции 12
+# (тот же сценарий, тот же прибор, тот же путь записи; каждый прогон — свежий модуль,
+# поэтому патчи не наслаиваются). До починки на 200 изолированных прогонов приходилось
+# 2 падения; здесь 20 обязаны быть зелёными все.
+repeat_fail = []
+for k in range(20):
+    m_rep = tmp / ("m-repeat-%d.jsonl" % k)
+    rec_rep = H.StepRecorder(m_rep, tasks_per_step=4, group_size=2)
+    mod_rep = H.load_pipeline(fake)          # свежий модуль: патчи не наслаиваются
+    H.instrument_pipeline(mod_rep, rec_rep)
+    rec_rep.start({"pipeline": str(fake), "pipeline_args": [], "patched": []})
+    mod_rep.main()
+    rec_rep.finish(None)
+    rows_rep = [json.loads(l) for l in m_rep.read_text(encoding="utf-8").splitlines() if l.strip()]
+    st_rep = [r for r in rows_rep if r.get("event") == "step" and not r["partial"]]
+    if not st_rep or not all(phases_fit_in_dt(s) for s in st_rep):
+        repeat_fail.append((k, st_rep))
+assert not repeat_fail, repeat_fail
+print("   флейк проверки снят: бюджет записи %.4f с, 20 повторов сценария зелёные, "
+      "обе негативные стороны краснеют" % PHASE_BUDGET)
 PY
 
 # Обёртка forward'а политики: grad-режим отделяет обучение от прочих проходов.
@@ -15095,7 +15144,8 @@ echo "  --- 44г. перевыпуск носителя оси: счёт рук,
 # подмена объявленного хеша архива и сдвиг порога — каждая обязана краснеть.
 CHK="$TMP/s3bk-carrier-check.py"
 cat > "$CHK" <<'PYS3BK'
-import hashlib, json, sys
+import glob, hashlib, json, os, sys
+
 ARCH, NEW = sys.argv[1], sys.argv[2]
 a = json.load(open(ARCH)); b = json.load(open(NEW))
 ec = b["eval_cost"]
@@ -15105,9 +15155,52 @@ arms = {w["wave"]: w["arms"] for w in ec["wave_arms"]}
 assert arms == {"В-1": 6, "В-2": 4, "В-3": 2, "В-5": 10, "В-4": 4}, arms
 wc = ec["wave_eval_cost_calibration_model"]
 assert (wc["arms"], wc["hours_per_arm"], wc["hours"], wc["days"]) == (6, 12.0, 72.0, 3.0), wc
-h = hashlib.sha256(open(ARCH, "rb").read()).hexdigest()
-assert b["supersedes"]["sha256"] == h, f"supersedes.sha256 разошёлся с архивом: {h}"
-assert b["supersedes"]["file"] == ARCH, b["supersedes"]["file"]
+
+
+def sha(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+# Цепочка архивов проверяется ОБХОДОМ, а не списком имён: каждый перевыпуск добавляет
+# звено, и захардкоженные имена заставляли бы править проверку при каждом перевыпуске
+# (а значит — «проверку подгонять под артефакт»). Свойства, которые обязаны держаться:
+#   (1) живой носитель называет предшественника архивом (не самого себя);
+#   (2) каждое звено ссылается на СУЩЕСТВУЮЩИЙ архив и совпадает с ним по sha256;
+#   (3) обход доходит до первой редакции (звена без `supersedes`) и не зацикливается;
+#   (4) множество архивов семейства РАВНО множеству звеньев — «висячих» архивов нет;
+#   (5) supersedes_chain живого носителя не расходится с содержимым файлов.
+assert b["supersedes"]["file"] != NEW, "предшественником назван живой носитель"
+archives = sorted(glob.glob(os.path.join(os.path.dirname(NEW), "ladder-axis-arithmetic-*.json")))
+assert len(archives) >= 3, archives
+hashes = {p: sha(p) for p in archives}
+visited, cur = [], NEW
+while True:
+    d = json.load(open(cur))
+    sup = d.get("supersedes")
+    if not sup:
+        break                                    # первая редакция: начало цепочки
+    prev = sup["file"]
+    assert os.path.exists(prev), f"{cur}: supersedes ссылается на несуществующий {prev}"
+    assert prev != NEW, f"{cur}: предшественником назван живой носитель — это петля"
+    assert prev in hashes, f"{cur}: предшественник {prev} не в семействе архивов"
+    assert sup["sha256"] == hashes[prev], f"{cur}: sha256 предшественника разошёлся с {prev}"
+    assert prev not in visited, f"цикл в цепочке на {prev}"
+    visited.append(prev)
+    cur = prev
+assert set(visited) == set(archives), f"висячие архивы: {set(archives) - set(visited)}"
+assert len(visited) >= 3, visited
+assert visited[-1] == ARCH, f"цепочка не доходит до первой редакции: {visited[-1]}"
+
+chain = {x["file"]: x.get("sha256") for x in b["supersedes_chain"]}
+for f, dig in chain.items():
+    if dig is None:                              # последнее звено — живой носитель
+        assert f == NEW, f"без sha256 может быть только живой носитель, а не {f}"
+    else:
+        assert f in hashes, f"supersedes_chain называет не архив: {f}"
+        assert dig == hashes[f], f"supersedes_chain: sha256 {f} разошёлся с файлом"
+assert NEW in chain and visited[-1] in chain, chain
+assert set(chain) - {NEW} == set(archives), f"цепочка и архивы расходятся: {chain.keys()}"
 
 
 def nums(o, p=""):
@@ -15132,7 +15225,8 @@ assert a["se_table"] == b["se_table"], "таблица SE изменилась"
 assert a["model"] == b["model"], "модель дисперсии изменилась"
 assert a["required_m"] == b["required_m"] and a["shortfall"] == b["shortfall"]
 assert a["reproduction_criterion"] == b["reproduction_criterion"]
-print(f"   счёт рук: {arms} | В-1 = {wc['hours']} ч = {wc['days']} сут | архив {h[:16]}… | "
+print(f"   счёт рук: {arms} | калибровочная рука 0,5B = {wc['hours']} ч = {wc['days']} сут | "
+      f"цепочка архивов {len(visited)} звеньев, первый {hashes[visited[-1]][:16]}… | "
       f"общих числовых полей {len(shared)}, расхождений 0 | порог и модель дисперсии совпали")
 PYS3BK
 MUT="$TMP/s3bk-carrier-mutate.py"
@@ -15149,13 +15243,322 @@ elif kind == "threshold":
     b["se_table"][2]["mdd_95_bonf3_pct"] += 0.5     # сдвиг порога при перевыпуске
 json.dump(b, open(dst, "w"), ensure_ascii=False)
 PYS3BK
+# ARCH — ПЕРВАЯ редакция: имя стабильно и не двигается при перевыпусках (цепочка до неё
+# проверяется обходом), а список архивов тест берёт из дерева, а не из константы.
 ARCH="evidence/ladder-axis-arithmetic-2026-09-22.json"
 NEW="evidence/ladder-axis-arithmetic.json"
-expect_exit 0 "носитель оси: счёт рук, архив по sha256, порог не двинулся" \
+expect_exit 0 "носитель оси: счёт рук, цепочка архивов по sha256, порог не двинулся" \
   python3 "$CHK" "$ARCH" "$NEW"
 for mut in arms sha threshold; do
   expect_exit 1 "носитель оси: мутация «$mut» краснеет, а не проходит" \
     bash -c "python3 '$MUT' '$mut' '$NEW' '$TMP/s3bk-mut-$mut.json' && python3 '$CHK' '$ARCH' '$TMP/s3bk-mut-$mut.json'"
+done
+
+echo "  --- 44д. цены волн и даты области: текст плана и §4б бэклога против носителя (S3bl + S3bm) ---"
+# Предмет: цены волн И даты области живут в МАШИННОМ носителе (`wave_cost`), а не в тексте
+# плана. Проверяется механически, что числа и даты, названные в `LADDER-FULL-PLAN.md`
+# §5.1а/§5.2 и `WORK-BACKLOG.md` §4б, СОВПАДАЮТ с носителем — и что подмена ЛЮБОЙ из
+# сторон краснеет: число волны в плане, цена в бэклоге, число в носителе, ДАТА в плане,
+# СУММА в плане, ПРАВИЛО цены в носителе, ДАТА в носителе. Вторая сторона —
+# самосогласованность носителя: сутки выводятся из часов, eval — из слагаемых по моделям,
+# суммы — из слагаемых, даты — из длительностей по объявленному правилу; без неё мутация
+# в носителе могла бы «сойти» за счёт документа.
+# Отдельно проверяется то, ради чего дельта S3bm сделана: цена eval-руки — ОДНА модель на
+# все волны (плоское правило названо отвергнутым и сохранено с причиной), В-0 назван
+# отдельной строкой, а сумм ДВЕ (область В-1…В-4 и включая В-0).
+# Стенд НЕ занимается: это чтение трёх файлов и арифметика (AD-4, AD-7).
+CHKW="$TMP/s3bl-wave-cost-check.py"
+cat > "$CHKW" <<'PYS3BL'
+import json, math, re, sys
+from datetime import date, timedelta
+
+carrier, plan, backlog = sys.argv[1], sys.argv[2], sys.argv[3]
+d = json.load(open(carrier, encoding="utf-8"))
+W = d["wave_cost"]
+waves = {x["wave"]: x for x in W["waves"]}
+s = W["sums"]
+C = W["calendar"]
+problems = []
+
+
+def iso_to_ru(s):
+    y, m, dd = s.split("-")
+    return f"{dd}.{m}.{y}"
+
+
+# (0) самосогласованность носителя: сутки из часов, eval из слагаемых, руки из моделей
+for name, x in waves.items():
+    if abs(x["days"] - round(x["hours"] / 24.0 + 1e-9, 1)) > 0.05:
+        problems.append(f"носитель: {name} дни {x['days']} ≠ часов/24 ({x['hours']}/24)")
+    ev = x["eval"]
+    if abs(ev["hours"] - round(sum(c["hours"] for c in ev["components"]), 1)) > 0.05:
+        problems.append(f"носитель: {name} eval {ev['hours']} ≠ суммы слагаемых по моделям")
+    if x["arms"] != len(ev["models"]) * ev["arms_per_model"]:
+        problems.append(f"носитель: {name} рук {x['arms']} ≠ моделей × рук на модель")
+
+# (0б) ОДНА модель цены eval-руки на все волны (Решение 1, S3bm) и отвергнутая — с причиной
+declared = W["eval_price_rule"]
+rules = {x["eval"]["rule_id"] for x in waves.values()}
+if rules != {declared["id"]}:
+    problems.append(f"носитель: цена eval-руки считается не одним правилом: {sorted(rules)} "
+                    f"при объявленном {declared['id']}")
+if declared.get("lower_bound") is not True:
+    problems.append("носитель: объявленное правило цены не помечено нижней границей")
+rejected = W.get("rejected_eval_price_rules") or {}
+if "flat_0_5b_calibration" not in rejected:
+    problems.append("носитель: отвергнутое плоское правило не сохранено (ADR-023 п.9 — не стирать)")
+for k, v in rejected.items():
+    if not v.get("rejected_because"):
+        problems.append(f"носитель: отвергнутое правило {k} без причины отказа")
+    if v.get("superseded_by") != declared["id"]:
+        problems.append(f"носитель: {k} не называет, каким правилом заменено")
+
+# (0в) суммы: две, каждая из своих слагаемых, вторая — первая плюс В-0
+for key in ("area_v1_v4", "with_v0"):
+    part = s[key]
+    add = sum(part["addends_days"][w] for w in part["waves"])
+    if abs(part["days"] - round(add, 1)) > 0.05:
+        problems.append(f"носитель: {key} = {part['days']} ≠ суммы слагаемых {round(add, 1)}")
+if "В-0" in s["area_v1_v4"]["waves"]:
+    problems.append("носитель: В-0 внутри суммы области — он обязан быть отдельной строкой")
+if abs(s["with_v0"]["days"] - round(s["area_v1_v4"]["days"] + waves["В-0"]["days"], 1)) > 0.05:
+    problems.append("носитель: сумма с В-0 ≠ сумма области + В-0")
+if not waves["В-0"].get("line_kind") or "пилот ревизии" not in waves["В-0"]["line_kind"]:
+    problems.append("носитель: В-0 не назван отдельной строкой (line_kind пуст)")
+
+# (0г) календарь: даты выводятся из длительностей по объявленному правилу
+start = date.fromisoformat(C["start"]["date"])
+deadline = date.fromisoformat(C["deadline"]["date"])
+cursor = start
+for row in C["waves"]:
+    if row["derived"]:
+        cursor = cursor + timedelta(days=math.ceil(row["days"] - 1e-9))
+    if row["finish"] != cursor.isoformat():
+        problems.append(f"носитель: {row['wave']} финиш {row['finish']} ≠ расчёта {cursor.isoformat()}")
+if C["waves"][0]["finish"] != C["start"]["date"]:
+    problems.append("носитель: якорь календаря ≠ финиш В-0 (В-0 должен начинаться с якоря)")
+if C["area_finish"] != C["waves"][-1]["finish"]:
+    problems.append("носитель: финиш области ≠ финиша последней волны области")
+fin = date.fromisoformat(C["area_finish"])
+if C["buffer_days"] != (deadline - fin).days - 1:
+    problems.append(f"носитель: буфер {C['buffer_days']} ≠ (1.11 − финиш) − 1 = {(deadline - fin).days - 1}")
+if C["within_deadline"] != (fin <= deadline):
+    problems.append("носитель: within_deadline не совпадает с финишем против даты 1.11")
+
+NUM = re.compile(r"\d+(?:[.,]\d+)?")
+
+
+def first_num(cell):
+    """Первое число ячейки и его точность записи (знаков после запятой)."""
+    m = NUM.search(cell.replace(" ", "").replace(" ", ""))
+    if not m:
+        return None
+    raw = m.group(0).replace(",", ".")
+    dec = len(raw.split(".")[1]) if "." in raw else 0
+    return float(raw), dec
+
+
+def agrees(value_dec, target):
+    value, dec = value_dec
+    return abs(round(target, dec) - value) < 10 ** (-dec - 6)
+
+
+def sum_label(part):
+    """Подпись суммы выводится из состава: «В-1…В-4», «В-0…В-4»."""
+    return f"{part['waves'][0]}…{part['waves'][-1]}"
+
+
+def scan_rows(path, labels, sum_labels=()):
+    """Строки волн вида `| **В-N** | …` (или `| **В-N** — …` в бэклоге): первое
+    число второй ячейки; строки сумм — по подписи из носителя. Заголовки вида
+    `| **В-1.** …` строками волн НЕ считаются."""
+    hits = {w: [] for w in labels}
+    totals = {lab: None for lab in sum_labels}
+    for ln in open(path, encoding="utf-8").read().split("\n"):
+        m = re.match(r"^\|\s*\*\*(В-[0-5])\*\*\s*[|—]", ln)
+        if m and m.group(1) in hits:
+            cell = ln.strip().strip("|").split("|")[1]
+            n = first_num(cell)
+            if n:
+                hits[m.group(1)].append(n)
+        for lab in sum_labels:
+            if re.match(r"^\|\s*\*\*" + lab + r"\*\*\s*[|—]", ln):
+                cell = ln.strip().strip("|").split("|")[1]
+                n = first_num(cell)
+                if n:
+                    totals[lab] = n
+    return hits, totals
+
+
+def scan_dates(path, labels):
+    """Строки волн с датой в ТРЕТЬЕЙ ячейке (§5.2): {волна: [даты]}."""
+    out = {w: [] for w in labels}
+    for ln in open(path, encoding="utf-8").read().split("\n"):
+        m = re.match(r"^\|\s*\*\*(В-[0-5])\*\*\s*[|—]", ln)
+        if not m or m.group(1) not in out:
+            continue
+        cells = ln.strip().strip("|").split("|")
+        if len(cells) < 3:
+            continue
+        dm = re.search(r"\b\d{2}\.\d{2}\.\d{4}\b", cells[2])
+        if dm:
+            out[m.group(1)].append(dm.group(0))
+    return out
+
+
+area_labels = [sum_label(s["area_v1_v4"]), sum_label(s["with_v0"])]
+
+# План: волны В-0…В-5 и обе суммы области
+hits, totals = scan_rows(plan, list(waves), area_labels)
+for w, x in waves.items():
+    if not hits[w]:
+        problems.append(f"план: волна {w} не названа числом в §5.1а (нет строки «| **{w}** |»)")
+    elif not any(agrees(h, x["days"]) for h in hits[w]):
+        problems.append(f"план: волна {w} — числа {[h[0] for h in hits[w]]} "
+                        f"не сходятся с носителем ({x['days']})")
+    for h in hits[w]:
+        if not agrees(h, x["days"]):
+            problems.append(f"план: строка волны {w} несёт {h[0]}, а носитель — {x['days']}")
+for lab in area_labels:
+    part = s["area_v1_v4"] if lab == area_labels[0] else s["with_v0"]
+    if totals[lab] is None:
+        problems.append(f"план: сумма {lab} не названа в §5.1а (нет строки «| **{lab}** |»)")
+    elif not agrees(totals[lab], part["days"]):
+        problems.append(f"план: сумма {lab} = {totals[lab][0]} ≠ носителя {part['days']}")
+# В-0 отдельной строкой — это решение, и оно проверяется словом в тексте, а не глазами
+plan_text = open(plan, encoding="utf-8").read()
+for needle in ("отдельная строка", "пилот ревизии"):
+    if needle not in plan_text:
+        problems.append(f"план: В-0 не назван отдельной строкой («{needle}» в §5.1а нет)")
+
+# Дата области — в §5.2, и она обязана быть датой носителя
+doc_dates = scan_dates(plan, list(waves))
+for row in C["waves"]:
+    w, want = row["wave"], iso_to_ru(row["finish"])
+    if not doc_dates[w]:
+        problems.append(f"план §5.2: волна {w} не названа датой")
+    elif not any(x == want for x in doc_dates[w]):
+        problems.append(f"план §5.2: {w} — даты {doc_dates[w]} не сходятся с носителем ({want})")
+    for x in doc_dates[w]:
+        if x != want:
+            problems.append(f"план §5.2: строка {w} несёт дату {x}, а носитель — {want}")
+buf = [(w, first_num(ln.strip().strip("|").split("|")[1]))
+       for w, ln in ((w, ln) for ln in plan_text.split("\n")
+                     if re.match(r"^\|\s*\*\*Буфер\*\*\s*\|", ln))]
+if not buf or buf[0][1] is None:
+    problems.append("план §5.2: буфер не назван числом")
+elif not agrees(buf[0][1], C["buffer_days"]):
+    problems.append(f"план §5.2: буфер {buf[0][1][0]} ≠ носителя {C['buffer_days']}")
+
+# Бэклог §4б: цены отложенного — В-2, В-3, В-5
+hits_b, _ = scan_rows(backlog, ["В-2", "В-3", "В-5"])
+for w in ("В-2", "В-3", "В-5"):
+    if not hits_b[w]:
+        problems.append(f"бэклог §4б: волна {w} не названа числом")
+    elif not any(agrees(h, waves[w]["days"]) for h in hits_b[w]):
+        problems.append(f"бэклог §4б: волна {w} — числа {[h[0] for h in hits_b[w]]} "
+                        f"не сходятся с носителем ({waves[w]['days']})")
+
+if problems:
+    for p in problems:
+        print("  ✗", p)
+    sys.exit(1)
+print("   цены волн: носитель самосогласован; цена eval-руки — одно правило "
+      f"({declared['id']}), плоское отвергнуто с причиной; "
+      f"план §5.1а/§5.2 и бэклог §4б называют ЕГО числа и даты "
+      f"({', '.join(w + ' ' + str(waves[w]['days']) for w in ('В-0', 'В-1', 'В-2', 'В-3', 'В-4', 'В-5'))}; "
+      f"суммы {s['area_v1_v4']['days']} / {s['with_v0']['days']}; "
+      f"финиш {C['area_finish']}, буфер {C['buffer_days']} сут)")
+PYS3BL
+expect_exit 0 "цены волн и даты: текст §5.1а/§5.2 и §4б совпадает с носителем (не расходится)" \
+  python3 "$CHKW" evidence/ladder-axis-arithmetic.json docs/specs/LADDER-FULL-PLAN.md docs/specs/WORK-BACKLOG.md
+
+MUTW="$TMP/s3bl-wave-cost-mutate.py"
+cat > "$MUTW" <<'PYS3BL'
+"""Мутации: подмена числа в плане / в бэклоге / в носителе, ДАТЫ в плане, СУММЫ в
+плане, ПРАВИЛА цены в носителе, ДАТЫ в носителе. Каждая обязана краснеть."""
+import json, re, sys
+
+kind, new, src, dst = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+NUM = re.compile(r"\d+(?:[.,]\d+)?")
+
+
+def row_line(ln, wave):
+    return re.match(r"^\|\s*\*\*" + wave + r"\*\*\s*[|—]", ln)
+
+
+def mutate_wave_row(path, wave, new=None, cell_index=1, date=None):
+    lines = open(path, encoding="utf-8").read().split("\n")
+    for i, ln in enumerate(lines):
+        if not row_line(ln, wave):
+            continue
+        cells = ln.strip().strip("|").split("|")
+        if date is not None:
+            if not re.search(r"\b\d{2}\.\d{2}\.\d{4}\b", cells[cell_index]):
+                continue
+            cells[cell_index] = re.sub(r"\b\d{2}\.\d{2}\.\d{4}\b", date, cells[cell_index], count=1)
+        else:
+            m = NUM.search(cells[cell_index])
+            assert m, f"в строке {wave} нет числа"
+            cells[cell_index] = cells[cell_index].replace(m.group(0), new, 1)
+        lines[i] = "|" + "|".join(cells) + "|"
+        open(path, "w", encoding="utf-8").write("\n".join(lines))
+        return
+    raise AssertionError(f"строка волны {wave} не найдена")
+
+
+if kind == "plan":
+    mutate_wave_row(src, "В-2", new=new)                 # 45,2 → подмена
+elif kind == "plan_date":
+    mutate_wave_row(src, "В-1", cell_index=2, date=new)  # 12.10.2026 → подмена
+elif kind == "backlog":
+    mutate_wave_row(src, "В-3", new=new)                 # 70,4 → подмена
+elif kind == "plan_sum":
+    d = json.load(open("evidence/ladder-axis-arithmetic.json", encoding="utf-8"))
+    a = d["wave_cost"]["sums"]["area_v1_v4"]["waves"]
+    label = f"{a[0]}…{a[-1]}"                            # подпись берётся из носителя, не из теста
+    mutate_wave_row(src, label, new=new)                 # 137,2 → подмена
+elif kind == "carrier":
+    d = json.load(open(src, encoding="utf-8"))
+    d["wave_cost"]["waves"][2]["days"] = float(new.replace(",", "."))   # waves[2] — волна В-2
+    json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False)
+    sys.exit(0)
+elif kind == "carrier_rule":
+    d = json.load(open(src, encoding="utf-8"))
+    d["wave_cost"]["waves"][1]["eval"]["rule_id"] = "flat_0_5b_calibration"  # возврат к плоской
+    json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False)
+    sys.exit(0)
+elif kind == "carrier_date":
+    d = json.load(open(src, encoding="utf-8"))
+    cal = d["wave_cost"]["calendar"]
+    cal["waves"][1]["finish"] = new                      # дата носителя правится, план — нет
+    json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False)
+    sys.exit(0)
+else:
+    raise SystemExit(f"неизвестная мутация {kind}")
+if dst != src:
+    import shutil
+    shutil.copy(src, dst)
+PYS3BL
+# Мутант обязан (а) примениться и (б) сделать проверку КРАСНОЙ. Проверяются обе
+# стороны: если мутатор упадёт (2) или проверка останется зелёной (3) — это FAIL,
+# а не «мутация сработала». Мутация «carrier_date» правит дату В НОСИТЕЛЕ, а план
+# держит прежнюю: красным обязан стать план — иначе дата не проверяется вовсе.
+for spec in "plan 46,2" "plan_date 05.11.2026" "backlog 71,4" "plan_sum 999,9" \
+            "carrier 99,9" "carrier_rule x" "carrier_date 2026-10-13"; do
+  kind="${spec%% *}"; num="${spec##* }"
+  cp docs/specs/LADDER-FULL-PLAN.md "$TMP/s3bl-plan-$kind.md"
+  cp docs/specs/WORK-BACKLOG.md "$TMP/s3bl-backlog-$kind.md"
+  cp evidence/ladder-axis-arithmetic.json "$TMP/s3bl-carrier-$kind.json"
+  case "$kind" in
+    backlog) src="$TMP/s3bl-backlog-$kind.md" ;;
+    carrier|carrier_rule|carrier_date) src="$TMP/s3bl-carrier-$kind.json" ;;
+    *) src="$TMP/s3bl-plan-$kind.md" ;;
+  esac
+  expect_exit 1 "цены волн: мутация «$kind» краснеет, а не проходит" \
+    bash -c "python3 '$MUTW' '$kind' '$num' '$src' '$src' || exit 2; \
+      python3 '$CHKW' '$TMP/s3bl-carrier-$kind.json' '$TMP/s3bl-plan-$kind.md' \
+        '$TMP/s3bl-backlog-$kind.md' && exit 3; exit 1"
 done
 
 echo "== 45. S3bh: ворота поддержки qwen3_5 — три состояния и отвязка от чужой лесенки =="
