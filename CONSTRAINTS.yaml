@@ -653,3 +653,21 @@ constraints:
     severity: medium
     owner: "solution-архитектор AI/ML"
     expiry: "2027-03-23"
+
+  # --- DEF-3: сторож размера файлов src/ --------------------------------------
+  # Введён при декомпозиции main.rs (2026-10-05, ветка refactor/def3-main-decomp):
+  # файл src/ целиком (wc -l, строки тестов не вычитаются) ≤ 5000 строк.
+  # Декларативного типа «число строк» у движка нет — механика через
+  # command_succeeds (как C-34/C-35). Фильтр `$2 ~ /^src\//` отсекает итоговую
+  # строку wc в любой локали («total»/«итого»). Режим аудита (medium = warn):
+  # на дате введения выше порога control.rs (7290), harness.rs (5377),
+  # tui/render.rs (5133) — задокументированные следующие кандидаты DEF-3;
+  # warn — измеримый след, а не блокировка (прецедент C-39).
+  - id: C-40
+    name: src_file_line_budget
+    type: command_succeeds
+    command: 'test -z "$(find src -name ''*.rs'' -type f -exec wc -l {} + | awk ''$1 > 5000 && $2 ~ /^src\//'')"'
+    timeout_secs: 60
+    severity: medium
+    owner: "solution-архитектор AI/ML"
+    expiry: "2027-10-05"

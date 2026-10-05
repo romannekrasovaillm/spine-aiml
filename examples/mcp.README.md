@@ -1,15 +1,15 @@
 # MCP-серверы харнесса (mcp.json)
 
 `mcp.example.json` — образец конфигурации MCP-серверов в формате Claude Code
-(`{"mcpServers": {name: {command, args, env}}}`). Команда `arch-be init` кладёт
-его как `~/.arch-harness/mcp.json`; путь переопределяется в `config.toml`
+(`{"mcpServers": {name: {command, args, env}}}`). Команда `arch-ml init` кладёт
+его как `~/.arch-ml/mcp.json`; путь переопределяется в `config.toml`
 секцией `[mcp] servers_file`.
 
 ## Состав образца
 
 - **filesystem** — доступ к файлам в указанном корне (в образце —
   `/home/user/Документы`, плейсхолдер). ВНИМАНИЕ: аргументы передаются процессу
-  без shell, тильда НЕ раскрывается — после `arch-be init` замените этот путь
+  без shell, тильда НЕ раскрывается — после `arch-ml init` замените этот путь
   на свой реальный абсолютный и сузьте корень до нужного каталога (принцип
   минимальных прав).
 - **fetch** — загрузка веб-страниц через MCP (альтернатива встроенному
@@ -25,8 +25,8 @@
 ## Проверка
 
 ```bash
-arch-be mcp list                    # серверы и их инструменты (server__tool)
-arch-be mcp call fetch__fetch '{"url": "https://example.org"}'
+arch-ml mcp list                    # серверы и их инструменты (server__tool)
+arch-ml mcp call fetch__fetch '{"url": "https://example.org"}'
 ```
 
 ## Замечания по безопасности

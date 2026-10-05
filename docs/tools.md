@@ -7,7 +7,8 @@
 (они же отдаются модели в `ToolSpec::description`).
 
 Реализация: ядро — `src/tools/`, доменные — по модулям (`mermaid::tools()`,
-`rubric::tools()`, …), реестр — `src/tool.rs` (`ToolRegistry`).
+`rubric::tools()`, …), реестр собирается в `src/tools.rs::full_registry`
+(тип `ToolRegistry` — `src/tool.rs`).
 
 Общие правила:
 
@@ -64,8 +65,11 @@
 | `computer_*` / `window_focus` / `browser_*` | Воздействие: мышь, клавиатура, браузер (CDP). Выключено по умолчанию, класс `Destructive` — см. ADR-041 |
 | `skill_search` / `skill_load` / `plugin_list` | Библиотека методик (плагины) — поиск и подгрузка в контекст |
 | `skill_distill` | Дистилляция статьи/конспекта в новый скилл библиотеки |
+| `playbook_graduate` | Градация вызревшего playbook в скилл по правилу трёх повторений (механический порог) |
+| `concept_search` / `route_expert` | Доменная база концептов Ариадны и роутер экспертных моделей — регистрируются только при `[concept].enabled = true` |
 | `handoff_create` / `harness_run` | Передача контекста кодовому харнессу и прогон исполнителя |
 | `fleet_plan` | План флота кодовых агентов (ADR-042): паттерн оркестрации разворачивается в граф узлов и исполняется волнами с механическими гейтами; мерж в main инструмент не делает (только `arch-ml fleet merge --owner-approve`). CLI: `arch-ml fleet plan propose\|validate\|show`, `fleet run --plan`, `fleet resume` | `op`* — `propose`/`validate`/`show`/`run`/`resume`; `plan_path` — файл плана; `repo`; `pattern` (для propose); `run_id` (для resume); `force_rerun`; `mermaid` |
+| `fleet_run` | Прогон флота кодовых харнессов по декомпозированному пакету work-items: детерминированный роутер назначает items агентам (capability × load × route/risk × cost), живой стрим событий в `state/fleet/<run-id>.jsonl`; `background=true` — фоновый прогон (задача `flt-*`). CLI: `arch-ml fleet run --items-file` (legacy-веер) |
 | `fleet_audit` | SSOT-аудит флота worktree: точные дубли и дрейф копий спайна (модель 5.2) |
 | `agentsmd_generate` / `agentsmd_lint` | AGENTS.md для репозиториев команд + дрейф-контроль |
 
@@ -139,6 +143,7 @@ ralph-циклы — `~/.arch-ml/reports/ralph/<id>/` (`round-NN.md`,
 | `skill_load` | Полный текст скилла по точному имени (+список `references/`) | `name`* |
 | `plugin_list` | Состав плагинов: скиллы, MCP, субагенты, хуки | — |
 | `skill_distill` | Дистилляция материала (статья/конспект) в новый `SKILL.md` библиотеки | `name`* (→ kebab-case), `content`* (≥200 символов); `plugin` (по умолчанию `arch-distilled`) |
+| `playbook_graduate` | Градация вызревшего playbook в Agent Skill по правилу трёх повторений: готовность проверяется механически (uses ≥ 3, шаги не менялись с последнего применения, есть секция «Методика», `skill_candidate` не false); пишет `plugins/<plugin>/skills/<slug>/SKILL.md` и помечает playbook `status: graduated` / `graduated_to` (файл остаётся историей); при невыполненном пороге — отказ | `name`* — slug playbook (имя файла без .md); `plugin` (без него — поиск по каталогам плагинов) |
 
 - `skill_distill` сначала читает источник (`read_file`/`web_fetch`), потом
   зовёт модель с промптом `skill_distiller`. Managed-зона `arch-distilled`
@@ -192,6 +197,18 @@ Archify CLI (`schemaVersion: 1`) — точка машинного потреб�
 
 Дисциплина фактуры: версии/статусы технологий — только через `web_fetch`
 по первоисточнику; не проверено — пометка `[ТРЕБУЕТ ПРОВЕРКИ]`.
+
+## Доменная база концептов (Ариадна)
+
+Внешняя база ML-концептов и детерминированный роутер экспертных моделей.
+Оба инструмента — опт-ин: регистрируются только при `[concept].enabled = true`
+(индекс — `[concept].index`); при выключенном гейте агент их не видит вовсе.
+CLI-эквивалент роутера — `arch-ml ariadna <вопрос>`.
+
+| Инструмент | Назначение | Параметры |
+|---|---|---|
+| `concept_search` | Типизированный поиск по базе концептов Ариадны: `resolve` (термин → slug), `lookup` (по slug), `neighbors` (смежность), `search` (по слагу/заголовку с фасетами type/level/formality/family), `stats` | `op` (`resolve`\|`lookup`\|`neighbors`\|`search`\|`stats`, по умолчанию `resolve`); `term`; `query`; `direction` (`in`\|`out`\|`both`); фасеты `type`, `level` (α\|β\|γ), `formality` (A\|B\|C), `family` |
+| `route_expert` | Детерминированный выбор экспертной модели Ariadna для доменного ML/AI-вопроса: `v10` (базовый термин), `v1` (редкий), `both` (критичный), `frontier` (эскалация к фронтиру при недетерминации, H0.4). Возвращает модель и причину — назначает роутер, а не модель | `question`* — один атомарный доменный вопрос |
 
 ## Наблюдение за экраном и изображения (vision)
 
@@ -284,6 +301,7 @@ CDP-хелпер (`assets/computer/cdp.mjs`, Node ≥ 18) встроен в би
 |---|---|---|
 | `handoff_create` | Handoff-пакет `.arch-handoff/` (TASK.md, ARCHITECTURE.md, CONSTRAINTS.yaml, SPEC.md — шаблон верифицируемых контрактов интерфейсов, MANIFEST.json, adr/) для кодового харнесса; предгейт: гарантирует git-репозиторий и baseline-коммит (якорь отката); TASK.md включает план отката и требование финального коммита | `repo`*, `task`*; `spec` — массив путей к спекам/ADR; `rollback` — явный план отката; `route` (`fast`/`standard`/`critical`) — рекомендованный таймаут прогона 1800/3600/7200 с (в MANIFEST, подхватывает `harness_run`) |
 | `harness_run` | Прогон пакета кодовым харнессом через настроенный адаптер (stdin/flag/positional, env): абсолютный потолок 30 мин + таймаут тишины 10 мин (heartbeat по mtime репо), прерывание убивает всю процессную группу, частичный вывод возвращается; JSON-контракт результата разбирается механически (валидация схемы, эскалация blocked/conflicts/open_questions); авто-коммит незакоммиченного хвоста исполнителя. `background=true` — фоновый прогон: немедленный возврат (задача `hr-*` в общем реестре фоновых задач, видна в `subagent_list`), агент остаётся доступным пользователю, результат — через `subagent_result` (в TUI о завершении агент уведомляется автоматически: отчёт приходит отдельным ходом), полный лог — `reports/harness/<id>.log`; прерывание хода (Esc/Alt+Enter) фоновый прогон не затрагивает. Не путать с bash — там квотинг ломает промпт, потолок 1800 с и нет heartbeat | `harness`* (claude-code, qwen-code, openclaw, hermes, theseus, codewhale, kimi-code), `repo`*; `task` (иначе `<repo>/.arch-handoff/TASK.md`); `timeout_secs`; `background` |
+| `fleet_run` | Прогон флота кодовых харнессов по декомпозированному пакету: назначает work-items агентам детерминированным роутером (capability × load × route/risk × cost) и гонит конкурентно, пиша живой append-only стрим событий в `state/fleet/<run-id>.jsonl` (полный stdout агента — в per-agent лог на диске, в стрим — компакт); управление — control-канал `control.jsonl`. `background=true` — немедленный возврат (задача `flt-*`), результат — через `subagent_result`. Вызывай после декомпозиции handoff-пакета на независимые items; CLI-эквивалент — `arch-ml fleet run --items-file` (legacy-веер) | `repo`*, `items`* — массив `{id, spec, required_skills[], tags[], route(fast\|standard\|critical), domain, effort}`; `package` — метка пакета для журнала; `background` |
 
 Харнессы: Claude Code, Qwen Code, OpenClaw, Hermes, Theseus, CodeWhale —
 `docs/harness_integrations.md`. Прогон пакета также доступен из CLI —

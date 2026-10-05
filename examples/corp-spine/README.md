@@ -7,9 +7,9 @@
 Прогон из корня этого репозитория:
 
 ```bash
-arch-be control check examples/corp-spine/product \
+arch-ml control check examples/corp-spine/product \
   --constraints examples/corp-spine/product/CONSTRAINTS.yaml
-arch-be control report examples/corp-spine/product \
+arch-ml control report examples/corp-spine/product \
   --constraints examples/corp-spine/product/CONSTRAINTS.yaml --level corp --json
 ```
 

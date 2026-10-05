@@ -41,7 +41,7 @@ pub struct RepoFacts {
     pub spine: Option<PathBuf>,
     /// Каталог ADR + число файлов.
     pub adr: Option<(PathBuf, usize)>,
-    /// CONSTRAINTS.yaml (если есть — .arch-handoff или docs).
+    /// CONSTRAINTS.yaml (если есть — .arch-handoff, docs или корень репо).
     pub constraints: Option<PathBuf>,
 }
 
@@ -198,7 +198,13 @@ pub fn scan_repo(repo: &Path) -> Result<RepoFacts> {
             break;
         }
     }
-    for c in [".arch-handoff/CONSTRAINTS.yaml", "docs/CONSTRAINTS.yaml"] {
+    // Порядок как у fitness-гейта: .arch-handoff — каноничная копия handoff,
+    // корневой CONSTRAINTS.yaml — fallback (dogfood-набор этого репо).
+    for c in [
+        ".arch-handoff/CONSTRAINTS.yaml",
+        "docs/CONSTRAINTS.yaml",
+        "CONSTRAINTS.yaml",
+    ] {
         if repo.join(c).is_file() {
             facts.constraints = Some(repo.join(c));
             break;
@@ -753,6 +759,21 @@ mod tests {
         assert!(facts.spine.is_some());
         assert_eq!(facts.adr.as_ref().map(|(_, n)| *n), Some(1));
         assert!(facts.constraints.is_some());
+    }
+
+    #[test]
+    fn scan_finds_root_constraints_as_fallback() {
+        let tmp = tempfile::tempdir().expect("tmp");
+        let repo = fixture_repo(tmp.path());
+        // Убираем .arch-handoff-копию: остаётся только корневой CONSTRAINTS.yaml.
+        std::fs::remove_file(repo.join(".arch-handoff/CONSTRAINTS.yaml")).expect("rm");
+        std::fs::write(
+            repo.join("CONSTRAINTS.yaml"),
+            "rules:\n  - name: no-unsafe\n    type: must_not_contain\n    glob: \"src/**\"\n    pattern: 'unsafe'\n    severity: error\n",
+        )
+        .expect("root constraints");
+        let facts = scan_repo(&repo).expect("scan");
+        assert_eq!(facts.constraints, Some(repo.join("CONSTRAINTS.yaml")));
     }
 
     #[test]

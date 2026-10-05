@@ -148,8 +148,10 @@ The full tour (RU + EN, mechanism by mechanism) lives in
   contract, smart timeouts, rollback rehearsal at gate A4, auto-commit;
   process or ACP (Agent Client Protocol, ADR-049) transport with live
   tool/plan/usage projection and session pinning by alias.
-- **MCP server** `arch-ml mcp serve`: 34 architecture-control tools exposed
-  to coding agents — a verdict at code-writing time.
+- **MCP server** `arch-ml mcp serve`: 10 architecture-control tools exposed
+  to coding agents — a verdict at code-writing time (`spine_lint`,
+  `fitness_check`, `significance_score`, `trace_check`, `model_query`,
+  `rubric_run`, `kb_search`, `skill_search`, `skill_load`, `mermaid_render`).
 - **SDKs**: thin Python/Rust/Java clients over the headless CLI
   (`sdk/CONTRACT.md`).
 - **TUI**: Tokyo Night, mermaid art on a side tab, mouse selection with
@@ -176,6 +178,7 @@ arch-ml [--config <path>] <command>   # no command — TUI
 | `model validate/graph/export` · `trace check` · `nfr …` | Typed architecture model, traceability, quantitative NFRs |
 | `handoff` · `harness-run` · `worktree …` · `fleet …` | Handing work to coding harnesses, isolation, fleets |
 | `weights list/verify` · `data-card check` · `trajectory metrics` | Weights/dataset registry and eval metrics (ADR-044) |
+| `preflight` · `resources` · `experiment` · `ariadna` | Pre-flight gate for ML experiments before renting GPUs (ML-08), resource inventory, run provenance, expert-model router |
 | `agents-md refresh/lint` · `survey` · `delta …` · `openspec …` | AGENTS.md for team repos, reverse discovery, delta specs |
 | `doctor` · `metrics` · `evidence pack/verify` | Diagnostics, KPIs, audit trail |
 

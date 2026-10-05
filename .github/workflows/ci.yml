@@ -140,18 +140,23 @@ jobs:
       - name: identity guard (AI/ML Edition)
         # Публикационная идентичность (ревью 2026-09-22): термины банковской
         # редакции запрещены вне allowlist ниже. Allowlist — легитимные места:
-        # история форка (NOTICE/AGENTS/ADR/CHANGELOG), домен кейсов (кейсы/),
-        # контрактные имена SDK (sdk/), сгенерированные диаграммы (diagrams/),
-        # закрытая зона форка (banking/, experiments/ — в публичный снапшот
-        # не входят), сам workflow.
+        # история форка (NOTICE/AGENTS/ADR/CHANGELOG, aiml/README.md), домен
+        # кейсов (кейсы/), контрактные имена SDK (sdk/), сгенерированные
+        # диаграммы (diagrams/), закрытая зона форка (banking/, experiments/ —
+        # в публичный снапшот не входят), сам workflow.
+        # Голый бинарь `arch-be` (с границами — чтобы не цеплять
+        # `platformv-arch-bench`/`arch-be-linux-*`): легитимен только в
+        # истории форка и в benchmarks/**, где arch-be — измеряемый харнесс
+        # банковской редакции (раннеры зовут его из PATH).
         run: |
-          hits=$(git grep -nIE "Banking Edition|Spine-BE([^_A-Za-z]|$)|[Бб]анковск(ая|ий) редакц" -- . \
+          hits=$(git grep -nIE "Banking Edition|Spine-BE([^_A-Za-z]|$)|[Бб]анковск(ая|ий) редакц|(^|[^A-Za-z0-9_-])arch-be([^A-Za-z0-9_-]|$)" -- . \
             ":(exclude).github/workflows/ci.yml" ":(exclude).github/workflows/sdk.yml" \
             ":(exclude)NOTICE.md" ":(exclude)CHANGELOG.md" ":(exclude)AGENTS.md" \
             ":(exclude)AGENTS-READERS.md" ":(exclude)LICENSE.banking" \
             ":(exclude)ARCHITECTURE-SPINE-BE.md" ":(exclude)banking/**" \
             ":(exclude)кейсы/**" ":(exclude)docs/adr/**" ":(exclude)docs/diagrams/**" \
-            ":(exclude)experiments/**" ":(exclude)sdk/**" || true)
+            ":(exclude)experiments/**" ":(exclude)sdk/**" ":(exclude)benchmarks/**" \
+            ":(exclude)aiml/README.md" || true)
           if [ -n "$hits" ]; then echo "$hits"; exit 1; fi
           echo "identity guard: чисто"
 

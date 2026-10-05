@@ -233,6 +233,10 @@ CI-шаг (условный): `arch-ml control check . --json > fitness-report.j
 | `arch-ml weights list\|verify [--manifest F] [--json]` | Реестр артефактов ML (`artifacts.yaml`): список / механическая сверка с ФС — регулярный файл при `kind=weights\|dataset` → Fail «копия в рабочем дереве» (C-032/C-033), `sha256` сверяется через `sha256sum` | сводка `ok/warn/fail` по артефактам; с `--json` — машинный отчёт | 0 — ни одного `Fail`; 1 — есть `Fail` (отчёт напечатан, ошибка — в stderr) | ADR-044 |
 | `arch-ml data-card check [--cards F\|D] [--dataset P] [--strict]` | Карточки датасетов: обязательные поля (пустое — декларация-пробел, не провал) и противоречия (`sha256`/`records` при отсутствующем датасете — проверяется только с явным `--dataset`) | карточка за карточкой + итог `Карточек: N (пробелов: …, проблем: …)` | 0 — по умолчанию (даже при пробелах); 1 — `--strict` при любом пробеле или проблеме | ADR-044 |
 | `arch-ml trajectory metrics --input F [--format auto\|episode-jsonl\|session-journal\|selfplay] [--k N] [--json]` | Eval траекторий: `success_rate` по размеченным эпизодам, `ci95` — интервал Уилсона по задачам, `pass@k` — несмещённая оценка Chen et al. 2021 | метрики текстом; `--json` — машинный отчёт | 0 — посчитано; 1 — файл или формат не читается | ADR-044 |
+| `arch-ml preflight <SPEC.toml> [--example] [--json]` | Pre-flight гейт ML-эксперимента (инвариант ML-08): проверки ДО аренды GPU — ресурс, версии стека (torch × CUDA × vLLM × каркас), образ, VRAM, сбойные хосты, смета против дневного капа, seed; без сети и клауда ($0) | отчёт гейт за гейтом `ok/warn/fail`; `--json` — машинный отчёт с полем `verdict` | текстовый режим: 1 при любом Fail, иначе 0; `--json` — всегда 0 при читаемой спеке (вердикт — в поле `verdict`); 1 — спека не читается | `aiml/presets/ml-researcher/SPINE-ML.md` (ML-08) |
+| `arch-ml experiment record <SPEC.toml> [--repo P]` / `list` / `reproduce <ID>` | Provenance прогона (H1.4): манифест «что именно гоняли» (модель, стек, образ, ресурс, seed, git-коммит, драйвер) в `state/experiments/` до запуска; `reproduce` — рецепт + сверка git-дрейфа | record — путь манифеста + рецепт; reproduce — рецепт и предупреждения (`⚠ ДРЕЙФ…`) | 0 — записано/напечатано (дрейф git — предупреждение, не гейт); 1 — спека без `name`/не читается, id не найден | `aiml/presets/ml-researcher/SPINE-ML.md` (ML-08) |
+| `arch-ml resources list\|check\|recommend --params-b N [--dtype D] [--live]` | Инвентарь GPU (`[[gpus.local]]` + реестр известных устройств): `check` — живая детекция `nvidia-smi` (и SSH для удалённых) против объявленного; `recommend` — куда гнать модель: локальное железо первым, облако замыкающим | таблица устройств / отчёт `✓/✗` по вместимости | 0 — отчёт собран (недоступная детекция — строка «недоступна», не сбой); 1 — `--params-b ≤ 0` | `config.example.toml` (`[[gpus.local]]`) |
+| `arch-ml ariadna <вопрос>` | Детерминированный роутинг доменного вопроса к экспертным моделям Ariadna (v10/v1/both/frontier; эскалация к фронтиру при недетерминации — H0.4) | строка `<эксперт> — <причина>` | 0 — маршрут выбран; 1 — индекс концептов (`[concept].index`) не открывается | ADR-040 |
 
 Живые прогоны для таблицы (сводка):
 
@@ -259,6 +263,40 @@ Caused by:
   1**: `set -e`/`||`-обвязка не должна считать это потерей отчёта.
 - `archify` при провале тоже печатает JSON-receipt с `ok:false` и
   `diagnostics` в stdout — парсить можно всегда, независимо от exit.
+
+### Headless-контур ML-эксперимента (preflight → record → reproduce)
+
+Связка для CI/скриптов вокруг обучения: спецификация эксперимента
+(`SPEC.toml`, образец — `arch-ml preflight --example`) — единый вход для
+гейта и provenance:
+
+```text
+$ arch-ml preflight SPEC.toml          # гейт ДО аренды GPU (ML-08)
+arch-ml preflight — проверки до аренды GPU
+
+  ✗ versions       torch × CUDA × vLLM …  […]
+  …
+
+Итог: 1 стоп-ошибок, … предупреждений из N гейтов
+# exit 1 — красный гейт: не тратим GPU-бюджет, чиним спеку
+
+$ arch-ml experiment record SPEC.toml  # манифест provenance в state/experiments/
+Provenance записан: ~/.arch-ml/state/experiments/<id>.json
+Эксперимент: …
+…
+# exit 0 — «что именно гоняли» зафиксировано до запуска (H1.4)
+
+$ arch-ml experiment reproduce <id>    # позже: рецепт + сверка git-дрейфа
+…
+⚠ ДРЕЙФ: коммит изменился
+  записан: 40c0056…
+  сейчас:  9d1f2ab…
+# exit 0 — дрейф это предупреждение в отчёте, а не красный гейт
+```
+
+Для машинного разбора: `preflight --json` всегда возвращает 0 при читаемой
+спеке — вердикт читается из поля `verdict` (`ok`/`warn`/`fail`), поэтому в
+CI гейтом служит `jq -e '.verdict != "fail"'`, а не код выхода.
 
 ## 5. Планировщик: cron
 

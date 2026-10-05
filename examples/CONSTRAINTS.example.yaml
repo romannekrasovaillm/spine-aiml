@@ -1,4 +1,4 @@
-# CONSTRAINTS.example.yaml — пример fitness functions для `arch-be control check`.
+# CONSTRAINTS.example.yaml — пример fitness functions для `arch-ml control check`.
 #
 # Схема (src/control.rs, FitnessRule):
 #   rules:

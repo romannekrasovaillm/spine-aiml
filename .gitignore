@@ -32,7 +32,7 @@ registry-out/
 banking/demos/cli-from-claude-code/scenario1-headless/stderr.log
 
 # бинарь в deploy-kit — релиз-артефакт (GitHub Release), не для VCS
-deploy-kit/arch-be
+deploy-kit/arch-ml
 
 # Platform V arch-bench: тяжёлые прогоны (ячейки/логи) — в VCS не входят
 benchmarks/platformv-arch-bench/runs/

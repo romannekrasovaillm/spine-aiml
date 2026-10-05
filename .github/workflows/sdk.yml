@@ -1,14 +1,42 @@
 # CI для SDK и плагинов: Python/Rust/Java-клиенты (sdk/) — публичный
 # контракт (sdk/CONTRACT.md) и тесты доменных плагинов (aiml/).
 # Решения и отложенные пункты — docs/adr/ADR-005-ci-and-cli-tests.md.
+#
+# Интеграционные тесты SDK идут против РЕАЛЬНОГО бинаря arch-ml из этого же
+# коммита: джобы sdk-python/sdk-rust/sdk-java собирают его
+# (`cargo build --release`) и передают путь через SPINE_BE_BIN (§0
+# sdk/CONTRACT.md). До этого бинарь в CI не собирался, и живые тесты
+# молча скипались — контракт v1 не был защищён от дрейфа.
+# Две редакции: в публичном снапшоте (scripts/export-public.sh) эталонные
+# фикстуры §5 (banking/demos) отсутствуют — там живым тестам передаётся
+# заведомо отсутствующий путь, и харнессы скипают их сами (skip, не
+# падение) — ровно как без бинаря. В приватном монорепо фикстуры на месте,
+# и тесты идут против собранного бинаря.
+# Path-фильтры покрывают и ядро (src/**, Cargo.*, vendor/archify/**): раз
+# джобы всё равно собирают бинарь для интеграционных тестов, дрейф
+# контракта ловится на PR ядра, а не на ближайшем PR, трогающем sdk/.
 name: SDK
 
 on:
   push:
     branches: [main]
-    paths: ["sdk/**", "aiml/**", ".github/workflows/sdk.yml"]
+    paths:
+      - "sdk/**"
+      - "aiml/**"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vendor/archify/**"
+      - ".github/workflows/sdk.yml"
   pull_request:
-    paths: ["sdk/**", "aiml/**", ".github/workflows/sdk.yml"]
+    paths:
+      - "sdk/**"
+      - "aiml/**"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vendor/archify/**"
+      - ".github/workflows/sdk.yml"
   workflow_dispatch:
 
 env:
@@ -17,7 +45,10 @@ env:
 jobs:
   sdk-python:
     # Python SDK — только стандартная библиотека; матрица по поддерживаемым
-    # версиям (requires-python >= 3.10).
+    # версиям (requires-python >= 3.10). Живые тесты (test_integration.py и
+    # помеченные requires_arch_be в test_adversarial.py) скипаются без бинаря —
+    # поэтому собираем release и задаём SPINE_BE_BIN явно (conftest.py иначе
+    # ищет <repo>/target/release/arch-ml сам, но явный контракт надёжнее).
     name: sdk-python (pytest)
     runs-on: ubuntu-latest
     strategy:
@@ -25,15 +56,43 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build arch-ml (release)
+        run: cargo build --release
+      - name: archify config для живых тестов
+        # `arch-ml archify *` читает [archify].cli_path из
+        # ~/.config/arch-ml/config.toml (порядок поиска: --config →
+        # ./arch-ml.toml → ~/.config/arch-ml/config.toml, src/config.rs).
+        # В CI конфига нет — пишем минимальный с вендоренным CLI из этого же
+        # дерева. Node.js (>=18) предустановлен на GitHub-hosted runners.
+        run: |
+          mkdir -p "$HOME/.config/arch-ml"
+          {
+            echo '[archify]'
+            echo 'enabled = true'
+            echo "cli_path = \"$GITHUB_WORKSPACE/vendor/archify/bin/archify.mjs\""
+            echo 'node_bin = "node"'
+            echo 'timeout_secs = 300'
+          } > "$HOME/.config/arch-ml/config.toml"
+      - name: SPINE_BE_BIN для живых тестов
+        # Живые тесты опираются на эталонные фикстуры §5 контракта
+        # (banking/demos/cli-from-claude-code). В публичной редакции banking/
+        # не поставляется — задаём заведомо отсутствующий путь, и SDK-харнессы
+        # скипают живые тесты сами (зафиксированный skip, не падение).
+        run: |
+          if [ -f banking/demos/cli-from-claude-code/scenario3-gate/fixtures/CONSTRAINTS.yaml ]; then
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml" >> "$GITHUB_ENV"
+          else
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml.absent" >> "$GITHUB_ENV"
+            echo "::notice::фикстуры banking/demos отсутствуют (публичная редакция) — живые SDK-тесты будут пропущены"
+          fi
       - run: python -m pip install -q pytest
       - run: python -m pytest sdk/python/tests -q
 
   plugin-python:
     # Тесты доменных плагинов aiml/ (hypothesis-router: карточки гипотез,
-    # хуки, роутинг по фактам проекта).
+    # хуки, роутинг по фактам проекта). Бинарь не нужен — чистый pytest.
     name: plugin tests (hypothesis-router)
     runs-on: ubuntu-latest
     steps:
@@ -45,8 +104,10 @@ jobs:
       - run: python -m pytest aiml/plugins/hypothesis-router/tests -q
 
   sdk-rust:
-    # Rust SDK — standalone-крейт (sdk/rust несёт пустой [workspace]);
-    # live-тесты без бинаря скипаются сами.
+    # Rust SDK — standalone-крейт (sdk/rust несёт пустой [workspace]).
+    # Живые тесты (tests/live.rs и два теста в tests/adversarial.rs) ищут
+    # бинарь через SPINE_BE_BIN → PATH: собираем release монорепо и задаём
+    # переменную. Кэш — оба workspace: корень (бинарь) и sdk/rust (крейт).
     name: sdk-rust (cargo test)
     runs-on: ubuntu-latest
     steps:
@@ -54,12 +115,38 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: sdk/rust
+          workspaces: |
+            .
+            sdk/rust
+      - name: build arch-ml (release)
+        run: cargo build --release
+      - name: archify config для живых тестов
+        # См. пояснение в джобе sdk-python.
+        run: |
+          mkdir -p "$HOME/.config/arch-ml"
+          {
+            echo '[archify]'
+            echo 'enabled = true'
+            echo "cli_path = \"$GITHUB_WORKSPACE/vendor/archify/bin/archify.mjs\""
+            echo 'node_bin = "node"'
+            echo 'timeout_secs = 300'
+          } > "$HOME/.config/arch-ml/config.toml"
+      - name: SPINE_BE_BIN для живых тестов
+        # См. пояснение в джобе sdk-python.
+        run: |
+          if [ -f banking/demos/cli-from-claude-code/scenario3-gate/fixtures/CONSTRAINTS.yaml ]; then
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml" >> "$GITHUB_ENV"
+          else
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml.absent" >> "$GITHUB_ENV"
+            echo "::notice::фикстуры banking/demos отсутствуют (публичная редакция) — живые SDK-тесты будут пропущены"
+          fi
       - run: cargo test --manifest-path sdk/rust/Cargo.toml
 
   sdk-java:
-    # Java SDK — ноль внешних зависимостей, JDK 21; live-интеграции без
-    # бинаря скипаются (см. sdk/java/test.sh).
+    # Java SDK — ноль внешних зависимостей, JDK 21. Интеграционные тесты
+    # (IntegrationTest, live-часть AdversarialTest) ищут бинарь через
+    # SPINE_BE_BIN → ../../target/release/arch-ml: собираем release и задаём
+    # переменную явно.
     name: sdk-java (JDK 21)
     runs-on: ubuntu-latest
     steps:
@@ -68,4 +155,28 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build arch-ml (release)
+        run: cargo build --release
+      - name: archify config для живых тестов
+        # См. пояснение в джобе sdk-python.
+        run: |
+          mkdir -p "$HOME/.config/arch-ml"
+          {
+            echo '[archify]'
+            echo 'enabled = true'
+            echo "cli_path = \"$GITHUB_WORKSPACE/vendor/archify/bin/archify.mjs\""
+            echo 'node_bin = "node"'
+            echo 'timeout_secs = 300'
+          } > "$HOME/.config/arch-ml/config.toml"
+      - name: SPINE_BE_BIN для живых тестов
+        # См. пояснение в джобе sdk-python.
+        run: |
+          if [ -f banking/demos/cli-from-claude-code/scenario3-gate/fixtures/CONSTRAINTS.yaml ]; then
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml" >> "$GITHUB_ENV"
+          else
+            echo "SPINE_BE_BIN=$GITHUB_WORKSPACE/target/release/arch-ml.absent" >> "$GITHUB_ENV"
+            echo "::notice::фикстуры banking/demos отсутствуют (публичная редакция) — живые SDK-тесты будут пропущены"
+          fi
       - run: sdk/java/test.sh

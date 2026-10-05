@@ -144,8 +144,11 @@ flowchart TD
   результата, умные таймауты, репетиция отката на гейте A4, авто-коммит;
   транспорт process или ACP (Agent Client Protocol, ADR-049) с живой
   проекцией tool/plan/usage и закреплением сессии по алиасу.
-- **MCP-сервер** `arch-ml mcp serve`: 34 инструмента архитектурного
-  контроля наружу кодовым агентам — verdict в момент написания кода.
+- **MCP-сервер** `arch-ml mcp serve`: 10 инструментов архитектурного
+  контроля наружу кодовым агентам — verdict в момент написания кода
+  (`spine_lint`, `fitness_check`, `significance_score`, `trace_check`,
+  `model_query`, `rubric_run`, `kb_search`, `skill_search`, `skill_load`,
+  `mermaid_render`).
 - **SDK**: тонкие клиенты Python/Rust/Java поверх headless CLI
   (`sdk/CONTRACT.md`).
 - **TUI**: Tokyo Night, mermaid-арт на боковой вкладке, выделение мышью с
@@ -207,6 +210,7 @@ arch-ml [--config <path>] <command>   # без команды — TUI
 | `model validate/graph/export` · `trace check` · `nfr …` | Типизированная модель архитектуры, трассировка, количественные NFR |
 | `handoff` · `harness-run` · `worktree …` · `fleet …` | Передача работы кодовым харнессам, изоляция, флоты |
 | `weights list/verify` · `data-card check` · `trajectory metrics` | Реестр весов/датасетов и eval-метрики (ADR-044) |
+| `preflight` · `resources` · `experiment` · `ariadna` | Pre-flight гейт ML-эксперимента перед арендой GPU (ML-08), инвентарь ресурсов, provenance прогона, роутер экспертных моделей |
 | `agents-md refresh/lint` · `survey` · `delta …` · `openspec …` | AGENTS.md для репозиториев, reverse discovery, дельта-спеки |
 | `doctor` · `metrics` · `evidence pack/verify` | Диагностика, KPI, аудиторский след |
 

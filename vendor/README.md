@@ -4,7 +4,7 @@
 MIT) — Node.js CLI детерминистичного рендера диаграмм JSON IR → HTML/SVG,
 используемый интеграцией `src/archify.rs` (ADR-027): инструменты
 `archify_validate` / `archify_deliver` / `archify_compare` и
-`arch-be archify …` запускают `node <cli>` — по умолчанию путь
+`arch-ml archify …` запускают `node <cli>` — по умолчанию путь
 `vendor/archify/bin/archify.mjs` (см. `[archify].cli_path` в
 `config.example.toml`).
 
@@ -29,8 +29,8 @@ CDP-клиент). `node_modules` нужен только для переген�
 1. `git clone --depth 1 https://github.com/tt-a1i/archify /tmp/archify`
 2. `rsync -a --delete --exclude node_modules --exclude '.git*' /tmp/archify/archify/ vendor/archify/`
 3. Прогон гейтов: `node vendor/archify/bin/archify.mjs doctor`,
-   `arch-be archify validate architecture banking/plugins/ru-archify/skills/archify-diagrams/references/bank-target-landscape.architecture.json`,
-   `cargo test archify`, `arch-be control check . --constraints CONSTRAINTS.yaml`.
+   `arch-ml archify validate architecture banking/plugins/ru-archify/skills/archify-diagrams/references/bank-target-landscape.architecture.json`,
+   `cargo test archify`, `arch-ml control check . --constraints CONSTRAINTS.yaml`.
 4. Коммит с тегом версии в сообщении (см. `vendor/archify/package.json` → `version`).
 
 Текущая версия: **2.17.0-dev.1** (вендорена 2026-09-03).

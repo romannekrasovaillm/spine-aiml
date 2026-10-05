@@ -4,9 +4,9 @@
 
 ## Шаги
 
-1. Выполни: `arch-be agents-md lint-all --registry ~/.arch-harness/repos.txt` (bash).
+1. Выполни: `arch-ml agents-md lint-all --registry ~/.arch-ml/repos.txt` (bash).
    Если `repos.txt` отсутствует — сообщи status blocked и подскажи создать реестр.
-2. Для репозиториев со статусом `stale` предложи `arch-be agents-md refresh <repo>`.
+2. Для репозиториев со статусом `stale` предложи `arch-ml agents-md refresh <repo>`.
 3. Сводка: таблица «репозиторий → статус → действие»; в конце — JSON-статус.
 
 ## Формат отчёта

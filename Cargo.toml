@@ -1,6 +1,6 @@
 [package]
 name = "arch-harness"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 rust-version = "1.85"
 description = "Доменный метахарнесс AI/ML-исследователя: TUI, mermaid, рубрики, бенчмарки, MCP, интеграция кодовых харнессов"
@@ -25,7 +25,6 @@ cron-parser = "0.8"
 crossterm = { version = "0.28", features = ["event-stream"] }
 dirs = "6"
 futures = "0.3"
-pulldown-cmark = { version = "0.12", default-features = false }
 ratatui = "0.29"
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
@@ -36,13 +35,11 @@ serde_yaml_ng = "0.10"
 similar = "2"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1"
 tokio-util = "0.7"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 unicode-width = "0.2"
-unicode-segmentation = "1"
 walkdir = "2"
 zip = { version = "7.2.0", default-features = false, features = ["deflate"] }
 # tempfile в основных зависимостях: герметичный дом встроенного eval-сьюта

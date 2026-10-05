@@ -2,6 +2,88 @@
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-10-05
+
+Волна улучшений по аудиту v0.3.2: честная витрина документации,
+SDK-контракт под защитой CI, декомпозиция DEF-3, чистка зависимостей.
+
+### Исправлено
+
+- `agents-md refresh`: `scan_repo` ищет `CONSTRAINTS.yaml` и в корне репо
+  (fallback после `.arch-handoff/` и `docs/`) — раньше в клонах без
+  handoff-копии блок fitness-правил не генерировался вовсе.
+- clippy `assert_is_empty`: `assert_eq!`/`assert_ne!` против пустого среза в
+  тестах переведены на `is_empty()`-форму (новый pedantic-линт
+  rust-clippy 1.99, 41 место) — `5f6e240`.
+- Документация: README заявлял «MCP-сервер — 34 инструмента»; фактически
+  `arch-ml mcp serve` экспонирует 10 (`spine_lint`, `fitness_check`,
+  `significance_score`, `trace_check`, `model_query`, `rubric_run`,
+  `kb_search`, `skill_search`, `skill_load`, `mermaid_render`) — число и
+  перечень приведены к коду (`src/mcp_server.rs::tool_specs`).
+
+### Изменено
+
+- DEF-3: `src/main.rs` (4703 строки, 48 подкоманд) декомпозирован —
+  тонкая точка входа (52 строки) + `src/cli.rs` и 14 тематических
+  модулей `src/cli/*`; поведение команд не менялось. Добавлен сторож
+  C-40 `src_file_line_budget` (warn при файле `src/` > 5000 строк);
+  следующие кандидаты — `control.rs`, `harness.rs`, `tui/render.rs`.
+- ADR-051 (Proposed): судьба зоны `banking/` после завершения адаптации
+  AI/ML Edition — варианты архивации в релизный артефакт с SHA-256
+  (прецедент v0.2.0), пересмотра NOTICE.md, вывода banking-glob из
+  `skill_contract`; решение за владельцем.
+- ci(dogfood): скан личных путей разведён на две редакции и два объекта
+  скана — публичная редакция сканирует своё (уже санитизированное) дерево,
+  приватная — санитизированный снапшот `scripts/export-public.sh`; гейт
+  усилен проверкой самого экспортёра (`40c0056`).
+- ci(identity-guard): голый `arch-be` вне allowlist — переименованы
+  устаревшие упоминания в examples/, vendor/README.md, .gitignore.
+- Пакет «честная витрина» (только документация и метаданные):
+  `docs/features.md` — CLI-таблица дополнена командами `preflight`,
+  `resources`, `experiment`, `ariadna`, `govern`, `accept`, `survey`,
+  `publish`; `docs/headless.md` — строки и подраздел про headless-контур
+  ML-эксперимента (preflight → record → reproduce); `docs/tools.md` —
+  инструменты `fleet_run`, `playbook_graduate`, `concept_search`,
+  `route_expert` и поправка «реестр — `src/tools.rs::full_registry`»;
+  `кейсы/AGENTS.md` — бинарь `arch-ml`, реестр дополнен кейсами 011
+  `laguna-compact` и 012 `axiom`, порядок номеров исправлен;
+  `ARCHITECTURE-SPINE.md` — упоминания бинаря приведены к `arch-ml`;
+  `AGENTS.md` — сгенерированный блок обновлён (`arch-ml agents-md refresh`,
+  список fitness-правил заполнен из корневого `CONSTRAINTS.yaml` вручную:
+  генератор ищет constraints только в `.arch-handoff/` и `docs/`);
+  кейс laguna-compact: `ADR-052` переведён Proposed → Accepted
+  (ратификация 05.10.2026 — k=3 в решении п.4, семантика сида закрыта
+  `ADR-057`, дельты S3bl/S3bm выпущены в v0.3.2).
+- CI sdk.yml: джобы sdk-python/sdk-rust/sdk-java собирают реальный бинарь
+  `arch-ml` (`cargo build --release`, кэш Swatinem/rust-cache) и прогоняют
+  интеграционные тесты SDK против него (путь — через `SPINE_BE_BIN`, §0
+  sdk/CONTRACT.md; для `archify *` пишется минимальный
+  `~/.config/arch-ml/config.toml` с вендоренным CLI из `vendor/archify/`).
+  Раньше бинарь в CI не собирался, и живые тесты молча скипались —
+  контракт v1 не был защищён от дрейфа. В публичной редакции (без
+  эталонных фикстур §5 из banking/) живым тестам передаётся заведомо
+  отсутствующий путь — харнессы скипают их сами, как без бинаря.
+  Path-фильтры джоб не изменены.
+  Локальная сверка на v0.3.2+2: python 46/46, rust 34/34, java 118/118 —
+  дрейфа контракта нет, джобы оставлены строгими (без continue-on-error).
+- CI sdk.yml: path-фильтры расширены на `src/**`, `Cargo.toml`/`Cargo.lock`,
+  `vendor/archify/**` — дрейф контракта ловится на PR ядра, а не только на
+  PR в sdk/.
+- README: CLI-таблица дополнена строкой контура ML-эксперимента
+  (`preflight` / `resources` / `experiment` / `ariadna`).
+- sdk/README.md: числа «46/34/118 зелёных» дополнены честной оговоркой —
+  без бинаря живые тесты скипаются (pytest «38 passed, 8 skipped», у cargo
+  7 живых тестов зеленеют холосто, у Java 92 проверки вместо 118).
+
+### Удалено
+
+- Мёртвые зависимости `pulldown-cmark`, `tokio-stream`,
+  `unicode-segmentation`: ноль ссылок в src/, tests/, benches/, examples/,
+  sdk/, scripts/ (учтены дефисы/подчёркивания). `unicode-segmentation`
+  остаётся в Cargo.lock как транзитивная зависимость ratatui/unicode-truncate.
+  Каталог `vendor/` к cargo-крейтам отношения не имеет (вендоренный Node.js
+  движок Archify), правок не потребовалось.
+
 ## [0.3.2] — 2026-10-03
 
 Патч-релиз носителей: инструменты linki кейса laguna-compact в дереве,
